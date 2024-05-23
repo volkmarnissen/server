@@ -1,0 +1,39 @@
+filename: modbustest
+entities:
+  - id: 1
+    mqttname: text
+    converter:
+      name: text
+      functionCodes: []
+    modbusAddress: 2
+    functionCode: 21
+    converterParameters:
+      identification: ABCD
+      stringlength: 4
+i18n:
+  - lang: en
+    texts:
+      - textId: name
+        text: Modbus Test
+      - textId: e1
+        text: Text Entity
+  - lang: de
+    texts:
+      - textId: name
+        text: Modbus Test
+      - textId: e1
+        text: Text
+files:
+  - url: http://localhost:3000/specifications/files/waterleveltransmitter/test.pdf
+    fileLocation: 0
+    usage: doc
+  - url: http://localhost:3000/specifications/files/waterleveltransmitter/test2.jpg
+    fileLocation: 0
+    usage: img
+identified: 1
+version: "0.1"
+testdata: []
+status: 1
+icon: null
+model: null
+manufacturer: null

@@ -1,0 +1,32 @@
+identified: -1
+entities:
+  - id: 0
+    modbusAddress: 3
+    converter:
+      name: sensor
+      functionCodes: []
+    functionCode: 21
+    converterParameters: {}
+    mqttname: test
+i18n:
+  - lang: de
+    texts:
+      - textId: name
+        text: deletetest3
+      - textId: e0
+        text: test
+files:
+  - url: http://localhost:3000/specifications/files/deletetest3/20221110_KV212257449_00774_BescheinigungfuerdenArbeitgeberzuschuss.pdf
+    fileLocation: 0
+    usage: doc
+  - url: http://localhost:3000/specifications/files/deletetest3/IMG_ADD5A8AC8B4D-1
+      3.jpeg
+    fileLocation: 0
+    usage: img
+filename: deletetest3
+status: 2
+icon: null
+model: null
+manufacturer: null
+version: "0.1"
+testdata: []

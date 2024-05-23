@@ -1,0 +1,19 @@
+name: Deye Inverter
+entities:
+  - id: 3
+    converter: 
+      name: value
+    converterParameters:
+      value: 123456
+    modbusAddress: 3
+    functionCode: 21
+   
+files: []
+i18n:
+  - lang: "en" 
+    texts: 
+      - textId: name
+        text: Deye Inverter
+      - textId: e3
+        text: serial
+
