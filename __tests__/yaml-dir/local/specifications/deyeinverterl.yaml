@@ -1,0 +1,63 @@
+entities:
+  - id: 1
+    converter:
+      name: sensor
+
+      functionCode: []
+    modbusAddress: 4
+    functionCode: 3
+    icon: ""
+    converterParameters:
+      multiplier: 0.1
+      offset: 0
+      uom: cm
+      identification:
+        min: 9
+        max: 200
+  - id: 2
+    converter:
+      name: select_sensor
+    modbusAddress: 2
+    functionCode: 21
+    icon: ""
+    converterParameters:
+      options:
+        - key: 1
+          name: cm
+        - key: 2
+          name: mm
+        - key: 3
+          name: mPa
+i18n:
+  - lang: en
+    texts:
+      - textId: name
+        text: Deye Inverter 1
+      - textId: e0
+        text: waterlevel.uom
+      - textId: e3
+        text: current Solar Power
+      - textId: e1
+        text: selecttest
+  - lang: de
+    texts:
+      - textId: name
+        text: Deye Inverter 1
+      - textId: e1
+        text: test1
+identified: 1
+version: "0.1"
+testData:
+  - address: 4
+    value: 210
+  - address: 2
+    value: 1
+filename: deyeinverterl
+icon: null
+model: null
+manufacturer: null
+files:
+  - filename: 51WMttnsOML._AC_SX569_.jpg
+    usage: img
+  - filename: documentation.pdf
+    usage: doc

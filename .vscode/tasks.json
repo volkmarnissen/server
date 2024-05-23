@@ -1,0 +1,196 @@
+{
+  // For more information, visit: https://go.microsoft.com/fwlink/?LinkId=733558
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "npm",
+      "script": "start",
+      "isBackground": true,
+      "problemMatcher": [
+        {
+          "base": "$tsc",
+          "pattern": {
+            "regexp": "^(Error:\\s+)?([^:]*):(\\d+)[,:](\\d+)\\s-\\s(error|warning|info)\\s+TS(\\d+)\\s*:\\s*(.*)$",
+            "file": 2,
+            "line": 3,
+            "column": 4,
+            "severity": 5,
+            "code": 6,
+            "message": 7
+          }
+        },
+        {
+          "owner": "typescript",
+          "pattern": "$tsc",
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": {
+              "regexp": "(.*?)"
+            },
+            "endsPattern": {
+              "regexp": "bundle generation complete"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "npm",
+      "script": "test",
+      "isBackground": true,
+      "problemMatcher": [
+        {
+          "base": "$tsc",
+          "pattern": {
+            "regexp": "^(Error:\\s+)?([^:]*):(\\d+)[,:](\\d+)\\s-\\s(error|warning|info)\\s+TS(\\d+)\\s*:\\s*(.*)$",
+            "file": 2,
+            "line": 3,
+            "column": 4,
+            "severity": 5,
+            "code": 6,
+            "message": 7
+          }
+        },
+        {
+          "owner": "typescript",
+          "pattern": "$tsc",
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": {
+              "regexp": "(.*?)"
+            },
+            "endsPattern": {
+              "regexp": "bundle generation complete"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "npm",
+      "script": "build-dev",
+      "group": "build",
+      "problemMatcher": [
+        {
+          "base": "$tsc",
+          "pattern": {
+            "regexp": "^(Error:\\s+)?([^:]*):(\\d+)[,:](\\d+)\\s-\\s(error|warning|info)\\s+TS(\\d+)\\s*:\\s*(.*)$",
+            "file": 2,
+            "line": 3,
+            "column": 4,
+            "severity": 5,
+            "code": 6,
+            "message": 7
+          }
+        },
+        {
+          "owner": "typescript",
+          "pattern": "$tsc",
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": {
+              "regexp": "(.*?)"
+            },
+            "endsPattern": {
+              "regexp": "bundle generation complete"
+            }
+          }
+        }
+      ],
+      "label": "npm: build-dev",
+      "detail": "ng build-dev"
+    },
+    {
+      "type": "npm",
+      "script": "build",
+      "group": "build",
+      "problemMatcher": [
+        {
+          "base": "$tsc",
+          "pattern": {
+            "regexp": "^(Error:\\s+)?([^:]*):(\\d+)[,:](\\d+)\\s-\\s(error|warning|info)\\s+TS(\\d+)\\s*:\\s*(.*)$",
+            "file": 2,
+            "line": 3,
+            "column": 4,
+            "severity": 5,
+            "code": 6,
+            "message": 7
+          }
+        },
+        {
+          "owner": "typescript",
+          "pattern": "$tsc",
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": {
+              "regexp": "(.*?)"
+            },
+            "endsPattern": {
+              "regexp": "bundle generation complete"
+            }
+          }
+        }
+      ],
+      "label": "npm: build",
+      "detail": "ng build"
+    },
+    {
+      "type": "npm",
+      "script": "stop"
+    },
+    {
+      "label": "modbus2mqtt remote logs",
+      "type": "shell",
+      "command": "ssh odroid@homeassistant.fritz.box docker logs --follow modbus2mqtt",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "type": "npm",
+      "script": "ng",
+      "problemMatcher": [],
+      "label": "npm: ng",
+      "detail": "ng"
+    },
+    {
+      "label": "Start Home Assistant",
+      "type": "shell",
+      "command": "supervisor_run",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "type": "npm",
+      "script": "docker.build.copy",
+      "group": "build",
+      "problemMatcher": [],
+      "label": "npm: docker.build.copy",
+      "detail": "npm run build.dev && cd dist && tar -cf delta.tar server shared ui && scp delta.tar odroid@homeassistant.fritz.box:. && ssh odroid@homeassistant.fritz.box \" sh -c \\\" docker cp delta.tar modbus2mqtt:delta.tar  ; docker exec modbus2mqtt tar -xf /delta.tar ; cd /usbdisk/production ; . ./.env ; docker compose -f modbus2mqtt-compose.yaml restart modbus2mqtt  \\\" \" "
+    },
+    {
+      "type": "npm",
+      "script": "run.modbusserver",
+      "problemMatcher": [],
+      "label": "npm: run.modbusserver",
+      "detail": "npm run build.modbusserver  && node distsrv/runserver.js"
+    },
+    {
+      "type": "npm",
+      "script": "build.dev",
+      "group": "build",
+      "problemMatcher": [],
+      "label": "npm: build.dev",
+      "detail": "npm run build.ui.dev && npm run build.server &&npm run copy.assets"
+    }
+  ]
+}

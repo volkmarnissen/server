@@ -1,0 +1,35 @@
+filename: noFunctionCode
+entities:
+  - id: 1
+    converter: 
+      name: sensor
+    modbusAddress: 4
+    icon: ""
+    converterParameters:
+      multiplier: 0.1
+      offset: 0
+      uom: cm
+      identification:
+        min: 9
+        max: 200
+manufacturer: unknown
+model: QDY30A
+files: 
+  - filename: 51WMttnsOML._AC_SX569_.jpg
+    usage: img
+  - filename: documentation.pdf
+    usage: doc
+i18n:
+  - lang: "en" 
+    texts: 
+      - textId: name
+        text: no Function Code
+      - textId: e1
+        text: waterlevel.uom
+      - textId: e3
+        text: multiplier
+identified: 0
+version: "0.1"
+testData:
+  - address: 4
+    value: 3

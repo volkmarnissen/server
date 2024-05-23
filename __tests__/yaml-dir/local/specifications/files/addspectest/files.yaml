@@ -1,0 +1,6 @@
+- url: http://localhost:3000/specifications/files/_new/test.pdf
+  fileLocation: 0
+  usage: doc
+- url: http://localhost:3000/specifications/files/_new/test.jpg
+  fileLocation: 0
+  usage: img
