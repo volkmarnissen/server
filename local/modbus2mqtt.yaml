@@ -1,0 +1,18 @@
+version: "0.1"
+mqttbasetopic: modbus2mqtt
+mqttdiscoveryprefix: homeassistant
+mqttdiscoverylanguage: de
+mqttconnect:
+  connectTimeout: 60000
+  clientId: modbus2mqtt
+  clean: true
+  mqttserverurl: mqtt://homeassistant.fritz.box:1004
+  username: "!secret mqttuser"
+  password: "!secret mqttpassword"
+httpport: 3000
+pollintervall: 1 min
+fakeModbus: false
+filelocation: ../server/xx
+mqttusehassiotoken: false
+password: "!secret password"
+username: "!secret username"

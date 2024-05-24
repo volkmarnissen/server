@@ -5,14 +5,14 @@ import { MqttDiscover } from './mqttdiscover';
 import * as path from 'path';
 import { join } from 'path';
 import { Observable, Subject } from "rxjs";
-import { CONFIG_VERSION, getBaseFilename } from 'specification.shared';
+import {  getBaseFilename } from 'specification.shared';
 import { sign, verify } from 'jsonwebtoken';
 import * as bcrypt from "bcrypt";
 import * as http from 'http'
 import { ConfigSpecification, LogLevelEnum, Logger } from 'specification'
 import { SerialPort } from 'serialport'
 import { ImqttClient, AuthenticationErrors, IBus, Iconfiguration, IModbusConnection, Islave } from "server.shared";
-
+const CONFIG_VERSION = "0.1"
 declare global {
     namespace NodeJS {
         interface ProcessEnv {

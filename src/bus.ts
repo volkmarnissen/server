@@ -1,10 +1,10 @@
 import Debug from "debug"
 import { Observable, Subject, first } from "rxjs";
-import { ImodbusEntityIdentification, ImodbusSpecification,  SpecificationStatus } from 'specification.shared';
+import { ImodbusEntityIdentification, ImodbusSpecification,  ModbusRegisterType,  SpecificationStatus } from 'specification.shared';
 import { IdentifiedStates } from 'specification.shared';
 import { Mutex } from "async-mutex";
-import { ModbusCache } from "./modbuscache";
-import { ConverterMap, M2mSpecification } from "specification";
+import { ImodbusAddress, ModbusCache } from "./modbuscache";
+import { ConverterMap, ImodbusValues, M2mSpecification, emptyModbusValues } from "specification";
 import { Config } from "./config";
 import { Modbus } from "./modbus";
 import { submitGetHoldingRegisterRequest } from "./submitRequestMock";
@@ -20,8 +20,8 @@ const log = new Logger("bus")
 interface Iparam {
     slaves: (Islave)[],
     slaveidIdx: number,
-    allAddresses: Set<number>,
-    finishedSubject: Subject<Map<number, ReadRegisterResult>>,
+    allAddresses: Set<ImodbusAddress>,
+    finishedSubject: Subject<ImodbusValues>,
     failedFunction: (this: Bus, params: Iparam, e: any) => void,
 }
 
@@ -32,7 +32,7 @@ export interface ReadRegisterResultWithDuration extends ReadRegisterResult {
 export class Bus {
 
     private static busses: Bus[] | undefined = undefined;
-    private static allSpecificationsModbusAddresses: Set<number> | undefined = undefined
+    private static allSpecificationsModbusAddresses: Set<ImodbusAddress> | undefined = undefined
     static readBussesFromConfig(): void {
         let ibs = Config.getBussesProperties();
         if (!Bus.busses)
@@ -104,7 +104,7 @@ export class Bus {
             setTimeout(() => { subject.next() }, 2);
     }
 
-    slaves = new Map<number, Map<number, ReadRegisterResult>>()
+    slaves = new Map<number, ImodbusValues>()
     properties: IBus;
     private modbusClient: ModbusRTU | undefined
     private modbusClientTimedOut: boolean = false;
@@ -385,7 +385,7 @@ export class Bus {
     }
 
 
-    setModbusAddressesForSlave(slaveid: number, addresses: Map<number, ReadRegisterResult>) {
+    setModbusAddressesForSlave(slaveid: number, addresses: ImodbusValues) {
         if (this.slaves)
             this.slaves!.set(slaveid, addresses)
     }
@@ -394,12 +394,12 @@ export class Bus {
         if (this.slaves)
             this.slaves!.delete(slaveid)
     }
-    static getModbusAddressesForSpec(spec: IfileSpecification, addresses: Set<number>): void {
+    static getModbusAddressesForSpec(spec: IfileSpecification, addresses: Set<ImodbusAddress>): void {
         for (let ent of spec.entities) {
             let converter = ConverterMap.getConverter(ent);
-            if (ent.modbusAddress != undefined && converter && ent.functionCode)
+            if (ent.modbusAddress != undefined && converter && ent.registerType)
                 for (let i = 0; i < converter.getModbusLength(ent); i++)
-                    addresses.add(M2mSpecification.getModbusAddressFCFromEntity(ent) + i);
+                    addresses.add({address:ent.modbusAddress +i, registerType: ent.registerType });
         }
     }
     private static updateAllSpecificationsModbusAddresses(specificationid: string | null) {
@@ -418,14 +418,14 @@ export class Bus {
                 })
             })
         }
-        Bus.allSpecificationsModbusAddresses = new Set<number>();
+        Bus.allSpecificationsModbusAddresses = new Set<ImodbusAddress>();
         new ConfigSpecification().filterAllSpecifications((spec) => { Bus.getModbusAddressesForSpec(spec, Bus.allSpecificationsModbusAddresses!) });
     }
     /*
      * returns cached set of all modbusaddresses for all specifications.
      * It will be updated after any change to Config.specifications array
      */
-    private static getModbusAddressesForAllSpecs(): Set<number> {
+    private static getModbusAddressesForAllSpecs(): Set<ImodbusAddress> {
         debug('getAllModbusAddresses')
         if (!Bus.allSpecificationsModbusAddresses) {
             Bus.updateAllSpecificationsModbusAddresses(null)
@@ -437,13 +437,13 @@ export class Bus {
         log.log(LogLevelEnum.error, e)
         debug("readModbus failed slaveidx: ", param.slaveidIdx + " slaves.length:" + param.slaves.length)
         if (param.slaveidIdx < param.slaves.length)
-            this.getAvailableModusDataLocal.bind(this, param)(new Map<number, ReadRegisterResult>())
+            this.getAvailableModusDataLocal.bind(this, param)(emptyModbusValues())
         else
-            param.finishedSubject.next(new Map<number, ReadRegisterResult>());
+            param.finishedSubject.next(emptyModbusValues());
     }
-    getAvailableModusData(slaveid: number = -1): Observable<Map<number, ReadRegisterResult>> {
+    getAvailableModusData(slaveid: number = -1): Observable<ImodbusValues> {
         debug("getAvailableModusData slaveid: " + slaveid)
-        let finishedSubject = new Subject<Map<number, ReadRegisterResult>>()
+        let finishedSubject = new Subject<ImodbusValues>()
         let slave = this.getSlaveBySlaveId(slaveid)
         let slaves = this.getSlaves()
         if (slaveid != -1)
@@ -452,7 +452,7 @@ export class Bus {
             else
                 slaves = [{ slaveid: slaveid }] // The bus has no configured slave with this slaveid
         // no data available read from modbus
-        let rc = new Map<number, ReadRegisterResult>()
+        let rc = emptyModbusValues()
         let allSlaves: number[] = []
         this.getSlaves().forEach(s => { allSlaves.push(s.slaveid) })
         if (allSlaves.length >= 0) {
@@ -467,14 +467,14 @@ export class Bus {
             setTimeout(fn, 2);
         }
         else
-            setTimeout(() => { finishedSubject.next(new Map<number, ReadRegisterResult>()) }, 2)
+            setTimeout(() => { finishedSubject.next(emptyModbusValues()) }, 2)
 
         return finishedSubject.pipe(first());
     }
     /*
      * This is a recursion function. It calls itself after readingModbusRegister
      */
-    private async getAvailableModusDataLocal(parameter: Iparam, results: Map<number, ReadRegisterResult>): Promise<void> {
+    private async getAvailableModusDataLocal(parameter: Iparam, results: ImodbusValues): Promise<void> {
         debug("getAvailableModusDataLocal slaveid: " + parameter.slaves[parameter.slaveidIdx]?.slaveid + " slaveids: " + JSON.stringify(parameter.slaves))
         let b = this.getAvailableModusDataLocal.bind(this, parameter)
         let slave = parameter.slaves[parameter.slaveidIdx]
@@ -493,7 +493,7 @@ export class Bus {
 
                 let spec = ConfigSpecification.getSpecificationByFilename(slave.specification.filename)
                 if (spec) {
-                    addresses = new Set<number>()
+                    addresses = new Set<ImodbusAddress>()
                     Bus.getModbusAddressesForSpec(spec, addresses)
                 }
             }
@@ -501,7 +501,7 @@ export class Bus {
         } else
             setTimeout(() => { parameter.finishedSubject.next(results) }, 2);
     }
-    async readModbusRegister(task: string, slaveid: number, addresses: Set<number>, resultFunction: (results: Map<number, ReadRegisterResult>) => void, failedFunction: (e: any) => void) {
+    async readModbusRegister(task: string, slaveid: number, addresses: Set<ImodbusAddress>, resultFunction: (results: ImodbusValues) => void, failedFunction: (e: any) => void) {
 
         debug("readModbusRegister slaveid: " + slaveid + " addresses: " + JSON.stringify(Array.from(addresses)))
         let fn = (async () => {
@@ -611,16 +611,30 @@ export class Bus {
             this.properties.slaves.push(slave);
         return slave;
     }
-    getCachedValues(slaveid: number, addresses: Set<number>): Map<number, ReadRegisterResult> | null {
-        let rc = new Map<number, ReadRegisterResult>()
+    getCachedValues(slaveid: number, addresses: Set<ImodbusAddress>): ImodbusValues | null {
+        let rc = emptyModbusValues()
         if (this.slaves) {
             let saddresses = this.slaves.get(slaveid)
             if (saddresses)
                 for (let address of addresses) {
-                    let value = saddresses!.get(address)
+                    let value = saddresses!.holdingRegisters.get(address.address)
+                    let m = saddresses!.holdingRegisters
+                    let r = rc.holdingRegisters
+                    switch(address.registerType){
+                        case ModbusRegisterType.AnalogInputs: 
+                            m = saddresses!.analogInputs
+                            r = rc.analogInputs
+                            break;
+                            case ModbusRegisterType.Coils: 
+                            m = saddresses!.coils
+                            r = rc.coils
+                            break;
+                    }
+                    value = m.get(address.address)
+                         
                     if (value == undefined || value == null)
                         return null
-                    rc.set(address, value)
+                    r.set(address.address, value)
                 }
         }
         return rc;

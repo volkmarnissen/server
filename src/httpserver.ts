@@ -504,7 +504,7 @@ export class HttpServer {
                                     new Config().writeslave(busId, slave.slaveid, slave.specificationid, slave.name);  
                                    
                                 }
-                                }
+                                
                         }
                             
                      }

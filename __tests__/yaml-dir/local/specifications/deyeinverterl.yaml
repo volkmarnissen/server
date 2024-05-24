@@ -1,11 +1,11 @@
 entities:
   - id: 1
     converter:
-      name: sensor
-
+      name: number
       functionCode: []
     modbusAddress: 4
-    functionCode: 3
+    registerType: 3
+    readonly: 3
     icon: ""
     converterParameters:
       multiplier: 0.1
@@ -16,9 +16,10 @@ entities:
         max: 200
   - id: 2
     converter:
-      name: select_sensor
+      name: select
     modbusAddress: 2
-    functionCode: 21
+    registerType: 3
+    readonly: false
     icon: ""
     converterParameters:
       options:
@@ -48,10 +49,11 @@ i18n:
 identified: 1
 version: "0.1"
 testData:
-  - address: 4
-    value: 210
-  - address: 2
-    value: 1
+  holdingRegisters:
+    - address: 4
+      value: 210
+    - address: 2
+      value: 1
 filename: deyeinverterl
 icon: null
 model: null
