@@ -6,10 +6,10 @@
 // The requested addresses will be cumulated until a requester calls clearData for a given slave;
 import Debug from "debug"
 import { Mutex } from 'async-mutex';
-import { FCOffset, ModbusFunctionCodes } from 'specification.shared';
-import { LogLevelEnum, Logger } from "specification";
+import { IModbusData, ImodbusValues, LogLevelEnum, Logger, M2mSpecification, emptyModbusValues } from "specification";
 import { Bus, ReadRegisterResultWithDuration } from "./bus";
 import { ReadRegisterResult } from "modbus-serial/ModbusRTU";
+import { ModbusRegisterType } from "specification.shared";
 const minTimeout = 100
 const maxTimeouts = 1;
 const maxAddressDelta = 10;
@@ -36,7 +36,16 @@ export enum SlaveStates {
     disconnected = 0,
     error = -1
 }
+export interface ImodbusAddress {
+    address:number, 
+    registerType:ModbusRegisterType,
+    length?:number
+}
 
+interface IModbusProcess {
+    resultTable:Map<number, ReadRegisterResult>, 
+    func: (slaveid: number, a: number, length: number) => Promise<ReadRegisterResultWithDuration>
+}
 // 
 // normal state/action flow
 // loadAction => RequestLoaded => prepareAddressesAction => connectAction => Connected => 1..n time processAction  => closeAction => Result => processResultAction => Finished => Initial
@@ -55,8 +64,8 @@ export class ModbusStateMachine {
     private static slaveStates = new Map<number, SlaveStates>();
     private state: ModbusStates = ModbusStates.Initial;
     private pid!: number;
-    private result = new Map<number, ReadRegisterResult>();
-    private preparedAddresses: { address: number, length: number }[] = [];
+    private result = emptyModbusValues();
+    private preparedAddresses: ImodbusAddress[] = [];
     private preparedAddressesIndex = 0;
     private retryCount = 0;
     private timeoutCount = 0
@@ -66,7 +75,7 @@ export class ModbusStateMachine {
     }
     private write: boolean = false
     private retryConnectCount = 0;
-    constructor(private task: string, private slaveId: IslaveId, private addresses: Set<number>, private returnAction: (results: Map<number, ReadRegisterResult>) => void, private failedAction: (e: any) => void) {
+    constructor(private task: string, private slaveId: IslaveId, private addresses: Set<ImodbusAddress>, private returnAction: (results: ImodbusValues) => void, private failedAction: (e: any) => void) {
         this.pid = ++ModbusStateMachine.maxPid;
     }
     async next(newState: ModbusStates, action: () => void, actionName?: string) {
@@ -97,8 +106,8 @@ export class ModbusStateMachine {
         // modbusMutex must be released before waiting otherwise the first process can't fill the cache
         this.next(ModbusStates.RequestLoaded, this.prepareAddressesAction)
     }
-    prepareWriteAction(startaddress: number, data: ReadRegisterResult) {
-        this.preparedAddresses.push({ address: startaddress, length: data.data.length })
+    prepareWriteAction(startaddress: number, registerType:ModbusRegisterType, data: ReadRegisterResult) {
+        this.preparedAddresses.push({ address: startaddress, registerType:registerType ,length: data.data.length })
         this.data = data;
         this.preparedAddressesIndex = 0;
         this.write = true
@@ -108,26 +117,29 @@ export class ModbusStateMachine {
     prepareAddressesAction() {
         debugNext("ModbusStateMachine:prepareAddressesAction(" + this.slaveId.slaveid + "): addresses:" + JSON.stringify(Array.from(this.addresses.values()).sort()));
 
-        let previousAddress = -1;
-        let startAddress = -1;
-        let sortedAddresses = Array.from(this.addresses.values()).sort(function (a, b) {
-            return a - b;
+        let previousAddress = { address: -1, registerType: ModbusRegisterType.IllegalFunctionCode};
+        let startAddress = { address: -1, registerType: ModbusRegisterType.IllegalFunctionCode};
+        let sortedAddresses = Array.from<ImodbusAddress>(this.addresses.values()).sort(function (a, b) {
+            let v =  a.registerType - b.registerType;
+            if( v)
+                return v
+            return a.address - b.address
         })
         for (let addr of sortedAddresses) {
-            if (previousAddress == -1)
+            if (previousAddress.address == -1)
                 previousAddress = addr;
-            if (startAddress == -1)
+            if (startAddress.address == -1)
                 startAddress = addr;
-            if (addr - previousAddress > maxAddressDelta) {
-                this.preparedAddresses.push({ address: startAddress, length: previousAddress - startAddress + 1 });
+            if (addr.registerType != previousAddress.registerType || addr.address - previousAddress.address > maxAddressDelta) {
+                this.preparedAddresses.push({ address: startAddress.address, length: previousAddress.address - startAddress.address + 1 , registerType: previousAddress.registerType});
                 previousAddress = addr
                 startAddress = addr
             }
             else
                 previousAddress = addr;
         }
-        if (startAddress >= 0)
-            this.preparedAddresses.push({ address: startAddress, length: previousAddress - startAddress + 1 });
+        if (startAddress.address >= 0)
+            this.preparedAddresses.push({ address: startAddress.address, length: previousAddress.address - startAddress.address + 1 , registerType: previousAddress.registerType});
         debugData("prepareAddressesAction(" + this.slaveId.slaveid + "): " + JSON.stringify(this.preparedAddresses));
         this.preparedAddressesIndex = 0;
         this.next(ModbusStates.Prepared, this.connectAction);
@@ -156,46 +168,6 @@ export class ModbusStateMachine {
         else
             this.next(this.state, () => { this.failedAction(e) }, this.failedAction.name);
     }
-    static getWriteFunctionCode(functionCode: ModbusFunctionCodes): ModbusFunctionCodes | undefined {
-        switch (functionCode) {
-            case ModbusFunctionCodes.readWriteHoldingRegisters:
-                return ModbusFunctionCodes.writeHoldingRegisters
-            case ModbusFunctionCodes.readWriteCoils:
-                return ModbusFunctionCodes.writeCoils
-            case ModbusFunctionCodes.IllegalFunctionCode:
-                return undefined
-            default:
-                return functionCode
-        }
-    }
-
-    static getReadFunctionCode(functionCode: ModbusFunctionCodes): ModbusFunctionCodes | undefined {
-        switch (functionCode) {
-            case ModbusFunctionCodes.readWriteHoldingRegisters:
-                return ModbusFunctionCodes.readHoldingRegisters
-            case ModbusFunctionCodes.readWriteCoils:
-                return ModbusFunctionCodes.readCoils
-            case ModbusFunctionCodes.IllegalFunctionCode:
-                return undefined
-            default:
-                return functionCode
-        }
-    }
-    static getReadWriteFunctionCode(functionCode: ModbusFunctionCodes): ModbusFunctionCodes | undefined {
-        switch (functionCode) {
-            case ModbusFunctionCodes.readHoldingRegisters:
-                return ModbusFunctionCodes.readWriteHoldingRegisters
-            case ModbusFunctionCodes.readCoils:
-                return ModbusFunctionCodes.readWriteCoils
-            case ModbusFunctionCodes.readWriteHoldingRegisters:
-            case ModbusFunctionCodes.readWriteCoils:
-                return functionCode
-            case ModbusFunctionCodes.IllegalFunctionCode:
-                return undefined
-            default:
-                return undefined
-        }
-    }
 
     processAction() {
         if (this.preparedAddressesIndex >= this.preparedAddresses.length) {
@@ -209,72 +181,55 @@ export class ModbusStateMachine {
                 return;
             }
             let startAddress = this.preparedAddresses[this.preparedAddressesIndex].address;
-            let functionCode: ModbusFunctionCodes = Math.round(startAddress / FCOffset)
-            let fc: ModbusFunctionCodes | undefined = functionCode
-            let a = startAddress - FCOffset * functionCode
             let length = this.preparedAddresses[this.preparedAddressesIndex].length;
-            if (!this.write)
-                fc = ModbusStateMachine.getReadFunctionCode(functionCode)
-            else
-                fc = ModbusStateMachine.getWriteFunctionCode(functionCode)
+            let fc:number = this.preparedAddresses[this.preparedAddressesIndex].registerType
+            if (this.write)
+                 fc = M2mSpecification.getWriteFunctionCode(this.preparedAddresses[this.preparedAddressesIndex].registerType)
             if (fc == undefined) {
-                debugData("processAction:" + "No function code passed: " + functionCode)
+                debugData("processAction:" + "No function code passed: " + fc)
                 this.endProcessAction(this.processAction);
                 return;
             }
 
             let start = Date.now()
-            let msg = "(" + this.pid + "):processAction: slaveid: " + this.slaveId.slaveid + " startaddr: " + a + " l:" + length + " FC:" + fc
-            let tbl = new Map<ModbusFunctionCodes, (slaveid: number, a: number, length: number) => Promise<ReadRegisterResultWithDuration>>(
+            let msg = "(" + this.pid + "):processAction: slaveid: " + this.slaveId.slaveid + " startaddr: " + startAddress + " l:" + length + " FC:" + fc
+            let tbl = new Map<ModbusRegisterType, IModbusProcess>(
                 [
-                    [ModbusFunctionCodes.readHoldingRegisters, bus.readHoldingRegisters],
-                    [ModbusFunctionCodes.readAnalogInputs, bus.readInputRegisters],
-                    [ModbusFunctionCodes.readCoils, bus.readDiscreteInputs]
+                    [ModbusRegisterType.HoldingRegister, {resultTable:this.result.holdingRegisters, func: bus.readHoldingRegisters}],
+                    [ModbusRegisterType.AnalogInputs, {resultTable:this.result.analogInputs, func: bus.readInputRegisters}],
+                    [ModbusRegisterType.Coils, {resultTable:this.result.coils, func: bus.readDiscreteInputs}]
                 ])
-            switch (fc) {
-                case ModbusFunctionCodes.readHoldingRegisters:
-                case ModbusFunctionCodes.readAnalogInputs:
-                case ModbusFunctionCodes.readCoils:
-                    this.processReadFromModbus(startAddress, a, bus!, start, length, msg, tbl.get(fc)!)
-                    break;
-                case ModbusFunctionCodes.writeHoldingRegisters:
-                    {
-                        bus.writeHoldingRegisters(this.slaveId.slaveid, a, this.data).then(() => {
-                            this.preparedAddressesIndex++;
-                            this.next(ModbusStates.Result, this.closeAction);
-                        }).catch((e: any) => {
-                            this.endProcessAction(this.retryProcessAction.bind(this, "writeRegisters", e), ModbusStates.ProcessFailed, this.retryProcessAction.name);
-                        });
-                    }
-                    break;
-                default:
-                    debug("processAction" + msg + "unknown functioncode");
-                    // It makes no sense to retry this address. It is not correct
-                    // Continue with the next ones.
-                    this.endProcessAction((): void => {
-                        this.closeAction(new Error("Unknown function code functionCode: " + fc))
-                    }, ModbusStates.ProcessFailed);
+            if(this.write){
+                 bus.writeHoldingRegisters(this.slaveId.slaveid, startAddress, this.data).then(() => {
+                    this.preparedAddressesIndex++;
+                    this.next(ModbusStates.Result, this.closeAction);
+                }).catch((e: any) => {
+                    this.endProcessAction(this.retryProcessAction.bind(this, "writeRegisters", e), ModbusStates.ProcessFailed, this.retryProcessAction.name);
+                })
             }
+            else
+               if( length)
+                    this.processReadFromModbus(startAddress, startAddress, bus!, start, length, msg, tbl.get(fc)!)
         }
 
     };
     // optimizes the timeout for slaves
-    private processReadFromModbus(startAddress: number, readAddress: number, bus: Bus, start: number, length: number, msg: string, read: (slaveid: number, a: number, length: number) => Promise<ReadRegisterResultWithDuration>) {
+    private processReadFromModbus(startAddress: number, readAddress: number, bus: Bus, start: number, length: number, msg: string, read:IModbusProcess) {
         let slave = bus?.getSlaveBySlaveId(this.slaveId.slaveid)
-        read.bind(bus)(this.slaveId.slaveid, readAddress, length).then((value) => {
+        read.func.bind(bus)(this.slaveId.slaveid, readAddress, length).then((value) => {
             debugTime("read success (" + this.slaveId.slaveid + "," + readAddress + "," + length + ") duration: " + value.duration);
             this.retryCount = 0;
             this.timeoutCount = 0;
             // If this is the longest running read and the timeout is higher, reduce the timeout
             if (slave && slave.modbusTimout && (slave.durationOfLongestModbusCall == undefined || slave.durationOfLongestModbusCall < value.duration)) {
                 slave.durationOfLongestModbusCall = value.duration
-                debugData(read.name + ": set durationOfLongestModbusCall for slaveid: " + slave.slaveid + "to: " + value.duration);
+                debugData(read.func.name + ": set durationOfLongestModbusCall for slaveid: " + slave.slaveid + "to: " + value.duration);
                 if (slave.modbusTimout > slave.durationOfLongestModbusCall * 2 && slave.modbusTimout > minTimeout) {
                     slave.modbusTimout = slave.durationOfLongestModbusCall * 2
-                    debugData(read.name + ": set modbusTimout for slaveid: " + slave.slaveid + "to: " + slave.modbusTimout);
+                    debugData(read.func.name + ": set modbusTimout for slaveid: " + slave.slaveid + "to: " + slave.modbusTimout);
                 }
             }
-            debugData(read.name + ": " + msg + ", data: " + value.data + "buffer: " + JSON.stringify(value.buffer) + " duration: " + value.duration);
+            debugData(read.func.name + ": " + msg + ", data: " + value.data + "buffer: " + JSON.stringify(value.buffer) + " duration: " + value.duration);
             for (let idx = 0; idx < value.data.length; idx++) {
                 let buf: Buffer = Buffer.allocUnsafe(2)
                 if (value.buffer.length >= idx * 2 + 2)
@@ -283,8 +238,7 @@ export class ModbusStateMachine {
                     data: [value.data[idx]],
                     buffer: buf
                 }
-                this.result.set(startAddress + idx, r);
-
+                read.resultTable.set(startAddress + idx, r);
             }
             this.preparedAddressesIndex++;
             this.endProcessAction(this.processAction);
@@ -312,14 +266,14 @@ export class ModbusStateMachine {
             //     }
             // }
             if (e.errno == "ETIMEDOUT" && this.timeoutCount++ < maxTimeouts) {
-                log.log(LogLevelEnum.notice, read.name + " TIMEOUT:" + (e.readDetails ? e.readDetails : "") + " retrying ... ")
+                log.log(LogLevelEnum.notice, read.func.name + " TIMEOUT:" + (e.readDetails ? e.readDetails : "") + " retrying ... ")
                 this.processReadFromModbus(startAddress, readAddress, bus, start, length, msg, read)
                 return;
             }
 
-            debugData(read.name + ":" + msg + " failed: " + e.message)
+            debugData(read.func.name + ":" + msg + " failed: " + e.message)
             e.readDetails = " slave: " + this.slaveId.slaveid + " startAddress: " + startAddress + " length: " + length + ""
-            this.endProcessAction(this.retryProcessAction.bind(this, read.name, e), ModbusStates.ProcessFailed, this.retryProcessAction.name);
+            this.endProcessAction(this.retryProcessAction.bind(this, read.func.name, e), ModbusStates.ProcessFailed, this.retryProcessAction.name);
         });
     }
 
@@ -356,12 +310,13 @@ export class ModbusStateMachine {
     private splitAddresses(module: string, e: any) {
         debug("Split addresses")
         // split request into single parts to avoid invalid address errors as often as possible
-        if (this.preparedAddresses[this.preparedAddressesIndex].length > 1) {
+        if (this.preparedAddresses[this.preparedAddressesIndex].length! > 1) {
             let startAddress = this.preparedAddresses[this.preparedAddressesIndex].address;
-            let length = this.preparedAddresses[this.preparedAddressesIndex].length;
+            let registerType = this.preparedAddresses[this.preparedAddressesIndex].registerType
+            let length = this.preparedAddresses[this.preparedAddressesIndex].length!;
             this.preparedAddresses[this.preparedAddressesIndex].length = 1;
             for (let l = 1; l < length; l++) {
-                this.preparedAddresses.push({ address: startAddress + l, length: 1 })
+                this.preparedAddresses.push({ address: startAddress + l, registerType:registerType, length: 1 })
             }
         } else {
             log.log(LogLevelEnum.notice, module + " splitting: " + (e.message ? e.message : "error") + ": (bus: " + this.slaveId.busid + ", slave: " +
@@ -421,7 +376,7 @@ export class ModbusStateMachine {
                     readDetails = e.readDetails
                 log.log(LogLevelEnum.notice, module + readDetails + ": " + e.message);
                 if (this.preparedAddressesIndex < this.preparedAddresses.length)
-                    if (this.preparedAddresses[this.preparedAddressesIndex].length > 1) {
+                    if (this.preparedAddresses[this.preparedAddressesIndex].length! > 1) {
                         this.splitAddresses(module, e)
                         debug(" Error. splitting task: " + this.task + " slave: " + this.slaveId.slaveid + " error: " + e.message + "addresses: " + JSON.stringify(this.preparedAddresses[this.preparedAddressesIndex]))
                         this.next(ModbusStates.Processing, this.processAction);
@@ -443,8 +398,14 @@ export class ModbusStateMachine {
 
     processResultAction() {
         debugNext("result: slave: " + this.slaveId.busid + "/" + this.slaveId.slaveid + " address/value")
-        for (let key of this.result.keys()) {
-            debug("result(" + this.pid + "): (" + key + "/" + JSON.stringify(this.result.get(key)!.data) + ")");
+        for (let key of this.result.holdingRegisters.keys()) {
+            debug("holdingRegisters(" + this.pid + "): (" + key + "/" + JSON.stringify(this.result.holdingRegisters.get(key)!.data) + ")");
+        }
+        for (let key of this.result.analogInputs.keys()) {
+            debug("analogInputs(" + this.pid + "): (" + key + "/" + JSON.stringify(this.result.analogInputs.get(key)!.data) + ")");
+        }
+        for (let key of this.result.coils.keys()) {
+            debug("analogInputs(" + this.pid + "): (" + key + "/" + JSON.stringify(this.result.coils.get(key)!.data) + ")");
         }
         this.returnAction(this.result);
     }
@@ -457,22 +418,18 @@ export class ModbusStateMachine {
     }
 }
 
-export const exportedForTesting = {
-    ModbusStateMachine,
-    ModbusFunctionCodes
-}
-
-
 export class ModbusCache {
     static readMutex = new Mutex()
     constructor(private task: string) { }
     //static resultMutex:Mutex
-    writeRegisters(slaveId: IslaveId, startaddress: number, data: ReadRegisterResult,
-        resultFunction: (result: Map<number, ReadRegisterResult>) => void, failedFunction: (e: any) => void) {
-        new ModbusStateMachine("write", slaveId, new Set<number>(), resultFunction, failedFunction).prepareWriteAction(startaddress, data);
+    writeRegisters(slaveId: IslaveId, startaddress: number,registerType:ModbusRegisterType,  data: ReadRegisterResult,
+        resultFunction: (result: ImodbusValues) => void, failedFunction: (e: any) => void) {
+        new ModbusStateMachine("write", slaveId, new Set<ImodbusAddress>(), resultFunction, failedFunction).prepareWriteAction(startaddress,registerType, data);
     }
     submitGetHoldingRegisterRequest(
-        slaveId: IslaveId, addresses: Set<number>, resultFunction: (result: Map<number, ReadRegisterResult>) => void, failedFunction: (e: any) => void) {
+        slaveId: IslaveId, 
+        addresses: Set<ImodbusAddress>, 
+        resultFunction: (result: ImodbusValues) => void, failedFunction: (e: any) => void) {
         debug('submitGetHoldingRegisterRequest bus:' + slaveId.busid + "slave: " + slaveId.slaveid)
         if (slaveId.slaveid == -1) {
             failedFunction(new Error("no slaveId passed to submitGetHoldingRegisterRequest"))
@@ -487,3 +444,7 @@ export class ModbusCache {
     }
 }
 
+
+export const exportedForTesting = {
+    ModbusStateMachine
+}

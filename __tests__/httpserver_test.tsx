@@ -1,6 +1,6 @@
 import { expect } from '@jest/globals';
 import { HttpServer as HttpServer } from '../src/httpserver'
-import { ImodbusEntity, ModbusFunctionCodes,  IimageAndDocumentUrl, IdentifiedStates, Iconverter, HttpErrorsEnum,  FileLocation } from 'specification.shared';
+import { ImodbusEntity, ModbusRegisterType,  IimageAndDocumentUrl, IdentifiedStates, Iconverter, HttpErrorsEnum,  FileLocation } from 'specification.shared';
 import { Config } from '../src/config';
 import * as request from "supertest";
 import * as fs from 'fs';
@@ -25,9 +25,10 @@ let spec: ImodbusSpecification = {
     entities: [{
         id: 1,
         mqttname: "waterleveltransmitter",
-        converter: { name: "sensor", functionCodes: [] },
+        converter: { name: "number", registerTypes: [] },
         modbusAddress: 3,
-        functionCode: ModbusFunctionCodes.readHoldingRegisters,
+        registerType:  ModbusRegisterType.HoldingRegister,
+        readonly: true,
         converterParameters: { multiplier: 0.01 },
         mqttValue: "",
         modbusValue: [],
@@ -44,13 +45,14 @@ let spec: ImodbusSpecification = {
 };
 var httpServer: HttpServer;
 
-let spec2: IfileSpecification = { ...spec, version: VERSION, testdata: [], }
+let spec2: IfileSpecification = { ...spec, version: VERSION, testdata:{} }
 spec2.entities.push({
     id: 2,
     mqttname: "",
-    converter: { name: "sensor", functionCodes: [] },
+    converter: { name: "number", registerTypes: [] },
     modbusAddress: 4,
-    functionCode: ModbusFunctionCodes.readHoldingRegisters,
+    registerType: ModbusRegisterType.HoldingRegister,
+    readonly: true,
     converterParameters: { multiplier: 0.01 },
     variableConfiguration: {
         targetParameter: 2,
@@ -185,9 +187,9 @@ test("GET /converters", done => {
         then(response => {
             let sensorExist = false;
             response.body.forEach((element: Iconverter) => {
-                if (element.name == "sensor") {
-                    expect(element.functionCodes).toBeDefined()
-                    expect(element.functionCodes.length).toBe(3)
+                if (element.name == "number") {
+                    expect(element.registerTypes).toBeDefined()
+                    expect(element.registerTypes.length).toBe(2)
                     sensorExist = true
                 }
             });

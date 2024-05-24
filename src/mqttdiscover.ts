@@ -150,7 +150,7 @@ export class MqttDiscover {
                                 obj.state_topic = this.generateStateTopic(busid, slave);
                             if (!obj.availability && !obj.availability_topic)
                                 obj.availability_topic = this.generateAvailatibilityTopic(busid, slave);
-                            if (!obj.command_topic && !converter.isReadOnly())
+                            if (!obj.command_topic && !e.readonly)
                                 obj.command_topic = this.generateEntityCommandTopic(busid, slave, ent);
                             switch (converter.getParameterType(e)) {
                                 case "Iselect":
@@ -165,7 +165,7 @@ export class MqttDiscover {
                                         else
                                             obj.options.forEach((o: IselectOption) => { if (!o) log.log(LogLevelEnum.warn, "generateDiscoveryPayloads: option with no text for " + e.id) })
                                     }
-                                    if (e.converter.name === "binary_sensor" && ns.device_class)
+                                    if (e.converter.name === "binary" && ns.device_class)
                                         obj.device_class = ns.device_class;
                                     break;
                                 case "Inumber":

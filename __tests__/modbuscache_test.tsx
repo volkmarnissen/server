@@ -1,5 +1,5 @@
 import { Config } from '../src/config';
-import { ModbusCache, exportedForTesting } from '../src/modbuscache';
+import { ImodbusAddress, ModbusCache, exportedForTesting } from '../src/modbuscache';
 import ModbusRTU from 'modbus-serial';
 const { ModbusStateMachine } = exportedForTesting;
 import { yamlDir } from './../testHelpers/configsbase';
@@ -7,7 +7,8 @@ import { Mutex } from 'async-mutex';
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU';
 import { getReadRegisterResult } from '../src/submitRequestMock';
 import Debug from "debug"
-import { ConfigSpecification, Logger } from 'specification';
+import { ConfigSpecification, ImodbusValues, Logger } from 'specification';
+import { ModbusRegisterType } from 'specification.shared';
 const debug = Debug("modbuscachetest");
 let mockMutex = new Mutex()
 Config['yamlDir'] = yamlDir;
@@ -56,7 +57,7 @@ beforeAll(() => {
 });
 
 
-function submitReadRequest(addresses: Set<number>, resultFunction: (addresses: Set<number>, results: Map<number, ReadRegisterResult>) => void) {
+function submitReadRequest(addresses: Set<ImodbusAddress>, resultFunction: (addresses: Set<ImodbusAddress>, results: ImodbusValues) => void) {
     jest.spyOn(ModbusRTU.prototype, 'isOpen', 'get').mockReturnValue(true);
     new ModbusCache("test").submitGetHoldingRegisterRequest({ busid: 0, slaveid: 1 }
         , addresses, (result) => {
@@ -67,37 +68,37 @@ function submitReadRequest(addresses: Set<number>, resultFunction: (addresses: S
 function expectObjectToBe(o: any, cmp: any) {
     expect(JSON.stringify(o)).toBe(JSON.stringify(cmp))
 }
-function resultFunction0(addresses: Set<number>, results: Map<number, ReadRegisterResult>): void {
-    expect(results.get(300004)).toBeDefined();
-    debug(results.get(300004))
+function resultFunction0(addresses: Set<ImodbusAddress>, results: ImodbusValues): void {
+    expect(results.holdingRegisters.get(4)).toBeDefined();
+    debug(results.holdingRegisters.get(4))
     debug(getReadRegisterResult(3))
-    expect(results.get(300004)!.data[0]).toBe(3);
+    expect(results.holdingRegisters.get(4)!.data[0]).toBe(3);
     submitReadRequest(addresses, resultFunctions[1])
 }
 
-function resultFunction1(addresses: Set<number>, results: Map<number, ReadRegisterResult>): void {
+function resultFunction1(addresses: Set<ImodbusAddress>, results: ImodbusValues): void {
     // cached call
-    expect(results.get(300004)).toBeDefined();
-    expect(results.get(300004)!.data[0]).toBe(3);
+    expect(results.holdingRegisters.get(4)).toBeDefined();
+    expect(results.holdingRegisters.get(4)!.data[0]).toBe(3);
     expect(readHoldingRegisters).toHaveBeenCalledTimes(2);
     let na = structuredClone(addresses)
-    na.add(300005);
+    na.add({address:5,registerType:ModbusRegisterType.HoldingRegister});
     submitReadRequest(na, resultFunctions[2])
 }
 
-function resultFunction0Illegal(addresses: Set<number>, results: Map<number, ReadRegisterResult>): void {
-    expect(results.get(300004)).toBeDefined();
-    expect(results.get(300004)!.data[0]).toBe(4);
+function resultFunction0Illegal(addresses: Set<ImodbusAddress>, results: ImodbusValues): void {
+    expect(results.holdingRegisters.get(4)).toBeDefined();
+    expect(results.holdingRegisters.get(4)!.data[0]).toBe(4);
     let na = structuredClone(addresses)
-    na.add(300010);
+    na.add({address:10, registerType: ModbusRegisterType.HoldingRegister});
     submitReadRequest(na, resultFunctions[1])
 
 }
 
-let resultFunctions: ((addresses: Set<number>, _results: Map<number, ReadRegisterResult>) => void)[] = []
+let resultFunctions: ((addresses: Set<ImodbusAddress>, _results: ImodbusValues) => void)[] = []
 
-function executeSubmitGetHoldingRegisterRequests(addresses: Set<number>, readHoldingRegistersMock: jest.Mock<any, any, any>,
-    resultF: ((_addresses: Set<number>, results: Map<number, ReadRegisterResult>) => void)[]) {
+function executeSubmitGetHoldingRegisterRequests(addresses: Set<ImodbusAddress>, readHoldingRegistersMock: jest.Mock<any, any, any>,
+    resultF: ((_addresses: Set<ImodbusAddress>, results: ImodbusValues) => void)[]) {
     readHoldingRegistersMutex.runExclusive(() => {
         readHoldingRegisters = readHoldingRegistersMock
         resultFunctions = resultF
@@ -121,10 +122,10 @@ describe("submitGetHoldingRegisterRequests", () => {
 
     test("submitGetHoldingRegisterRequest", done => {
         mockMutex.acquire().then(() => {
-            let addresses = new Set<number>();
-            addresses.add(300004);
-            let f = (_addresses: Set<number>, results: Map<number, ReadRegisterResult>) => {
-                expect(results.get(300005)!.data[0]).toBe(4);
+            let addresses = new Set<ImodbusAddress>();
+            addresses.add({address:4, registerType: ModbusRegisterType.HoldingRegister});
+            let f = (_addresses: Set<ImodbusAddress>, results: ImodbusValues) => {
+                expect(results.holdingRegisters.get(5)!.data[0]).toBe(4);
                 expect(readHoldingRegisters).toHaveBeenCalledTimes(3);
                 mockMutex.release();
                 done();
@@ -135,9 +136,9 @@ describe("submitGetHoldingRegisterRequests", () => {
 
     test("submitGetHoldingRegisterRequest with Timeout", done => {
         mockMutex.acquire().then(() => {
-            let addresses = new Set<number>();
-            addresses.add(300004);
-            let f = (_addresses: Set<number>, _results: Map<number, ReadRegisterResult>) => {
+            let addresses = new Set<ImodbusAddress>();
+            addresses.add({address:4, registerType: ModbusRegisterType.HoldingRegister});
+            let f = (_addresses: Set<ImodbusAddress>, _results: ImodbusValues) => {
                 expect(readHoldingRegisters).toHaveBeenCalledTimes(4);
                 mockMutex.release();
                 done();
@@ -148,12 +149,12 @@ describe("submitGetHoldingRegisterRequests", () => {
     test("submitGetHoldingRegisterRequest with Illegal Address", done => {
         mockMutex.acquire().then(() => {
 
-            let addresses = new Set<number>();
+            let addresses = new Set<ImodbusAddress>();
 
-            addresses.add(300003);
-            addresses.add(300004);
-            let f = (_addresses: Set<number>, results: Map<number, ReadRegisterResult>) => {
-                expectObjectToBe(results.get(300010), getReadRegisterResult(10));
+            addresses.add({address:3, registerType: ModbusRegisterType.HoldingRegister});
+            addresses.add({address:4, registerType: ModbusRegisterType.HoldingRegister});
+            let f = (_addresses: Set<ImodbusAddress>, results: ImodbusValues) => {
+                expectObjectToBe(results.holdingRegisters.get(10), getReadRegisterResult(10));
                 expect(readHoldingRegisters).toHaveBeenCalledTimes(12);
                 mockMutex.release();
                 done();
@@ -167,23 +168,23 @@ describe("submitGetHoldingRegisterRequests", () => {
 
 
 test("prepareAddressesAction", () => {
-    let addresses = new Set<number>();
-    addresses.add(300000);
-    addresses.add(300001);
-    addresses.add(300002);
-    addresses.add(300003);
+    let addresses = new Set<ImodbusAddress>();
+    addresses.add({address:0, registerType: ModbusRegisterType.HoldingRegister});
+    addresses.add({address:1, registerType: ModbusRegisterType.HoldingRegister});
+    addresses.add({address:2, registerType: ModbusRegisterType.HoldingRegister});
+    addresses.add({address:3, registerType: ModbusRegisterType.HoldingRegister});
     let mockedfn = jest.fn();
     let originalFn: any = ModbusStateMachine.prototype.next;
     ModbusStateMachine.prototype.next = mockedfn;
     let sm = new ModbusStateMachine("test", { busid: 0, slaveid: 1 }, addresses, () => { }, () => { })
     sm.prepareAddressesAction();
-    expect(sm['preparedAddresses'][0].address).toBe(300000);
+    expect(sm['preparedAddresses'][0].address).toBe(0);
     expect(sm['preparedAddresses'][0].length).toBe(4);
     ModbusStateMachine.prototype.next = originalFn;
 })
 
 test("writeRegisters", done => {
-    new ModbusCache("test").writeRegisters({ busid: 0, slaveid: 1 }, 2100004, { data: [5], buffer: Buffer.from([5]) }, (_results) => {
+    new ModbusCache("test").writeRegisters({ busid: 0, slaveid: 1 }, 4,ModbusRegisterType.HoldingRegister, { data: [5], buffer: Buffer.from([5]) }, (_results) => {
         done();
     }, () => { });
 

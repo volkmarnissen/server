@@ -4,10 +4,10 @@ entities:
   - id: 1
     mqttname: waterleveltransmitter
     converter:
-      name: sensor
-      functionCodes: []
+      name: number
+      registerTypes: []
     modbusAddress: 3
-    functionCode: 3
+    registerType: 3
     converterParameters:
       multiplier: 0.01
       identification:
@@ -16,10 +16,10 @@ entities:
   - id: 2
     mqttname: ""
     converter:
-      name: sensor
-      functionCodes: []
+      name: number
+      registerTypes: []
     modbusAddress: 4
-    functionCode: 3
+    registerType: 3
     converterParameters:
       multiplier: 0.01
     variableConfiguration:
@@ -34,4 +34,7 @@ i18n:
         text: Water Level Transmitter
 identified: -1
 version: "0.1"
-testdata: [[3,2]]
+testdata: 
+  holdingRegisters:
+    - address: 3
+      value: 2

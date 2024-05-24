@@ -4,9 +4,10 @@ entities:
     mqttname: text
     converter:
       name: text
-      functionCodes: []
+      registerTypes: []
     modbusAddress: 2
-    functionCode: 21
+    registerType: 3
+    readOnly: false
     converterParameters:
       identification: ABCD
       stringlength: 4
@@ -32,7 +33,7 @@ files:
     usage: img
 identified: 1
 version: "0.1"
-testdata: []
+testdata: {}
 status: 1
 icon: null
 model: null

@@ -3,9 +3,10 @@ entities:
   - id: 0
     modbusAddress: 3
     converter:
-      name: sensor
-      functionCodes: []
-    functionCode: 21
+      name: number
+      registerTypes: []
+    registerType: 3
+    readonly: true
     converterParameters: {}
     mqttname: test
 i18n:
@@ -29,4 +30,4 @@ icon: null
 model: null
 manufacturer: null
 version: "0.1"
-testdata: []
+testdata: {}

@@ -2,8 +2,9 @@ filename: noFunctionCode
 entities:
   - id: 1
     converter: 
-      name: sensor
+      name: number
     modbusAddress: 4
+    registerType: 3
     icon: ""
     converterParameters:
       multiplier: 0.1
@@ -31,5 +32,6 @@ i18n:
 identified: 0
 version: "0.1"
 testData:
-  - address: 4
-    value: 3
+  holdingRegister:
+    - address: 4
+      value: 3
