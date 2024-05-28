@@ -3,7 +3,7 @@ import * as http from 'http'
 import { Application, Request } from 'express';
 import * as express from 'express';
 import * as bodyparser from 'body-parser';
-import { ConverterMap } from 'specification';
+import { ConverterMap, IModbusData, IfileSpecification, emptyModbusValues } from 'specification';
 import { Config, MqttValidationResult, filesUrlPrefix } from './config';
 import { Modbus } from './modbus';
 import { ImodbusSpecification,  HttpErrorsEnum, IimageAndDocumentUrl,  Ispecification } from 'specification.shared';
@@ -20,6 +20,7 @@ import { M2mSpecification as M2mSpecification } from "specification";
 import { IUserAuthenticationStatus, IBus, Islave, apiUri } from "server.shared";
 import { ConfigSpecification } from "specification";
 import path = require("path");
+import { ImodbusAddress } from "./modbuscache";
 const debug = Debug("httpserver");
 const debugUrl = Debug("httpserverUrl");
 const log = new Logger("httpserver")
@@ -52,12 +53,14 @@ export class HttpServer {
     }
     static returnResult(req: Request, res: http.ServerResponse, code: HttpErrorsEnum, message: string, object: any = undefined) {
         debugUrl("end: " + req.path)
-        if (code >= 299)
+        if (code >= 299){
             log.log(LogLevelEnum.error, "%s: Http Result: %d %s", req.url, code, message)
+        }
+            
         else
             debug(req.url + " :" + HttpErrorsEnum[code])
         if (object != undefined)
-            debug("Info: " + JSON.stringify(object))
+            debug("Info: " + object)
         res.statusCode = code
         res.end(message)
     }
@@ -234,9 +237,11 @@ export class HttpServer {
                 let busid = Number.parseInt(req.query.busid);
                 let bus = Bus.getBus(busid)
                 if (bus) {
-                    bus.getAvailableSpecs(slaveId).subscribe((result) => {
+                    bus.getAvailableSpecs(slaveId).then((result) => {
                         debug('getAvailableSpecs  succeeded')
                         HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(result));
+                    }).catch(e=>{
+                        HttpServer.returnResult(req, res, HttpErrorsEnum.ErrNotFound,"specsForSlaveId: " + e.message)
                     })
                 }
             }
@@ -484,46 +489,66 @@ export class HttpServer {
                 HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify([]), error)
             })
         })
+
         this.post(apiUri.specfication, (req: GetRequestWithParameter, res: http.ServerResponse) => {
             debug("POST /specification: " + req.query.busid + "/" + req.query.slaveid);
             let rd = new ConfigSpecification();
             let msg = this.checkBusidSlaveidParameter(req);
+            let bus:Bus|undefined
+            let slave:Islave|undefined
+            let busId:number|undefined
+            let testdata:IModbusData|undefined
+            if (req.query.busid, req.query.slaveid) {
+                busId = Number.parseInt(req.query.busid);
+                let slaveId = Number.parseInt(req.query.slaveid);
+                bus = Bus.getBus(busId)
+                if (bus !== undefined){
+                    slave = bus.getSlaveBySlaveId(slaveId)
+                    let slaveAddresses = bus.getModbusAddressesForSlave(slaveId)
+                    if( slaveAddresses)
+                        testdata = M2mSpecification.getEmptyModbusAddressesFromSlaveToTestdata(slaveAddresses)
+                }
+             }
+             if (testdata == undefined) {
+                HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify('No extended testdata available, try again later'));
+                return;
+            } 
             if (msg !== "") {
-                HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, msg);
-            } else {
-                let originalFilename: string | null = (req.query.originalFilename ? req.query.originalFilename : null)
-                var rc = rd.writeSpecification(req.body, (filename:string)=>{
-                    if (req.query.busid, req.query.slaveid) {
-                        let busId = Number.parseInt(req.query.busid);
-                        let slaveId = Number.parseInt(req.query.slaveid);
-                        let b = Bus.getBus(busId)
-                        if (b !== undefined){
-                            let slave = b.getSlaveBySlaveId(slaveId)
-                            if( slave != undefined) {
-                                    slave.specificationid = filename;
-                                    new Config().writeslave(busId, slave.slaveid, slave.specificationid, slave.name);  
-                                   
-                                }
-                                
-                        }
-                            
-                     }
-                }, originalFilename);
-                let bus = Bus.getBus(Number.parseInt(req.query.busid))!
-                bus.getAvailableModusData(Number.parseInt(req.query.slaveid)).subscribe(() => {
-                    debug("Cache updated")
-                })
+                HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "{message: '" +msg + "'}");
+                return;
+            } 
+            let originalFilename: string | null = (req.query.originalFilename ? req.query.originalFilename : null)
+            var rc = rd.writeSpecification(req.body, testdata, (filename:string)=>{
+                if( busId != undefined &&  bus != undefined &&slave != undefined) {
+                        slave.specificationid = filename;
+                        new Config().writeslave(busId, slave.slaveid, slave.specificationid, slave.name);  
+                       
+                }
+            }, originalFilename);
 
-                HttpServer.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(rc));
-            }
+            bus?.getAvailableSpecs( Number.parseInt(req.query.slaveid)).then(() => {
+                    debug("Cache updated")
+            }).catch(e=>{
+                    debug("getAvailableModbusData failed:" + e.message)
+            })
+
+            HttpServer.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(rc));
         });
-        this.post(apiUri.specificationValidate, (req: GetRequestWithParameter, res: http.ServerResponse) => {
-            debug("POST /specification/validate: " + req.query.busid + "/" + req.query.slaveid);
+        this.get(apiUri.specificationValidate, (req: GetRequestWithParameter, res: http.ServerResponse) => {
             if (!req.query.language || req.query.language.length == 0) {
                 HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify("pass language "));
                 return;
             }
-            let spec = new M2mSpecification(req.body);
+            if (!req.query.spec || req.query.spec.length == 0) {
+                HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify("pass specification "));
+                return;
+            }
+            let fspec = ConfigSpecification.getSpecificationByFilename(req.query.spec)
+            if(!fspec){
+                HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify("specification not found " + req.query.spec));
+                return;
+            }
+            let spec = new M2mSpecification(fspec);
             let messages = spec.validate(req.query.language)
             HttpServer.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(messages));
         });

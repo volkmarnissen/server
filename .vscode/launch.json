@@ -29,6 +29,17 @@
       }
     },
     {
+      "command": "npm run serverTCP",
+      "name": "Run serverTCP",
+      "request": "launch",
+      "sourceMaps": true,
+      "type": "node-terminal", 
+      "env": {
+        "DEBUG": "express:* modbuscache modbuscache.time",
+        "MODBUS2MQTT_NOPOLL": "",
+      }
+    },
+    {
       "command": "npm run  ui",
       "name": "Run ui",
       "request": "launch",

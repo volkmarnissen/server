@@ -13,12 +13,14 @@ import * as http from 'http'
 import { apiUri, IBus, IRTUConnection, IModbusConnection, IidentificationSpecification } from 'server.shared';
 import { IfileSpecification } from 'specification';
 import { ConfigSpecification } from 'specification';
+import { Mutex } from 'async-mutex';
+import { ReadRegisterResult } from 'modbus-serial/ModbusRTU';
 
 const yamlDir = "__tests__/yaml-dir";
 ConfigSpecification.yamlDir= yamlDir;
 new ConfigSpecification().readYaml();
 Config.sslDir = yamlDir;
-
+let mWaterlevel = new Mutex()
 let spec: ImodbusSpecification = {
     filename: "waterleveltransmitter",
     status: 2,
@@ -275,35 +277,60 @@ describe("http POST", () => {
 
 
     test("POST /specification: add new Specification rename device.specification", done => {
-        jest.mock('../src/mqttdiscover');
+        mWaterlevel.runExclusive(()=>{
+               jest.mock('../src/mqttdiscover');
 
         let spec1: ImodbusSpecification = Object.assign(spec);
+        let lspec = yamlDir + '/local/specifications/'
+        fs.copyFileSync(lspec + 'waterleveltransmitter.yaml', lspec + 'waterleveltransmitter.bck', undefined)
+      
         let filename = yamlDir + "/local/specifications/waterleveltransmitter.yaml";
-        fs.copyFileSync(filename, filename + ".bck");
-        fs.unlink(new ConfigSpecification().getSpecificationPath(spec1), (_err) => {
-            //if (err) throw err //handle your error the way you want to;
-            console.log(filename + ' was deleted');//or else the file will be deleted
-        });
-
+        fs.unlinkSync(new ConfigSpecification().getSpecificationPath(spec1));
+        let url =  apiUri.specfication +'?busid=0&slaveid=2&originalFilename=waterleveltransmitter'
 
         //@ts-ignore
-        request(httpServer.app).post('/api/specification?busid=0&slaveid=2&originalFilename=waterleveltransmitter').
-            accept("application/json").
-            send(spec1).
-            then((response) => {
-                fs.copyFileSync(filename + ".bck", filename);
-                fs.unlinkSync(filename + ".bck")
-                var found = ConfigSpecification.getSpecificationByFilename(spec1.filename)!;
-                let newFilename = new ConfigSpecification().getSpecificationPath(response.body);
-                expect(fs.existsSync(newFilename)).toBeTruthy();
-                expect(getSpecificationI18nName(found!, "en")).toBe("Water Level Transmitter")
-                expect(response);
-                done();
-            }).catch((_e) => {
-                console.log(_e)
-                done();
-
-            });
+        request(httpServer.app).post(url).
+        accept("application/json").
+            send(spec1)
+            .expect(HttpErrorsEnum.ErrBadRequest)
+            .catch(e=>{
+                console.log(e)
+            })
+            .then((response) => {
+                expect((response as any as Response).status).toBe(HttpErrorsEnum.ErrBadRequest)
+                let testdata ={
+                    holdingRegisters: new Map<number, ReadRegisterResult|null>(),
+                    analogInputs: new Map<number, ReadRegisterResult|null>(),
+                    coils: new Map<number, ReadRegisterResult|null>()
+                }
+                testdata.holdingRegisters.set(100, null)
+                Bus.getBus(0)!['setModbusAddressesForSlave'](2,testdata)
+                request(httpServer.app).post(url).
+                accept("application/json").
+                send(spec1).
+                expect(HttpErrorsEnum.OkCreated).
+                then((response) => {
+                   var found = ConfigSpecification.getSpecificationByFilename(spec1.filename)!;
+                    let newFilename = new ConfigSpecification().getSpecificationPath(response.body);
+                    let foundData = found.testdata.holdingRegisters?.find(data=>data.address == 100 && data.value == null)
+                    expect(foundData).toBeDefined()
+                    expect(fs.existsSync(newFilename)).toBeTruthy();
+                    expect(getSpecificationI18nName(found!, "en")).toBe("Water Level Transmitter")
+                    expect(response);
+                    done();
+                }).catch((_e) => {
+                    console.log(_e)
+                }); 
+                console.log("in then")
+            })
+            .finally(()=>{
+                    fs.copyFileSync(lspec + 'waterleveltransmitter.bck', filename);
+                    fs.unlinkSync(lspec + 'waterleveltransmitter.bck')      
+        
+             })
+        })
+       
+     
     })
     test("POST /modbus/entity: update ModbusCache data", done => {
 
@@ -311,6 +338,7 @@ describe("http POST", () => {
         request(httpServer.app).post('/api/modbus/entity?busid=0&slaveid=1&entityid=1').
 
             send(spec2).
+            accept("application/json").
             expect(201).
             then((response) => {
                 let entityAndMessages = (response.body as ImodbusEntity);
@@ -344,6 +372,8 @@ describe("http POST", () => {
     });
 
     test("POST /upload: upload files, delete uploaded file, add url, delete url", done => {
+        mWaterlevel.runExclusive(()=>{
+       
         let testdir = yamlDir + '/local/specifications/files/waterleveltransmitter/';
         let test = 'test.pdf'
         let test1 = 'test2.jpg'
@@ -352,9 +382,12 @@ describe("http POST", () => {
         if (fs.existsSync(testdir + test1))
             fs.unlinkSync(testdir + test1)
         let lspec = yamlDir + '/local/specifications/'
-        fs.copyFileSync(lspec + 'waterleveltransmitter.yaml', lspec + 'waterleveltransmitter.bck', undefined)
-
-        request(httpServer.app).post('/api/upload?specification=waterleveltransmitter&usage=doc').
+        if( !fs.existsSync(lspec + 'waterleveltransmitter.bck'))
+            fs.copyFileSync(lspec + 'waterleveltransmitter.yaml', lspec + 'waterleveltransmitter.bck', undefined)
+        else
+            if( !fs.existsSync(lspec + 'waterleveltransmitter.yaml'))
+                fs.copyFileSync(lspec + 'waterleveltransmitter.bck', lspec + 'waterleveltransmitter.yaml', undefined)
+            request(httpServer.app).post('/api/upload?specification=waterleveltransmitter&usage=doc').
             attach('documents', Buffer.from('whatever'), { filename: test }).
             attach('documents', Buffer.from('whatever2'), { filename: test1 }).
             then((_response) => {
@@ -397,5 +430,5 @@ describe("http POST", () => {
             });
     });
 
-
+    })
 });

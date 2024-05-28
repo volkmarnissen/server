@@ -101,9 +101,11 @@ describe("Modbus read", () => {
         prepareIdentification();
         expect(dev).toBeDefined;
         spec.entities = ents
-        mr.readEntityFromModbus(Bus.getBus(0)!, 1, spec, 1, (_e) => { fail('Exception!!!') }).subscribe((arg0: ImodbusEntity) => {
+        mr.readEntityFromModbus(Bus.getBus(0)!, 1, spec, 1).then((arg0: ImodbusEntity) => {
             expect(arg0!.identified).toBe(IdentifiedStates.unknown);
             done();
+        }).catch((_e) => { 
+            fail('Exception!!!') 
         }); // unidenfified
     });
     it("Modbus read Entity identifiation identified", done => {
@@ -112,11 +114,10 @@ describe("Modbus read", () => {
         if (ent.converterParameters)
             (ent.converterParameters as Inumber).identification = { min: 0.01, max: 0.4 }
         spec.entities = ents
-        mr.readEntityFromModbus(Bus.getBus(0)!, 1, spec, 1, (e) => { throw e }).subscribe((arg0: ImodbusEntity) => {
+        mr.readEntityFromModbus(Bus.getBus(0)!, 1, spec, 1).then((arg0: ImodbusEntity) => {
             expect(arg0!.identified).toBe(IdentifiedStates.identified);
             done();
         }); // unidenfified
-        done();
     });
     it("Modbus read Entity identifiation Iselect identified", done => {
         prepareIdentification();
@@ -132,12 +133,12 @@ describe("Modbus read", () => {
         }
         ent.id = 1;
         spec.entities = [ent]
-        mr.readEntityFromModbus(Bus.getBus(0)!, 1, spec, 1, (_e) => { fail('Exception!!!') }).subscribe((arg0: ImodbusEntity) => {
+        mr.readEntityFromModbus(Bus.getBus(0)!, 1, spec, 1).then((arg0: ImodbusEntity) => {
             expect(arg0!.identified).toBe(IdentifiedStates.identified);
             Config['config'].fakeModbus = true;
 
             done();
-        }, err => { console.log(JSON.stringify(err)) }); // unidenfified
+        }).catch( err => { console.log(JSON.stringify(err)) }); // unidenfified
 
     });
 
@@ -149,9 +150,7 @@ describe("Modbus read", () => {
         if (entText.converterParameters)
             (entText.converterParameters as Itext).identification = "test"
         spec.entities = [entText]
-        mr.readEntityFromModbus(Bus.getBus(0)!, 2, spec, 2, (_e) => {
-            fail('Exception!!!')
-        }).subscribe((arg0: ImodbusEntity) => {
+        mr.readEntityFromModbus(Bus.getBus(0)!, 2, spec, 2).then((arg0: ImodbusEntity) => {
             expect(arg0!.identified).toBe(IdentifiedStates.notIdentified);
             done();
         }); // unidenfified
@@ -166,9 +165,7 @@ describe("Modbus read", () => {
             (entText.converterParameters as Itext).identification = "ABCD"
         dev!.slaveid = 2;
         spec.entities = [entText]
-        mr.readEntityFromModbus(Bus.getBus(1)!, 2, spec, 2, (_e) => {
-            fail('Exception!!!')
-        }).subscribe((arg0: ImodbusEntity) => {
+        mr.readEntityFromModbus(Bus.getBus(1)!, 2, spec, 2).then((arg0: ImodbusEntity) => {
             expect(arg0!.identified).toBe(IdentifiedStates.identified);
             done();
         }); // unidenfified
@@ -214,11 +211,11 @@ xit("Modbus modbusDataToSpec spec.identified = identified", () => {
 });
 
 
-function writeRegisters(_slaveid: IslaveId, _startaddress: number,registerType:ModbusRegisterType , _data: ReadRegisterResult, _resultFunction: (result: ImodbusValues) => void, _failedFunction: (e: any) => void) {
-
-    console.log("write Registers")
-    expect(_data.data[0]).toBe(0)
-    _resultFunction(emptyModbusValues());
+function writeRegisters(_slaveid: IslaveId, _startaddress: number,registerType:ModbusRegisterType ):Promise<void> {
+    return new Promise<void>((resolve,reject)=>{
+        console.log("write Registers")
+       resolve();
+    })
 }
 it("Modbus writeEntityMqtt", (done) => {
     ModbusCache.prototype.writeRegisters = writeRegisters

@@ -3,7 +3,7 @@ import { expect } from '@jest/globals';
 import { Config } from '../src/config';
 import { Bus } from '../src/bus';
 import { yamlDir } from "./../testHelpers/configsbase";
-import { ModbusServer, XYslaveid } from './../testHelpers/modbusserver';
+import { ModbusServer, XYslaveid } from './../src/modbusTCPserver';
 import { ReadRegisterResult } from "modbus-serial/ModbusRTU";
 import { IdentifiedStates } from "specification.shared";
 import { ConfigSpecification } from "specification";
@@ -112,7 +112,7 @@ it("Bus getSpecsForDevice", (done) => {
    Config['config'].fakeModbus = true;
    if (Config.getConfiguration().fakeModbus)
       console.log("Fakemodbus")
-   Bus.getBus(0)!.getAvailableSpecs(1).subscribe((ispec) => {
+   Bus.getBus(0)!.getAvailableSpecs(1).then((ispec) => {
       let wlt = false;
       let other = false;
       expect(ispec).toBeDefined();
@@ -145,10 +145,10 @@ function prepareIdentification() {
 }
 it("Modbus getSpecsForDevice with specific slaveId no results 0-3", (done) => {
    prepareIdentification();
-   Config['config'].fakeModbus = false;
+   Config['config'].fakeModbus = true;
    if (Config.getConfiguration().fakeModbus)
       console.log("Fakemodbus")
-   Bus.getBus(0)!.getAvailableSpecs(1).subscribe((ispec) => {
+   Bus.getBus(0)!.getAvailableSpecs(1).then((ispec) => {
       expect(ispec).toBeDefined();
       expect(ispec.length).toBeGreaterThan(0);
       done();

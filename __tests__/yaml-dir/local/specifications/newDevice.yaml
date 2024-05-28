@@ -30,7 +30,7 @@ i18n:
       - textId: e3
         text: multiplier
 identified: 0
-version: "0.1"
+version: "0.2"
 testData:
   holdingRegister:
     - address: 4

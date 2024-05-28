@@ -47,7 +47,7 @@ i18n:
       - textId: e1
         text: test1
 identified: 1
-version: "0.1"
+version: "0.2"
 testData:
   holdingRegisters:
     - address: 4

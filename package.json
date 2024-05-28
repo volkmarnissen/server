@@ -23,6 +23,7 @@
     "build.modbusserver": "mkdir -p distsrv && tsc --project tsconfig.modbusserver.json && sed '/\"scripts\"/,/}[,]$/ d; /^$/d' package.json >package.dist",
     "build": "cd ../specification.shared && tsc && cd ../specification && tsc && cd ../server.shared && tsc  && cd ../angular && ng build && cd ../server && tsc ",
     "server": "npm run build && node dist/src/modbus2mqtt.js -s ../ssl -y ../yaml-dir",
+    "serverTCP": "npm run build && node dist/src/modbus2mqtt.js -s ../ssl -y ../yaml-dir --busid 0",
     "ui": "cd ../angular && ng serve --host 0.0.0.0",
     "tsc": "tsc"
   },

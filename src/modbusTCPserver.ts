@@ -1,5 +1,6 @@
 import { FCallbackVal, IServiceVector, ServerTCP } from "modbus-serial";
 import Debug from "debug"
+import { ModbusRegisterType } from "specification.shared";
 
 export const XYslaveid = 1
 export const Dimplexslaveid = 2
@@ -155,22 +156,16 @@ export class ModbusServer {
             })
     }
 }
-export function addRegisterValue( slaveid: number, address: number, fc:number, value: number):void{
+export function addRegisterValue( slaveid: number, address: number, fc:ModbusRegisterType, value: number):void{
     switch( fc ){
-        case 3:
-        case 21:
-        case 16:
-                values.holdingRegisters.push({ slaveid:slaveid, address:address,value:value})
+        case ModbusRegisterType.HoldingRegister:
+                  values.holdingRegisters.push({ slaveid:slaveid, address:address,value:value})
                 break;
         
-        case  1:
-        case  15:
-        case  20:
+        case  ModbusRegisterType.Coils:
                 values.coils.push({ slaveid:slaveid, address:address,value:value!= 0})
                 break;
-        case 4:
-        case 6:
-        case 22:
+        case ModbusRegisterType.AnalogInputs:
                 values.inputRegisters.push({ slaveid:slaveid, address:address,value:value})
                 break;
         default:

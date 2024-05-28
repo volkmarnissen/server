@@ -10,6 +10,8 @@ import Debug from "debug"
 import { MqttDiscover } from './mqttdiscover.js';
 import { ConfigSpecification } from 'specification';
 import path = require('path');
+import { yamlDir } from '../testHelpers/configsbase';
+import { startModbusTCPserver } from './runModbusTCPserver';
 
 const debug = Debug("modbus2mqtt");
 const debugAction = Debug('actions')
@@ -28,10 +30,10 @@ export class Modbus2Mqtt {
     init() {
         let cli = new Command()
         cli.version(VERSION)
-        cli.usage("[--ssl <ssl-dir>][--config <config-dir>]")
+        cli.usage("[--ssl <ssl-dir>][--yaml <yaml-dir>][ --port <TCP port>]")
         cli.option("-s, --ssl <ssl-dir>", "set directory for certificates")
-        cli.option("-c, --config <config-dir>", "set directory for add on configuration")
         cli.option("-y, --yaml <yaml-dir>", "set directory for add on configuration")
+        cli.option("-b, --busid <busid>", "starts Modbus TCP server for the given bus")
         cli.parse(process.argv)
         let options = cli.opts()
         if (options['yaml']){
@@ -46,7 +48,8 @@ export class Modbus2Mqtt {
             Config.sslDir = options['ssl']
         else
             Config.sslDir = "."
-
+        if( options['busid'])
+            startModbusTCPserver(Config.yamlDir, parseInt(options['busid']))
         readConfig = new Config();
         readConfig.readYaml();
         new ConfigSpecification().readYaml()
