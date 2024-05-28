@@ -60,9 +60,9 @@ beforeAll(() => {
 function submitReadRequest(addresses: Set<ImodbusAddress>, resultFunction: (addresses: Set<ImodbusAddress>, results: ImodbusValues) => void) {
     jest.spyOn(ModbusRTU.prototype, 'isOpen', 'get').mockReturnValue(true);
     new ModbusCache("test").submitGetHoldingRegisterRequest({ busid: 0, slaveid: 1 }
-        , addresses, (result) => {
+        , addresses).then( (result) => {
             resultFunction(addresses, result)
-        }, () => { })
+        }).catch( () => { })
 
 }
 function expectObjectToBe(o: any, cmp: any) {
@@ -184,9 +184,9 @@ test("prepareAddressesAction", () => {
 })
 
 test("writeRegisters", done => {
-    new ModbusCache("test").writeRegisters({ busid: 0, slaveid: 1 }, 4,ModbusRegisterType.HoldingRegister, { data: [5], buffer: Buffer.from([5]) }, (_results) => {
+    new ModbusCache("test").writeRegisters({ busid: 0, slaveid: 1 }, 4,ModbusRegisterType.HoldingRegister, { data: [5], buffer: Buffer.from([5]) }).then (() => {
         done();
-    }, () => { });
+    }).catch( () => { });
 
 });
 

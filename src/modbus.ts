@@ -21,9 +21,9 @@ export class Modbus {
         // this.modbusClient.setID(device.slaveid);
         if (entity.modbusAddress && entity.registerType) {
             new ModbusCache("write").
-                writeRegisters({ busid: bus.getId(), slaveid: slaveid }, entity.modbusAddress, M2mSpecification.getWriteFunctionCode(entity.registerType), modbusValue, () => {
+                writeRegisters({ busid: bus.getId(), slaveid: slaveid }, entity.modbusAddress, M2mSpecification.getWriteFunctionCode(entity.registerType), modbusValue).then( () => {
                     // writeRegisters done
-                }, (e: any) => {
+                }).catch( (e: any) => {
                     log.log(LogLevelEnum.error, e.message);
                 });
         }
@@ -40,9 +40,9 @@ export class Modbus {
                     let modbusValue = converter?.mqtt2modbus(spec, entityid, mqttValue)
                     if (modbusValue && modbusValue.data.length > 0) {
                         new ModbusCache("write").
-                            writeRegisters({ busid: bus.getId(), slaveid: slaveid }, entity.modbusAddress, M2mSpecification.getWriteFunctionCode(entity.registerType), modbusValue, () => {
+                            writeRegisters({ busid: bus.getId(), slaveid: slaveid }, entity.modbusAddress, M2mSpecification.getWriteFunctionCode(entity.registerType), modbusValue).then( () => {
                                 resolve(mqttValue)
-                            }, (e: any) => {
+                            }).catch( (e: any) => {
                                 log.log(LogLevelEnum.error, e.message);
                                 reject(e.message)
                             });
@@ -57,40 +57,38 @@ export class Modbus {
         })
         return rc
     }
-    readEntityFromModbus(bus: Bus, slaveid: number, spec: Ispecification, entityId: number, failedFunction: (e: any) => void): Observable<ImodbusEntity> {
-        let entity = spec.entities.find(ent => ent.id == entityId)
-        let rc = new Subject<ImodbusEntity>()
+    readEntityFromModbus(bus: Bus, slaveid: number, spec: Ispecification, entityId: number): Promise<ImodbusEntity> {
+        return new Promise((resolve, reject)=>{
+                let entity = spec.entities.find(ent => ent.id == entityId)
         if (entity && entity.modbusAddress && entity.registerType) {
             let converter = ConverterMap.getConverter(entity);
             if (converter) {
                 let addresses = new Set<ImodbusAddress >();
                 for (let i = entity.modbusAddress; i < entity.modbusAddress + converter.getModbusLength(entity); i++)
                     addresses.add({address:i, registerType: entity.registerType });
-                let fn = (async () => {
-                    let rcf = (results: ImodbusValues) => {
+
+                let rcf = (results: ImodbusValues) => {
                         let em = M2mSpecification.copyModbusDataToEntity(spec, entity!.id, results);
                         if (em)
-                            rc.next(em);
+                            resolve(em);
                         else
-                            failedFunction(new Error("Unable to copy ModbusData to Entity"))
-                    }
+                            reject(new Error("Unable to copy ModbusData to Entity"))
+                }
                     if (Config.getConfiguration().fakeModbus)
-                        submitGetHoldingRegisterRequest({ busid: bus.getId(), slaveid: slaveid }, addresses, rcf, failedFunction)
+                        submitGetHoldingRegisterRequest({ busid: bus.getId(), slaveid: slaveid }, addresses) .then( rcf).catch( reject)
                     else
-                        bus.readModbusRegister("readEntity", slaveid, addresses, rcf, failedFunction)
-                });
-
-                setTimeout(fn, 1);
-            }
+                        bus.readModbusRegister("readEntity", slaveid, addresses).then(rcf).catch( reject)
+                     }
         }
         else {
             let msg = "Bus " + bus.properties.busId + " has no configured Specification"
             log.log(LogLevelEnum.notice, msg);
-            failedFunction(new Error(msg));
+            reject(new Error(msg));
         }
-        return rc;
-    }
 
+    
+    })
+    }
     
 
     /*
@@ -112,19 +110,16 @@ export class Modbus {
         let addresses = new Set<ImodbusAddress>()
         let info = "(" + bus.getId() + "," + slaveid + ")"
         Bus.getModbusAddressesForSpec(specification, addresses);
-        setTimeout(async () => {
-
+      
             debugAction("getModbusSpecificationFromData start read from modbus")
-            bus.readModbusRegister(task, slaveid, addresses, (values => {
+            bus.readModbusRegister(task, slaveid, addresses).then(values => {
                 debugAction("getModbusSpecificationFromData end read from modbus")
                 Modbus.populateEntitiesForSpecification(specification!, values, sub)
-            }), (e) => {
+            }).catch((e) => {
                 // read modbus data failed.
                 log.log(LogLevelEnum.error, "Modbus Read " + info + " failed: " + e.message)
                 Modbus.populateEntitiesForSpecification(specification!, emptyModbusValues(), sub)
             })
-        }, 1)
-
     }
     static getModbusSpecification(task: string, bus: Bus, slaveid: number, specificationFilename: string | undefined, failedFunction: (e: any) => void): Observable<ImodbusSpecification> {
         debugAction("getModbusSpecification starts (" + bus.getId() + "," + slaveid + ")")

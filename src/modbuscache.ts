@@ -43,7 +43,7 @@ export interface ImodbusAddress {
 }
 
 interface IModbusProcess {
-    resultTable:Map<number, ReadRegisterResult>, 
+    resultTable:Map<number, ReadRegisterResult|null>, 
     func: (slaveid: number, a: number, length: number) => Promise<ReadRegisterResultWithDuration>
 }
 // 
@@ -422,22 +422,23 @@ export class ModbusCache {
     static readMutex = new Mutex()
     constructor(private task: string) { }
     //static resultMutex:Mutex
-    writeRegisters(slaveId: IslaveId, startaddress: number,registerType:ModbusRegisterType,  data: ReadRegisterResult,
-        resultFunction: (result: ImodbusValues) => void, failedFunction: (e: any) => void) {
-        new ModbusStateMachine("write", slaveId, new Set<ImodbusAddress>(), resultFunction, failedFunction).prepareWriteAction(startaddress,registerType, data);
+    writeRegisters(slaveId: IslaveId, startaddress: number,registerType:ModbusRegisterType,  data: ReadRegisterResult):Promise<void>{
+        return new Promise<void>((resolve, reject)=>{
+            new ModbusStateMachine("write", slaveId, new Set<ImodbusAddress>(), (data)=>{resolve()}, reject).prepareWriteAction(startaddress,registerType, data);
+        })
     }
     submitGetHoldingRegisterRequest(
         slaveId: IslaveId, 
-        addresses: Set<ImodbusAddress>, 
-        resultFunction: (result: ImodbusValues) => void, failedFunction: (e: any) => void) {
-        debug('submitGetHoldingRegisterRequest bus:' + slaveId.busid + "slave: " + slaveId.slaveid)
+        addresses: Set<ImodbusAddress>):Promise<ImodbusValues> 
+         {
+            return new Promise<ImodbusValues>((resolve, reject)=>{ debug('s    ubmitGetHoldingRegisterRequest bus:' + slaveId.busid + "slave: " + slaveId.slaveid)
         if (slaveId.slaveid == -1) {
-            failedFunction(new Error("no slaveId passed to submitGetHoldingRegisterRequest"))
+            reject(new Error("no slaveId passed to submitGetHoldingRegisterRequest"))
         }
         else {
-
-            new ModbusStateMachine(this.task, slaveId, addresses, resultFunction, failedFunction).loadAction();
-        }
+            new ModbusStateMachine(this.task, slaveId, addresses, resolve, reject).loadAction();
+          } })
+       
     }
     static getStatus(slaveId: number): SlaveStates {
         return ModbusStateMachine.getStatus(slaveId);

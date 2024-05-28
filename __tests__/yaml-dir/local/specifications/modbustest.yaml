@@ -32,7 +32,7 @@ files:
     fileLocation: 0
     usage: img
 identified: 1
-version: "0.1"
+version: "0.2"
 testdata: {}
 status: 1
 icon: null
