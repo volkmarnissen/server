@@ -16,3 +16,4 @@ filelocation: ../server/xx
 mqttusehassiotoken: false
 password: "!secret password"
 username: "!secret username"
+
