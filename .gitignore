@@ -1,3 +1,6 @@
+**/secrets.*
+
+package-lock.json
 # Logs
 logs
 *.log
@@ -131,6 +134,3 @@ dist
 **/.DS_Store
 **/secrets.*
 .jest/
-**/secrets.*
-
-package-lock.json
