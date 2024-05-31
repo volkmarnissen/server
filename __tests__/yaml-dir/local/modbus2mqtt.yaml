@@ -22,3 +22,4 @@ mqttconnect:
   clean: true
 secretsfile: secrets.txt
 mqttusehassiotoken: false
+githubPersonalToken: "!secret githubPersonalToken"

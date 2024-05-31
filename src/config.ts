@@ -617,6 +617,10 @@ export class Config {
             (secrets as any)['mqttuser'] = cpConfig.mqttconnect.username;
             cpConfig.mqttconnect.username = "!secret mqttuser";
         }
+        if (cpConfig.githubPersonalToken) {
+            (secrets as any)['githubPersonalToken'] = cpConfig.githubPersonalToken;
+            cpConfig.githubPersonalToken = "!secret githubPersonalToken";
+        }
         if (cpConfig.username) {
             (secrets as any)['username'] = cpConfig.username;
             cpConfig.username = "!secret username";

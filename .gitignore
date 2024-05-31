@@ -1,6 +1,6 @@
-**/secrets.*
+**/secrets*
 
-package-lock.json
+**/package*lock*
 # Logs
 logs
 *.log
