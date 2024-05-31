@@ -4,7 +4,7 @@ import { VERSION } from "ts-node";
 import * as fs from 'fs';
 import { join } from "path";
 import { parse } from 'yaml';
-import { IfileSpecification } from "specification";
+import { IfileSpecification,Migrator } from "specification";
 import { ModbusRegisterType } from "specification.shared";
 import Debug from "debug"
 import { IBus, IModbusConnection, ITCPConnection } from "server.shared";
@@ -39,23 +39,26 @@ export function  startModbusTCPserver(yamlDir:string, busId:number){
                     console.log(fn)
                     content = fs.readFileSync(fn, { encoding: 'utf8' })
                     let spec:IfileSpecification = parse(content.toString())
-                
+                    spec = new Migrator().migrate(spec)
                     if(spec.testdata){
                         let testdata = spec.testdata
                         if(spec.testdata.analogInputs)
                             spec.testdata.analogInputs.forEach(avp=>{
                             let a = avp.address
-                            addRegisterValue(slaveid,a,ModbusRegisterType.AnalogInputs,avp.value)
+                            if(avp.value != null || avp.value != undefined)
+                                addRegisterValue(slaveid,a,ModbusRegisterType.AnalogInputs,avp.value)
                         })
                         if(spec.testdata.holdingRegisters)
                             spec.testdata.holdingRegisters.forEach(avp=>{
                             let a = avp.address
-                            addRegisterValue(slaveid,a,ModbusRegisterType.HoldingRegister,avp.value)
+                            if(avp.value != null || avp.value != undefined)
+                                addRegisterValue(slaveid,a,ModbusRegisterType.HoldingRegister,avp.value)
                         })
                         if(spec.testdata.coils)
                             spec.testdata.coils.forEach(avp=>{
-                            let a = avp.address
-                            addRegisterValue(slaveid,a,ModbusRegisterType.Coils,avp.value)
+                            let a = avp.address 
+                            if(avp.value != null || avp.value != undefined)
+                                addRegisterValue(slaveid,a,ModbusRegisterType.Coils,avp.value)
                         })                        
                     }
                 

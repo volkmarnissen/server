@@ -534,6 +534,17 @@ export class HttpServer {
 
             HttpServer.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(rc));
         });
+        this.post(apiUri.specificationValidate, (req: GetRequestWithParameter, res: http.ServerResponse) => {
+            if (!req.query.language || req.query.language.length == 0) {
+                HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify("pass language "));
+                return;
+            }
+            let spec = new M2mSpecification(req.body);
+            let messages = spec.validate(req.query.language)
+            HttpServer.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(messages));
+
+        })
+       
         this.get(apiUri.specificationValidate, (req: GetRequestWithParameter, res: http.ServerResponse) => {
             if (!req.query.language || req.query.language.length == 0) {
                 HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify("pass language "));
