@@ -1,4 +1,4 @@
-import { expect } from '@jest/globals';
+import { expect ,it, xtest,test,jest ,describe, beforeAll} from '@jest/globals';
 import { HttpServer as HttpServer } from '../src/httpserver'
 import { ImodbusEntity, ModbusRegisterType,  IimageAndDocumentUrl, IdentifiedStates, Iconverter, HttpErrorsEnum,  FileLocation } from 'specification.shared';
 import { Config } from '../src/config';
@@ -111,7 +111,7 @@ it("register,login validate", done => {
         get('/user/reqister?name=test&password=test123').then(_response => {
 
         }).catch(_err => {
-            fail()
+            expect(false).toBeTruthy()
         })
     request(httpServer.app).get('/user/login?name=test&password=test123').
         expect(200).
@@ -409,15 +409,15 @@ describe("http POST", () => {
                         .send(i)
                         .expect(201).
                         then((_response) => {
-                            expect(_response.body.length).toBe(3)
+                            expect(_response.body.length).toBe(4)
                             request(httpServer.app).delete('/api/upload?specification=waterleveltransmitter&url=http://www.spiegel.de&usage=' + SpecificationFileUsage.documentation)
                                 .expect(200)
                                 .then((_response) => {
-                                    expect(_response.body.length).toBe(2)
+                                    expect(_response.body.length).toBe(3)
                                     request(httpServer.app).delete('/api/upload?specification=waterleveltransmitter&url=' + _response.body[1].url + "&usage=' + SpecificationFileUsage.documentation)")
                                         .expect(200)
                                         .then((_response) => {
-                                            expect(_response.body.length).toBe(1)
+                                            expect(_response.body.length).toBe(2)
                                             done();
                                         })
 

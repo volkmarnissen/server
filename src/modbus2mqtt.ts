@@ -3,7 +3,7 @@ import { HttpServer } from './httpserver';
 import { Bus } from './bus';
 import { Command } from 'commander'
 import { VERSION } from 'ts-node';
-import { LogLevelEnum, Logger } from 'specification';
+import { LogLevelEnum, Logger, M2mSpecification } from 'specification';
 import * as os from 'os'
 
 import Debug from "debug"
@@ -53,6 +53,7 @@ export class Modbus2Mqtt {
         readConfig = new Config();
         readConfig.readYaml();
         new ConfigSpecification().readYaml()
+        ConfigSpecification.setMqttdiscoverylanguage(Config.getConfiguration().mqttdiscoverylanguage,Config.getConfiguration().githubPersonalToken)
         debug(Config.getConfiguration().mqttconnect.mqttserverurl);
         let angulardir = require.resolve("angular")
         let angulardirLang = path.parse(angulardir).dir

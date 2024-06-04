@@ -411,6 +411,8 @@ export class HttpServer {
             debug("POST: " + req.url);
             let config = Config.getConfiguration();
             new Config().writeConfiguration(req.body);
+            config = Config.getConfiguration()
+            ConfigSpecification.setMqttdiscoverylanguage (config.mqttdiscoverylanguage, config.githubPersonalToken)
             HttpServer.returnResult(req, res, HttpErrorsEnum.OkNoContent, JSON.stringify(config));
         });
         this.post(apiUri.bus, (req: GetRequestWithParameter, res: http.ServerResponse) => {
