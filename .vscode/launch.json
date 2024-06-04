@@ -39,6 +39,19 @@
         "MODBUS2MQTT_NOPOLL": "",
       }
     },
+
+    {
+      "command": "npm run validate",
+      "name": "Run validate",
+      "request": "launch",
+      "sourceMaps": true,
+      "type": "node-terminal", 
+      "env": {
+        "DEBUG": "m2mgithubvalidate",
+        "PR_NUMBER": "62",
+        "GITHUB_TOKEN": "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"
+      }
+    },
     {
       "command": "npm run  ui",
       "name": "Run ui",
