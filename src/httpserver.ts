@@ -3,7 +3,7 @@ import * as http from 'http'
 import { Application, Request } from 'express';
 import * as express from 'express';
 import * as bodyparser from 'body-parser';
-import { ConverterMap, IModbusData, IfileSpecification, emptyModbusValues } from 'specification';
+import { ConverterMap, IModbusData, IfileSpecification, M2mGitHub, emptyModbusValues } from 'specification';
 import { Config, MqttValidationResult, filesUrlPrefix } from './config';
 import { Modbus } from './modbus';
 import { ImodbusSpecification,  HttpErrorsEnum, IimageAndDocumentUrl,  Ispecification } from 'specification.shared';
@@ -272,6 +272,15 @@ export class HttpServer {
             new ConfigSpecification().filterAllSpecifications(spec => { rc.push(M2mSpecification.fileToModbusSpecification(spec)) })
             HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(rc))
         });
+        this.get(apiUri.specificationFetchPublic, (req: Request, res: http.ServerResponse) => {
+            debug(req.url);
+            let ghToken = Config.getConfiguration().githubPersonalToken
+            ghToken = (ghToken == undefined?"":ghToken)
+            new M2mGitHub(ghToken,join(ConfigSpecification.yamlDir, "public" )).fetchPublicFiles()
+            new ConfigSpecification().readYaml();
+            HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify({ result: "OK" }))
+        });
+        
         this.get(apiUri.busses, (req: Request, res: http.ServerResponse) => {
             debug(req.originalUrl);
             let busses = Bus.getBusses()
@@ -359,6 +368,8 @@ export class HttpServer {
             let spec = ConfigSpecification.getSpecificationByFilename(req.query.spec)
             let client = new M2mSpecification(spec as Ispecification);
             client.contribute(req.body).then(response => {
+                // poll status updates of pull request
+                client.startPolling((e)=>{log.log(LogLevelEnum.error, e.message)})
                 HttpServer.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(response));
             }).catch(err => {
                 res.statusCode = HttpErrorsEnum.ErrNotAcceptable
