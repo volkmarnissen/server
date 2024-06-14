@@ -1,18 +1,18 @@
 import { expect ,it, xtest,test,jest ,describe, beforeAll} from '@jest/globals';
 import { HttpServer as HttpServer } from '../src/httpserver'
-import { ImodbusEntity, ModbusRegisterType,  IimageAndDocumentUrl, IdentifiedStates, Iconverter, HttpErrorsEnum,  FileLocation } from 'specification.shared';
+import { ImodbusEntity, ModbusRegisterType,  IimageAndDocumentUrl, IdentifiedStates, Iconverter, HttpErrorsEnum,  FileLocation } from '@modbus2mqtt/specification.shared';
 import { Config } from '../src/config';
 import * as request from "supertest";
 import * as fs from 'fs';
-import { ImodbusSpecification, SpecificationFileUsage, getSpecificationI18nName } from 'specification.shared';
+import { ImodbusSpecification, SpecificationFileUsage, getSpecificationI18nName } from '@modbus2mqtt/specification.shared';
 import { ModbusCache } from '../src/modbuscache';
 import { submitGetHoldingRegisterRequest } from '../src/submitRequestMock';
 import { Bus } from '../src/bus';
 import { VERSION } from 'ts-node';
 import * as http from 'http'
-import { apiUri, IBus, IRTUConnection, IModbusConnection, IidentificationSpecification } from 'server.shared';
-import { IfileSpecification } from 'specification';
-import { ConfigSpecification } from 'specification';
+import { apiUri, IBus, IRTUConnection, IModbusConnection, IidentificationSpecification } from '@modbus2mqtt/server.shared';
+import { IfileSpecification } from '@modbus2mqtt/specification';
+import { ConfigSpecification } from '@modbus2mqtt/specification';
 import { Mutex } from 'async-mutex';
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU';
 

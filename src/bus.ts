@@ -1,19 +1,19 @@
 import Debug from "debug"
 import { Observable, Subject, first } from "rxjs";
-import { ImodbusEntityIdentification, ImodbusSpecification,  ModbusRegisterType,  SpecificationStatus } from 'specification.shared';
-import { IdentifiedStates } from 'specification.shared';
+import { ImodbusEntityIdentification, ImodbusSpecification,  ModbusRegisterType,  SpecificationStatus } from '@modbus2mqtt/specification.shared';
+import { IdentifiedStates } from '@modbus2mqtt/specification.shared';
 import { Mutex } from "async-mutex";
 import { ImodbusAddress, ModbusCache } from "./modbuscache";
-import { ConverterMap, ImodbusValues, M2mSpecification, emptyModbusValues } from "specification";
+import { ConverterMap, ImodbusValues, M2mSpecification, emptyModbusValues } from '@modbus2mqtt/specification';
 import { Config } from "./config";
 import { Modbus } from "./modbus";
 import { submitGetHoldingRegisterRequest } from "./submitRequestMock";
-import { IfileSpecification } from "specification";
-import { LogLevelEnum, Logger } from "specification";
+import { IfileSpecification } from '@modbus2mqtt/specification';
+import { LogLevelEnum, Logger } from '@modbus2mqtt/specification';
 import ModbusRTU from "modbus-serial";
 import { ReadRegisterResult } from "modbus-serial/ModbusRTU";
-import { Islave, IModbusConnection, IBus, IRTUConnection, ITCPConnection, IidentificationSpecification } from "server.shared";
-import { ConfigSpecification } from "specification";
+import { Islave, IModbusConnection, IBus, IRTUConnection, ITCPConnection, IidentificationSpecification } from '@modbus2mqtt/server.shared';
+import { ConfigSpecification } from '@modbus2mqtt/specification';
 const debug = Debug("bus");
 const debugMutex = Debug("bus.mutex")
 const log = new Logger("bus")

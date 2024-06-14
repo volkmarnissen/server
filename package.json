@@ -1,5 +1,5 @@
 {
-  "name": "server",
+  "name": "@modbus2mqtt/server",
   "version": "0.7.0",
   "sshserver": "odroid@homeassistant.fritz.box",
   "description": "server for modbus2mqtt for REST API of configuration and publishing modbus values to mqtt",
@@ -10,7 +10,9 @@
   ],
   "bugs": "https://github.com/modbus2mqtt/server/issues",
   "module": "commonjs",
-  "main": "index.ts",
+  "bin": {
+    "modbus2mqtt": "dist/modbus2mqtt.js"
+  },
   "author": "Volkmar Nissen <volkmar.nissen@gmail.com>",
   "license": "MIT",
   "repository": {
@@ -26,17 +28,21 @@
     "serverTCP": "npm run build && node dist/src/modbus2mqtt.js -s ../ssl -y ../yaml-dir --busid 0",
     "ui": "cd ../angular && ng serve --host 0.0.0.0",
     "validate": "cd ../specification && npm run build && node dist/src/validate.js",
-   
-    "tsc": "tsc"
+    "tsc": "tsc",
+    "prepack": "../server.shared/changeModbusDependencies.sh package.json",
+    "postpack": "rm package.json && mv package.json.bck package.json"
   },
   "private": true,
   "dependencies": {
     "@google-cloud/translate": "^8.3.0",
+    "@modbus2mqtt/server.shared": "file:../server.shared",
+    "@modbus2mqtt/specification": "file:../specification",
+    "@modbus2mqtt/specification.shared": "file:../specification.shared",
     "@octokit/rest": "^20.1.1",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/npmlog": "^7.0.0",
     "@types/ws": "^8.5.10",
-    "angular": "file:../angular",
+    "@modbus2mqtt/angular": "file:../angular",
     "assert": "^2.1.0",
     "async-mqtt": "^2.6.3",
     "async-mutex": "^0.5.0",
@@ -55,6 +61,7 @@
     "latest": "^0.2.0",
     "modbus-serial": "^8.0.16",
     "modbus2mqtt": "file:../angular",
+    "multer": "^1.4.5-lts.1",
     "npmlog": "^7.0.1",
     "rxjs": "^7.8.1",
     "serialport": "^12.0.0",

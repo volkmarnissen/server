@@ -2,13 +2,13 @@ import { Config } from '../src/config';
 import { ImodbusAddress, ModbusCache, exportedForTesting } from '../src/modbuscache';
 import ModbusRTU from 'modbus-serial';
 const { ModbusStateMachine } = exportedForTesting;
-import { yamlDir } from './../testHelpers/configsbase';
+import { yamlDir } from './testHelpers/configsbase';
 import { Mutex } from 'async-mutex';
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU';
 import { getReadRegisterResult } from '../src/submitRequestMock';
 import Debug from "debug"
-import { ConfigSpecification, ImodbusValues, Logger } from 'specification';
-import { ModbusRegisterType } from 'specification.shared';
+import { ConfigSpecification, ImodbusValues, Logger } from '@modbus2mqtt/specification';
+import { ModbusRegisterType } from '@modbus2mqtt/specification.shared';
 const debug = Debug("modbuscachetest");
 let mockMutex = new Mutex()
 Config['yamlDir'] = yamlDir;

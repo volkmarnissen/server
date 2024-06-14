@@ -5,13 +5,13 @@ import { MqttDiscover } from './mqttdiscover';
 import * as path from 'path';
 import { join } from 'path';
 import { Observable, Subject } from "rxjs";
-import {  getBaseFilename } from 'specification.shared';
+import {  getBaseFilename } from '@modbus2mqtt/specification.shared';
 import { sign, verify } from 'jsonwebtoken';
 import * as bcrypt from "bcrypt";
 import * as http from 'http'
-import { ConfigSpecification, LogLevelEnum, Logger } from 'specification'
+import { ConfigSpecification, LogLevelEnum, Logger } from '@modbus2mqtt/specification'
 import { SerialPort } from 'serialport'
-import { ImqttClient, AuthenticationErrors, IBus, Iconfiguration, IModbusConnection, Islave } from "server.shared";
+import { ImqttClient, AuthenticationErrors, IBus, Iconfiguration, IModbusConnection, Islave } from '@modbus2mqtt/server.shared';
 const CONFIG_VERSION = "0.1"
 declare global {
     namespace NodeJS {

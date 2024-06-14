@@ -1,13 +1,13 @@
 import { Config } from "./config";
-import { ConfigSpecification, ConverterMap, IfileSpecification } from "specification";
-import {  Inumber, Iselect,  getSpecificationI18nEntityOptionName, editableConverters, getSpecificationI18nName, IselectOption, ImodbusSpecification } from 'specification.shared';
-import { Ientity, ImodbusEntity, VariableTargetParameters, getSpecificationI18nEntityName } from 'specification.shared';
+import { ConfigSpecification, ConverterMap, IfileSpecification } from '@modbus2mqtt/specification';
+import {  Inumber, Iselect,  getSpecificationI18nEntityOptionName, editableConverters, getSpecificationI18nName, IselectOption, ImodbusSpecification } from '@modbus2mqtt/specification.shared';
+import { Ientity, ImodbusEntity, VariableTargetParameters, getSpecificationI18nEntityName } from '@modbus2mqtt/specification.shared';
 import * as mqtt from 'mqtt';
 import { Modbus } from "./modbus";
 import { Bus } from "./bus";
 import Debug from "debug"
-import { LogLevelEnum, Logger } from "specification";
-import { ImqttClient, Islave } from "server.shared";
+import { LogLevelEnum, Logger } from '@modbus2mqtt/specification';
+import { ImqttClient, Islave } from '@modbus2mqtt/server.shared';
 
 
 const debug = Debug('mqttdiscover')

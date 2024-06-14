@@ -1,0 +1,15 @@
+src/*
+__tests__/*
+tsconfig.json
+jest.config.ts
+package-lock.json
+node_modules/*
+*.tsbuildinfo
+
+**/.DS_Store
+**/secrets.*
+.jest/
+.vscode/*
+**/*-yaml/**
+testHelpers/** 
+package.json.bck

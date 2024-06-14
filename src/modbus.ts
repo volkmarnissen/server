@@ -1,13 +1,13 @@
-import { ImodbusSpecification, Ispecification } from 'specification.shared';
-import { ConfigSpecification, ConverterMap, ImodbusValues, M2mSpecification, emptyModbusValues } from "specification";
-import { Ientity, ImodbusEntity } from 'specification.shared';
+import { ImodbusSpecification, Ispecification } from '@modbus2mqtt/specification.shared';
+import { ConfigSpecification, ConverterMap, ImodbusValues, M2mSpecification, emptyModbusValues } from '@modbus2mqtt/specification';
+import { Ientity, ImodbusEntity } from '@modbus2mqtt/specification.shared';
 import { Config } from "./config";
 import { ImodbusAddress, ModbusCache } from "./modbuscache";
 import { Observable, Subject } from "rxjs";
 import { Bus } from "./bus";
 import { submitGetHoldingRegisterRequest } from "./submitRequestMock";
-import { IfileSpecification } from "specification";
-import { LogLevelEnum, Logger } from 'specification';
+import { IfileSpecification } from '@modbus2mqtt/specification';
+import { LogLevelEnum, Logger } from '@modbus2mqtt/specification';
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU';
 const debug = require('debug')('modbus');
 const debugAction = require('debug')('actions');

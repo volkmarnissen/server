@@ -1,14 +1,14 @@
 
 import { Bus } from '../src/bus';
 import { Config } from '../src/config';
-import {  Itext, IdentifiedStates, ImodbusEntity, Inumber, Converters, Ientity, Ispecification, ModbusRegisterType, ImodbusSpecification, FileLocation, SpecificationFileUsage } from "specification.shared";
+import {  Itext, IdentifiedStates, ImodbusEntity, Inumber, Converters, Ientity, Ispecification, ModbusRegisterType, ImodbusSpecification, FileLocation, SpecificationFileUsage } from '@modbus2mqtt/specification.shared';
 import { Modbus, ModbusForTest } from '../src/modbus';
 import { IslaveId, ModbusCache } from '../src/modbuscache';
 import { getReadRegisterResult, submitGetHoldingRegisterRequest } from '../src/submitRequestMock';
-import { yamlDir } from './../testHelpers/configsbase';
+import { yamlDir } from './testHelpers/configsbase';
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU';
-import { Islave } from 'server.shared';
-import { ConfigSpecification, IfileSpecification, ImodbusValues, emptyModbusValues } from 'specification';
+import { Islave } from '@modbus2mqtt/server.shared';
+import { ConfigSpecification, IfileSpecification, ImodbusValues, emptyModbusValues } from '@modbus2mqtt/specification';
 
 Config['yamlDir'] = yamlDir;
 Config.sslDir = yamlDir;

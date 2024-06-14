@@ -13,7 +13,7 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "sourceMap": true,
-    "declaration": false,
+    "declaration": true,
     "downlevelIteration": true,
     "experimentalDecorators": true,
     "moduleResolution": "node",
@@ -23,14 +23,13 @@
     "lib": [
       "ES2022",
       "dom"
-    ],
-    "paths":{
-      "./src/*": ["server/src/*"]
-    }
+    ]
   },
   "exclude":[
     "node_modules/**/*",
+    "**/testHelpers/*",
     "dist/**/*",
     "**/__tests__/**",
+    "jest.config.ts"
   ],
 }

@@ -1,11 +1,10 @@
-import { expect } from '@jest/globals';
+import { expect,it,test ,afterAll} from '@jest/globals';
 import { Config, MqttValidationResult } from '../src/config';
-import {  SpecificationStatus, getFileNameFromName, getSpecificationI18nName, newSpecification } from 'specification.shared';
+import {  getFileNameFromName } from '@modbus2mqtt/specification.shared';
 import * as fs from 'fs';
-import { join } from 'path';
-import { yamlDir } from './../testHelpers/configsbase';
+import { yamlDir } from './testHelpers/configsbase';
 import * as http from 'http'
-import { AuthenticationErrors } from 'server.shared';
+import { AuthenticationErrors } from '@modbus2mqtt/server.shared';
 
 
 Config['yamlDir'] = yamlDir;
@@ -18,7 +17,7 @@ afterAll(() => {
 })
 
 
-it('register/login/validate', (done) => {
+test('register/login/validate', (done) => {
     const config = new Config();
     let loginExecuted: boolean = false;
     config.readYaml();
