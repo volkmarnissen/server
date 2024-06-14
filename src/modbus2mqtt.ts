@@ -3,16 +3,15 @@ import { HttpServer } from './httpserver';
 import { Bus } from './bus';
 import { Command } from 'commander'
 import { VERSION } from 'ts-node';
-import { LogLevelEnum, Logger , M2mGitHub, M2mSpecification} from 'specification';
+import { LogLevelEnum, Logger , M2mGitHub, M2mSpecification} from '@modbus2mqtt/specification';
 import * as os from 'os'
 
 import Debug from "debug"
 import { MqttDiscover } from './mqttdiscover.js';
-import { ConfigSpecification } from 'specification';
+import { ConfigSpecification } from '@modbus2mqtt/specification';
 import path = require('path');
-import { yamlDir } from '../testHelpers/configsbase';
 import { startModbusTCPserver } from './runModbusTCPserver';
-import { SpecificationStatus } from 'specification.shared';
+import { SpecificationStatus } from '@modbus2mqtt/specification.shared';
 import { join } from 'path';
 
 const debug = Debug("modbus2mqtt");

@@ -4,7 +4,7 @@ import { FileFilterCallback } from 'multer'
 import { Config, getSpecificationImageOrDocumentUrl } from './config'
 import { join } from 'path'
 import * as fs from 'fs';
-import { SpecificationFileUsage } from 'specification.shared'
+import { SpecificationFileUsage } from '@modbus2mqtt/specification.shared'
 
 type DestinationCallback = (error: Error | null, destination: string) => void
 type FileNameCallback = (error: Error | null, filename: string) => void

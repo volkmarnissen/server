@@ -1,0 +1,32 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"name": "server.shared",
+			"path": "../server.shared"
+		},
+		{
+			"name": "angular",
+			"path": "../angular"
+		},
+		{
+			"name": "specification",
+			"path": "../specification"
+		},
+		{
+			"name": "specification.shared",
+			"path": "../specification.shared"
+		},
+		{
+			"name": "server",
+			"path": "."
+		}
+	],
+	"settings": {
+		"jest.disabledWorkspaceFolders": [
+			"m2m"
+		]
+	}
+}

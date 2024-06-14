@@ -6,10 +6,10 @@
 // The requested addresses will be cumulated until a requester calls clearData for a given slave;
 import Debug from "debug"
 import { Mutex } from 'async-mutex';
-import { IModbusData, ImodbusValues, LogLevelEnum, Logger, M2mSpecification, emptyModbusValues } from "specification";
+import { IModbusData, ImodbusValues, LogLevelEnum, Logger, M2mSpecification, emptyModbusValues } from '@modbus2mqtt/specification';
 import { Bus, ReadRegisterResultWithDuration } from "./bus";
 import { ReadRegisterResult } from "modbus-serial/ModbusRTU";
-import { ModbusRegisterType } from "specification.shared";
+import { ModbusRegisterType } from '@modbus2mqtt/specification.shared';
 const minTimeout = 100
 const maxTimeouts = 1;
 const maxAddressDelta = 10;

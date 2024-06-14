@@ -1,12 +1,12 @@
 import Debug from "debug"
-import { expect } from '@jest/globals';
+import { expect, it, describe , beforeAll} from '@jest/globals';
 import { Config } from '../src/config';
 import { Bus } from '../src/bus';
-import { yamlDir } from "./../testHelpers/configsbase";
+import { yamlDir } from "./testHelpers/configsbase";
 import { ModbusServer, XYslaveid } from './../src/modbusTCPserver';
 import { ReadRegisterResult } from "modbus-serial/ModbusRTU";
-import { IdentifiedStates } from "specification.shared";
-import { ConfigSpecification } from "specification";
+import { IdentifiedStates } from '@modbus2mqtt/specification.shared';
+import { ConfigSpecification } from '@modbus2mqtt/specification';
 
 const debug = Debug("bustest");
 Debug.enable('bustest modbusserver')
@@ -67,7 +67,7 @@ function testRead(address: number, address2: number, value1: number, value2: num
                   expect(value.data[0]).toBe(value1)
                   expect(value.data[1]).toBe(value2)
                   fc.bind(bus)(XYslaveid, address2, 2).then((_value) => {
-                     fail("Exception expected")
+                     expect(true).toBeFalsy()
                   }).catch((e) => {
                      expect(e.modbusCode).toBe(2)
                      bus!.closeRTU("test", () => { tcpServer.stopServer(resolve) })
@@ -93,7 +93,7 @@ function testWrite(address: number, address2: number, value: number, fc: (slavei
 
                   fc.bind(bus)(XYslaveid, address, { data: [value], buffer: [0] }).then(() => {
                      fc.bind(bus)(XYslaveid, address2, { data: [value], buffer: [0] }).then(() => {
-                        fail("Exception expected")
+                        expect(true).toBeFalsy()
                      }).catch((e) => {
                         expect(e.modbusCode).toBe(2)
                         bus!.closeRTU("test", () => { tcpServer.stopServer(resolve) })
@@ -107,7 +107,7 @@ function testWrite(address: number, address2: number, value: number, fc: (slavei
       }
    })
 }
-it("Bus getSpecsForDevice", (done) => {
+it("Bus getSpecsForDevice", done => {
    prepareIdentification();
    Config['config'].fakeModbus = true;
    if (Config.getConfiguration().fakeModbus)
@@ -157,7 +157,7 @@ it("Modbus getSpecsForDevice with specific slaveId no results 0-3", (done) => {
 })
 describe("ServerTCP based", () => {
    it("read Discrete Inputs success, Illegal Address", (done) => {
-      testRead(1, 4, 1, 1, Bus.prototype.readDiscreteInputs).then(done)
+      testRead(1, 4, 1, 1, Bus.prototype.readDiscreteInputs).then(()=>{done()})
 
 
    })
@@ -167,14 +167,14 @@ describe("ServerTCP based", () => {
          done()
       })
    })
-   it("read readInputRegisters success, Illegal Address", (done) => {
-      testRead(1, 2, 195, 500, Bus.prototype.readInputRegisters).then(done)
+   it("read readInputRegisters success, Illegal Address", done => {
+      testRead(1, 2, 195, 500, Bus.prototype.readInputRegisters).then(()=>{done()})
    })
    it("writeHoldingRegisters success, Illegal Address", (done) => {
-      testWrite(1, 2, 10, Bus.prototype.writeHoldingRegisters).then(done)
+      testWrite(1, 2, 10, Bus.prototype.writeHoldingRegisters).then(()=>{done()})
    })
    it("writeCoils success, Illegal Address", (done) => {
-      testWrite(1, 4, 0, Bus.prototype.writeCoils).then(done)
+      testWrite(1, 4, 0, Bus.prototype.writeCoils).then(()=>{done()})
    })
 
 })

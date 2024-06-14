@@ -4,10 +4,10 @@ import { VERSION } from "ts-node";
 import * as fs from 'fs';
 import { join } from "path";
 import { parse } from 'yaml';
-import { IfileSpecification,Migrator } from "specification";
-import { ModbusRegisterType } from "specification.shared";
+import { IfileSpecification,Migrator } from '@modbus2mqtt/specification';
+import { ModbusRegisterType } from '@modbus2mqtt/specification.shared';
 import Debug from "debug"
-import { IBus, IModbusConnection, ITCPConnection } from "server.shared";
+import { IBus, IModbusConnection, ITCPConnection } from '@modbus2mqtt/server.shared';
 const debug = Debug("modbusTCPserver");
 
 

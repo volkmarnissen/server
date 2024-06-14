@@ -1,13 +1,13 @@
 import { Config } from '../src/config';
-import { ImodbusEntity, ImodbusSpecification, ModbusRegisterType, VariableTargetParameters } from 'specification.shared';
+import { ImodbusEntity, ImodbusSpecification, ModbusRegisterType, VariableTargetParameters } from '@modbus2mqtt/specification.shared';
 import { ModbusCache } from '../src/modbuscache';
 import { ItopicAndPayloads, MqttDiscover } from '../src/mqttdiscover';
 import { Client, MqttClient } from 'mqtt';
 import { submitGetHoldingRegisterRequest } from '../src/submitRequestMock';
-import { yamlDir } from './../testHelpers/configsbase';
+import { yamlDir } from './testHelpers/configsbase';
 import { Bus } from '../src/bus';
 import { debug } from 'console';
-import { ConfigSpecification, Logger } from 'specification';
+import { ConfigSpecification, Logger } from '@modbus2mqtt/specification';
 
 
 enum FakeModes {

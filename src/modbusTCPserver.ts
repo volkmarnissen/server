@@ -1,6 +1,6 @@
 import { FCallbackVal, IServiceVector, ServerTCP } from "modbus-serial";
 import Debug from "debug"
-import { ModbusRegisterType } from "specification.shared";
+import { ModbusRegisterType } from '@modbus2mqtt/specification.shared';
 
 export const XYslaveid = 1
 export const Dimplexslaveid = 2

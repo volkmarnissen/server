@@ -3,10 +3,10 @@ import * as http from 'http'
 import { Application, Request } from 'express';
 import * as express from 'express';
 import * as bodyparser from 'body-parser';
-import { ConverterMap, IModbusData, IfileSpecification, M2mGitHub, emptyModbusValues } from 'specification';
+import { ConverterMap, IModbusData, IfileSpecification, M2mGitHub, emptyModbusValues } from '@modbus2mqtt/specification';
 import { Config, MqttValidationResult, filesUrlPrefix } from './config';
 import { Modbus } from './modbus';
-import { ImodbusSpecification,  HttpErrorsEnum, IimageAndDocumentUrl,  Ispecification } from 'specification.shared';
+import { ImodbusSpecification,  HttpErrorsEnum, IimageAndDocumentUrl,  Ispecification } from '@modbus2mqtt/specification.shared';
 import { join } from 'path';
 import { GetRequestWithUploadParameter, fileStorage } from './httpFileUpload';
 import * as multer from 'multer';
@@ -14,11 +14,11 @@ import { Bus } from "./bus";
 import { Subject } from "rxjs";
 import { MqttDiscover } from "./mqttdiscover";
 import * as fs from 'fs';
-import { LogLevelEnum, Logger } from "specification";
+import { LogLevelEnum, Logger } from '@modbus2mqtt/specification';
 import { TranslationServiceClient } from '@google-cloud/translate'
-import { M2mSpecification as M2mSpecification } from "specification";
-import { IUserAuthenticationStatus, IBus, Islave, apiUri } from "server.shared";
-import { ConfigSpecification } from "specification";
+import { M2mSpecification as M2mSpecification } from '@modbus2mqtt/specification';
+import { IUserAuthenticationStatus, IBus, Islave, apiUri } from '@modbus2mqtt/server.shared';
+import { ConfigSpecification } from '@modbus2mqtt/specification';
 import path = require("path");
 import { ImodbusAddress } from "./modbuscache";
 const debug = Debug("httpserver");
