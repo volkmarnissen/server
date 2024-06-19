@@ -10,13 +10,6 @@ const config: Config = {
   },
   testRegex: '/__tests__/(.*|(\\.|/)(test|spec))(\\.tsx)+$',
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
-  setupFiles: ["<rootDir>/.jest/setEnvVars.js"],
-  "globals": {
-    "ts-jest": {
-      "babelConfig": {
-        "sourceMaps": true
-      }
-    }
-  }
+  setupFiles: ["<rootDir>/.jest/setEnvVars.js"]
 };
 export default config;

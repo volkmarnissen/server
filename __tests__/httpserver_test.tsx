@@ -15,6 +15,7 @@ import { IfileSpecification } from '@modbus2mqtt/specification';
 import { ConfigSpecification } from '@modbus2mqtt/specification';
 import { Mutex } from 'async-mutex';
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU';
+import { join } from 'path';
 
 const yamlDir = "__tests__/yaml-dir";
 ConfigSpecification.yamlDir= yamlDir;
@@ -80,7 +81,7 @@ beforeAll(() => {
     HttpServer.prototype.authenticate = (req, res, next) => {
         next()
     };
-    httpServer = new HttpServer();
+    httpServer = new HttpServer(join(yamlDir, "angular"));
     httpServer.init();
     httpServer.setModbusCacheAvailable();
 });
@@ -105,6 +106,28 @@ it("GET /specsForSlave", done => {
             done();
         });
 });
+it("GET angular files", done => {
+    request(httpServer.app).
+        get("/en-US/test.css").
+        expect(200).
+        then(response => {
+            expect(response.text).toBe("Just content");
+            expect( response.type).toBe("text/css")
+            done();
+        });
+});
+it("GET local files", done => {
+    request(httpServer.app).
+        get("/specifications/files/waterleveltransmitter/files.yaml").
+        expect(200).
+        then(response => {
+            expect(response.text.startsWith("- url:")).toBeTruthy();
+            expect( response.type).toBe("application/x-yaml")
+            done();
+        });
+});
+
+
 it("register,login validate", done => {
     var token = ""
     request(httpServer.app).
