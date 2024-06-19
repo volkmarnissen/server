@@ -9,7 +9,7 @@ import * as os from 'os'
 import Debug from "debug"
 import { MqttDiscover } from './mqttdiscover.js';
 import { ConfigSpecification } from '@modbus2mqtt/specification';
-import path = require('path');
+import path  from 'path';
 import { startModbusTCPserver } from './runModbusTCPserver';
 import { SpecificationStatus } from '@modbus2mqtt/specification.shared';
 import { join } from 'path';
@@ -56,9 +56,12 @@ export class Modbus2Mqtt {
         new ConfigSpecification().readYaml()
         ConfigSpecification.setMqttdiscoverylanguage(Config.getConfiguration().mqttdiscoverylanguage,Config.getConfiguration().githubPersonalToken)
         debug(Config.getConfiguration().mqttconnect.mqttserverurl);
-        let angulardir = require.resolve("angular")
+        let angulardir = require.resolve("@modbus2mqtt/angular")
+        log.log(LogLevelEnum.notice, "module dir: " + angulardir)
         let angulardirLang = path.parse(angulardir).dir
         angulardir = path.parse(angulardirLang).dir
+        log.log(LogLevelEnum.notice, "http root : " + angulardir)
+        
         let httpServer = new HttpServer(angulardir);
         debugAction("readBussesFromConfig starts")
         Bus.readBussesFromConfig()

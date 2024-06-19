@@ -1,26 +1,28 @@
 import Debug from "debug"
 import * as http from 'http'
-import { Application, Request } from 'express';
+
+import { Request } from "express";
 import * as express from 'express';
 import * as bodyparser from 'body-parser';
-import { ConverterMap, IModbusData, IfileSpecification, M2mGitHub, emptyModbusValues } from '@modbus2mqtt/specification';
+import { ConverterMap, IModbusData, M2mGitHub } from '@modbus2mqtt/specification';
 import { Config, MqttValidationResult, filesUrlPrefix } from './config';
 import { Modbus } from './modbus';
 import { ImodbusSpecification,  HttpErrorsEnum, IimageAndDocumentUrl,  Ispecification } from '@modbus2mqtt/specification.shared';
 import { join } from 'path';
+import multer from 'multer';
+
 import { GetRequestWithUploadParameter, fileStorage } from './httpFileUpload';
-import * as multer from 'multer';
 import { Bus } from "./bus";
 import { Subject } from "rxjs";
 import { MqttDiscover } from "./mqttdiscover";
 import * as fs from 'fs';
 import { LogLevelEnum, Logger } from '@modbus2mqtt/specification';
+
+
 import { TranslationServiceClient } from '@google-cloud/translate'
 import { M2mSpecification as M2mSpecification } from '@modbus2mqtt/specification';
 import { IUserAuthenticationStatus, IBus, Islave, apiUri } from '@modbus2mqtt/server.shared';
 import { ConfigSpecification } from '@modbus2mqtt/specification';
-import path = require("path");
-import { ImodbusAddress } from "./modbuscache";
 const debug = Debug("httpserver");
 const debugUrl = Debug("httpserverUrl");
 const log = new Logger("httpserver")
@@ -47,9 +49,9 @@ interface GetRequestWithParameter extends Request {
 }
 
 export class HttpServer {
-    app: Application;
+    app: express.Application;
     constructor(private angulardir:string =".") {
-        this.app = express();
+        this.app = require('express')();
     }
     static returnResult(req: Request, res: http.ServerResponse, code: HttpErrorsEnum, message: string, object: any = undefined) {
         debugUrl("end: " + req.path)
@@ -136,11 +138,19 @@ export class HttpServer {
         this.app.use(bodyparser.urlencoded({ extended: true }));
         this.app.use(express.json());
         //this.app.use(fileupload());
+       
+        express.static.mime.define({
+            "text/css": ["css"],
+            "text/javascript": ["js"],
+            "application/json": ["json"],
+            "text/html":["htm", "html"],
+            "application/x-yaml": ["yaml"]
+        })
         
         let localdir = join(Config.getConfiguration().filelocation, "local", filesUrlPrefix);
         let publicdir = join(Config.getConfiguration().filelocation, "public", filesUrlPrefix);
 
-        this.app.use('/', express.static(this.angulardir));
+        this.app.use('/', express.static(this.angulardir)); 
         this.app.use('/' + filesUrlPrefix, express.static(localdir));
         this.app.use('/' + filesUrlPrefix, express.static(publicdir));
         this.app.use(this.authenticate)
@@ -392,7 +402,7 @@ export class HttpServer {
                     })
                     HttpServer.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(rc));
                 }
-            }).catch(err => {
+            }).catch((err: any) => {
                 res.statusCode = HttpErrorsEnum.ErrNotAcceptable
                 res.end(JSON.stringify(err))
                 log.log(LogLevelEnum.error, JSON.stringify(err))
@@ -700,10 +710,7 @@ export class HttpServer {
             debug(`[TRACE] Server 404 request: ${req.originalUrl}`);
             let index_file = "index.html";
             const options = {
-                root: this.angulardir,
-                headers: {
-                    "Content-Type": "text/html"
-                }
+                root: this.angulardir
             };
             // forward to language specific UI (currently, there is only english-US)
             res.status(200).setHeader("Content-Type", "text/html").end(`<html><head>lang</head><body><script>(function(){
