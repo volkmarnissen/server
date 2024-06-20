@@ -1,8 +1,9 @@
 src/*
 __tests__/*
-tsconfig.json
+tsconfig.*
 jest.config.ts
 package-lock.json
+package.json.bck
 node_modules/*
 *.tsbuildinfo
 
