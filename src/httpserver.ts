@@ -1,7 +1,7 @@
 import Debug from "debug"
 import * as http from 'http'
-
-import { Request } from "express";
+import serveStatic from 'serve-static';
+import { NextFunction, Request } from "express";
 import * as express from 'express';
 import * as bodyparser from 'body-parser';
 import { ConverterMap, IModbusData, M2mGitHub } from '@modbus2mqtt/specification';
@@ -13,7 +13,7 @@ import multer from 'multer';
 
 import { GetRequestWithUploadParameter, fileStorage } from './httpFileUpload';
 import { Bus } from "./bus";
-import { Subject } from "rxjs";
+import { Subject, endWith } from "rxjs";
 import { MqttDiscover } from "./mqttdiscover";
 import * as fs from 'fs';
 import { LogLevelEnum, Logger } from '@modbus2mqtt/specification';
@@ -47,9 +47,14 @@ interface GetRequestWithParameter extends Request {
         forContribution: string;
     }
 }
-
+interface Istatics{
+    serve: serveStatic.RequestHandler<http.ServerResponse>,
+    dir: string
+}
 export class HttpServer {
     app: express.Application;
+    private statics= new Map<string, Istatics>()
+    languages = ["en"]
     constructor(private angulardir:string =".") {
         this.app = require('express')();
     }
@@ -132,13 +137,29 @@ export class HttpServer {
         next();
         return;
     }
+    private initStatics(){
+        fs.readdirSync( this.angulardir).forEach(langDir=>{
+            let lang = langDir.replace(/-.*/g,"")
+            let dir  =join(this.angulardir, langDir)
+            this.statics.set(lang, {serve: serveStatic(dir),
+            dir: dir})
+        })
+        if(this.statics.size >0)
+            this.languages = Array.from(this.statics.keys())
+    }
+    private getStaticsForLanguage(req:Request):Istatics{
+        let lang = req.acceptsLanguages(["en", "fr"])
+            if(!lang)
+                lang="en"
+        return this.statics.get(lang)!
+    }
     init() {
         //this.app.use(cors);
         this.app.use(bodyparser.json());
         this.app.use(bodyparser.urlencoded({ extended: true }));
         this.app.use(express.json());
         //this.app.use(fileupload());
-       
+        this.initStatics()
         express.static.mime.define({
             "text/css": ["css"],
             "text/javascript": ["js"],
@@ -150,9 +171,10 @@ export class HttpServer {
         let localdir = join(Config.getConfiguration().filelocation, "local", filesUrlPrefix);
         let publicdir = join(Config.getConfiguration().filelocation, "public", filesUrlPrefix);
 
-        this.app.use('/', express.static(this.angulardir)); 
         this.app.use('/' + filesUrlPrefix, express.static(localdir));
         this.app.use('/' + filesUrlPrefix, express.static(publicdir));
+        // angular files have full path including language e.G. /en-US/polyfill.js
+        this.app.use( express.static(this.angulardir));
         this.app.use(this.authenticate)
         //@ts-ignore
         this.app.use(function (undefined: any, res: http.ServerResponse, next: any) {
@@ -171,6 +193,7 @@ export class HttpServer {
         //   });
         this.get(apiUri.userAuthenticationStatus, (req: GetRequestWithParameter, res: http.ServerResponse) => {
             debug(req.url)
+            req.acceptsLanguages()
             let config = Config.getConfiguration()
             let authHeader = req.header("Authorization")
             let a: IUserAuthenticationStatus = {
@@ -704,35 +727,16 @@ export class HttpServer {
             }
 
         });
-        this.app.all("*", (req: any, res: any, next: any) => {
-
-            // angular
-            debug(`[TRACE] Server 404 request: ${req.originalUrl}`);
-            let index_file = "index.html";
-            const options = {
-                root: this.angulardir
-            };
-            // forward to language specific UI (currently, there is only english-US)
-            res.status(200).setHeader("Content-Type", "text/html").end(`<html><head>lang</head><body><script>(function(){
-                var userLang = navigator.language || navigator.userLanguage;
-                var parts= userLang.split("-")
-                switch (parts[0] ) {
-                    case "fr":
-                        window.location.href = "/deindex.html"
-                        break;
-                    default:
-                        window.location.href = "/en-US/index.html"
-                } 
-                })();</script></body>
-                </html>`)
-            // res.status(200).sendFile(index_file, options, (err: any) => {
-            //     if (err) {
-            //         next(err);
-            //     } else {
-            //         debug('Sent: ', index_file);
-            //     }
-            // });
-        });
+        this.app.get("*", (req: Request, res: express.Response, next: NextFunction) => {
+                let m = this.getStaticsForLanguage(req)
+            if(m){
+                res.removeHeader("Content-Type")
+                m.serve(req,res,(e:any)=>{
+                    // redirect unknown to index.html This is what angular needs
+                    res.status(200).sendFile(join(m.dir,"index.html"))
+                })
+            }                
+        })
     }
 
     checkBusidSlaveidParameter(req: GetRequestWithParameter): string {
