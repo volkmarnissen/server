@@ -27,7 +27,7 @@
     "server": "npm run build.dev && node dist/modbus2mqtt.js -s ../ssl -y ../yaml-dir",
     "serverTCP": "npm run build.dev && node dist/modbus2mqtt.js -s ../ssl -y ../yaml-dir --busid 0",
     "build": "tsc && npx  @opengovsg/credits-generator",
-    "prepack": "../server.shared/changeModbusDependencies.sh package.json",
+    "prepack": "../changeModbusDependencies.sh package.json",
     "postpack": "rm package.json && mv package.json.bck package.json"
   },
   "private": true,
