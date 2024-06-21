@@ -3,7 +3,7 @@ import { Config, MqttValidationResult } from '../src/config';
 import {  getFileNameFromName } from '@modbus2mqtt/specification.shared';
 import * as fs from 'fs';
 import { yamlDir } from './testHelpers/configsbase';
-import * as http from 'http'
+import * as http from 'node:http'
 import { AuthenticationErrors } from '@modbus2mqtt/server.shared';
 
 
@@ -90,8 +90,8 @@ function mockedMqtt(_param: any): Promise<any> {
             reject(mockedReason)
     })
 }
-function mockedHttp(_options: any, cb: () => any) {
-    cb();
+function mockedHttp(_options:http.RequestOptions,cb:(res: http.IncomingMessage) => void) {
+    (cb as ()=>{})();
 }
 it('getMqttConnectOptions: read connection from hassio', (done) => {
     let cfg = new Config()
@@ -99,12 +99,7 @@ it('getMqttConnectOptions: read connection from hassio', (done) => {
     let origReadMqttGet = Config.prototype.readGetResponse
     let originalHttpRequest = http.request
     Config.prototype.readGetResponse = mockedMqtt
-    Object.defineProperty(http, "request", {
-        value: mockedHttp,
-        configurable: true,
-        writable: true
-    });
-
+    cfg['getRequest']=mockedHttp
     cfg.readYaml();
     cfg.getMqttConnectOptions().then((_mqttData) => {
 
@@ -118,11 +113,7 @@ it('getMqttConnectOptions: read connection from hassio', (done) => {
             // Restore class
             process.env.HASSIO_TOKEN = "";
             Config.prototype.readGetResponse = origReadMqttGet
-            Object.defineProperty(http, "request", {
-                value: originalHttpRequest,
-                configurable: true,
-                writable: true
-            });
+            cfg['getRequest']= originalHttpRequest
             done()
         })
 

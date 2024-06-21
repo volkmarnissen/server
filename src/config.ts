@@ -127,7 +127,8 @@ export class Config {
     private static secret: string;
     private static specificationsChanged = new Subject<string>()
     private static bussesChanged = new Subject<void>()
-   private static busses: IBus[];
+    private static busses: IBus[];
+    private getRequest:(options:http.RequestOptions,result:(res: http.IncomingMessage) => void)=>void = http.request;
     private static newConfig: Iconfiguration = {
         version: CONFIG_VERSION,
         mqttbasetopic: "modbus2mqtt",
@@ -369,7 +370,7 @@ export class Config {
             path: '/auth',
             method: 'GET'
         }
-        http.request(options, (res) => {
+        this.getRequest(options, (res) => {
             if (res.statusCode! >= 200 && res.statusCode! < 300)
                 next()
             else
@@ -414,7 +415,7 @@ export class Config {
                         path: '/services/mqtt',
                         method: 'GET'
                     }
-                    http.request(options, (res) => {
+                    this.getRequest(options, (res) => {
                         this.readGetResponse(res).then((mqtt) => {
                             let config = Config.getConfiguration()
                             config.mqttconnect = mqtt
