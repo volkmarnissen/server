@@ -21,7 +21,7 @@ import { LogLevelEnum, Logger } from '@modbus2mqtt/specification';
 
 import { TranslationServiceClient } from '@google-cloud/translate'
 import { M2mSpecification as M2mSpecification } from '@modbus2mqtt/specification';
-import { IUserAuthenticationStatus, IBus, Islave, apiUri } from '@modbus2mqtt/server.shared';
+import { IUserAuthenticationStatus, IBus, Islave, apiUri, RoutingNames } from '@modbus2mqtt/server.shared';
 import { ConfigSpecification } from '@modbus2mqtt/specification';
 const debug = Debug("httpserver");
 const debugUrl = Debug("httpserverUrl");
@@ -49,13 +49,15 @@ interface GetRequestWithParameter extends Request {
 }
 interface Istatics{
     serve: serveStatic.RequestHandler<http.ServerResponse>,
-    dir: string
+    dir: string,
+    langDir: string
 }
 export class HttpServer {
     app: express.Application;
+    config:Config
     private statics= new Map<string, Istatics>()
     languages = ["en"]
-    constructor(private angulardir:string =".") {
+    constructor(private angulardir:string =".",private configObj:Config = new Config()) {
         this.app = require('express')();
     }
     static returnResult(req: Request, res: http.ServerResponse, code: HttpErrorsEnum, message: string, object: any = undefined) {
@@ -124,7 +126,7 @@ export class HttpServer {
 
             if (config.hassiotoken) {
                 log.log(LogLevelEnum.notice, "Supervisor: validate hassio token")
-                new Config().validateHassioToken(config.hassiotoken, next, () => { HttpServer.returnResult(req, res, HttpErrorsEnum.ErrForbidden, "") })
+                this.configObj.validateHassioToken(config.hassiotoken, next, () => { HttpServer.returnResult(req, res, HttpErrorsEnum.ErrForbidden, "") })
                 return;
             }
             else {
@@ -142,11 +144,35 @@ export class HttpServer {
             let lang = langDir.replace(/-.*/g,"")
             let dir  =join(this.angulardir, langDir)
             this.statics.set(lang, {serve: serveStatic(dir),
-            dir: dir})
+            dir: dir,
+            langDir: langDir})
         })
         if(this.statics.size >0)
             this.languages = Array.from(this.statics.keys())
     }
+    private angularRoute = (req: GetRequestWithParameter, res: express.Response) => {
+        // redirect to index.html
+        let m = this.getStaticsForLanguage(req)
+        if(m){
+            res.removeHeader("Content-Type")
+            m.serve(req,res,(e:any)=>{
+                //redirect unknown to index.html This is what angular needs
+                res.status(200).sendFile(join(m.dir,"index.html"))
+            })
+        }
+    } 
+    private angularRouteWithLanguage =(req: GetRequestWithParameter, res: express.Response) => {
+        // redirect to index.html
+        let m = this.getStaticsForLanguage(req)
+        if(m){
+            res.removeHeader("Content-Type")
+            serveStatic(this.angulardir)(req,res,(e:any)=>{
+                //redirect unknown to index.html This is what angular needs
+                res.status(200).sendFile(join(m.dir,"index.html"))
+            })
+        }
+    } 
+
     private getStaticsForLanguage(req:Request):Istatics{
         let lang = req.acceptsLanguages(["en", "fr"])
             if(!lang)
@@ -160,21 +186,16 @@ export class HttpServer {
         this.app.use(express.json());
         //this.app.use(fileupload());
         this.initStatics()
-        express.static.mime.define({
-            "text/css": ["css"],
-            "text/javascript": ["js"],
-            "application/json": ["json"],
-            "text/html":["htm", "html"],
-            "application/x-yaml": ["yaml"]
-        })
+
         
         let localdir = join(Config.getConfiguration().filelocation, "local", filesUrlPrefix);
         let publicdir = join(Config.getConfiguration().filelocation, "public", filesUrlPrefix);
 
         this.app.use('/' + filesUrlPrefix, express.static(localdir));
         this.app.use('/' + filesUrlPrefix, express.static(publicdir));
-        // angular files have full path including language e.G. /en-US/polyfill.js
         this.app.use( express.static(this.angulardir));
+      
+        // angular files have full path including language e.G. /en-US/polyfill.js
         this.app.use(this.authenticate)
         //@ts-ignore
         this.app.use(function (undefined: any, res: http.ServerResponse, next: any) {
@@ -245,6 +266,14 @@ export class HttpServer {
             }
 
         });
+        let angularRoutes:string[] = Object.values(RoutingNames)
+        angularRoutes.push("")
+        angularRoutes.forEach(n =>{
+            this.app.get( "/" + n, this.angularRoute)
+            this.statics.forEach((value, key)=>{
+                this.app.get( "/" + value.langDir + "/" + n, this.angularRouteWithLanguage)
+            })
+        })
         this.get(apiUri.userRegister, (req: GetRequestWithParameter, res: http.ServerResponse) => {
             debug("(/user/register")
             res.statusCode = 200;
@@ -454,7 +483,7 @@ export class HttpServer {
         this.post(apiUri.configuration, (req: Request, res: http.ServerResponse) => {
             debug("POST: " + req.url);
             let config = Config.getConfiguration();
-            new Config().writeConfiguration(req.body);
+            this.configObj.writeConfiguration(req.body);
             config = Config.getConfiguration()
             ConfigSpecification.setMqttdiscoverylanguage (config.mqttdiscoverylanguage, config.githubPersonalToken)
             HttpServer.returnResult(req, res, HttpErrorsEnum.OkNoContent, JSON.stringify(config));
@@ -525,9 +554,9 @@ export class HttpServer {
         });
         this.get(apiUri.serialDevices, (req: GetRequestWithParameter, res: http.ServerResponse) => {
             debug(req.url);
-            var cfg = new Config();
+            
 
-            cfg.listDevices((devices) => {
+            this.configObj.listDevices((devices) => {
                 HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(devices))
             }, (error) => {
                 // Log the error, but return empty array
@@ -567,7 +596,7 @@ export class HttpServer {
             var rc = rd.writeSpecification(req.body, testdata, (filename:string)=>{
                 if( busId != undefined &&  bus != undefined &&slave != undefined) {
                         slave.specificationid = filename;
-                        new Config().writeslave(busId, slave.slaveid, slave.specificationid, slave.name);  
+                        this.configObj.writeslave(busId, slave.slaveid, slave.specificationid, slave.name);  
                        
                 }
             }, originalFilename);
@@ -727,16 +756,20 @@ export class HttpServer {
             }
 
         });
-        this.app.get("*", (req: Request, res: express.Response, next: NextFunction) => {
-                let m = this.getStaticsForLanguage(req)
+        this.app.all("*", (req: Request, res: express.Response, next: NextFunction) => {
+            let m = this.getStaticsForLanguage(req)
             if(m){
                 res.removeHeader("Content-Type")
+                // serve non routing angular files 
                 m.serve(req,res,(e:any)=>{
-                    // redirect unknown to index.html This is what angular needs
-                    res.status(200).sendFile(join(m.dir,"index.html"))
+                    //redirect unknown to index.html This is what angular needs
+                    next()
+                   
                 })
-            }                
+            }
+                           
         })
+
     }
 
     checkBusidSlaveidParameter(req: GetRequestWithParameter): string {
