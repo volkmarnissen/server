@@ -1,6 +1,6 @@
 {
   "name": "@modbus2mqtt/server",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "sshserver": "odroid@homeassistant.fritz.box",
   "homepage": "https://github.com/modbus2mqtt/server/README.md",
   "description": "server for modbus2mqtt for REST API of configuration and publishing modbus values to mqtt",
@@ -26,16 +26,14 @@
     "build.dev": "cd ../specification.shared && tsc --build tsconfig.cjs.json && cd ../specification && tsc && cd ../server.shared && tsc  --build tsconfig.cjs.json && cd ../angular && ng build && cd ../server && tsc ",
     "server": "npm run build.dev && node dist/modbus2mqtt.js -s ../ssl -y ../yaml-dir",
     "serverTCP": "npm run build.dev && node dist/modbus2mqtt.js -s ../ssl -y ../yaml-dir --busid 0",
-    "build": "tsc && npx  @opengovsg/credits-generator",
-    "prepack": "../changeModbusDependencies.sh package.json",
-    "postpack": "rm package.json && mv package.json.bck package.json"
+    "build": "tsc && npx  @opengovsg/credits-generator"
   },
   "dependencies": {
     "@google-cloud/translate": "^8.3.0",
-    "@modbus2mqtt/angular": "file:../angular",
-    "@modbus2mqtt/server.shared": "file:../server.shared",
-    "@modbus2mqtt/specification": "file:../specification",
-    "@modbus2mqtt/specification.shared": "file:../specification.shared",
+    "@modbus2mqtt/angular": "^0.8.0",
+    "@modbus2mqtt/server.shared": "^0.8.0",
+    "@modbus2mqtt/specification": "^0.8.0",
+    "@modbus2mqtt/specification.shared": "^0.7.0",
     "@octokit/rest": "^20.1.1",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/npmlog": "^7.0.0",
