@@ -26,7 +26,8 @@
     "build.dev": "cd ../specification.shared && tsc --build tsconfig.cjs.json && cd ../specification && tsc && cd ../server.shared && tsc  --build tsconfig.cjs.json && cd ../angular && ng build && cd ../server && tsc ",
     "server": "npm run build.dev && node dist/modbus2mqtt.js -s ../ssl -y ../yaml-dir",
     "serverTCP": "npm run build.dev && node dist/modbus2mqtt.js -s ../ssl -y ../yaml-dir --busid 0",
-    "build": "tsc && npx  @opengovsg/credits-generator"
+    "build": "tsc && npx  @opengovsg/credits-generator",
+    "build.docker": "docker buildx build --load --tag modbus2mqtt ."
   },
   "dependencies": {
     "@google-cloud/translate": "^8.3.0",
