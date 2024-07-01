@@ -5,7 +5,7 @@ import { MqttDiscover } from './mqttdiscover';
 import * as path from 'path';
 import { join } from 'path';
 import { Observable, Subject } from "rxjs";
-import {  getBaseFilename } from '@modbus2mqtt/specification.shared';
+import { getBaseFilename } from '@modbus2mqtt/specification.shared';
 import { sign, verify } from 'jsonwebtoken';
 import * as bcrypt from "bcrypt";
 import * as http from 'http'
@@ -128,7 +128,7 @@ export class Config {
     private static specificationsChanged = new Subject<string>()
     private static bussesChanged = new Subject<void>()
     private static busses: IBus[];
-    private getRequest:(options:http.RequestOptions,result:(res: http.IncomingMessage) => void)=>void = http.request;
+    private getRequest: (options: http.RequestOptions, result: (res: http.IncomingMessage) => void) => void = http.request;
     private static newConfig: Iconfiguration = {
         version: CONFIG_VERSION,
         mqttbasetopic: "modbus2mqtt",
@@ -216,14 +216,17 @@ export class Config {
 
     static getConfiguration(): Iconfiguration {
         if (Config.secret == undefined) {
-            var secretsfile = (fs.existsSync(Config.sslDir) ? join(Config.sslDir, "secrets.txt") : "secrets.txt")
+            var secretsfile = (Config.sslDir.length > 0 ? join(Config.sslDir, "secrets.txt") : "secrets.txt")
+            var sslDir = path.parse(secretsfile).dir
+            if (sslDir.length && !fs.existsSync(sslDir))
+                fs.mkdirSync(sslDir, { recursive: true })
             try {
                 if (fs.existsSync(secretsfile)) {
                     debug("secretsfile " + "secretsfile exists")
                     fs.accessSync(secretsfile, fs.constants.W_OK)
                 }
                 else
-                    fs.accessSync(Config.sslDir, fs.constants.W_OK)
+                    fs.accessSync(sslDir, fs.constants.W_OK)
                 debug("Config.getConfiguration: secretsfile permissions are OK " + secretsfile);
                 Config.secret = Config.getSecret(secretsfile)
             } catch (err) {
@@ -433,7 +436,7 @@ export class Config {
                 }
             })
     }
-    
+
     async getMqttConnectOptions(): Promise<ImqttClient> {
         return new Promise<ImqttClient>((resolve, reject) => {
             let config = Config.getConfiguration()
@@ -518,7 +521,7 @@ export class Config {
                     log.log(LogLevelEnum.error, "Unable to connect to mqtt " + reason)
                 }))
             }
-           Config.busses = [];
+            Config.busses = [];
             let busDir = Config.yamlDir + "/local/busses"
             let oneBusFound = false;
             if (fs.existsSync(busDir)) {
@@ -566,7 +569,7 @@ export class Config {
         }
         return addresses;
     }
- 
+
 
     triggerMqttPublishSlave(busid: number, slave: Islave) {
         if (this.mqttLoginData)
@@ -664,14 +667,14 @@ export class Config {
             fs.unlink(oldFilePath, (err: any) => {
                 debug("writeslave: Unable to delete " + oldFilePath + " " + err);
             });
-        
-         if(specification) {
+
+        if (specification) {
             let spec = ConfigSpecification.getSpecificationByFilename(specification)
             this.triggerMqttPublishSlave(busid, slave);
-            slave.specification= spec
-         }  else
-              debug("No Specification found for slave: " + filename + " specification: " + slave.specificationid)                  
-       return slave;
+            slave.specification = spec
+        } else
+            debug("No Specification found for slave: " + filename + " specification: " + slave.specificationid)
+        return slave;
     }
     getslavePath(busid: number, slave: Islave): string {
         return Config.yamlDir + "/local/busses/bus." + busid + "/s" + slave.slaveid + ".yaml"
@@ -701,7 +704,7 @@ export class Config {
         return rc;
     }
 
-   
+
     static setFakeModbus(newMode: boolean) {
         Config.config.fakeModbus = newMode;
     }
