@@ -1,8 +1,8 @@
 import { Config } from "./config";
 import { ConfigSpecification, ConverterMap, IfileSpecification } from '@modbus2mqtt/specification';
-import {  Inumber, Iselect,  getSpecificationI18nEntityOptionName, editableConverters, getSpecificationI18nName, IselectOption, ImodbusSpecification } from '@modbus2mqtt/specification.shared';
+import { Inumber, Iselect, getSpecificationI18nEntityOptionName, editableConverters, getSpecificationI18nName, IselectOption, ImodbusSpecification } from '@modbus2mqtt/specification.shared';
 import { Ientity, ImodbusEntity, VariableTargetParameters, getSpecificationI18nEntityName } from '@modbus2mqtt/specification.shared';
-import * as mqtt from 'mqtt';
+import { IClientOptions, IClientPublishOptions, MqttClient, connect } from 'mqtt';
 import { Modbus } from "./modbus";
 import { Bus } from "./bus";
 import Debug from "debug"
@@ -15,7 +15,7 @@ const debugAction = Debug('actions')
 const log = new Logger('mqttdiscover')
 const defaultPollCount = 50 // 5 seconds
 export interface ItopicAndPayloads { topic: string, payload: string }
-const retain: mqtt.IClientPublishOptions = { retain: true }
+const retain: IClientPublishOptions = { retain: true }
 
 export interface ImqttDevice extends Islave {
     busid: number
@@ -34,7 +34,7 @@ interface IDiscoveryIds {
     entityid: number;
 }
 export class MqttDiscover {
-    private client?: mqtt.Client;
+    private client?: MqttClient;
     private static lastMessage: string = "";
     private interval: NodeJS.Timeout | undefined;
     validate(_discover: any) {
@@ -46,7 +46,7 @@ export class MqttDiscover {
         if (this.client)
             this.client.end();
     }
-    constructor(private mqttConnectionData:ImqttClient, private language?: string) {
+    constructor(private mqttConnectionData: ImqttClient, private language?: string) {
         const reg = new FinalizationRegistry(this.onDestroy.bind(this))
         reg.register(this, 0);
     }
@@ -312,9 +312,9 @@ export class MqttDiscover {
                 delete opts.key
             if (opts.cert == undefined)
                 delete opts.cert
-            this.client = mqtt.connect(this.mqttConnectionData.mqttserverurl, opts as mqtt.IClientOptions)
+            this.client = connect(this.mqttConnectionData.mqttserverurl, opts as IClientOptions)
             this.client.on("error", error);
-            this.client.on("connect", onConnected); 
+            this.client.on("connect", onConnected);
         }
         else
             onConnected();
@@ -339,7 +339,7 @@ export class MqttDiscover {
         if (bus && slave)
             this.connectMqtt(this.publishDiscoveryForSlave.bind(this, bus, slave, spec), this.error);
     }
-    getMqttClient(): mqtt.Client {
+    getMqttClient(): MqttClient {
         if (this.client && this.client.connected) {
             return this.client
         } else {
