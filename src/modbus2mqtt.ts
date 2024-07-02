@@ -3,13 +3,13 @@ import { HttpServer } from './httpserver';
 import { Bus } from './bus';
 import { Command } from 'commander'
 import { VERSION } from 'ts-node';
-import { LogLevelEnum, Logger , M2mGitHub, M2mSpecification} from '@modbus2mqtt/specification';
+import { LogLevelEnum, Logger, M2mGitHub, M2mSpecification } from '@modbus2mqtt/specification';
 import * as os from 'os'
 
 import Debug from "debug"
 import { MqttDiscover } from './mqttdiscover.js';
 import { ConfigSpecification } from '@modbus2mqtt/specification';
-import path  from 'path';
+import path from 'path';
 import { startModbusTCPserver } from './runModbusTCPserver';
 import { SpecificationStatus } from '@modbus2mqtt/specification.shared';
 import { join } from 'path';
@@ -37,52 +37,54 @@ export class Modbus2Mqtt {
         cli.option("-b, --busid <busid>", "starts Modbus TCP server for the given bus")
         cli.parse(process.argv)
         let options = cli.opts()
-        if (options['yaml']){
+        if (options['yaml']) {
             Config.yamlDir = options['yaml']
             ConfigSpecification.yamlDir = options['yaml']
-        }else{
-            Config.yamlDir ="."
-            ConfigSpecification.yamlDir="."
+        } else {
+            Config.yamlDir = "."
+            ConfigSpecification.yamlDir = "."
         }
-            
+
         if (options['ssl'])
             Config.sslDir = options['ssl']
         else
             Config.sslDir = "."
-        if( options['busid'])
+        if (options['busid'])
             startModbusTCPserver(Config.yamlDir, parseInt(options['busid']))
         readConfig = new Config();
         readConfig.readYaml();
         new ConfigSpecification().readYaml()
-        ConfigSpecification.setMqttdiscoverylanguage(Config.getConfiguration().mqttdiscoverylanguage,Config.getConfiguration().githubPersonalToken)
+        ConfigSpecification.setMqttdiscoverylanguage(Config.getConfiguration().mqttdiscoverylanguage, Config.getConfiguration().githubPersonalToken)
         debug(Config.getConfiguration().mqttconnect.mqttserverurl);
         let angulardir = require.resolve("@modbus2mqtt/angular")
         log.log(LogLevelEnum.notice, "module dir: " + angulardir)
         let angulardirLang = path.parse(angulardir).dir
         angulardir = path.parse(angulardirLang).dir
         log.log(LogLevelEnum.notice, "http root : " + angulardir)
-        
+        let gh = new M2mGitHub(Config.getConfiguration().githubPersonalToken ? Config.getConfiguration().githubPersonalToken! : null, join(ConfigSpecification.yamlDir, "public"))
+
         let httpServer = new HttpServer(angulardir);
         debugAction("readBussesFromConfig starts")
-        Bus.readBussesFromConfig()
-        debugAction("readBussesFromConfig done")
-        debug("Inititialize busses done")
-
-        //execute every 30 minutes
-        setInterval(() => {
-            debug("start new interval")
-            debugAction("readBussesFromConfig starts")
+        gh.init().then(() => {
             Bus.readBussesFromConfig()
-            if(Config.getConfiguration().githubPersonalToken)
-             new ConfigSpecification().filterAllSpecifications(spec=>{
-                if( spec.status == SpecificationStatus.contributed && spec.pullNumber != undefined){
-                    new M2mSpecification(spec).startPolling((e)=>{
-                        log.log(LogLevelEnum.error, e.message)
-                    })                    
-                }
-             })
-            
-        }, 30 * 1000 * 60)
+            debugAction("readBussesFromConfig done")
+            debug("Inititialize busses done")
+            //execute every 30 minutes
+            setInterval(() => {
+                debug("start new interval")
+                debugAction("readBussesFromConfig starts")
+                Bus.readBussesFromConfig()
+                if (Config.getConfiguration().githubPersonalToken)
+                    new ConfigSpecification().filterAllSpecifications(spec => {
+                        if (spec.status == SpecificationStatus.contributed && spec.pullNumber != undefined) {
+                            new M2mSpecification(spec).startPolling((e) => {
+                                log.log(LogLevelEnum.error, e.message)
+                            })
+                        }
+                    })
+
+            }, 30 * 1000 * 60)
+        })
         httpServer.init();
         httpServer.app.listen(Config.getConfiguration().httpport, () => {
             log.log(LogLevelEnum.notice, `modbus2mqtt listening on  ${os.hostname()}: ${Config.getConfiguration().httpport}`)
@@ -92,7 +94,7 @@ export class Modbus2Mqtt {
                 md.startPolling((error: any) => {
                     log.log(LogLevelEnum.error, error.message)
                 })
-                
+
             }
         });
     }
