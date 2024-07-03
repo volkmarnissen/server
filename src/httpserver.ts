@@ -7,7 +7,7 @@ import * as bodyparser from 'body-parser';
 import { ConverterMap, IModbusData, M2mGitHub } from '@modbus2mqtt/specification';
 import { Config, MqttValidationResult, filesUrlPrefix } from './config';
 import { Modbus } from './modbus';
-import { ImodbusSpecification,  HttpErrorsEnum, IimageAndDocumentUrl,  Ispecification } from '@modbus2mqtt/specification.shared';
+import { ImodbusSpecification, HttpErrorsEnum, IimageAndDocumentUrl, Ispecification } from '@modbus2mqtt/specification.shared';
 import { join } from 'path';
 import multer from 'multer';
 
@@ -45,27 +45,28 @@ interface GetRequestWithParameter extends Request {
         password: string;
         mqttValue: string;
         forContribution: string;
+        showAllPublicSpecs: string;
     }
 }
-interface Istatics{
+interface Istatics {
     serve: serveStatic.RequestHandler<http.ServerResponse>,
     dir: string,
     langDir: string
 }
 export class HttpServer {
     app: express.Application;
-    config:Config
-    private statics= new Map<string, Istatics>()
+    config: Config
+    private statics = new Map<string, Istatics>()
     languages = ["en"]
-    constructor(private angulardir:string =".",private configObj:Config = new Config()) {
+    constructor(private angulardir: string = ".", private configObj: Config = new Config()) {
         this.app = require('express')();
     }
     static returnResult(req: Request, res: http.ServerResponse, code: HttpErrorsEnum, message: string, object: any = undefined) {
         debugUrl("end: " + req.path)
-        if (code >= 299){
+        if (code >= 299) {
             log.log(LogLevelEnum.error, "%s: Http Result: %d %s", req.url, code, message)
         }
-            
+
         else
             debug(req.url + " :" + HttpErrorsEnum[code])
         if (object != undefined)
@@ -139,44 +140,46 @@ export class HttpServer {
         next();
         return;
     }
-    private initStatics(){
-        fs.readdirSync( this.angulardir).forEach(langDir=>{
-            let lang = langDir.replace(/-.*/g,"")
-            let dir  =join(this.angulardir, langDir)
-            this.statics.set(lang, {serve: serveStatic(dir),
-            dir: dir,
-            langDir: langDir})
+    private initStatics() {
+        fs.readdirSync(this.angulardir).forEach(langDir => {
+            let lang = langDir.replace(/-.*/g, "")
+            let dir = join(this.angulardir, langDir)
+            this.statics.set(lang, {
+                serve: serveStatic(dir),
+                dir: dir,
+                langDir: langDir
+            })
         })
-        if(this.statics.size >0)
+        if (this.statics.size > 0)
             this.languages = Array.from(this.statics.keys())
     }
     private angularRoute = (req: GetRequestWithParameter, res: express.Response) => {
         // redirect to index.html
         let m = this.getStaticsForLanguage(req)
-        if(m){
+        if (m) {
             res.removeHeader("Content-Type")
-            m.serve(req,res,(e:any)=>{
+            m.serve(req, res, (e: any) => {
                 //redirect unknown to index.html This is what angular needs
-                res.status(200).sendFile(join(m.dir,"index.html"))
+                res.status(200).sendFile(join(m.dir, "index.html"))
             })
         }
-    } 
-    private angularRouteWithLanguage =(req: GetRequestWithParameter, res: express.Response) => {
+    }
+    private angularRouteWithLanguage = (req: GetRequestWithParameter, res: express.Response) => {
         // redirect to index.html
         let m = this.getStaticsForLanguage(req)
-        if(m){
+        if (m) {
             res.removeHeader("Content-Type")
-            serveStatic(this.angulardir)(req,res,(e:any)=>{
+            serveStatic(this.angulardir)(req, res, (e: any) => {
                 //redirect unknown to index.html This is what angular needs
-                res.status(200).sendFile(join(m.dir,"index.html"))
+                res.status(200).sendFile(join(m.dir, "index.html"))
             })
         }
-    } 
+    }
 
-    private getStaticsForLanguage(req:Request):Istatics{
+    private getStaticsForLanguage(req: Request): Istatics {
         let lang = req.acceptsLanguages(["en", "fr"])
-            if(!lang)
-                lang="en"
+        if (!lang)
+            lang = "en"
         return this.statics.get(lang)!
     }
     init() {
@@ -187,14 +190,14 @@ export class HttpServer {
         //this.app.use(fileupload());
         this.initStatics()
 
-        
+
         let localdir = join(Config.getConfiguration().filelocation, "local", filesUrlPrefix);
         let publicdir = join(Config.getConfiguration().filelocation, "public", filesUrlPrefix);
 
         this.app.use('/' + filesUrlPrefix, express.static(localdir));
         this.app.use('/' + filesUrlPrefix, express.static(publicdir));
-        this.app.use( express.static(this.angulardir));
-      
+        this.app.use(express.static(this.angulardir));
+
         // angular files have full path including language e.G. /en-US/polyfill.js
         this.app.use(this.authenticate)
         //@ts-ignore
@@ -266,12 +269,12 @@ export class HttpServer {
             }
 
         });
-        let angularRoutes:string[] = Object.values(RoutingNames)
+        let angularRoutes: string[] = Object.values(RoutingNames)
         angularRoutes.push("")
-        angularRoutes.forEach(n =>{
-            this.app.get( "/" + n, this.angularRoute)
-            this.statics.forEach((value, key)=>{
-                this.app.get( "/" + value.langDir + "/" + n, this.angularRouteWithLanguage)
+        angularRoutes.forEach(n => {
+            this.app.get("/" + n, this.angularRoute)
+            this.statics.forEach((value, key) => {
+                this.app.get("/" + value.langDir + "/" + n, this.angularRouteWithLanguage)
             })
         })
         this.get(apiUri.userRegister, (req: GetRequestWithParameter, res: http.ServerResponse) => {
@@ -299,11 +302,11 @@ export class HttpServer {
                 let busid = Number.parseInt(req.query.busid);
                 let bus = Bus.getBus(busid)
                 if (bus) {
-                    bus.getAvailableSpecs(slaveId).then((result) => {
+                    bus.getAvailableSpecs(slaveId, req.query.showAllPublicSpecs != undefined).then((result) => {
                         debug('getAvailableSpecs  succeeded')
                         HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(result));
-                    }).catch(e=>{
-                        HttpServer.returnResult(req, res, HttpErrorsEnum.ErrNotFound,"specsForSlaveId: " + e.message)
+                    }).catch(e => {
+                        HttpServer.returnResult(req, res, HttpErrorsEnum.ErrNotFound, "specsForSlaveId: " + e.message)
                     })
                 }
             }
@@ -337,12 +340,12 @@ export class HttpServer {
         this.get(apiUri.specificationFetchPublic, (req: Request, res: http.ServerResponse) => {
             debug(req.url);
             let ghToken = Config.getConfiguration().githubPersonalToken
-            ghToken = (ghToken == undefined?"":ghToken)
-            new M2mGitHub(ghToken,join(ConfigSpecification.yamlDir, "public" )).fetchPublicFiles()
+            ghToken = (ghToken == undefined ? "" : ghToken)
+            new M2mGitHub(ghToken, join(ConfigSpecification.yamlDir, "public")).fetchPublicFiles()
             new ConfigSpecification().readYaml();
             HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify({ result: "OK" }))
         });
-        
+
         this.get(apiUri.busses, (req: Request, res: http.ServerResponse) => {
             debug(req.originalUrl);
             let busses = Bus.getBusses()
@@ -431,7 +434,7 @@ export class HttpServer {
             let client = new M2mSpecification(spec as Ispecification);
             client.contribute(req.body).then(response => {
                 // poll status updates of pull request
-                client.startPolling((e)=>{log.log(LogLevelEnum.error, e.message)})
+                client.startPolling((e) => { log.log(LogLevelEnum.error, e.message) })
                 HttpServer.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(response));
             }).catch(err => {
                 res.statusCode = HttpErrorsEnum.ErrNotAcceptable
@@ -485,7 +488,7 @@ export class HttpServer {
             let config = Config.getConfiguration();
             this.configObj.writeConfiguration(req.body);
             config = Config.getConfiguration()
-            ConfigSpecification.setMqttdiscoverylanguage (config.mqttdiscoverylanguage, config.githubPersonalToken)
+            ConfigSpecification.setMqttdiscoverylanguage(config.mqttdiscoverylanguage, config.githubPersonalToken)
             HttpServer.returnResult(req, res, HttpErrorsEnum.OkNoContent, JSON.stringify(config));
         });
         this.post(apiUri.bus, (req: GetRequestWithParameter, res: http.ServerResponse) => {
@@ -554,7 +557,7 @@ export class HttpServer {
         });
         this.get(apiUri.serialDevices, (req: GetRequestWithParameter, res: http.ServerResponse) => {
             debug(req.url);
-            
+
 
             this.configObj.listDevices((devices) => {
                 HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(devices))
@@ -569,42 +572,42 @@ export class HttpServer {
             debug("POST /specification: " + req.query.busid + "/" + req.query.slaveid);
             let rd = new ConfigSpecification();
             let msg = this.checkBusidSlaveidParameter(req);
-            let bus:Bus|undefined
-            let slave:Islave|undefined
-            let busId:number|undefined
-            let testdata:IModbusData|undefined
+            let bus: Bus | undefined
+            let slave: Islave | undefined
+            let busId: number | undefined
+            let testdata: IModbusData | undefined
             if (req.query.busid, req.query.slaveid) {
                 busId = Number.parseInt(req.query.busid);
                 let slaveId = Number.parseInt(req.query.slaveid);
                 bus = Bus.getBus(busId)
-                if (bus !== undefined){
+                if (bus !== undefined) {
                     slave = bus.getSlaveBySlaveId(slaveId)
                     let slaveAddresses = bus.getModbusAddressesForSlave(slaveId)
-                    if( slaveAddresses)
+                    if (slaveAddresses)
                         testdata = M2mSpecification.getEmptyModbusAddressesFromSlaveToTestdata(slaveAddresses)
                 }
-             }
-             if (testdata == undefined) {
+            }
+            if (testdata == undefined) {
                 HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify('No extended testdata available, try again later'));
                 return;
-            } 
+            }
             if (msg !== "") {
-                HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "{message: '" +msg + "'}");
+                HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "{message: '" + msg + "'}");
                 return;
-            } 
+            }
             let originalFilename: string | null = (req.query.originalFilename ? req.query.originalFilename : null)
-            var rc = rd.writeSpecification(req.body, testdata, (filename:string)=>{
-                if( busId != undefined &&  bus != undefined &&slave != undefined) {
-                        slave.specificationid = filename;
-                        this.configObj.writeslave(busId, slave.slaveid, slave.specificationid, slave.name);  
-                       
+            var rc = rd.writeSpecification(req.body, testdata, (filename: string) => {
+                if (busId != undefined && bus != undefined && slave != undefined) {
+                    slave.specificationid = filename;
+                    this.configObj.writeslave(busId, slave.slaveid, slave.specificationid, slave.name);
+
                 }
             }, originalFilename);
 
-            bus?.getAvailableSpecs( Number.parseInt(req.query.slaveid)).then(() => {
-                    debug("Cache updated")
-            }).catch(e=>{
-                    debug("getAvailableModbusData failed:" + e.message)
+            bus?.getAvailableSpecs(Number.parseInt(req.query.slaveid), false).then(() => {
+                debug("Cache updated")
+            }).catch(e => {
+                debug("getAvailableModbusData failed:" + e.message)
             })
 
             HttpServer.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(rc));
@@ -619,7 +622,7 @@ export class HttpServer {
             HttpServer.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(messages));
 
         })
-       
+
         this.get(apiUri.specificationValidate, (req: GetRequestWithParameter, res: http.ServerResponse) => {
             if (!req.query.language || req.query.language.length == 0) {
                 HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify("pass language "));
@@ -630,7 +633,7 @@ export class HttpServer {
                 return;
             }
             let fspec = ConfigSpecification.getSpecificationByFilename(req.query.spec)
-            if(!fspec){
+            if (!fspec) {
                 HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify("specification not found " + req.query.spec));
                 return;
             }
@@ -758,16 +761,16 @@ export class HttpServer {
         });
         this.app.all("*", (req: Request, res: express.Response, next: NextFunction) => {
             let m = this.getStaticsForLanguage(req)
-            if(m){
+            if (m) {
                 res.removeHeader("Content-Type")
                 // serve non routing angular files 
-                m.serve(req,res,(e:any)=>{
+                m.serve(req, res, (e: any) => {
                     //redirect unknown to index.html This is what angular needs
                     next()
-                   
+
                 })
             }
-                           
+
         })
 
     }

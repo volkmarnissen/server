@@ -3,12 +3,21 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "command": "npm run run.dev",
+      "type": "node",
+      "request": "attach",
+      "name": "Docker: Attach to Node",
+      "remoteRoot": "/usr/app/node_modules/@modbus2mqtt/server/dist/",
+      "localRoot": "${workspaceFolder}/dist",
+      "port": 9229,
+      "address": "localhost",
+    },
+    {
+      "command": "npm run server",
       "name": "Run run dev server",
       "request": "launch",
       "type": "node-terminal",
       "env": {
-        "DEBUG": "express:* modbuscache modbuscache.time",
+        "DEBUG": "m2mgithub",
         "MODBUS2MQTT_NOPOLL": "",
       }
     },
@@ -22,7 +31,7 @@
       "command": "npm run server",
       "name": "Run server",
       "request": "launch",
-      "type": "node-terminal", 
+      "type": "node-terminal",
       "env": {
         "DEBUG": "express:* modbuscache modbuscache.time",
         "MODBUS2MQTT_NOPOLL": "",
@@ -33,19 +42,18 @@
       "name": "Run serverTCP",
       "request": "launch",
       "sourceMaps": true,
-      "type": "node-terminal", 
+      "type": "node-terminal",
       "env": {
         "DEBUG": "express:* modbuscache modbuscache.time",
         "MODBUS2MQTT_NOPOLL": "",
       }
     },
-
     {
       "command": "npm run validate",
       "name": "Run validate",
       "request": "launch",
       "sourceMaps": true,
-      "type": "node-terminal", 
+      "type": "node-terminal",
       "env": {
         "DEBUG": "m2mgithubvalidate",
         "PR_NUMBER": "62",
@@ -56,7 +64,7 @@
       "command": "npm run  ui",
       "name": "Run ui",
       "request": "launch",
-      "type": "node-terminal", 
+      "type": "node-terminal",
       "env": {
         "DEBUG": "express:* modbuscache modbuscache.time",
         "MODBUS2MQTT_NOPOLL": "",
@@ -66,7 +74,7 @@
       "name": "ng serve",
       "type": "chrome",
       "request": "launch",
-      "preLaunchTask": "npm: start",
+      "preLaunchTask": "npm: ng serve",
       "postDebugTask": "npm: stop",
       "url": "http://localhost:4200/"
     },
