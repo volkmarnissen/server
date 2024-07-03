@@ -27,7 +27,19 @@ declare global {
 let readConfig: Config;
 const log = new Logger('modbus2mqtt')
 export class Modbus2Mqtt {
+    pollTasks() {
+        debugAction("readBussesFromConfig starts")
+        Bus.readBussesFromConfig()
+        if (Config.getConfiguration().githubPersonalToken)
+            new ConfigSpecification().filterAllSpecifications(spec => {
+                if (spec.status == SpecificationStatus.contributed && spec.pullNumber != undefined) {
+                    new M2mSpecification(spec).startPolling((e) => {
+                        log.log(LogLevelEnum.error, e.message)
+                    })
+                }
+            })
 
+    }
     init() {
         let cli = new Command()
         cli.version(VERSION)
@@ -66,29 +78,19 @@ export class Modbus2Mqtt {
         let httpServer = new HttpServer(angulardir);
         debugAction("readBussesFromConfig starts")
         gh.init().then(() => {
-            Bus.readBussesFromConfig()
+            this.pollTasks()
             debugAction("readBussesFromConfig done")
             debug("Inititialize busses done")
             //execute every 30 minutes
             setInterval(() => {
-                debug("start new interval")
-                debugAction("readBussesFromConfig starts")
-                Bus.readBussesFromConfig()
-                if (Config.getConfiguration().githubPersonalToken)
-                    new ConfigSpecification().filterAllSpecifications(spec => {
-                        if (spec.status == SpecificationStatus.contributed && spec.pullNumber != undefined) {
-                            new M2mSpecification(spec).startPolling((e) => {
-                                log.log(LogLevelEnum.error, e.message)
-                            })
-                        }
-                    })
-
+                this.pollTasks()
             }, 30 * 1000 * 60)
         })
         httpServer.init();
         httpServer.app.listen(Config.getConfiguration().httpport, () => {
             log.log(LogLevelEnum.notice, `modbus2mqtt listening on  ${os.hostname()}: ${Config.getConfiguration().httpport}`)
             let config = Config.getConfiguration()
+
             if (process.env.MODBUS_NOPOLL != undefined) {
                 let md = new MqttDiscover(config.mqttconnect, config.mqttdiscoverylanguage)
                 md.startPolling((error: any) => {
