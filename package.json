@@ -27,7 +27,8 @@
     "server": "npm run build.dev && node dist/modbus2mqtt.js -s ../ssl -y ../yaml-dir",
     "serverTCP": "npm run build.dev && node dist/modbus2mqtt.js -s ../ssl -y ../yaml-dir --busid 0",
     "build": "tsc && npx  @opengovsg/credits-generator",
-    "build.docker": "docker buildx build --load --tag modbus2mqtt/server docker"
+    "build.docker": "docker buildx build --load --tag modbus2mqtt/server docker",
+    "ng serve": "cd ../angular && ng serve"
   },
   "dependencies": {
     "@google-cloud/translate": "^8.3.0",

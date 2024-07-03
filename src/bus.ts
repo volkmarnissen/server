@@ -1,6 +1,6 @@
 import Debug from "debug"
 import { Observable, Subject, first } from "rxjs";
-import { ImodbusEntityIdentification, ImodbusSpecification,  ModbusRegisterType,  SpecificationStatus } from '@modbus2mqtt/specification.shared';
+import { ImodbusEntityIdentification, ImodbusSpecification, ModbusRegisterType, SpecificationStatus } from '@modbus2mqtt/specification.shared';
 import { IdentifiedStates } from '@modbus2mqtt/specification.shared';
 import { Mutex } from "async-mutex";
 import { ImodbusAddress, ModbusCache } from "./modbuscache";
@@ -382,12 +382,12 @@ export class Bus {
         if (this.slaves)
             this.slaves!.set(slaveid, addresses)
     }
-    getModbusAddressesForSlave(slaveid: number): ImodbusValues |undefined{
+    getModbusAddressesForSlave(slaveid: number): ImodbusValues | undefined {
         if (this.slaves)
             return this.slaves!.get(slaveid)
         return undefined
     }
-    
+
     deleteSlave(slaveid: number) {
         new Config().deleteSlave(this.properties.busId, slaveid)
         if (this.slaves)
@@ -398,7 +398,7 @@ export class Bus {
             let converter = ConverterMap.getConverter(ent);
             if (ent.modbusAddress != undefined && converter && ent.registerType)
                 for (let i = 0; i < converter.getModbusLength(ent); i++)
-                    addresses.add({address:ent.modbusAddress +i, registerType: ent.registerType });
+                    addresses.add({ address: ent.modbusAddress + i, registerType: ent.registerType });
         }
     }
     private static updateAllSpecificationsModbusAddresses(specificationid: string | null) {
@@ -433,96 +433,105 @@ export class Bus {
         return Bus.allSpecificationsModbusAddresses!;
     }
 
-   
-     readModbusRegister(task: string, slaveid: number, addresses: Set<ImodbusAddress>):Promise<ImodbusValues> {
-       return  new Promise((resolve, reject)=>{
+
+    readModbusRegister(task: string, slaveid: number, addresses: Set<ImodbusAddress>): Promise<ImodbusValues> {
+        return new Promise((resolve, reject) => {
             debug("readModbusRegister slaveid: " + slaveid + " addresses: " + JSON.stringify(Array.from(addresses)))
-     
-           if (Config.getConfiguration().fakeModbus)
-                submitGetHoldingRegisterRequest({ busid: this.getId(), slaveid: slaveid }, addresses).then( resolve).catch( reject)
+
+            if (Config.getConfiguration().fakeModbus)
+                submitGetHoldingRegisterRequest({ busid: this.getId(), slaveid: slaveid }, addresses).then(resolve).catch(reject)
             else
                 new ModbusCache(task + "(" + slaveid + ")").
-                    submitGetHoldingRegisterRequest({ busid: this.getId(), slaveid: slaveid }, addresses).then( resolve).catch( reject) 
+                    submitGetHoldingRegisterRequest({ busid: this.getId(), slaveid: slaveid }, addresses).then(resolve).catch(reject)
         });
     }
     /*
      * getAvailableSpecs uses bus.slaves cache if possible
      */
-    getAvailableSpecs(slaveid: number): Promise<(IidentificationSpecification)[]> {
-        return new Promise<(IidentificationSpecification)[]>((resolve, reject)=>{
-        let addresses = Bus.getModbusAddressesForAllSpecs()
+    getAvailableSpecs(slaveid: number, showAllPublicSpecs:boolean): Promise<(IidentificationSpecification)[]> {
+        return new Promise<(IidentificationSpecification)[]>((resolve, reject) => {
+            let addresses = Bus.getModbusAddressesForAllSpecs()
 
-        let rcf=(modbusData:ImodbusValues):void=>{
-           
+            let rcf = (modbusData: ImodbusValues): void => {
 
-            let cfg = new ConfigSpecification();
-            cfg.filterAllSpecifications((spec) => {
-                let mspec = M2mSpecification.fileToModbusSpecification(spec, modbusData)
-                debug("getAvailableSpecs");
-                if (mspec) { // list only identified public specs, but all local specs
-                    if ([SpecificationStatus.published, SpecificationStatus.contributed].includes(mspec.status) && mspec.identified == IdentifiedStates.identified)
-                        iSpecs.push(this.convert2ImodbusSpecification(slaveid, mspec));
-                    else
-                        if (![SpecificationStatus.published, SpecificationStatus.contributed].includes(mspec.status))
+
+                let cfg = new ConfigSpecification();
+                cfg.filterAllSpecifications((spec) => {
+                    let mspec = M2mSpecification.fileToModbusSpecification(spec, modbusData)
+                    debug("getAvailableSpecs");
+                    if (mspec) { // list only identified public specs, but all local specs
+                        if ([SpecificationStatus.published, SpecificationStatus.contributed].includes(mspec.status) && (showAllPublicSpecs || mspec.identified == IdentifiedStates.identified))
                             iSpecs.push(this.convert2ImodbusSpecification(slaveid, mspec));
-                }
-                else
-                    if (![SpecificationStatus.published, SpecificationStatus.contributed].includes(spec.status))
-                        iSpecs.push(this.convert2ImodbusSpecificationFromSpec(slaveid, spec))
-            })
-            resolve(iSpecs)
-        }
-        let iSpecs: IidentificationSpecification[] = [];
-               // try to find the result in cache
-               let addressValues = this.slaves.get(slaveid)
-               if( addressValues)
-               {
-                   let addrs:number[] =[]
-                   let cacheFailed = false
-                   addresses.forEach( address=>{     
-                       if(address.length)
-                           for( let a=address.address; a< address.length;a++)
-                               addrs.push(a)
-                       else
-                           addrs.push(address.address)
-                       addrs.forEach(a=>{
-                            switch(address.registerType){
-                                     case ModbusRegisterType.HoldingRegister:
-                                       if(!addressValues.holdingRegisters.has(address.address))  
-                                           cacheFailed= true;            
-                            }
-                       })
-                   })
-                   if( !cacheFailed){
-                       rcf( addressValues)
-                       return;
-                   }
-                       
-               }
-              // no result in cache, read from modbus
-        // will be called once (per slave)
-        this.readModbusRegister("getAvailableSpecs",slaveid,addresses).then( values=>{
-            // Add not available addresses to the values
-            addresses.forEach(address=>{
-                switch(address.registerType){
-                    case ModbusRegisterType.HoldingRegister:
-                        if(!values.holdingRegisters.has(address.address))
-                            values.holdingRegisters.set(address.address,null)
-                        break;
-                    case ModbusRegisterType.AnalogInputs:
-                        if(!values.analogInputs.has(address.address))
-                            values.analogInputs.set(address.address,null)
-                        break;
-                    case ModbusRegisterType.Coils:
-                        if(!values.coils.has(address.address))
-                            values.coils.set(address.address,null)
-                        break;
+                        else
+                            if (![SpecificationStatus.published, SpecificationStatus.contributed].includes(mspec.status))
+                                iSpecs.push(this.convert2ImodbusSpecification(slaveid, mspec));
                     }
-            })
-            // Store it for cache
-            this.setModbusAddressesForSlave(slaveid,values)
-            rcf(values)}
-        ).catch(reject);
+                    else
+                        if (![SpecificationStatus.published, SpecificationStatus.contributed].includes(spec.status))
+                            iSpecs.push(this.convert2ImodbusSpecificationFromSpec(slaveid, spec))
+                })
+                resolve(iSpecs)
+            }
+            let iSpecs: IidentificationSpecification[] = [];
+            // try to find the result in cache
+            let values = this.slaves.get(slaveid)
+            if (values) {
+                let addrs: number[] = []
+                let cacheFailed = false
+                addresses.forEach(address => {
+                    if (address.length)
+                        for (let a = address.address; a < address.address + address.length; a++)
+                            addrs.push(a)
+                    else
+                        addrs.push(address.address)
+                    addrs.forEach(a => {
+                        switch (address.registerType) {
+                            case ModbusRegisterType.HoldingRegister:
+                                if (!values!.holdingRegisters.has(address.address))
+                                    cacheFailed = true;
+                                break;
+                            case ModbusRegisterType.AnalogInputs:
+                                if (!values!.analogInputs.has(address.address))
+                                    cacheFailed = true;
+                                break;
+                            case ModbusRegisterType.Coils:
+                                if (!values!.coils.has(address.address))
+                                    cacheFailed = true
+                                break;
+
+                        }
+                    })
+                })
+                if (!cacheFailed) {
+                    rcf(values)
+                    return;
+                }
+            }
+            // no result in cache, read from modbus
+            // will be called once (per slave)
+            this.readModbusRegister("getAvailableSpecs", slaveid, addresses).then(values => {
+                // Add not available addresses to the values
+                addresses.forEach(address => {
+                    switch (address.registerType) {
+                        case ModbusRegisterType.HoldingRegister:
+                            if (!values.holdingRegisters.has(address.address))
+                                values.holdingRegisters.set(address.address, null)
+                            break;
+                        case ModbusRegisterType.AnalogInputs:
+                            if (!values.analogInputs.has(address.address))
+                                values.analogInputs.set(address.address, null)
+                            break;
+                        case ModbusRegisterType.Coils:
+                            if (!values.coils.has(address.address))
+                                values.coils.set(address.address, null)
+                            break;
+                    }
+                })
+                // Store it for cache
+                this.setModbusAddressesForSlave(slaveid, values)
+                rcf(values)
+            }
+            ).catch(reject);
         });
     }
 
@@ -591,18 +600,18 @@ export class Bus {
                     let value = saddresses!.holdingRegisters.get(address.address)
                     let m = saddresses!.holdingRegisters
                     let r = rc.holdingRegisters
-                    switch(address.registerType){
-                        case ModbusRegisterType.AnalogInputs: 
+                    switch (address.registerType) {
+                        case ModbusRegisterType.AnalogInputs:
                             m = saddresses!.analogInputs
                             r = rc.analogInputs
                             break;
-                            case ModbusRegisterType.Coils: 
+                        case ModbusRegisterType.Coils:
                             m = saddresses!.coils
                             r = rc.coils
                             break;
                     }
                     value = m.get(address.address)
-                         
+
                     if (value == undefined || value == null)
                         return null
                     r.set(address.address, value)
