@@ -432,7 +432,7 @@ export class HttpServer {
             }
             let spec = ConfigSpecification.getSpecificationByFilename(req.query.spec)
             let client = new M2mSpecification(spec as Ispecification);
-            client.contribute(req.body).then(response => {
+            client.contribute(req.body.note).then(response => {
                 // poll status updates of pull request
                 client.startPolling((e) => { log.log(LogLevelEnum.error, e.message) })
                 HttpServer.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(response));
