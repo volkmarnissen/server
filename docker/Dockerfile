@@ -11,6 +11,7 @@ RUN echo '{}' >package.json && \
     npm install --omit-dev @modbus2mqtt/server && \
     apk --print-arch && \
     alpineArch="$(apk --print-arch)" && \
+    apk add  --update --no-cache git && \
     if [ "x86_64" != "${alpineArch}"  ];then \
     apk update && \
     apk upgrade && \

@@ -13,6 +13,7 @@ import path from 'path';
 import { startModbusTCPserver } from './runModbusTCPserver';
 import { SpecificationStatus } from '@modbus2mqtt/specification.shared';
 import { join } from 'path';
+import { LOADIPHLPAPI } from 'dns';
 
 const debug = Debug("modbus2mqtt");
 const debugAction = Debug('actions')
@@ -34,7 +35,7 @@ export class Modbus2Mqtt {
             new ConfigSpecification().filterAllSpecifications(spec => {
                 if (spec.status == SpecificationStatus.contributed && spec.pullNumber != undefined) {
                     new M2mSpecification(spec).startPolling((e) => {
-                        log.log(LogLevelEnum.error, e.message)
+                        log.log(LogLevelEnum.error, "Github:" + e.message)
                     })
                 }
             })
@@ -85,6 +86,8 @@ export class Modbus2Mqtt {
             setInterval(() => {
                 this.pollTasks()
             }, 30 * 1000 * 60)
+        }).catch((e) => {
+            log.log(LogLevelEnum.error, "Start polling Contributions: " + e.message)
         })
         httpServer.init();
         httpServer.app.listen(Config.getConfiguration().httpport, () => {
