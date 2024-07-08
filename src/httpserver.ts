@@ -48,15 +48,10 @@ interface GetRequestWithParameter extends Request {
         showAllPublicSpecs: string;
     }
 }
-interface Istatics {
-    serve: serveStatic.RequestHandler<http.ServerResponse>,
-    dir: string,
-    langDir: string
-}
 export class HttpServer {
     app: express.Application;
     config: Config
-    private statics = new Map<string, Istatics>()
+    private statics = new Map<string, string>()
     languages = ["en"]
     constructor(private angulardir: string = ".", private configObj: Config = new Config()) {
         this.app = require('express')();
@@ -144,39 +139,13 @@ export class HttpServer {
         fs.readdirSync(this.angulardir).forEach(langDir => {
             let lang = langDir.replace(/-.*/g, "")
             let dir = join(this.angulardir, langDir)
-            this.statics.set(lang, {
-                serve: serveStatic(dir),
-                dir: dir,
-                langDir: langDir
-            })
+            this.statics.set(lang, dir)
         })
         if (this.statics.size > 0)
             this.languages = Array.from(this.statics.keys())
     }
-    private angularRoute = (req: GetRequestWithParameter, res: express.Response) => {
-        // redirect to index.html
-        let m = this.getStaticsForLanguage(req)
-        if (m) {
-            res.removeHeader("Content-Type")
-            m.serve(req, res, (e: any) => {
-                //redirect unknown to index.html This is what angular needs
-                res.status(200).sendFile(join(m.dir, "index.html"))
-            })
-        }
-    }
-    private angularRouteWithLanguage = (req: GetRequestWithParameter, res: express.Response) => {
-        // redirect to index.html
-        let m = this.getStaticsForLanguage(req)
-        if (m) {
-            res.removeHeader("Content-Type")
-            serveStatic(this.angulardir)(req, res, (e: any) => {
-                //redirect unknown to index.html This is what angular needs
-                res.status(200).sendFile(join(m.dir, "index.html"))
-            })
-        }
-    }
 
-    private getStaticsForLanguage(req: Request): Istatics {
+    private getStaticsForLanguage(req: Request): string {
         let lang = req.acceptsLanguages(["en", "fr"])
         if (!lang)
             lang = "en"
@@ -269,14 +238,7 @@ export class HttpServer {
             }
 
         });
-        let angularRoutes: string[] = Object.values(RoutingNames)
-        angularRoutes.push("")
-        angularRoutes.forEach(n => {
-            this.app.get("/" + n, this.angularRoute)
-            this.statics.forEach((value, key) => {
-                this.app.get("/" + value.langDir + "/" + n, this.angularRouteWithLanguage)
-            })
-        })
+
         this.get(apiUri.userRegister, (req: GetRequestWithParameter, res: http.ServerResponse) => {
             debug("(/user/register")
             res.statusCode = 200;
@@ -760,17 +722,11 @@ export class HttpServer {
 
         });
         this.app.all("*", (req: Request, res: express.Response, next: NextFunction) => {
-            let m = this.getStaticsForLanguage(req)
-            if (m) {
+            let dir = this.getStaticsForLanguage(req)
+            if (dir) {
                 res.removeHeader("Content-Type")
-                // serve non routing angular files 
-                m.serve(req, res, (e: any) => {
-                    //redirect unknown to index.html This is what angular needs
-                    next()
-
-                })
+                res.status(200).sendFile(join(dir, "index.html"))
             }
-
         })
 
     }
