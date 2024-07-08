@@ -37,13 +37,13 @@ export enum SlaveStates {
     error = -1
 }
 export interface ImodbusAddress {
-    address:number, 
-    registerType:ModbusRegisterType,
-    length?:number
+    address: number,
+    registerType: ModbusRegisterType,
+    length?: number
 }
 
 interface IModbusProcess {
-    resultTable:Map<number, ReadRegisterResult|null>, 
+    resultTable: Map<number, ReadRegisterResult | null>,
     func: (slaveid: number, a: number, length: number) => Promise<ReadRegisterResultWithDuration>
 }
 // 
@@ -106,8 +106,8 @@ export class ModbusStateMachine {
         // modbusMutex must be released before waiting otherwise the first process can't fill the cache
         this.next(ModbusStates.RequestLoaded, this.prepareAddressesAction)
     }
-    prepareWriteAction(startaddress: number, registerType:ModbusRegisterType, data: ReadRegisterResult) {
-        this.preparedAddresses.push({ address: startaddress, registerType:registerType ,length: data.data.length })
+    prepareWriteAction(startaddress: number, registerType: ModbusRegisterType, data: ReadRegisterResult) {
+        this.preparedAddresses.push({ address: startaddress, registerType: registerType, length: data.data.length })
         this.data = data;
         this.preparedAddressesIndex = 0;
         this.write = true
@@ -117,11 +117,11 @@ export class ModbusStateMachine {
     prepareAddressesAction() {
         debugNext("ModbusStateMachine:prepareAddressesAction(" + this.slaveId.slaveid + "): addresses:" + JSON.stringify(Array.from(this.addresses.values()).sort()));
 
-        let previousAddress = { address: -1, registerType: ModbusRegisterType.IllegalFunctionCode};
-        let startAddress = { address: -1, registerType: ModbusRegisterType.IllegalFunctionCode};
+        let previousAddress = { address: -1, registerType: ModbusRegisterType.IllegalFunctionCode };
+        let startAddress = { address: -1, registerType: ModbusRegisterType.IllegalFunctionCode };
         let sortedAddresses = Array.from<ImodbusAddress>(this.addresses.values()).sort(function (a, b) {
-            let v =  a.registerType - b.registerType;
-            if( v)
+            let v = a.registerType - b.registerType;
+            if (v)
                 return v
             return a.address - b.address
         })
@@ -131,7 +131,7 @@ export class ModbusStateMachine {
             if (startAddress.address == -1)
                 startAddress = addr;
             if (addr.registerType != previousAddress.registerType || addr.address - previousAddress.address > maxAddressDelta) {
-                this.preparedAddresses.push({ address: startAddress.address, length: previousAddress.address - startAddress.address + 1 , registerType: previousAddress.registerType});
+                this.preparedAddresses.push({ address: startAddress.address, length: previousAddress.address - startAddress.address + 1, registerType: previousAddress.registerType });
                 previousAddress = addr
                 startAddress = addr
             }
@@ -139,7 +139,7 @@ export class ModbusStateMachine {
                 previousAddress = addr;
         }
         if (startAddress.address >= 0)
-            this.preparedAddresses.push({ address: startAddress.address, length: previousAddress.address - startAddress.address + 1 , registerType: previousAddress.registerType});
+            this.preparedAddresses.push({ address: startAddress.address, length: previousAddress.address - startAddress.address + 1, registerType: previousAddress.registerType });
         debugData("prepareAddressesAction(" + this.slaveId.slaveid + "): " + JSON.stringify(this.preparedAddresses));
         this.preparedAddressesIndex = 0;
         this.next(ModbusStates.Prepared, this.connectAction);
@@ -182,9 +182,9 @@ export class ModbusStateMachine {
             }
             let startAddress = this.preparedAddresses[this.preparedAddressesIndex].address;
             let length = this.preparedAddresses[this.preparedAddressesIndex].length;
-            let fc:number = this.preparedAddresses[this.preparedAddressesIndex].registerType
+            let fc: number = this.preparedAddresses[this.preparedAddressesIndex].registerType
             if (this.write)
-                 fc = M2mSpecification.getWriteFunctionCode(this.preparedAddresses[this.preparedAddressesIndex].registerType)
+                fc = M2mSpecification.getWriteFunctionCode(this.preparedAddresses[this.preparedAddressesIndex].registerType)
             if (fc == undefined) {
                 debugData("processAction:" + "No function code passed: " + fc)
                 this.endProcessAction(this.processAction);
@@ -195,12 +195,12 @@ export class ModbusStateMachine {
             let msg = "(" + this.pid + "):processAction: slaveid: " + this.slaveId.slaveid + " startaddr: " + startAddress + " l:" + length + " FC:" + fc
             let tbl = new Map<ModbusRegisterType, IModbusProcess>(
                 [
-                    [ModbusRegisterType.HoldingRegister, {resultTable:this.result.holdingRegisters, func: bus.readHoldingRegisters}],
-                    [ModbusRegisterType.AnalogInputs, {resultTable:this.result.analogInputs, func: bus.readInputRegisters}],
-                    [ModbusRegisterType.Coils, {resultTable:this.result.coils, func: bus.readDiscreteInputs}]
+                    [ModbusRegisterType.HoldingRegister, { resultTable: this.result.holdingRegisters, func: bus.readHoldingRegisters }],
+                    [ModbusRegisterType.AnalogInputs, { resultTable: this.result.analogInputs, func: bus.readInputRegisters }],
+                    [ModbusRegisterType.Coils, { resultTable: this.result.coils, func: bus.readDiscreteInputs }]
                 ])
-            if(this.write){
-                 bus.writeHoldingRegisters(this.slaveId.slaveid, startAddress, this.data).then(() => {
+            if (this.write) {
+                bus.writeHoldingRegisters(this.slaveId.slaveid, startAddress, this.data).then(() => {
                     this.preparedAddressesIndex++;
                     this.next(ModbusStates.Result, this.closeAction);
                 }).catch((e: any) => {
@@ -208,13 +208,13 @@ export class ModbusStateMachine {
                 })
             }
             else
-               if( length)
+                if (length)
                     this.processReadFromModbus(startAddress, startAddress, bus!, start, length, msg, tbl.get(fc)!)
         }
 
     };
     // optimizes the timeout for slaves
-    private processReadFromModbus(startAddress: number, readAddress: number, bus: Bus, start: number, length: number, msg: string, read:IModbusProcess) {
+    private processReadFromModbus(startAddress: number, readAddress: number, bus: Bus, start: number, length: number, msg: string, read: IModbusProcess) {
         let slave = bus?.getSlaveBySlaveId(this.slaveId.slaveid)
         read.func.bind(bus)(this.slaveId.slaveid, readAddress, length).then((value) => {
             debugTime("read success (" + this.slaveId.slaveid + "," + readAddress + "," + length + ") duration: " + value.duration);
@@ -316,7 +316,7 @@ export class ModbusStateMachine {
             let length = this.preparedAddresses[this.preparedAddressesIndex].length!;
             this.preparedAddresses[this.preparedAddressesIndex].length = 1;
             for (let l = 1; l < length; l++) {
-                this.preparedAddresses.push({ address: startAddress + l, registerType:registerType, length: 1 })
+                this.preparedAddresses.push({ address: startAddress + l, registerType: registerType, length: 1 })
             }
         } else {
             log.log(LogLevelEnum.notice, module + " splitting: " + (e.message ? e.message : "error") + ": (bus: " + this.slaveId.busid + ", slave: " +
@@ -343,8 +343,9 @@ export class ModbusStateMachine {
         else
             if (e.modbusCode) {
                 switch (e.modbusCode) {
+                    case 1: //Illegal Function Code
                     case 2: // Illegal Address
-                        debug("retryProcessAction: Illegal Address")
+                        debug("retryProcessAction: " + e.message)
                         // split request into single parts to avoid invalid address errors as often as possible
                         this.splitAddresses(module, e)
 
@@ -422,23 +423,24 @@ export class ModbusCache {
     static readMutex = new Mutex()
     constructor(private task: string) { }
     //static resultMutex:Mutex
-    writeRegisters(slaveId: IslaveId, startaddress: number,registerType:ModbusRegisterType,  data: ReadRegisterResult):Promise<void>{
-        return new Promise<void>((resolve, reject)=>{
-            new ModbusStateMachine("write", slaveId, new Set<ImodbusAddress>(), (data)=>{resolve()}, reject).prepareWriteAction(startaddress,registerType, data);
+    writeRegisters(slaveId: IslaveId, startaddress: number, registerType: ModbusRegisterType, data: ReadRegisterResult): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            new ModbusStateMachine("write", slaveId, new Set<ImodbusAddress>(), (data) => { resolve() }, reject).prepareWriteAction(startaddress, registerType, data);
         })
     }
     submitGetHoldingRegisterRequest(
-        slaveId: IslaveId, 
-        addresses: Set<ImodbusAddress>):Promise<ImodbusValues> 
-         {
-            return new Promise<ImodbusValues>((resolve, reject)=>{ debug('s    ubmitGetHoldingRegisterRequest bus:' + slaveId.busid + "slave: " + slaveId.slaveid)
-        if (slaveId.slaveid == -1) {
-            reject(new Error("no slaveId passed to submitGetHoldingRegisterRequest"))
-        }
-        else {
-            new ModbusStateMachine(this.task, slaveId, addresses, resolve, reject).loadAction();
-          } })
-       
+        slaveId: IslaveId,
+        addresses: Set<ImodbusAddress>): Promise<ImodbusValues> {
+        return new Promise<ImodbusValues>((resolve, reject) => {
+            debug('s    ubmitGetHoldingRegisterRequest bus:' + slaveId.busid + "slave: " + slaveId.slaveid)
+            if (slaveId.slaveid == -1) {
+                reject(new Error("no slaveId passed to submitGetHoldingRegisterRequest"))
+            }
+            else {
+                new ModbusStateMachine(this.task, slaveId, addresses, resolve, reject).loadAction();
+            }
+        })
+
     }
     static getStatus(slaveId: number): SlaveStates {
         return ModbusStateMachine.getStatus(slaveId);
