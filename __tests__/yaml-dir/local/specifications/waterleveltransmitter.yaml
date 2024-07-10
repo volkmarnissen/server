@@ -1,5 +1,4 @@
 filename: waterleveltransmitter
-status: 1
 entities:
   - id: 1
     mqttname: waterleveltransmitter
