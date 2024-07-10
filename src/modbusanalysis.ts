@@ -16,7 +16,7 @@ function destroy() {
 function connect() {
     debug("connect " + baudrate)
     client = new ModbusRTU();
-    client.connectRTU("/dev/ttyUSB0", { baudRate: baudrate }).then(read).catch((e) => {
+    client.connectRTUBuffered("/dev/ttyUSB0", { baudRate: baudrate }).then(read).catch((e) => {
         debug("connect " + JSON.stringify(e))
         console.log(e)
         process.exit(0)

@@ -75,13 +75,13 @@ const numberTestId = 4
 var md: MqttDiscover | undefined;
 let slave = Bus.getBus(0)!.getSlaveBySlaveId(2)!;
 let spec = slave.specification as ImodbusSpecification
-let numberTest: ImodbusEntity = { id: numberTestId, mqttname: "mqtt", modbusAddress: 2, registerType: ModbusRegisterType.HoldingRegister, readonly:true, converter: { name: "number", registerTypes: [] }, modbusValue: [], mqttValue: "300", identified: 1, converterParameters: { multiplier: 1, offset: 0, uom: "kW" } };
+let numberTest: ImodbusEntity = { id: numberTestId, mqttname: "mqtt", modbusAddress: 2, registerType: ModbusRegisterType.HoldingRegister, readonly: true, converter: { name: "number", registerTypes: [] }, modbusValue: [], mqttValue: "300", identified: 1, converterParameters: { multiplier: 1, offset: 0, uom: "kW" } };
 
 if (slave !== undefined && slave!.specificationid) {
     spec.entities.splice(0, 4)
-    let serialNumber: ImodbusEntity = { id: 0, mqttname: "serialnumber", variableConfiguration: { targetParameter: VariableTargetParameters.deviceIdentifiers }, converter: { name: "text", registerTypes: [] }, modbusValue: [], mqttValue: "123456", identified: 1, converterParameters: { stringlength: 12 }, registerType: ModbusRegisterType.HoldingRegister, readonly:false, modbusAddress: 2 };
-    let currentSolarPower: ImodbusEntity = { id: 1, mqttname: "currentpower", converter: { name: "number", registerTypes: [] }, modbusValue: [], mqttValue: "300", identified: 1, converterParameters: { uom: "kW" }, registerType: ModbusRegisterType.HoldingRegister, readonly:true, modbusAddress: 2 };
-    let selectTest: ImodbusEntity = { id: selectTestId, mqttname: "selecttest", modbusAddress: 1, registerType: ModbusRegisterType.HoldingRegister, readonly:true, converter: { name: "select", registerTypes: [] }, modbusValue: [], mqttValue: "300", identified: 1, converterParameters: { optionModbusValues: [1, 2, 3] } };
+    let serialNumber: ImodbusEntity = { id: 0, mqttname: "serialnumber", variableConfiguration: { targetParameter: VariableTargetParameters.deviceIdentifiers }, converter: { name: "text", registerTypes: [] }, modbusValue: [], mqttValue: "123456", identified: 1, converterParameters: { stringlength: 12 }, registerType: ModbusRegisterType.HoldingRegister, readonly: false, modbusAddress: 2 };
+    let currentSolarPower: ImodbusEntity = { id: 1, mqttname: "currentpower", converter: { name: "number", registerTypes: [] }, modbusValue: [], mqttValue: "300", identified: 1, converterParameters: { uom: "kW" }, registerType: ModbusRegisterType.HoldingRegister, readonly: true, modbusAddress: 2 };
+    let selectTest: ImodbusEntity = { id: selectTestId, mqttname: "selecttest", modbusAddress: 1, registerType: ModbusRegisterType.HoldingRegister, readonly: true, converter: { name: "select", registerTypes: [] }, modbusValue: [], mqttValue: "300", identified: 1, converterParameters: { optionModbusValues: [1, 2, 3] } };
     spec.manufacturer = "Deye";
     spec.model = "SUN-10K-SG04LP3-EU";
     spec.i18n[0].texts = [
@@ -166,7 +166,7 @@ test("onMqttConnect", done => {
     new Config().getMqttConnectOptions().then((options) => {
         md = new MqttDiscover(options, "en");
         jest.mock('mqtt')
-        let c: Client = Object.create(Client.prototype)
+        let c: MqttClient = Object.create(Client.prototype)
         md['client'] = c
         // subscribe to discovery for one device
         const mockPublish = jest.fn((_topic: string, _payload: string | Buffer) => c);
@@ -200,7 +200,7 @@ test("onMqttConnect", done => {
 test("poll", (done) => {
     md = new MqttDiscover({}, "en");
     let fake = new FakeMqtt(md, FakeModes.Poll)
-    md['client'] = fake as any as Client
+    md['client'] = fake as any as MqttClient
     md['poll']().then(() => {
         expect(fake.isAsExcpected).toBeTruthy()
         expect(md!['pollCounts'].size).toBeGreaterThan(0)
@@ -208,7 +208,7 @@ test("poll", (done) => {
         expect(c.value).toBeGreaterThan(0)
         fake = new FakeMqtt(md!, FakeModes.Poll2)
         // second call should do nothing, because interval is too short
-        md!['client'] = fake as any as Client
+        md!['client'] = fake as any as MqttClient
         fake.isAsExcpected = true
         let m = new Map<number, string>()
         m.set(1, topic4Deletion)

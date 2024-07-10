@@ -120,11 +120,11 @@ export class Bus {
                 return
             }
 
-            // debug("connectRTU")
+            // debug("connectRTUBuffered")
             let port = (this.properties.connectionData as IRTUConnection).serialport;
             let baudrate = (this.properties.connectionData as IRTUConnection).baudrate;
             if (port && baudrate) {
-                this.modbusClient.connectRTU(port, { baudRate: baudrate }).then(resolve).catch(reject)
+                this.modbusClient.connectRTUBuffered(port, { baudRate: baudrate }).then(resolve).catch(reject)
             } else {
                 let host = (this.properties.connectionData as ITCPConnection).host;
                 let port = (this.properties.connectionData as ITCPConnection).port;
@@ -448,7 +448,7 @@ export class Bus {
     /*
      * getAvailableSpecs uses bus.slaves cache if possible
      */
-    getAvailableSpecs(slaveid: number, showAllPublicSpecs:boolean): Promise<(IidentificationSpecification)[]> {
+    getAvailableSpecs(slaveid: number, showAllPublicSpecs: boolean): Promise<(IidentificationSpecification)[]> {
         return new Promise<(IidentificationSpecification)[]>((resolve, reject) => {
             let addresses = Bus.getModbusAddressesForAllSpecs()
 

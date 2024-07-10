@@ -1,5 +1,5 @@
 import Debug from "debug"
-import { expect, it, describe , beforeAll} from '@jest/globals';
+import { expect, it, describe, beforeAll } from '@jest/globals';
 import { Config } from '../src/config';
 import { Bus } from '../src/bus';
 import { yamlDir } from "./testHelpers/configsbase";
@@ -12,7 +12,7 @@ const debug = Debug("bustest");
 Debug.enable('bustest modbusserver')
 const testPort = 8888
 Config['yamlDir'] = yamlDir;
-ConfigSpecification.yamlDir= yamlDir;
+ConfigSpecification.yamlDir = yamlDir;
 Config.sslDir = yamlDir;
 
 beforeAll(() => {
@@ -112,7 +112,7 @@ it("Bus getSpecsForDevice", done => {
    Config['config'].fakeModbus = true;
    if (Config.getConfiguration().fakeModbus)
       console.log("Fakemodbus")
-   Bus.getBus(0)!.getAvailableSpecs(1).then((ispec) => {
+   Bus.getBus(0)!.getAvailableSpecs(1, false).then((ispec) => {
       let wlt = false;
       let other = false;
       expect(ispec).toBeDefined();
@@ -148,7 +148,7 @@ it("Modbus getSpecsForDevice with specific slaveId no results 0-3", (done) => {
    Config['config'].fakeModbus = true;
    if (Config.getConfiguration().fakeModbus)
       console.log("Fakemodbus")
-   Bus.getBus(0)!.getAvailableSpecs(1).then((ispec) => {
+   Bus.getBus(0)!.getAvailableSpecs(1, false).then((ispec) => {
       expect(ispec).toBeDefined();
       expect(ispec.length).toBeGreaterThan(0);
       done();
@@ -157,7 +157,7 @@ it("Modbus getSpecsForDevice with specific slaveId no results 0-3", (done) => {
 })
 describe("ServerTCP based", () => {
    it("read Discrete Inputs success, Illegal Address", (done) => {
-      testRead(1, 4, 1, 1, Bus.prototype.readDiscreteInputs).then(()=>{done()})
+      testRead(1, 4, 1, 1, Bus.prototype.readDiscreteInputs).then(() => { done() })
 
 
    })
@@ -168,13 +168,13 @@ describe("ServerTCP based", () => {
       })
    })
    it("read readInputRegisters success, Illegal Address", done => {
-      testRead(1, 2, 195, 500, Bus.prototype.readInputRegisters).then(()=>{done()})
+      testRead(1, 2, 195, 500, Bus.prototype.readInputRegisters).then(() => { done() })
    })
    it("writeHoldingRegisters success, Illegal Address", (done) => {
-      testWrite(1, 2, 10, Bus.prototype.writeHoldingRegisters).then(()=>{done()})
+      testWrite(1, 2, 10, Bus.prototype.writeHoldingRegisters).then(() => { done() })
    })
    it("writeCoils success, Illegal Address", (done) => {
-      testWrite(1, 4, 0, Bus.prototype.writeCoils).then(()=>{done()})
+      testWrite(1, 4, 0, Bus.prototype.writeCoils).then(() => { done() })
    })
 
 })

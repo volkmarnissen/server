@@ -40,7 +40,7 @@ function open() {
     if (count++ < 4) {
         debug("open " + count + " baudrate " + baudrate)
 
-        client.connectRTU("/dev/ttyUSB0", { baudRate: baudrate }).then(read).catch((e) => {
+        client.connectRTUBuffered("/dev/ttyUSB0", { baudRate: baudrate }).then(read).catch((e) => {
             debug("Error connected" + e)
         });
     }
@@ -89,7 +89,7 @@ function close(result?: ReadRegisterResult) {
 }
 function connect() {
 
-    client.connectRTU("/dev/ttyUSB0", { baudRate: baudrate }).then(read).catch((e) => {
+    client.connectRTUBuffered("/dev/ttyUSB0", { baudRate: baudrate }).then(read).catch((e) => {
         debug("Error connected")
         console.log(e)
     });

@@ -500,11 +500,17 @@ export class Config {
                                         if (pos >= 0)
                                             pt[1] = pt[1].slice(0, pos);
                                     } while (pos >= 0);
-                                    if (secrets[pt[1]])
+                                    if (secrets[pt[1]] && -1 == secrets[pt[1]].indexOf("!secret "))
                                         src = src.replace(match, '"' + secrets[pt[1]] + '"');
                                     else {
-                                        debug("no entry in secrets file for " + pt[1]);
-                                        throw new Error("no entry in secrets file for " + pt[1]);
+                                        if (!secrets[pt[1]]) {
+                                            debug("no entry in secrets file for " + pt[1]);
+                                            throw new Error("no entry in secrets file for " + pt[1]);
+                                        }
+                                        else {
+                                            debug("secrets file entry contains !secret for " + pt[1]);
+                                            throw new Error("secrets file entry contains !secret for " + pt[1]);
+                                        }
                                     }
 
                                 }
