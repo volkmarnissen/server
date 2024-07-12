@@ -6,10 +6,11 @@
 // The requested addresses will be cumulated until a requester calls clearData for a given slave;
 import Debug from "debug"
 import { Mutex } from 'async-mutex';
-import { IModbusData, ImodbusValues, LogLevelEnum, Logger, M2mSpecification, emptyModbusValues } from '@modbus2mqtt/specification';
+import { IModbusData, IReadRegisterResultOrError, ImodbusValues, LogLevelEnum, Logger, M2mSpecification, emptyModbusValues } from '@modbus2mqtt/specification';
 import { Bus, ReadRegisterResultWithDuration } from "./bus";
 import { ReadRegisterResult } from "modbus-serial/ModbusRTU";
 import { ModbusRegisterType } from '@modbus2mqtt/specification.shared';
+import { error } from "console";
 const minTimeout = 100
 const maxTimeouts = 1;
 const maxAddressDelta = 10;
@@ -41,9 +42,47 @@ export interface ImodbusAddress {
     registerType: ModbusRegisterType,
     length?: number
 }
+export class ImodbusAddresses {
+    private data: ImodbusAddress[]
+    private getSuperSet(value: ImodbusAddress, newData: ImodbusAddress): ImodbusAddress | null {
+        let valueLength = value.length ? value.length : 1;
+        let newDataLength = newData.length ? newData.length : 1;
+        // new Data.address is in the value address range
+        if (value.address <= newData.address && newData.address < value.address + valueLength)
+            if (newData.address + newDataLength > value.address + valueLength) {
+                value.length = newData.address + newDataLength - value.address
+                return value
+            }
+        return null
+    }
+    add(newData: ImodbusAddress): void {
+        let needsAdding = true;
+        this.data.forEach(value => {
+            if (value.registerType == newData.registerType) {
+                let superValue = this.getSuperSet(value, newData)
+                if (superValue == null)
+                    superValue = this.getSuperSet(newData, value)
+                if (superValue != null) {
+                    value = superValue
+                    needsAdding = false
+                }
+            }
+        })
+        if (needsAdding)
+            this.data.push(newData)
+    }
+    [Symbol.iterator]() {
+        var index = -1;
+        var data = this.data;
+
+        return {
+            next: () => ({ value: data[++index], done: !(index in data) })
+        };
+    };
+}
 
 interface IModbusProcess {
-    resultTable: Map<number, ReadRegisterResult | null>,
+    resultTable: Map<number, IReadRegisterResultOrError>,
     func: (slaveid: number, a: number, length: number) => Promise<ReadRegisterResultWithDuration>
 }
 // 
@@ -99,7 +138,7 @@ export class ModbusStateMachine {
             this.next(ModbusStates.Result, this.processResultAction);
         }
         else
-            debugNext("loadAction(" + this.pid + "): reading slaveid: " + this.slaveId.slaveid + " addresses: " + Array.from(this.addresses));
+            debugNext("loadAction(" + this.pid + "): reading slaveid: " + this.slaveId.slaveid + " addresses: " + JSON.stringify(Array.from(this.addresses)));
 
         // The first process will wait for 1ms all others wait for 100ms
         // So, the first process has a chance to fill the results cache.
@@ -229,17 +268,31 @@ export class ModbusStateMachine {
                     debugData(read.func.name + ": set modbusTimout for slaveid: " + slave.slaveid + "to: " + slave.modbusTimout);
                 }
             }
-            debugData(read.func.name + ": " + msg + ", data: " + value.data + "buffer: " + JSON.stringify(value.buffer) + " duration: " + value.duration);
-            for (let idx = 0; idx < value.data.length; idx++) {
-                let buf: Buffer = Buffer.allocUnsafe(2)
-                if (value.buffer.length >= idx * 2 + 2)
-                    value.buffer.copy(buf, 0, idx * 2, idx * 2 + 2)
-                let r: ReadRegisterResult = {
-                    data: [value.data[idx]],
-                    buffer: buf
+            if (value.result) {
+                debugData(read.func.name + ": " + msg + ", data: " + value.result.data + "buffer: " + JSON.stringify(value.result.buffer) + " duration: " + value.duration);
+                for (let idx = 0; idx < value.result.data.length; idx++) {
+                    let buf: Buffer = Buffer.allocUnsafe(2)
+                    if (value.result.buffer.length >= idx * 2 + 2)
+                        value.result.buffer.copy(buf, 0, idx * 2, idx * 2 + 2)
+                    let r: IReadRegisterResultOrError = {
+                        result: {
+                            data: [value.result.data[idx]],
+                            buffer: buf
+                        }
+                    }
+                    read.resultTable.set(startAddress + idx, r);
                 }
-                read.resultTable.set(startAddress + idx, r);
             }
+            if (value.error) {
+                debugData(read.func.name + ": " + msg + ", error: " + value.error.message + " duration: " + value.duration);
+                for (let idx = 0; idx < length; idx++) {
+                    let r: IReadRegisterResultOrError = {
+                        error: value.error
+                    }
+                    read.resultTable.set(startAddress + idx, r);
+                }
+            }
+
             this.preparedAddressesIndex++;
             this.endProcessAction(this.processAction);
 
@@ -329,7 +382,23 @@ export class ModbusStateMachine {
     retryProcessAction(module: string, e: any) {
         if (e.stack)
             debug(e.stack)
-
+        // store the error
+        // This can be overridden, if next try succeeds.
+        let address = this.preparedAddresses[this.preparedAddressesIndex].address
+        let length = this.preparedAddresses[this.preparedAddressesIndex].length
+        length = length ? length : 1;
+        for (let a = address; a < address + length; a++)
+            switch (this.preparedAddresses[this.preparedAddressesIndex].registerType) {
+                case ModbusRegisterType.AnalogInputs:
+                    this.result.analogInputs.set(a, { error: e })
+                    break;
+                case ModbusRegisterType.HoldingRegister:
+                    this.result.holdingRegisters.set(a, { error: e })
+                    break;
+                case ModbusRegisterType.Coils:
+                    this.result.coils.set(a, { error: e })
+                    break;
+            }
         if (e.errno == "ETIMEDOUT") {
             let bus = Bus.getBus(this.slaveId.busid);
             let slave = bus?.getSlaveBySlaveId(this.slaveId.slaveid)
@@ -400,13 +469,13 @@ export class ModbusStateMachine {
     processResultAction() {
         debugNext("result: slave: " + this.slaveId.busid + "/" + this.slaveId.slaveid + " address/value")
         for (let key of this.result.holdingRegisters.keys()) {
-            debug("holdingRegisters(" + this.pid + "): (" + key + "/" + JSON.stringify(this.result.holdingRegisters.get(key)!.data) + ")");
+            debug("holdingRegisters(" + this.pid + "): (" + key + "/" + JSON.stringify(this.result.holdingRegisters.get(key)) + ")");
         }
         for (let key of this.result.analogInputs.keys()) {
-            debug("analogInputs(" + this.pid + "): (" + key + "/" + JSON.stringify(this.result.analogInputs.get(key)!.data) + ")");
+            debug("analogInputs(" + this.pid + "): (" + key + "/" + JSON.stringify(this.result.analogInputs.get(key)) + ")");
         }
         for (let key of this.result.coils.keys()) {
-            debug("analogInputs(" + this.pid + "): (" + key + "/" + JSON.stringify(this.result.coils.get(key)!.data) + ")");
+            debug("analogInputs(" + this.pid + "): (" + key + "/" + JSON.stringify(this.result.coils.get(key)) + ")");
         }
         this.returnAction(this.result);
     }
@@ -432,7 +501,7 @@ export class ModbusCache {
         slaveId: IslaveId,
         addresses: Set<ImodbusAddress>): Promise<ImodbusValues> {
         return new Promise<ImodbusValues>((resolve, reject) => {
-            debug('s    ubmitGetHoldingRegisterRequest bus:' + slaveId.busid + "slave: " + slaveId.slaveid)
+            debug('submitGetHoldingRegisterRequest bus:' + slaveId.busid + "slave: " + slaveId.slaveid)
             if (slaveId.slaveid == -1) {
                 reject(new Error("no slaveId passed to submitGetHoldingRegisterRequest"))
             }

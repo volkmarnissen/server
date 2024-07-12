@@ -1,7 +1,7 @@
 
 import { Bus } from '../src/bus';
 import { Config } from '../src/config';
-import {  Itext, IdentifiedStates, ImodbusEntity, Inumber, Converters, Ientity, Ispecification, ModbusRegisterType, ImodbusSpecification, FileLocation, SpecificationFileUsage } from '@modbus2mqtt/specification.shared';
+import { Itext, IdentifiedStates, ImodbusEntity, Inumber, Converters, Ientity, Ispecification, ModbusRegisterType, ImodbusSpecification, FileLocation, SpecificationFileUsage } from '@modbus2mqtt/specification.shared';
 import { Modbus, ModbusForTest } from '../src/modbus';
 import { IslaveId, ModbusCache } from '../src/modbuscache';
 import { getReadRegisterResult, submitGetHoldingRegisterRequest } from '../src/submitRequestMock';
@@ -9,6 +9,7 @@ import { yamlDir } from './testHelpers/configsbase';
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU';
 import { Islave } from '@modbus2mqtt/server.shared';
 import { ConfigSpecification, IfileSpecification, ImodbusValues, emptyModbusValues } from '@modbus2mqtt/specification';
+import { expect, xit, it, describe, beforeEach, jest, beforeAll } from '@jest/globals';
 
 Config['yamlDir'] = yamlDir;
 Config.sslDir = yamlDir;
@@ -24,10 +25,10 @@ beforeEach(() => {
         "entities": [
             {
                 "id": 1, mqttname: "mqtt",
-                "converter": { name: "sensor" as Converters, registerTypes: [] }, "modbusAddress": 4, registerType: ModbusRegisterType.HoldingRegister,readonly:true, "icon": "", "converterParameters": { "multiplier": 0.1, "offset": 0, "uom": "cm", "identification": { "min": 0, "max": 200 } }
+                "converter": { name: "sensor" as Converters, registerTypes: [] }, "modbusAddress": 4, registerType: ModbusRegisterType.HoldingRegister, readonly: true, "icon": "", "converterParameters": { "multiplier": 0.1, "offset": 0, "uom": "cm", "identification": { "min": 0, "max": 200 } }
             },
-            { id: 2, mqttname: "mqtt2", "converter": { name: "select_sensor" as Converters, registerTypes: [] }, "modbusAddress": 2, registerType: ModbusRegisterType.HoldingRegister,readonly:true, "icon": "", "converterParameters": { "optionModbusValues": [1, 2, 3] } },
-            { id: 3, mqttname: "mqtt3", "converter": { name: "select" as Converters, registerTypes: [] }, "modbusAddress": 3, registerType: ModbusRegisterType.HoldingRegister,readonly:true, "icon": "", "converterParameters": { "optionModbusValues": [0, 1, 2, 3] } }],
+            { id: 2, mqttname: "mqtt2", "converter": { name: "select_sensor" as Converters, registerTypes: [] }, "modbusAddress": 2, registerType: ModbusRegisterType.HoldingRegister, readonly: true, "icon": "", "converterParameters": { "optionModbusValues": [1, 2, 3] } },
+            { id: 3, mqttname: "mqtt3", "converter": { name: "select" as Converters, registerTypes: [] }, "modbusAddress": 3, registerType: ModbusRegisterType.HoldingRegister, readonly: true, "icon": "", "converterParameters": { "optionModbusValues": [0, 1, 2, 3] } }],
         "status": 2, "manufacturer": "unknown", "model": "QDY30A",
         "filename": "waterleveltransmitter",
         i18n: [
@@ -49,7 +50,7 @@ var dev: Islave | undefined = undefined;
 var ent: ImodbusEntity = {
     id: 1, mqttname: "mqtt",
     modbusAddress: 3,
-    readonly:true,
+    readonly: true,
     registerType: ModbusRegisterType.HoldingRegister,
     modbusValue: [1], mqttValue: "", identified: IdentifiedStates.unknown,
     converterParameters: { multiplier: 0.01 },
@@ -60,7 +61,7 @@ var entText: ImodbusEntity = {
     id: 2, mqttname: "mqtt",
     modbusAddress: 5,
     registerType: ModbusRegisterType.HoldingRegister,
-    readonly:true,
+    readonly: true,
     modbusValue: [65 << 8 | 66, 67 << 8 | 68], mqttValue: "", identified: IdentifiedStates.unknown,
     converterParameters: { stringlength: 10 },
     converter: { name: "text", registerTypes: [] }
@@ -86,7 +87,7 @@ describe("Modbus read", () => {
         let dev = Config.getSlave(0, 1)!
         expect(dev).toBeDefined;
         Modbus.getModbusSpecification("test", Bus.getBus(0)!, 1, dev!.specificationid!, (_e) => {
-            fail('Exception!!!');
+            expect(false).toBeTruthy();
             done()
         }).subscribe((spec1) => {
             let spec = ConfigSpecification.getSpecificationByFilename(dev!.specificationid!)!
@@ -104,8 +105,9 @@ describe("Modbus read", () => {
         mr.readEntityFromModbus(Bus.getBus(0)!, 1, spec, 1).then((arg0: ImodbusEntity) => {
             expect(arg0!.identified).toBe(IdentifiedStates.unknown);
             done();
-        }).catch((_e) => { 
-            fail('Exception!!!') 
+        }).catch((_e) => {
+            expect(false).toBeTruthy();
+            done();
         }); // unidenfified
     });
     it("Modbus read Entity identifiation identified", done => {
@@ -138,7 +140,7 @@ describe("Modbus read", () => {
             Config['config'].fakeModbus = true;
 
             done();
-        }).catch( err => { console.log(JSON.stringify(err)) }); // unidenfified
+        }).catch(err => { console.log(JSON.stringify(err)) }); // unidenfified
 
     });
 
@@ -176,30 +178,30 @@ describe("Modbus read", () => {
     // });
 });
 xit("Modbus modbusDataToSpec spec.identified = identified", () => {
-    let spec:IfileSpecification = {
+    let spec: IfileSpecification = {
         "version": "0.1",
         "entities": [
             {
                 "id": 1, mqttname: "mqtt",
-                "converter": { name: "number" as Converters, registerTypes: [] }, "modbusAddress": 4, registerType: ModbusRegisterType.HoldingRegister,readonly:true, "icon": "", "converterParameters": { "multiplier": 0.1, "offset": 0, "uom": "cm", "identification": { "min": 0, "max": 200 } }
+                "converter": { name: "number" as Converters, registerTypes: [] }, "modbusAddress": 4, registerType: ModbusRegisterType.HoldingRegister, readonly: true, "icon": "", "converterParameters": { "multiplier": 0.1, "offset": 0, "uom": "cm", "identification": { "min": 0, "max": 200 } }
             },
-            { id: 2, mqttname: "mqtt2", "converter": { name: "select_sensor" as Converters, registerTypes: [] }, "modbusAddress": 2, registerType: ModbusRegisterType.HoldingRegister, readonly:true,"icon": "", "converterParameters": { "options": [{ "key": 1, "name": "cm" }, { "key": 2, "name": "mm" }, { "key": 3, "name": "mPa" }] } },
-            { id: 3, mqttname: "mqtt3", "converter": { name: "select_sensor" as Converters, registerTypes: [] }, "modbusAddress": 3, registerType: ModbusRegisterType.HoldingRegister, readonly:true,"icon": "", "converterParameters": { "options": [{ "key": 0, "name": "1" }, { "key": 1, "name": "0.1" }, { "key": 2, "name": "0.01" }, { "key": 3, "name": "0.001" }] } }],
-        "status": 2, "manufacturer": "unknown", "model": "QDY30A", 
-        
+            { id: 2, mqttname: "mqtt2", "converter": { name: "select_sensor" as Converters, registerTypes: [] }, "modbusAddress": 2, registerType: ModbusRegisterType.HoldingRegister, readonly: true, "icon": "", "converterParameters": { "options": [{ "key": 1, "name": "cm" }, { "key": 2, "name": "mm" }, { "key": 3, "name": "mPa" }] } },
+            { id: 3, mqttname: "mqtt3", "converter": { name: "select_sensor" as Converters, registerTypes: [] }, "modbusAddress": 3, registerType: ModbusRegisterType.HoldingRegister, readonly: true, "icon": "", "converterParameters": { "options": [{ "key": 0, "name": "1" }, { "key": 1, "name": "0.1" }, { "key": 2, "name": "0.01" }, { "key": 3, "name": "0.001" }] } }],
+        "status": 2, "manufacturer": "unknown", "model": "QDY30A",
+
         "filename": "waterleveltransmitter",
         i18n: [],
-        files: [{url: "/documents/waterleveltransmitter.pdf", fileLocation:FileLocation.Local,usage:SpecificationFileUsage.documentation},
-         { "url": "https://m.media-amazon.com/images/I/51WMttnsOML._AC_SX569_.jpg", fileLocation:FileLocation.Local,usage:SpecificationFileUsage.img}],
+        files: [{ url: "/documents/waterleveltransmitter.pdf", fileLocation: FileLocation.Local, usage: SpecificationFileUsage.documentation },
+        { "url": "https://m.media-amazon.com/images/I/51WMttnsOML._AC_SX569_.jpg", fileLocation: FileLocation.Local, usage: SpecificationFileUsage.img }],
         testdata: {}
     }
     //"modbusValue": [210], "mqttValue": 21,
     //        "modbusValue": [1], "mqttValue": "cm", "identified": 1,
     //"modbusValue": [1], "mqttValue": "0.1", "identified": 1,
     let results = emptyModbusValues();
-    results.holdingRegisters.set(4 , getReadRegisterResult(210));
-    results.holdingRegisters.set(2 , getReadRegisterResult(1));
-    results.holdingRegisters.set(3 , getReadRegisterResult(1));
+    results.holdingRegisters.set(4, getReadRegisterResult(210));
+    results.holdingRegisters.set(2, getReadRegisterResult(1));
+    results.holdingRegisters.set(3, getReadRegisterResult(1));
     Config.getConfiguration();
     Config['config'].fakeModbus = false;
     let m = new ModbusForTest();
@@ -211,10 +213,10 @@ xit("Modbus modbusDataToSpec spec.identified = identified", () => {
 });
 
 
-function writeRegisters(_slaveid: IslaveId, _startaddress: number,registerType:ModbusRegisterType ):Promise<void> {
-    return new Promise<void>((resolve,reject)=>{
+function writeRegisters(_slaveid: IslaveId, _startaddress: number, registerType: ModbusRegisterType): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
         console.log("write Registers")
-       resolve();
+        resolve();
     })
 }
 it("Modbus writeEntityMqtt", (done) => {

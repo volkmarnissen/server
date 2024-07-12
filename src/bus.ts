@@ -4,7 +4,7 @@ import { ImodbusEntityIdentification, ImodbusSpecification, ModbusRegisterType, 
 import { IdentifiedStates } from '@modbus2mqtt/specification.shared';
 import { Mutex } from "async-mutex";
 import { ImodbusAddress, ModbusCache } from "./modbuscache";
-import { ConverterMap, ImodbusValues, M2mSpecification, emptyModbusValues } from '@modbus2mqtt/specification';
+import { ConverterMap, IReadRegisterResultOrError, ImodbusValues, M2mSpecification, emptyModbusValues } from '@modbus2mqtt/specification';
 import { Config } from "./config";
 import { Modbus } from "./modbus";
 import { submitGetHoldingRegisterRequest } from "./submitRequestMock";
@@ -18,7 +18,7 @@ const debug = Debug("bus");
 const debugMutex = Debug("bus.mutex")
 const log = new Logger("bus")
 
-export interface ReadRegisterResultWithDuration extends ReadRegisterResult {
+export interface ReadRegisterResultWithDuration extends IReadRegisterResultOrError {
     duration: number;
 }
 
@@ -245,7 +245,11 @@ export class Bus {
                     this.modbusClient!.readHoldingRegisters(dataaddress, length).then((data) => {
                         this.modbusClientActionMutex.release()
                         this.clearModbusTimout()
-                        resolve({ ...data, duration: Date.now() - start })
+                        let rc: ReadRegisterResultWithDuration = {
+                            result: data,
+                            duration: Date.now() - start
+                        }
+                        resolve(rc)
                     }).catch(e => {
                         this.modbusClientActionMutex.release()
                         e.duration = Date.now() - start
@@ -268,8 +272,11 @@ export class Bus {
                     let start = Date.now()
                     this.modbusClient!.readInputRegisters(dataaddress, length).then((data) => {
                         this.modbusClientActionMutex.release()
-                        resolve({ ...data, duration: Date.now() - start })
-
+                        let rc: ReadRegisterResultWithDuration = {
+                            result: data,
+                            duration: Date.now() - start
+                        }
+                        resolve(rc)
                         this.clearModbusTimout()
                     }).catch(e => {
                         this.modbusClientActionMutex.release()
@@ -297,8 +304,11 @@ export class Bus {
                             buffer: Buffer.allocUnsafe(0)
                         }
                         resolveBoolean.data.forEach(d => { readResult.data.push(d ? 1 : 0) })
-                        resolve({ ...readResult, duration: Date.now() - start })
-
+                        let rc: ReadRegisterResultWithDuration = {
+                            result: readResult,
+                            duration: Date.now() - start
+                        }
+                        resolve(rc)
                         this.clearModbusTimout()
                     }).catch(e => {
                         this.modbusClientActionMutex.release()
@@ -397,8 +407,11 @@ export class Bus {
         for (let ent of spec.entities) {
             let converter = ConverterMap.getConverter(ent);
             if (ent.modbusAddress != undefined && converter && ent.registerType)
-                for (let i = 0; i < converter.getModbusLength(ent); i++)
+                for (let i = 0; i < converter.getModbusLength(ent); i++) {
+
                     addresses.add({ address: ent.modbusAddress + i, registerType: ent.registerType });
+                }
+
         }
     }
     private static updateAllSpecificationsModbusAddresses(specificationid: string | null) {
@@ -511,19 +524,20 @@ export class Bus {
             // will be called once (per slave)
             this.readModbusRegister("getAvailableSpecs", slaveid, addresses).then(values => {
                 // Add not available addresses to the values
+                let noData = { error: new Error("No data available") }
                 addresses.forEach(address => {
                     switch (address.registerType) {
                         case ModbusRegisterType.HoldingRegister:
                             if (!values.holdingRegisters.has(address.address))
-                                values.holdingRegisters.set(address.address, null)
+                                values.holdingRegisters.set(address.address, noData)
                             break;
                         case ModbusRegisterType.AnalogInputs:
                             if (!values.analogInputs.has(address.address))
-                                values.analogInputs.set(address.address, null)
+                                values.analogInputs.set(address.address, noData)
                             break;
                         case ModbusRegisterType.Coils:
                             if (!values.coils.has(address.address))
-                                values.coils.set(address.address, null)
+                                values.coils.set(address.address, noData)
                             break;
                     }
                 })

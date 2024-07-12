@@ -6,7 +6,7 @@ import { yamlDir } from "./testHelpers/configsbase";
 import { ModbusServer, XYslaveid } from './../src/modbusTCPserver';
 import { ReadRegisterResult } from "modbus-serial/ModbusRTU";
 import { IdentifiedStates } from '@modbus2mqtt/specification.shared';
-import { ConfigSpecification } from '@modbus2mqtt/specification';
+import { ConfigSpecification, IReadRegisterResultOrError } from '@modbus2mqtt/specification';
 
 const debug = Debug("bustest");
 Debug.enable('bustest modbusserver')
@@ -55,7 +55,7 @@ it('read slaves/delete slave/addSlave/read slave', () => {
 //    })
 // })
 
-function testRead(address: number, address2: number, value1: number, value2: number, fc: (slaveid: number, address: number, length: any) => Promise<ReadRegisterResult>): Promise<void> {
+function testRead(address: number, address2: number, value1: number, value2: number, fc: (slaveid: number, address: number, length: any) => Promise<IReadRegisterResultOrError>): Promise<void> {
    return new Promise<void>((resolve) => {
       let tcpServer = new ModbusServer()
       let bus = Bus.getBus(1)
@@ -64,8 +64,8 @@ function testRead(address: number, address2: number, value1: number, value2: num
             debug("Connected to TCP server")
             bus!.connectRTU("test").then(() => {
                fc.bind(bus)(XYslaveid, address, 2).then((value) => {
-                  expect(value.data[0]).toBe(value1)
-                  expect(value.data[1]).toBe(value2)
+                  expect(value.result!.data[0]).toBe(value1)
+                  expect(value.result!.data[1]).toBe(value2)
                   fc.bind(bus)(XYslaveid, address2, 2).then((_value) => {
                      expect(true).toBeFalsy()
                   }).catch((e) => {
