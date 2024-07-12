@@ -4,7 +4,7 @@ import serveStatic from 'serve-static';
 import { NextFunction, Request } from "express";
 import * as express from 'express';
 import * as bodyparser from 'body-parser';
-import { ConverterMap, IModbusData, M2mGitHub } from '@modbus2mqtt/specification';
+import { ConverterMap, IModbusData, ImodbusValues, M2mGitHub } from '@modbus2mqtt/specification';
 import { Config, MqttValidationResult, filesUrlPrefix } from './config';
 import { Modbus } from './modbus';
 import { ImodbusSpecification, HttpErrorsEnum, IimageAndDocumentUrl, Ispecification } from '@modbus2mqtt/specification.shared';
@@ -99,7 +99,6 @@ export class HttpServer {
     authenticate(req: Request, res: http.ServerResponse, next: any) {
         //  req.header('')
         var pwd = Config.getConfiguration().password
-        debug("pwd " + (pwd == undefined ? "undefined " : (pwd.length > 0 ? " length >0" : " length==0")))
         // All api callsand a user registration when a user is already registered needs authorization
         if (req.url.indexOf("/api/") >= 0 || (req.url.indexOf("/user/register") >= 0 && pwd && pwd.length)) {
             let authHeader = req.header("Authorization")
@@ -537,7 +536,7 @@ export class HttpServer {
             let bus: Bus | undefined
             let slave: Islave | undefined
             let busId: number | undefined
-            let testdata: IModbusData | undefined
+            let testdata: ImodbusValues | undefined
             if (req.query.busid, req.query.slaveid) {
                 busId = Number.parseInt(req.query.busid);
                 let slaveId = Number.parseInt(req.query.slaveid);

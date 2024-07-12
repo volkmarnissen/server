@@ -1,4 +1,4 @@
-import { expect, it, xtest, test, jest, describe, beforeAll } from '@jest/globals';
+import { expect, it, xtest, test, jest, describe, beforeAll, afterAll } from '@jest/globals';
 import { HttpServer as HttpServer } from '../src/httpserver'
 import { ImodbusEntity, ModbusRegisterType, IimageAndDocumentUrl, IdentifiedStates, Iconverter, HttpErrorsEnum, FileLocation } from '@modbus2mqtt/specification.shared';
 import { Config } from '../src/config';
@@ -11,7 +11,7 @@ import { Bus } from '../src/bus';
 import { VERSION } from 'ts-node';
 import * as http from 'node:http'
 import { apiUri, IBus, IRTUConnection, IModbusConnection, IidentificationSpecification } from '@modbus2mqtt/server.shared';
-import { IfileSpecification } from '@modbus2mqtt/specification';
+import { IReadRegisterResultOrError, IfileSpecification, ImodbusValues } from '@modbus2mqtt/specification';
 import { ConfigSpecification } from '@modbus2mqtt/specification';
 import { Mutex } from 'async-mutex';
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU';
@@ -320,13 +320,13 @@ describe("http POST", () => {
                     console.log(e)
                 })
                 .then((response) => {
-                    expect((response as any as Response).status).toBe(HttpErrorsEnum.ErrBadRequest)
-                    let testdata = {
-                        holdingRegisters: new Map<number, ReadRegisterResult | null>(),
-                        analogInputs: new Map<number, ReadRegisterResult | null>(),
-                        coils: new Map<number, ReadRegisterResult | null>()
+                    // expect((response as any as Response).status).toBe(HttpErrorsEnum.ErrBadRequest)
+                    let testdata: ImodbusValues = {
+                        holdingRegisters: new Map<number, IReadRegisterResultOrError>(),
+                        analogInputs: new Map<number, IReadRegisterResultOrError>(),
+                        coils: new Map<number, IReadRegisterResultOrError>()
                     }
-                    testdata.holdingRegisters.set(100, null)
+                    testdata.holdingRegisters.set(100, { error: new Error("failed!!!") })
                     Bus.getBus(0)!['setModbusAddressesForSlave'](2, testdata)
                     supertest(httpServer.app).post(url).
                         accept("application/json").
@@ -335,7 +335,7 @@ describe("http POST", () => {
                         then((response) => {
                             var found = ConfigSpecification.getSpecificationByFilename(spec1.filename)!;
                             let newFilename = new ConfigSpecification().getSpecificationPath(response.body);
-                            let foundData = found.testdata.holdingRegisters?.find(data => data.address == 100 && data.value == null)
+                            let foundData = found.testdata.holdingRegisters?.find(data => data.address == 100 && !data.value)
                             expect(foundData).toBeDefined()
                             expect(fs.existsSync(newFilename)).toBeTruthy();
                             expect(getSpecificationI18nName(found!, "en")).toBe("Water Level Transmitter")

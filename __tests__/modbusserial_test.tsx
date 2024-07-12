@@ -1,4 +1,6 @@
 import ModbusRTU from 'modbus-serial';
+import { it } from '@jest/globals';
+
 var client = new ModbusRTU();
 it("modbus write", () => {
 

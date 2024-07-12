@@ -1,14 +1,15 @@
 import { Config } from '../src/config';
-import { ImodbusAddress, ModbusCache, exportedForTesting } from '../src/modbuscache';
+import { ImodbusAddress, ModbusCache, ModbusStates, exportedForTesting } from '../src/modbuscache';
 import ModbusRTU from 'modbus-serial';
 const { ModbusStateMachine } = exportedForTesting;
 import { yamlDir } from './testHelpers/configsbase';
 import { Mutex } from 'async-mutex';
-import { ReadRegisterResult } from 'modbus-serial/ModbusRTU';
 import { getReadRegisterResult } from '../src/submitRequestMock';
 import Debug from "debug"
-import { ConfigSpecification, ImodbusValues, Logger } from '@modbus2mqtt/specification';
+import { ConfigSpecification, IReadRegisterResultOrError, ImodbusValues, Logger } from '@modbus2mqtt/specification';
 import { ModbusRegisterType } from '@modbus2mqtt/specification.shared';
+import { expect, describe, jest, beforeAll, test, afterAll } from '@jest/globals';
+import { ReadRegisterResult } from 'modbus-serial/ModbusRTU';
 const debug = Debug("modbuscachetest");
 let mockMutex = new Mutex()
 Config['yamlDir'] = yamlDir;
@@ -19,22 +20,22 @@ new ConfigSpecification().readYaml();
 let mockedConnectRTU = jest.fn() as jest.MockedFunction<typeof ModbusRTU.prototype.connectRTUBuffered>
 
 let b34 = [0, 3, 0, 4]
-let readHoldingRegistersNormal = jest.fn().mockResolvedValueOnce(getReadRegisterResult(3)).mockResolvedValueOnce(getReadRegisterResult(3)).mockResolvedValueOnce({ data: [3, 4], buffer: Buffer.from(b34) });
-let readHoldingRegistersWithTimeout = jest.fn().mockResolvedValueOnce(getReadRegisterResult(3)).mockResolvedValueOnce(getReadRegisterResult(3)).mockImplementationOnce(async () => { throw { errno: "ETIMEDOUT" } }).mockResolvedValueOnce({ data: [3, 4], buffer: Buffer.from(b34) });
-let readHoldingRegistersWithIllegalAddress =
-    jest.fn().mockImplementationOnce(async () => { throw { modbusCode: 2 } })
-        .mockImplementationOnce(async () => { throw { modbusCode: 2 } })
+let readHoldingRegistersNormal: (n: number) => Promise<ReadRegisterResult> = jest.fn<(n: number) => Promise<ReadRegisterResult>>().mockResolvedValueOnce(getReadRegisterResult(3).result!).mockResolvedValueOnce(getReadRegisterResult(3).result!).mockResolvedValueOnce({ data: [3, 4], buffer: Buffer.from(b34) });
+let readHoldingRegistersWithTimeout: (n: number) => Promise<ReadRegisterResult> = jest.fn<(n: number) => Promise<ReadRegisterResult>>().mockResolvedValueOnce(getReadRegisterResult(3).result!).mockResolvedValueOnce(getReadRegisterResult(3).result!).mockImplementationOnce(async () => { throw { errno: "ETIMEDOUT" } }).mockResolvedValueOnce({ data: [3, 4], buffer: Buffer.from(b34) });
+let readHoldingRegistersWithIllegalAddress: (n: number) => Promise<ReadRegisterResult> =
+    jest.fn<(n: number) => Promise<ReadRegisterResult>>().mockRejectedValueOnce({ modbusCode: 2 })
+        .mockRejectedValueOnce({ modbusCode: 2 })
         .mockResolvedValueOnce({ data: [4], buffer: Buffer.alloc(2) })
-        .mockImplementationOnce(async () => { throw { modbusCode: 2 } })
-        .mockImplementationOnce(async () => { throw { modbusCode: 2 } })
-        .mockResolvedValueOnce(getReadRegisterResult(4))
-        .mockResolvedValueOnce(getReadRegisterResult(5))
-        .mockResolvedValueOnce(getReadRegisterResult(6))
-        .mockResolvedValueOnce(getReadRegisterResult(7))
-        .mockResolvedValueOnce(getReadRegisterResult(8))
-        .mockResolvedValueOnce(getReadRegisterResult(9))
-        .mockResolvedValueOnce(getReadRegisterResult(10))
-        .mockResolvedValueOnce(getReadRegisterResult(11));
+        .mockRejectedValueOnce({ modbusCode: 2 })
+        .mockRejectedValueOnce({ modbusCode: 2 })
+        .mockResolvedValueOnce(getReadRegisterResult(4).result!)
+        .mockResolvedValueOnce(getReadRegisterResult(5).result!)
+        .mockResolvedValueOnce(getReadRegisterResult(6).result!)
+        .mockResolvedValueOnce(getReadRegisterResult(7).result!)
+        .mockResolvedValueOnce(getReadRegisterResult(8).result!)
+        .mockResolvedValueOnce(getReadRegisterResult(9).result!)
+        .mockResolvedValueOnce(getReadRegisterResult(10).result!)
+        .mockResolvedValueOnce(getReadRegisterResult(11).result!);
 let readHoldingRegisters = readHoldingRegistersNormal
 let readHoldingRegistersMutex = new Mutex()
 let oldLog: any
@@ -50,9 +51,9 @@ beforeAll(() => {
     ModbusRTU.prototype.writeRegisters = jest.fn(() => Promise.resolve({ address: 4, length: 1 }));
     ModbusRTU.prototype.close = jest.fn().mockImplementation((cb) => {
         jest.spyOn(ModbusRTU.prototype, 'isOpen', 'get').mockReturnValue(false);
-        cb()
+        (cb as () => void)()
     });
-    ModbusRTU.prototype.open = jest.fn().mockImplementation((cb) => { cb() });
+    ModbusRTU.prototype.open = jest.fn().mockImplementation((cb) => { (cb as () => void)() });
 
 });
 
@@ -75,14 +76,14 @@ function resultFunction0(addresses: Set<ImodbusAddress>, results: ImodbusValues)
     expect(results.holdingRegisters.get(4)).toBeDefined();
     debug(results.holdingRegisters.get(4))
     debug(getReadRegisterResult(3))
-    expect(results.holdingRegisters.get(4)!.data[0]).toBe(3);
+    expect(results.holdingRegisters.get(4)!.result!.data[0]).toBe(3);
     submitReadRequest(addresses, resultFunctions[1])
 }
 
 function resultFunction1(addresses: Set<ImodbusAddress>, results: ImodbusValues): void {
     // cached call
     expect(results.holdingRegisters.get(4)).toBeDefined();
-    expect(results.holdingRegisters.get(4)!.data[0]).toBe(3);
+    expect(results.holdingRegisters.get(4)!.result!.data[0]).toBe(3);
     expect(readHoldingRegisters).toHaveBeenCalledTimes(2);
     let na = structuredClone(addresses)
     na.add({ address: 5, registerType: ModbusRegisterType.HoldingRegister });
@@ -91,7 +92,7 @@ function resultFunction1(addresses: Set<ImodbusAddress>, results: ImodbusValues)
 
 function resultFunction0Illegal(addresses: Set<ImodbusAddress>, results: ImodbusValues): void {
     expect(results.holdingRegisters.get(4)).toBeDefined();
-    expect(results.holdingRegisters.get(4)!.data[0]).toBe(4);
+    expect(results.holdingRegisters.get(4)!.result!.data[0]).toBe(4);
     let na = structuredClone(addresses)
     na.add({ address: 10, registerType: ModbusRegisterType.HoldingRegister });
     submitReadRequest(na, resultFunctions[1])
@@ -100,7 +101,7 @@ function resultFunction0Illegal(addresses: Set<ImodbusAddress>, results: Imodbus
 
 let resultFunctions: ((addresses: Set<ImodbusAddress>, _results: ImodbusValues) => void)[] = []
 
-function executeSubmitGetHoldingRegisterRequests(addresses: Set<ImodbusAddress>, readHoldingRegistersMock: jest.Mock<any, any, any>,
+function executeSubmitGetHoldingRegisterRequests(addresses: Set<ImodbusAddress>, readHoldingRegistersMock: (n: number) => Promise<ReadRegisterResult>,
     resultF: ((_addresses: Set<ImodbusAddress>, results: ImodbusValues) => void)[]) {
     readHoldingRegistersMutex.runExclusive(() => {
         readHoldingRegisters = readHoldingRegistersMock
@@ -128,7 +129,7 @@ describe("submitGetHoldingRegisterRequests", () => {
             let addresses = new Set<ImodbusAddress>();
             addresses.add({ address: 4, registerType: ModbusRegisterType.HoldingRegister });
             let f = (_addresses: Set<ImodbusAddress>, results: ImodbusValues) => {
-                expect(results.holdingRegisters.get(5)!.data[0]).toBe(4);
+                expect(results.holdingRegisters.get(5)!.result!.data[0]).toBe(4);
                 expect(readHoldingRegisters).toHaveBeenCalledTimes(3);
                 mockMutex.release();
                 done();
@@ -176,7 +177,7 @@ test("prepareAddressesAction", () => {
     addresses.add({ address: 1, registerType: ModbusRegisterType.HoldingRegister });
     addresses.add({ address: 2, registerType: ModbusRegisterType.HoldingRegister });
     addresses.add({ address: 3, registerType: ModbusRegisterType.HoldingRegister });
-    let mockedfn = jest.fn();
+    let mockedfn = jest.fn<(newState: ModbusStates, action: () => void, actionName?: string) => Promise<void>>();
     let originalFn: any = ModbusStateMachine.prototype.next;
     ModbusStateMachine.prototype.next = mockedfn;
     let sm = new ModbusStateMachine("test", { busid: 0, slaveid: 1 }, addresses, () => { }, () => { })
