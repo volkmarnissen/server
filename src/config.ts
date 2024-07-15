@@ -5,7 +5,7 @@ import { MqttDiscover } from './mqttdiscover';
 import * as path from 'path';
 import { join } from 'path';
 import { Observable, Subject } from "rxjs";
-import { getBaseFilename } from '@modbus2mqtt/specification.shared';
+import { BUS_TIMEOUT_DEFAULT, getBaseFilename } from '@modbus2mqtt/specification.shared';
 import { sign, verify } from 'jsonwebtoken';
 import * as bcrypt from "bcrypt";
 import * as http from 'http'
@@ -555,7 +555,7 @@ export class Config {
                 })
             }
             if (!oneBusFound)
-                Config.addBusProperties({ serialport: "/dev/ttyACM0", timeout: 100, baudrate: 9600 });
+                Config.addBusProperties({ serialport: "/dev/ttyACM0", timeout: BUS_TIMEOUT_DEFAULT, baudrate: 9600 });
             debug("config: busses.length: " + Config.busses.length);
         }
         catch (error: any) {

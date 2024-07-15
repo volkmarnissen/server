@@ -69,8 +69,12 @@ export class Bus {
         debug("updateBus()")
         let busP = Config.updateBusProperties(this.properties, connection)
         let b = Bus.getBusses().find(b => b.getId() == busP.busId)
-        if (b)
+        if (b) {
             b.properties = busP
+            // Change of bus properties can influence the modbus data
+            // E.g. set of lower timeout can lead to error messages
+            b.slaves.clear()
+        }
         else
             throw new Error("Bus does not exist")
         return b;
