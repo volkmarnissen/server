@@ -66,7 +66,6 @@ export class Modbus2Mqtt {
             startModbusTCPserver(Config.yamlDir, parseInt(options['busid']))
         readConfig = new Config();
         readConfig.readYaml();
-        new ConfigSpecification().readYaml()
         ConfigSpecification.setMqttdiscoverylanguage(Config.getConfiguration().mqttdiscoverylanguage, Config.getConfiguration().githubPersonalToken)
         debug(Config.getConfiguration().mqttconnect.mqttserverurl);
         let angulardir = require.resolve("@modbus2mqtt/angular")
