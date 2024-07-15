@@ -146,6 +146,7 @@ export DEVICE_MODBUS=/dev/serial/by-id/usb-1a86_USB_Serial-if00-port0
 ```
   - Pull the image and start it using the following command
 ```
+  . ./.env # read environment variables
   docker compose  up -d
 ```
   - This will startup the docker container.
