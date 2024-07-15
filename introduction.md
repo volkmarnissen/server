@@ -111,18 +111,54 @@ The specification „Water level transmitter“ has only one entity:
 
 The components have individual properties. They are described in the chapter Configuration.
 
-Additionally, there are some additional components:
-
-- text\_sensor: A read only text component which maps to „sensor“ in home assistant
-- select\_sensor:A read only select  component which maps to „sensor“ in home assistant
-- value: A constant value which is not available in home assistant
-
 More details are described in chapter Configuration
 ### **Installation**
-Will follow
-**Docker**
+There are three options for installation:
+- Install in Homeassistant Supervisor (not implemented yet)
+- Run in a Docker image
+- Run as Node application (not documented yet)
+**Run in a Docker image**
+- Install docker
+  There are several options to install docker. Please refer to the [Docker documentation](https://docs.docker.com/engine/install/)
+  - For MacOS and Linux:
+  - Open a terminal
+  - execute the following steps 
+```
+   mkdir docker
+   cd docker
+   curl https://raw.githubusercontent.com/modbus2mqtt/server/main/docker/modbus2mqtt-compose.yaml > compose.yaml
+```
+- Create a .env file with this content
+```
+export CONFIG_ROOT=`pwd`
+export PORT_MODBUS2MQTT=<your http port for modbus2mqtt>
+export DEVICE_MODBUS=<your path to the RS485 controller>
+```
+  - replace \<your http port for modbus2mqtt> with a port number to be used for http interface
+  - replace \<your path to the RS485 controller> with a path to the RS485 device.
+  and store in the directory you created in the previous step
 
-**Homeassistant**
+This is an example .env file:
+```
+export CONFIG_ROOT=`pwd`
+export PORT_MODBUS2MQTT=<http-port>
+export DEVICE_MODBUS=<serial-path E.g. /dev/serial/by-id/usb-1a86_USB_Serial-if00-port0>
+```
+- Pull the image and start it using the following command
+```
+  docker compose  up -d
+```
+- This will startup the docker container.
+  Now, you can access it in the browser using http://<your host name>:<your http port for modbus2mqtt>
+If there are issues, check the log file with
+```
+  docker log modbus2mqtt
+```
+
+
+**Homeassistant Supervisor**
+Will be implemented soon.
+
 ### **Configuration**
 Modbus2mqtt has a web Web UI to do nearly all required configurations.
 
@@ -130,7 +166,8 @@ Some one time configurations must be done in the modbus2mqtt.yaml file as descri
 
 We differentiate the following use cases
 
-- Create a device based on existing specification (video)
+
+- Configure Modbus2mqtt and create a device based on existing specification (video)
 - Create a device and a derived specification (video)
 - Create a device and a new specification (video)
 - Configure entities (video)
