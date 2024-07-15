@@ -141,8 +141,8 @@ export DEVICE_MODBUS=<your path to the RS485 controller>
 This is an example .env file:
 ```
 export CONFIG_ROOT=`pwd`
-export PORT_MODBUS2MQTT=<http-port>
-export DEVICE_MODBUS=<serial-path E.g. /dev/serial/by-id/usb-1a86_USB_Serial-if00-port0>
+export PORT_MODBUS2MQTT=1007
+export DEVICE_MODBUS=/dev/serial/by-id/usb-1a86_USB_Serial-if00-port0
 ```
   - Pull the image and start it using the following command
 ```
