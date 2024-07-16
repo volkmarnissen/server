@@ -92,8 +92,8 @@ export class Modbus2Mqtt {
         httpServer.app.listen(Config.getConfiguration().httpport, () => {
             log.log(LogLevelEnum.notice, `modbus2mqtt listening on  ${os.hostname()}: ${Config.getConfiguration().httpport}`)
             let config = Config.getConfiguration()
-
-            if (process.env.MODBUS_NOPOLL != undefined) {
+            Bus.getAllAvailableModusData()
+            if (process.env.MODBUS_NOPOLL == undefined) {
                 let md = new MqttDiscover(config.mqttconnect, config.mqttdiscoverylanguage)
                 md.startPolling((error: any) => {
                     log.log(LogLevelEnum.error, error.message)

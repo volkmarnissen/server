@@ -2,18 +2,19 @@ import { Config } from '../src/config';
 import { ImodbusEntity, ImodbusSpecification, ModbusRegisterType, VariableTargetParameters } from '@modbus2mqtt/specification.shared';
 import { ModbusCache } from '../src/modbuscache';
 import { ItopicAndPayloads, MqttDiscover } from '../src/mqttdiscover';
-import { Client, MqttClient } from 'mqtt';
+import { Client, ClientSubscribeCallback, IClientSubscribeOptions, IClientSubscribeProperties, ISubscriptionMap, MqttClient } from 'mqtt';
 import { submitGetHoldingRegisterRequest } from '../src/submitRequestMock';
 import { yamlDir } from './testHelpers/configsbase';
 import { Bus } from '../src/bus';
 import { debug } from 'console';
 import { ConfigSpecification, Logger } from '@modbus2mqtt/specification';
+import { expect, test, afterAll, beforeAll, jest, xtest } from '@jest/globals';
 
 
 enum FakeModes {
     Poll, Poll2, Discovery
 }
-const topic4Deletion = "homeassistant/sensor/1s0/e1/topic4Deletion"
+const topic4Deletion = { topic: "homeassistant/sensor/1s0/e1/topic4Deletion", payload: "" }
 class FakeMqtt {
     disconnected = false
     connected = true
@@ -171,8 +172,9 @@ test("onMqttConnect", done => {
         // subscribe to discovery for one device
         const mockPublish = jest.fn((_topic: string, _payload: string | Buffer) => c);
         const mockMqttUnsubscribe = jest.fn((_topic: string | string[]) => c);
+        const mockSubscribe = jest.fn((_topic: string | string[] | ISubscriptionMap, opts?: IClientSubscribeOptions | IClientSubscribeProperties | undefined, _callback?: ClientSubscribeCallback | undefined) => c);
         tps = md['generateDiscoveryPayloads'](0, slave, spec);
-        jest.spyOn(c, 'subscribe').mockImplementation();
+        jest.spyOn(c, 'subscribe').mockImplementation(mockSubscribe);
         jest.spyOn(c, 'publish').mockImplementation(mockPublish);
         jest.spyOn(c, 'on').mockImplementation(spyMqttOnMessage);
         jest.spyOn(c, 'unsubscribe').mockImplementation(mockMqttUnsubscribe);
@@ -210,8 +212,8 @@ test("poll", (done) => {
         // second call should do nothing, because interval is too short
         md!['client'] = fake as any as MqttClient
         fake.isAsExcpected = true
-        let m = new Map<number, string>()
-        m.set(1, topic4Deletion)
+        let m = new Map<number, ItopicAndPayloads[]>()
+        m.set(1, [topic4Deletion])
 
         md!['mqttDiscoveryTopics'].set("1s0", m)
         md!['poll']().then(() => {

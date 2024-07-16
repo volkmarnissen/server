@@ -99,6 +99,13 @@ export class Bus {
         let busCount = Bus.getBusses().length;
         if (busCount == 0)
             setTimeout(() => { subject.next() }, 2);
+        Bus.getBusses().forEach(bus => {
+            bus.properties.slaves.forEach(slave => {
+                bus.getAvailableSpecs(slave.slaveid, true).then(() => {
+                    debug("Specs for " + bus.getId() + "/" + slave.slaveid + " cached")
+                })
+            })
+        })
     }
 
     slaves = new Map<number, ImodbusValues>()
