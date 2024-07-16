@@ -320,8 +320,16 @@ export class MqttDiscover {
                 let tpFound = this.mqttDiscoveryTopics.get(ids.busSlave)?.get(ids.entityid)
                 if (!tpFound || !this.containsTopic(tp, tpFound))
                     this.client.publish(tp.topic, tp.payload, retain); // async, no callback !!!
-                else
-                    debug("payload not changed for " + tp.topic)
+                else {
+                    debug("topic not changed for " + tp.topic)
+                    let tpx = tpFound.find(t => t.topic == tp.topic)
+                    if (!tpx || tp.payload != tpx.payload) {
+                        debug("payload changed for " + tp.topic)
+                        this.client.publish(tp.topic, tp.payload, retain); // async, no callback !!!
+                    }
+
+                }
+
                 // publish topic deletions
                 this.mqttDiscoveryTopics.get(ids.busSlave)?.forEach((payload, entity) => {
                     payload.forEach(p => {
