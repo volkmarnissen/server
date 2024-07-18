@@ -145,6 +145,9 @@ export class MqttDiscover {
                         });
                         if (e.forceUpdate)
                             obj.force_update = true
+                        if (e.entityCategory && e.entityCategory.length)
+                            obj.entity_category = e.entityCategory
+
                         if (e.icon)
                             obj.icon = e.icon
                         if (!e.variableConfiguration) {

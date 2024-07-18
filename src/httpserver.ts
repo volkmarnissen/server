@@ -7,7 +7,7 @@ import * as bodyparser from 'body-parser';
 import { ConverterMap, IModbusData, ImodbusValues, M2mGitHub } from '@modbus2mqtt/specification';
 import { Config, MqttValidationResult, filesUrlPrefix } from './config';
 import { Modbus } from './modbus';
-import { ImodbusSpecification, HttpErrorsEnum, IimageAndDocumentUrl, Ispecification } from '@modbus2mqtt/specification.shared';
+import { ImodbusSpecification, HttpErrorsEnum, IimageAndDocumentUrl, Ispecification, SpecificationStatus } from '@modbus2mqtt/specification.shared';
 import { join } from 'path';
 import multer from 'multer';
 
@@ -393,18 +393,23 @@ export class HttpServer {
             }
             let spec = ConfigSpecification.getSpecificationByFilename(req.query.spec)
             let client = new M2mSpecification(spec as Ispecification);
-            client.contribute(req.body.note).then(response => {
-                // poll status updates of pull request
-                client.startPolling((e) => { log.log(LogLevelEnum.error, e.message) })
-                HttpServer.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(response));
-            }).catch(err => {
-                res.statusCode = HttpErrorsEnum.ErrNotAcceptable
-                if (err.message)
-                    res.end(JSON.stringify(err.message))
-                else
-                    res.end(JSON.stringify(err))
-                log.log(LogLevelEnum.error, JSON.stringify(err))
-            })
+            if (spec && spec.status && ![SpecificationStatus.contributed, SpecificationStatus.published].includes(spec.status)) {
+                client.contribute(req.body.note).then(response => {
+                    // poll status updates of pull request
+                    client.startPolling((e) => { log.log(LogLevelEnum.error, e.message) })
+                    HttpServer.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(response));
+                }).catch(err => {
+                    res.statusCode = HttpErrorsEnum.ErrNotAcceptable
+                    if (err.message)
+                        res.end(JSON.stringify(err.message))
+                    else
+                        res.end(JSON.stringify(err))
+                    log.log(LogLevelEnum.error, JSON.stringify(err))
+                })
+
+            } else
+                if (spec && spec.status && spec.status == SpecificationStatus.contributed)
+                    client.startPolling((e) => { log.log(LogLevelEnum.error, e.message) })
         })
 
         this.post(apiUri.translate, (req: Request, res: http.ServerResponse) => {
@@ -694,6 +699,17 @@ export class HttpServer {
                 HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "Invalid Usage");;
             }
 
+
+        });
+        this.delete(apiUri.newSpecificationfiles, (req: Request, res: http.ServerResponse) => {
+            try {
+                new ConfigSpecification().deleteNewSpecificationFiles()
+                HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify("OK"));
+
+            }
+            catch (err: any) {
+                HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "deletion failed: " + err.message, err);
+            }
 
         });
         // app.post('/specification',  ( req:express.TypedRequestBody<IfileSpecification>) =>{
