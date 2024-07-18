@@ -675,9 +675,13 @@ export class Config {
             });
 
         if (specification) {
-            let spec = ConfigSpecification.getSpecificationByFilename(specification)
-            this.triggerMqttPublishSlave(busid, slave);
-            slave.specification = spec
+            if (specification == "_new")
+                new ConfigSpecification().deleteNewSpecificationFiles();
+            else {
+                let spec = ConfigSpecification.getSpecificationByFilename(specification)
+                this.triggerMqttPublishSlave(busid, slave);
+                slave.specification = spec
+            }
         } else
             debug("No Specification found for slave: " + filename + " specification: " + slave.specificationid)
         return slave;
