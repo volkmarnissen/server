@@ -92,6 +92,7 @@ export class Modbus2Mqtt {
         httpServer.app.listen(Config.getConfiguration().httpport, () => {
             log.log(LogLevelEnum.notice, `modbus2mqtt listening on  ${os.hostname()}: ${Config.getConfiguration().httpport}`)
             let config = Config.getConfiguration()
+            new ConfigSpecification().deleteNewSpecificationFiles()
             Bus.getAllAvailableModusData()
             if (process.env.MODBUS_NOPOLL == undefined) {
                 let md = new MqttDiscover(config.mqttconnect, config.mqttdiscoverylanguage)

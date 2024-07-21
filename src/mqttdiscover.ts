@@ -58,7 +58,7 @@ export class MqttDiscover {
     private generateStateTopic(busid: number, slave: Islave): string {
         return Config.getConfiguration().mqttbasetopic + "/" + busid + Config.getFileNameFromSlaveId(slave.slaveid) + "/state"
     }
-    private generateEntityConfigurationTopic(busid: number, slave: Islave, ent: Ientity): string {
+    private generateEntityConfigurationTopic(busid: number, slaveId: number, ent: Ientity): string {
         let haType = "sensor"
         if (ent.readonly)
             switch (ent.converter.name) {
@@ -71,7 +71,7 @@ export class MqttDiscover {
             }
 
 
-        return Config.getConfiguration().mqttdiscoveryprefix + "/" + haType + "/" + busid + Config.getFileNameFromSlaveId(slave.slaveid) + "/e" + ent.id + "/config"
+        return Config.getConfiguration().mqttdiscoveryprefix + "/" + haType + "/" + busid + Config.getFileNameFromSlaveId(slaveId) + "/e" + ent.id + "/config"
     }
     private generateEntityCommandTopic(busid: number, slave: Islave, ent: Ientity): string {
         return Config.getConfiguration().mqttbasetopic + "/set/" + busid + Config.getFileNameFromSlaveId(slave.slaveid) + "/e" + ent.id
@@ -199,7 +199,7 @@ export class MqttDiscover {
                                     }
                                     break;
                             }
-                            payloads.push({ topic: this.generateEntityConfigurationTopic(busid, slave, e), payload: JSON.stringify(obj) });
+                            payloads.push({ topic: this.generateEntityConfigurationTopic(busid, slave.slaveid, e), payload: JSON.stringify(obj) });
                         }
                     }
                 }
@@ -308,7 +308,33 @@ export class MqttDiscover {
         if (tp != -1)
             tps[tp].payload = payload
     }
+    private publishEntityDeletions(busId: number, slaveId: number) {
+        let key = busId + Config.getFileNameFromSlaveId(slaveId)
+        this.mqttDiscoveryTopics.get(key)?.forEach((payload, entity) => {
+            payload.forEach(p => {
+                let ent: Ientity | undefined = undefined
+                let bus = Bus.getBus(busId)
+                let slave: Islave | undefined
+                if (bus)
+                    slave = bus.getSlaveBySlaveId(slaveId)
+                if (slave && slave.specification)
+                    ent = (slave.specification as IfileSpecification).entities.find(e => entity == e.id)
 
+                // If the slave has no specification, it has been removed. Remove all topics related to it
+                // Or there is an entity which has another converter than configured in current specification                
+                if (!bus || !slave || !slave.specification ||
+                    (ent && p.topic != this.generateEntityConfigurationTopic(bus.getId(), slave.slaveid, ent))
+                ) {
+                    if (ent)
+                        debug("delete " + ent.id + " topic " + p.topic + " Spec converter:" + ent.converter.name + " readonly: " + ent.readonly)
+                    else
+                        debug("delete Bus/slave " + key)
+                    this.client!.publish(p.topic, Buffer.alloc(0), retain);  // delete entity                            
+                }
+            })
+        })
+
+    }
     private async publishDiscoveryForSlave(bus: Bus, slave: Islave, spec: ImodbusSpecification) {
         debug("MQTT:publishDiscoveryForSlave");
         if (!this.client || this.client.disconnected) {
@@ -334,17 +360,7 @@ export class MqttDiscover {
                 }
 
                 // publish topic deletions
-                this.mqttDiscoveryTopics.get(ids.busSlave)?.forEach((payload, entity) => {
-                    payload.forEach(p => {
-                        let ent = (slave.specification as IfileSpecification).entities.find(e => entity == e.id)
-                        if (ent &&
-                            p.topic != this.generateEntityConfigurationTopic(bus.getId(), slave, ent)
-                        ) {
-                            debug("delete " + ent.id + " topic " + p.topic + " Spec converter:" + ent.converter.name + " readonly: " + ent.readonly)
-                            this.client!.publish(p.topic, Buffer.alloc(0), retain);  // delete entity                            
-                        }
-                    })
-                })
+                this.publishEntityDeletions(bus.getId(), slave.slaveid)
             }
         } else {
             if (!slave.specification)
@@ -485,9 +501,11 @@ export class MqttDiscover {
                             debugAction("poll start (" + bus.getId() + "," + slave.slaveid + ")interval: " + slave.polInterval)
                             debug("poll: start sending payload busid: " + bus.getId() + " slaveid: " + slave.slaveid)
                             debugAction("poll end")
+                            if (slave.specificationid && slave.specificationid.length > 0) {
+                                allTopics.push(this.publishStateAndSendDiscovery(bus, slave))
+                                this.pollCounts.set(key, 0)
 
-                            allTopics.push(this.publishStateAndSendDiscovery(bus, slave))
-                            this.pollCounts.set(key, 0)
+                            }
                         }
                         this.pollCounts.set(key, ++pc)
                     })
@@ -519,6 +537,21 @@ export class MqttDiscover {
         })
     }
 
+    deleteSlave(busId: number, slaveId: number) {
+        this.publishEntityDeletions(busId, slaveId)
+    }
+    deleteBus(busId: number) {
+        let slaves = new Set<number>()
+        for (let key of this.mqttDiscoveryTopics.keys()) {
+            if (key.startsWith("" + busId + "s")) {
+                let pos = key.indexOf("s")
+                slaves.add(Number.parseInt(key.substring(pos + 1)))
+            }
+        }
+        for (let slaveId of slaves)
+            this.publishEntityDeletions(busId, slaveId)
+
+    }
     triggerPoll(busid: number, slave: Islave) {
         if (slave) {
             let key = "" + busid + Config.getFileNameFromSlaveId(slave.slaveid)

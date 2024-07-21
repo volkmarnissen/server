@@ -7,7 +7,7 @@ import { join } from 'path';
 import { Observable, Subject } from "rxjs";
 import { BUS_TIMEOUT_DEFAULT, getBaseFilename } from '@modbus2mqtt/specification.shared';
 import { sign, verify } from 'jsonwebtoken';
-import * as bcrypt from "bcrypt";
+import * as bcrypt from "bcryptjs";
 import * as http from 'http'
 import { ConfigSpecification, LogLevelEnum, Logger } from '@modbus2mqtt/specification'
 import { SerialPort } from 'serialport'
@@ -209,6 +209,8 @@ export class Config {
             let busDir = Config.yamlDir + "/local/busses/bus." + busid;
             Config.busses.splice(idx, 1);
             fs.rmSync(busDir, { recursive: true });
+            let mqd = new MqttDiscover(Config.config.mqttconnect)
+            mqd.deleteBus(busid)
             Config.bussesChanged.next()
         }
     }
@@ -598,10 +600,11 @@ export class Config {
                                 debug(err);
                         });
                     bus.slaves.splice(idx, 1);
+                    let mqd = new MqttDiscover(Config.config.mqttconnect)
+                    mqd.deleteSlave(bus.busId, slaveid)
                     debug("DELETE /slave finished " + slaveid + " number of slaves: " + bus.slaves.length);
                     return;
                 }
-
             }
             if (!found)
                 debug("slave not found for deletion " + slaveid);
