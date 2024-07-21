@@ -719,6 +719,14 @@ export class HttpServer {
             debug("DELETE /specification: " + req.query.spec);
             let rd = new ConfigSpecification();
             var rc = rd.deleteSpecification(req.query.spec);
+            Bus.getBusses().forEach(bus => {
+                bus.getSlaves().forEach(slave => {
+                    if (slave.specificationid == req.query.spec) {
+                        delete slave.specificationid
+                        bus.writeSlave(slave.slaveid, undefined, slave.name, slave.polInterval);
+                    }
+                })
+            })
             HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(rc));
         });
         this.delete(apiUri.bus, (req: GetRequestWithParameter, res: http.ServerResponse) => {

@@ -372,12 +372,25 @@ export class ModbusStateMachine {
                 this.preparedAddresses.push({ address: startAddress + l, registerType: registerType, length: 1 })
             }
         } else {
-            log.log(LogLevelEnum.notice, module + " splitting: " + (e.message ? e.message : "error") + ": (bus: " + this.slaveId.busid + ", slave: " +
-                this.slaveId.slaveid + ", address:" + this.preparedAddresses[this.preparedAddressesIndex].address +
+            debug(module + " splitting: " + (e.message ? e.message : "error") + ": (bus: " + this.slaveId.busid + ", slave: " +
+                this.slaveId.slaveid + ", address: " + this.preparedAddresses[this.preparedAddressesIndex].address +
                 " length: " + this.preparedAddresses[this.preparedAddressesIndex].length + ")")
             this.preparedAddressesIndex++;
         }
 
+    }
+    private reopenAndContinue() {
+        let bus = Bus.getBus(this.slaveId.busid);
+        if (bus)
+            bus.reconnectRTU(this.task).then((_rc) => {
+                this.next(ModbusStates.Processing, this.processAction);
+            }).catch(e => {
+                log.log(LogLevelEnum.error, e.message);
+                if (bus!.isRTUopen())
+                    this.next(ModbusStates.Processing, this.processAction);
+                else
+                    this.next(this.state, () => { this.closeAction(e) }, this.closeAction.name);
+            })
     }
     retryProcessAction(module: string, e: any) {
         if (e.stack)
@@ -413,24 +426,17 @@ export class ModbusStateMachine {
             if (e.modbusCode) {
                 switch (e.modbusCode) {
                     case 1: //Illegal Function Code
+                        // reopen RTU and start with next addresses
+                        this.preparedAddressesIndex++
+                        this.reopenAndContinue()
+                        break;
                     case 2: // Illegal Address
                         debug("retryProcessAction: " + e.message)
                         // split request into single parts to avoid invalid address errors as often as possible
                         this.splitAddresses(module, e)
-
                         // Need to reopen the RTU connection, because of it's errourous state after this error    
                         // then continue with next addresses
-                        let bus = Bus.getBus(this.slaveId.busid);
-                        if (bus)
-                            bus.reconnectRTU(this.task).then((_rc) => {
-                                this.next(ModbusStates.Processing, this.processAction);
-                            }).catch(e => {
-                                log.log(LogLevelEnum.error, e.message);
-                                if (bus!.isRTUopen())
-                                    this.next(ModbusStates.Processing, this.processAction);
-                                else
-                                    this.next(this.state, () => { this.closeAction(e) }, this.closeAction.name);
-                            })
+                        this.reopenAndContinue()
                         break;
                     default:
 
