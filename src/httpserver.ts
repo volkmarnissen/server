@@ -425,8 +425,8 @@ export class HttpServer {
                 }
             }).catch((err: any) => {
                 res.statusCode = HttpErrorsEnum.ErrNotAcceptable
-                res.end(JSON.stringify(err))
-                log.log(LogLevelEnum.error, JSON.stringify(err))
+                res.end(JSON.stringify(err.message))
+                log.log(LogLevelEnum.error, JSON.stringify(err.message))
             })
         })
 
