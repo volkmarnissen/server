@@ -29,6 +29,7 @@ export enum MqttValidationResult {
 const log = new Logger("config")
 const secretsLength = 256
 const debug = Debug('config')
+const debugAddon = Debug('config.addon')
 const saltRounds = 8
 const defaultTokenExpiryTime = 1000 * 60 * 60 * 24 // One day
 //TODO const defaultTokenExpiryTime = 1000 * 20 // three seconds for testing 
@@ -408,6 +409,7 @@ export class Config {
                         reject(new Error("ENV: HASSIO_TOKEN not defined"))
                         return
                     }
+                    debugAddon("getMqttLoginFromHassio: try to read MQTTLogin from Hassio")
 
 
                     let options: http.RequestOptions = {
@@ -429,11 +431,14 @@ export class Config {
                             delete (config.mqttconnect as any).ssl
                             delete (config.mqttconnect as any).protocol
                             delete (config.mqttconnect as any).addon
+                            debugAddon("getMqttLoginFromHassio: Read MQTT login data from Hassio")
+
                             resolve(config.mqttconnect)
                         }, reject)
                     })
                 }
                 catch (e: any) {
+                    debugAddon("getMqttLoginFromHassio: failed to read MQTT login data from Hassio " + e.message)
                     reject(e);
                 }
             })
