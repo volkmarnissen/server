@@ -19,4 +19,7 @@ RUN echo '{}' >package.json && \
     apk add  --update --no-cache g++ make build-base linux-headers udev py3-pip  && \
     npm rebuild @serialport/bindings-cpp --build-from-source; \
     fi
-CMD ["npx", "modbus2mqtt", "--ssl", "/ssl", "--yaml", "/data"]
+COPY run.sh /usr/app
+RUN chmod a+x /usr/app/run.sh
+CMD [ "/bin/sh" , "/usr/app/run.sh" ]
+#CMD ["npx", "modbus2mqtt", "--ssl", "/ssl", "--yaml", "/data"]

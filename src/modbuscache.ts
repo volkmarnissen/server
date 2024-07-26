@@ -98,10 +98,14 @@ export interface IslaveId {
     busid: number;
     slaveid: number;
 }
+const logNoticeMaxWaitTime = 1000 * 60 * 30 // 30 minutes
+
 export class ModbusStateMachine {
     private static maxPid: number = 0;
     private static slaveStates = new Map<number, SlaveStates>();
     private state: ModbusStates = ModbusStates.Initial;
+    private static lastNoticeMessage: string = ""
+    private static lastNoticeMessageTime: number | undefined
     private pid!: number;
     private result = emptyModbusValues();
     private preparedAddresses: ImodbusAddress[] = [];
@@ -116,6 +120,16 @@ export class ModbusStateMachine {
     private retryConnectCount = 0;
     constructor(private task: string, private slaveId: IslaveId, private addresses: Set<ImodbusAddress>, private returnAction: (results: ImodbusValues) => void, private failedAction: (e: any) => void) {
         this.pid = ++ModbusStateMachine.maxPid;
+    }
+    private logNotice(msg: string) {
+        // suppress similar duplicate messages
+        let repeatMessage = (ModbusStateMachine.lastNoticeMessageTime != undefined &&
+            ModbusStateMachine.lastNoticeMessageTime + logNoticeMaxWaitTime < Date.now())
+        if (repeatMessage || msg != ModbusStateMachine.lastNoticeMessage) {
+            ModbusStateMachine.lastNoticeMessage = msg
+            ModbusStateMachine.lastNoticeMessageTime = Date.now()
+            log.log(LogLevelEnum.notice, msg);
+        }
     }
     async next(newState: ModbusStates, action: () => void, actionName?: string) {
         if (action.name != "")
@@ -195,7 +209,7 @@ export class ModbusStateMachine {
         }
     }
     retryConnectAction(_module: string, e: any) {
-        log.log(LogLevelEnum.notice, "Retry Connect: " + (e && e.message ? "module : " + e.message : "") + " " + (e && e.stack ? e.stack : ""));
+        this.logNotice("Retry Connect: " + (e && e.message ? "module : " + e.message : "") + " " + (e && e.stack ? e.stack : ""));
         if (this.retryConnectCount++ < maxRetries) {
             let bus = Bus.getBus(this.slaveId.busid);
             bus?.reconnectRTU(this.task).then(() => {
@@ -307,7 +321,7 @@ export class ModbusStateMachine {
             // increase timeout if timeout occured and current timeout < max timeout for bus
             // if (e.errno == "ETIMEDOUT" && slave && slave.modbusTimout && slave.evalTimeout) {
             //     if (slave.modbusTimout < maxTimeout) {
-            //         log.log(LogLevelEnum.notice, read.name + "(" + slave.slaveid + "," + readAddress + ")" + ": Modbus timeout: " + slave.modbusTimout + " retrying with new timeout " + slave.modbusTimout * 2 + "... ")
+            //         this.logNotice( read.name + "(" + slave.slaveid + "," + readAddress + ")" + ": Modbus timeout: " + slave.modbusTimout + " retrying with new timeout " + slave.modbusTimout * 2 + "... ")
             //         slave.modbusTimout = slave.modbusTimout * 2
             //         this.processReadFromModbus(startAddress, readAddress, bus, start, length, msg, read)
             //         return
@@ -315,11 +329,11 @@ export class ModbusStateMachine {
             //         // reset timeout, because it's longer than maximu
             //         let timeout = slave.durationOfLongestModbusCall * 2 > maxTimeout ? maxTimeout : slave.durationOfLongestModbusCall * 2
             //         slave.modbusTimout = timeout
-            //         log.log(LogLevelEnum.notice, "Reset timeout to " + "(" + slave.slaveid + "," + readAddress + ")" + timeout)
+            //         this.logNotice( "Reset timeout to " + "(" + slave.slaveid + "," + readAddress + ")" + timeout)
             //     }
             // }
             if (e.errno == "ETIMEDOUT" && this.timeoutCount++ < maxTimeouts) {
-                log.log(LogLevelEnum.notice, read.func.name + " TIMEOUT:" + (e.readDetails ? e.readDetails : "") + " retrying ... ")
+                this.logNotice(read.func.name + " TIMEOUT:" + (e.readDetails ? e.readDetails : "") + " retrying ... ")
                 this.processReadFromModbus(startAddress, readAddress, bus, start, length, msg, read)
                 return;
             }
@@ -450,7 +464,7 @@ export class ModbusStateMachine {
                 let readDetails = ""
                 if (e.readDetails)
                     readDetails = e.readDetails
-                log.log(LogLevelEnum.notice, module + readDetails + ": " + e.message);
+                this.logNotice(module + readDetails + ": " + e.message);
                 if (this.preparedAddressesIndex < this.preparedAddresses.length)
                     if (this.preparedAddresses[this.preparedAddressesIndex].length! > 1) {
                         this.splitAddresses(module, e)
