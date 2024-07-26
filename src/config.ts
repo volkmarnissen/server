@@ -493,77 +493,72 @@ export class Config {
                 var secretsFile = Config.yamlDir + "/local/secrets.yaml";
                 var src: string = fs.readFileSync(yamlFile, { encoding: 'utf8' });
                 if (fs.existsSync(secretsFile)) {
-                    var matches: RegExpMatchArray | null = null;
+                    var matches: IterableIterator<RegExpMatchArray>
                     var secrets = parse(fs.readFileSync(secretsFile, { encoding: 'utf8' }));
-                    do {
-                        matches = src.match(/("*!secret \S*"*)/);
-                        if (matches)
-                            for (let match of matches!) {
-                                let pt = match.split(" ");
-                                if (pt.length == 2) {
-                                    let pos = -1;
-                                    do {
-                                        pos = pt[1].indexOf('"');
-                                        if (pos >= 0)
-                                            pt[1] = pt[1].slice(0, pos);
-                                    } while (pos >= 0);
-                                    if (secrets[pt[1]] && -1 == secrets[pt[1]].indexOf("!secret "))
-                                        src = src.replace(match, '"' + secrets[pt[1]] + '"');
-                                    else {
-                                        if (!secrets[pt[1]]) {
-                                            debug("no entry in secrets file for " + pt[1]);
-                                            throw new Error("no entry in secrets file for " + pt[1]);
-                                        }
-                                        else {
-                                            debug("secrets file entry contains !secret for " + pt[1]);
-                                            throw new Error("secrets file entry contains !secret for " + pt[1]);
-                                        }
-                                    }
+                    let srcLines = src.split("\n")
+                    src = ""
+                    srcLines.forEach(line => {
+                        const r1 = /\"*!secret ([a-zA-Z0-9-_]*)\"*/g
+                        matches = line.matchAll(r1);
+                        let skipLine = false
+                        for (const match of matches) {
 
-                                }
+                            let key = match[1]
+                            if (secrets[key] && secrets[key].length) {
+                                line = line.replace(match[0], '"' + secrets[key] + '"');
                             }
-                    } while (matches);
-                }
-                Config.config = parse(src);
-                if (Config.yamlDir.length)
-                    Config.config.filelocation = Config.yamlDir;
-
-                this.getMqttConnectOptions().then((mqttLoginData) => {
-                    this.mqttLoginData = mqttLoginData;
-                }).catch((reason => {
-                    log.log(LogLevelEnum.error, "Unable to connect to mqtt " + reason)
-                }))
-            }
-            Config.busses = [];
-            let busDir = Config.yamlDir + "/local/busses"
-            let oneBusFound = false;
-            if (fs.existsSync(busDir)) {
-                let busDirs: fs.Dirent[] = fs.readdirSync(busDir, { withFileTypes: true });
-                busDirs.forEach(de => {
-                    if (de.isDirectory() && de.name.startsWith("bus.")) {
-                        let busid = Number.parseInt(de.name.substring(4))
-                        let busYaml = join(de.path, de.name, "bus.yaml");
-                        let connectionData: IModbusConnection;
-                        if (fs.existsSync(busYaml)) {
-                            var src: string = fs.readFileSync(busYaml, { encoding: 'utf8' });
-                            connectionData = parse(src);
-                            Config.busses.push({ busId: busid, connectionData: connectionData, slaves: [] })
-                            oneBusFound = true;
-                            let devFiles: string[] = fs.readdirSync(Config.yamlDir + "/local/busses/" + de.name);
-                            devFiles.forEach(function (file: string) {
-                                if (file.endsWith(".yaml") && file !== "bus.yaml") {
-                                    var src: string = fs.readFileSync(Config.yamlDir + "/local/busses/" + de.name + "/" + file, { encoding: 'utf8' });
-                                    var o: Islave = parse(src);
-                                    Config.busses[Config.busses.length - 1].slaves.push(o);
-                                }
-                            });
+                            else {
+                                skipLine = true
+                                if (!secrets[key])
+                                    debug("no entry in secrets file for " + key + " line will be ignored");
+                                else
+                                    debug("secrets file entry contains !secret for " + key + " line will be ignored");
+                            }
                         }
-                    }
-                })
+                        if (!skipLine)
+                            src = src.concat(line, "\n")
+                    })
+                    Config.config = parse(src);
+                    if (Config.yamlDir.length)
+                        Config.config.filelocation = Config.yamlDir;
+
+                    this.getMqttConnectOptions().then((mqttLoginData) => {
+                        this.mqttLoginData = mqttLoginData;
+                    }).catch((reason => {
+                        log.log(LogLevelEnum.error, "Unable to connect to mqtt " + reason)
+                    }))
+                }
+                Config.busses = [];
+                let busDir = Config.yamlDir + "/local/busses"
+                let oneBusFound = false;
+                if (fs.existsSync(busDir)) {
+                    let busDirs: fs.Dirent[] = fs.readdirSync(busDir, { withFileTypes: true });
+                    busDirs.forEach(de => {
+                        if (de.isDirectory() && de.name.startsWith("bus.")) {
+                            let busid = Number.parseInt(de.name.substring(4))
+                            let busYaml = join(de.path, de.name, "bus.yaml");
+                            let connectionData: IModbusConnection;
+                            if (fs.existsSync(busYaml)) {
+                                var src: string = fs.readFileSync(busYaml, { encoding: 'utf8' });
+                                connectionData = parse(src);
+                                Config.busses.push({ busId: busid, connectionData: connectionData, slaves: [] })
+                                oneBusFound = true;
+                                let devFiles: string[] = fs.readdirSync(Config.yamlDir + "/local/busses/" + de.name);
+                                devFiles.forEach(function (file: string) {
+                                    if (file.endsWith(".yaml") && file !== "bus.yaml") {
+                                        var src: string = fs.readFileSync(Config.yamlDir + "/local/busses/" + de.name + "/" + file, { encoding: 'utf8' });
+                                        var o: Islave = parse(src);
+                                        Config.busses[Config.busses.length - 1].slaves.push(o);
+                                    }
+                                });
+                            }
+                        }
+                    })
+                }
+                if (!oneBusFound)
+                    Config.addBusProperties({ serialport: "/dev/ttyACM0", timeout: BUS_TIMEOUT_DEFAULT, baudrate: 9600 });
+                debug("config: busses.length: " + Config.busses.length);
             }
-            if (!oneBusFound)
-                Config.addBusProperties({ serialport: "/dev/ttyACM0", timeout: BUS_TIMEOUT_DEFAULT, baudrate: 9600 });
-            debug("config: busses.length: " + Config.busses.length);
         }
         catch (error: any) {
             log.log(LogLevelEnum.error, "readyaml failed: " + error.message);

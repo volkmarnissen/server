@@ -1,6 +1,6 @@
-import { expect,it,test ,afterAll} from '@jest/globals';
+import { expect, it, test, afterAll } from '@jest/globals';
 import { Config, MqttValidationResult } from '../src/config';
-import {  getFileNameFromName } from '@modbus2mqtt/specification.shared';
+import { getFileNameFromName } from '@modbus2mqtt/specification.shared';
 import * as fs from 'fs';
 import { yamlDir } from './testHelpers/configsbase';
 import * as http from 'node:http'
@@ -23,21 +23,20 @@ test('register/login/validate', (done) => {
     config.readYaml();
     let cfg = Config.getConfiguration()
     Config.tokenExpiryTime = 2000
+    expect((cfg as any).noentry).toBeUndefined()
     new Config().writeConfiguration(cfg)
     Config.register("test", "test123").then(() => {
         Config.login("test", "test123").then(token => {
             expect(Config.validateUserToken(token)).toBe(MqttValidationResult.OK)
             setTimeout(() => {
                 expect(Config.validateUserToken(token)).toBe(MqttValidationResult.tokenExpired)
-                done();
-                loginExecuted = true;
+                Config.login("test", "test124").catch(reason => {
+                    expect(reason).toBe(AuthenticationErrors.InvalidUserPasswordCombination)
+                        done();
+                })
+    
             }, Config.tokenExpiryTime);
-
-        })
-        Config.login("test", "test124").catch(reason => {
-            expect(reason).toBe(AuthenticationErrors.InvalidUserPasswordCombination)
-            if (loginExecuted)
-                done();
+    
         })
     })
 });
@@ -90,8 +89,8 @@ function mockedMqtt(_param: any): Promise<any> {
             reject(mockedReason)
     })
 }
-function mockedHttp(_options:http.RequestOptions,cb:(res: http.IncomingMessage) => void) {
-    (cb as ()=>{})();
+function mockedHttp(_options: http.RequestOptions, cb: (res: http.IncomingMessage) => void) {
+    (cb as () => {})();
 }
 it('getMqttConnectOptions: read connection from hassio', (done) => {
     let cfg = new Config()
@@ -99,7 +98,7 @@ it('getMqttConnectOptions: read connection from hassio', (done) => {
     let origReadMqttGet = Config.prototype.readGetResponse
     let originalHttpRequest = http.request
     Config.prototype.readGetResponse = mockedMqtt
-    cfg['getRequest']=mockedHttp
+    cfg['getRequest'] = mockedHttp
     cfg.readYaml();
     cfg.getMqttConnectOptions().then((_mqttData) => {
 
@@ -113,7 +112,7 @@ it('getMqttConnectOptions: read connection from hassio', (done) => {
             // Restore class
             process.env.HASSIO_TOKEN = "";
             Config.prototype.readGetResponse = origReadMqttGet
-            cfg['getRequest']= originalHttpRequest
+            cfg['getRequest'] = originalHttpRequest
             done()
         })
 
