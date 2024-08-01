@@ -13,7 +13,6 @@ import path from 'path';
 import { startModbusTCPserver } from './runModbusTCPserver';
 import { SpecificationStatus } from '@modbus2mqtt/specification.shared';
 import { join } from 'path';
-import { LOADIPHLPAPI } from 'dns';
 
 const debug = Debug("modbus2mqtt");
 const debugAction = Debug('actions')
@@ -65,42 +64,42 @@ export class Modbus2Mqtt {
         if (options['busid'])
             startModbusTCPserver(Config.yamlDir, parseInt(options['busid']))
         readConfig = new Config();
-        readConfig.readYaml();
-        ConfigSpecification.setMqttdiscoverylanguage(Config.getConfiguration().mqttdiscoverylanguage, Config.getConfiguration().githubPersonalToken)
-        debug(Config.getConfiguration().mqttconnect.mqttserverurl);
-        let angulardir = require.resolve("@modbus2mqtt/angular")
-        log.log(LogLevelEnum.notice, "module dir: " + angulardir)
-        let angulardirLang = path.parse(angulardir).dir
-        angulardir = path.parse(angulardirLang).dir
-        log.log(LogLevelEnum.notice, "http root : " + angulardir)
-        let gh = new M2mGitHub(Config.getConfiguration().githubPersonalToken ? Config.getConfiguration().githubPersonalToken! : null, join(ConfigSpecification.yamlDir, "public"))
+        readConfig.readYamlAsync.bind(readConfig)().then(() => {
+            ConfigSpecification.setMqttdiscoverylanguage(Config.getConfiguration().mqttdiscoverylanguage, Config.getConfiguration().githubPersonalToken)
+            debug(Config.getConfiguration().mqttconnect.mqttserverurl);
+            let angulardir = require.resolve("@modbus2mqtt/angular")
+            log.log(LogLevelEnum.notice, "module dir: " + angulardir)
+            let angulardirLang = path.parse(angulardir).dir
+            angulardir = path.parse(angulardirLang).dir
+            log.log(LogLevelEnum.notice, "http root : " + angulardir)
+            let gh = new M2mGitHub(Config.getConfiguration().githubPersonalToken ? Config.getConfiguration().githubPersonalToken! : null, join(ConfigSpecification.yamlDir, "public"))
 
-        let httpServer = new HttpServer(angulardir);
-        debugAction("readBussesFromConfig starts")
-        gh.init().then(() => {
-            this.pollTasks()
-            debugAction("readBussesFromConfig done")
-            debug("Inititialize busses done")
-            //execute every 30 minutes
-            setInterval(() => {
+            let httpServer = new HttpServer(angulardir, readConfig);
+            debugAction("readBussesFromConfig starts")
+            gh.init().then(() => {
                 this.pollTasks()
-            }, 30 * 1000 * 60)
-        }).catch((e) => {
-            log.log(LogLevelEnum.error, "Start polling Contributions: " + e.message)
-        })
-        httpServer.init();
-        httpServer.app.listen(Config.getConfiguration().httpport, () => {
-            log.log(LogLevelEnum.notice, `modbus2mqtt listening on  ${os.hostname()}: ${Config.getConfiguration().httpport}`)
-            let config = Config.getConfiguration()
-            new ConfigSpecification().deleteNewSpecificationFiles()
-            Bus.getAllAvailableModusData()
-            if (process.env.MODBUS_NOPOLL == undefined) {
-                let md = new MqttDiscover(config.mqttconnect, config.mqttdiscoverylanguage)
-                md.startPolling((error: any) => {
-                    log.log(LogLevelEnum.error, error.message)
-                })
+                debugAction("readBussesFromConfig done")
+                debug("Inititialize busses done")
+                //execute every 30 minutes
+                setInterval(() => {
+                    this.pollTasks()
+                }, 30 * 1000 * 60)
+            }).catch((e) => {
+                log.log(LogLevelEnum.error, "Start polling Contributions: " + e.message)
+            })
+            httpServer.init();
+            httpServer.app.listen(Config.getConfiguration().httpport, () => {
+                log.log(LogLevelEnum.notice, `modbus2mqtt listening on  ${os.hostname()}: ${Config.getConfiguration().httpport}`)
+                new ConfigSpecification().deleteNewSpecificationFiles()
+                Bus.getAllAvailableModusData()
+                if (process.env.MODBUS_NOPOLL == undefined) {
+                    let md = Config.getMqttDiscover()
+                    md.startPolling((error: any) => {
+                        log.log(LogLevelEnum.error, error.message)
+                    })
 
-            }
+                }
+            });
         });
     }
 }

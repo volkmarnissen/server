@@ -1,6 +1,7 @@
 import Debug from "debug"
 import * as http from 'http'
 import serveStatic from 'serve-static';
+import fetch from 'node-fetch';
 import { NextFunction, Request } from "express";
 import * as express from 'express';
 import * as bodyparser from 'body-parser';
@@ -21,7 +22,7 @@ import { LogLevelEnum, Logger } from '@modbus2mqtt/specification';
 
 import { TranslationServiceClient } from '@google-cloud/translate'
 import { M2mSpecification as M2mSpecification } from '@modbus2mqtt/specification';
-import { IUserAuthenticationStatus, IBus, Islave, apiUri, RoutingNames } from '@modbus2mqtt/server.shared';
+import { IUserAuthenticationStatus, IBus, Islave, apiUri, RoutingNames, ImqttClient } from '@modbus2mqtt/server.shared';
 import { ConfigSpecification } from '@modbus2mqtt/specification';
 const debug = Debug("httpserver");
 const debugUrl = Debug("httpserverUrl");
@@ -53,7 +54,7 @@ export class HttpServer {
     config: Config
     private statics = new Map<string, string>()
     languages = ["en"]
-    constructor(private angulardir: string = ".", private configObj: Config = new Config()) {
+    constructor(private angulardir: string = ".", private configObj: Config) {
         this.app = require('express')();
     }
     static returnResult(req: Request, res: http.ServerResponse, code: HttpErrorsEnum, message: string, object: any = undefined) {
@@ -102,7 +103,8 @@ export class HttpServer {
         // All api callsand a user registration when a user is already registered needs authorization
         if (req.url.indexOf("/api/") >= 0 || (req.url.indexOf("/user/register") >= 0 && pwd && pwd.length)) {
             let authHeader = req.header("Authorization")
-            let config = Config.getConfiguration()
+            let config =
+                Config.getConfiguration()
             if (authHeader) {
                 switch (HttpServer.validateUserToken(authHeader)) {
                     case MqttValidationResult.OK:
@@ -121,7 +123,13 @@ export class HttpServer {
 
             if (config.hassiotoken) {
                 log.log(LogLevelEnum.notice, "Supervisor: validate hassio token")
-                this.configObj.validateHassioToken(config.hassiotoken, next, () => { HttpServer.returnResult(req, res, HttpErrorsEnum.ErrForbidden, "") })
+                this.configObj.executeHassioGetRequest("http://supervisor/hardware/info", () => {
+                    log.log(LogLevelEnum.notice, "Supervisor: validate hassio token OK")
+                    next()
+                }, (e) => {
+                    log.log(LogLevelEnum.error, "Supervisor: validate hassio token Failed")
+                    HttpServer.returnResult(req, res, HttpErrorsEnum.ErrForbidden, JSON.stringify(e))
+                })
                 return;
             }
             else {
@@ -150,6 +158,7 @@ export class HttpServer {
             lang = "en"
         return this.statics.get(lang)!
     }
+
     init() {
         //this.app.use(cors);
         this.app.use(bodyparser.json());
@@ -167,7 +176,7 @@ export class HttpServer {
         this.app.use(express.static(this.angulardir));
 
         // angular files have full path including language e.G. /en-US/polyfill.js
-        this.app.use(this.authenticate)
+        this.app.use(this.authenticate.bind(this))
         //@ts-ignore
         this.app.use(function (undefined: any, res: http.ServerResponse, next: any) {
             //            res.setHeader('charset', 'utf-8')
@@ -189,7 +198,7 @@ export class HttpServer {
             let config = Config.getConfiguration()
             let authHeader = req.header("Authorization")
             let a: IUserAuthenticationStatus = {
-                registered: (config.username != undefined && config.password != undefined),
+                registered: config.mqttusehassiotoken || (config.username != undefined && config.password != undefined),
                 hassiotoken: (config.mqttusehassiotoken ? config.mqttusehassiotoken : false),
                 hasAuthToken: (authHeader ? true : false),
                 authTokenExpired: (authHeader != undefined && HttpServer.validateUserToken(authHeader) == MqttValidationResult.tokenExpired),
@@ -197,11 +206,7 @@ export class HttpServer {
                 preSelectedBusId: (Bus.getBusses().length == 1 ? Bus.getBusses()[0].getId() : undefined)
             }
             if (a.registered && (a.hassiotoken || a.hasAuthToken))
-                a.mqttConfigured = (
-                    config.mqttconnect != undefined &&
-                    config.mqttconnect.mqttserverurl != undefined &&
-                    config.mqttconnect.username != undefined &&
-                    config.mqttconnect.password != undefined)
+                a.mqttConfigured = Config.isMqttConfigured(config.mqttconnect)
 
             HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(a))
             return;
@@ -363,8 +368,14 @@ export class HttpServer {
 
         this.get(apiUri.configuration, (req: Request, res: http.ServerResponse) => {
             debug("configuration");
-            let config = Config.getConfiguration();
-            HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(config));
+            try {
+                let config = Config.getConfiguration();
+                HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(config));
+
+            } catch (e) {
+                log.log(LogLevelEnum.error, "Error getConfiguration: " + JSON.stringify(e))
+                HttpServer.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, JSON.stringify(e));
+            }
         });
         this.get(apiUri.modbusSpecification, (req: GetRequestWithParameter, res: http.ServerResponse) => {
             debug(req.url);
@@ -439,7 +450,7 @@ export class HttpServer {
                     this.validateMqttConnectionResult(req, res, false, "No parameters configured")
                     return
                 }
-                let mqttdiscover = new MqttDiscover(config.mqttconnect);
+                let mqttdiscover = Config.getMqttDiscover();
                 mqttdiscover.validateConnection((valid, message) => {
                     this.validateMqttConnectionResult(req, res, valid, message)
                 })

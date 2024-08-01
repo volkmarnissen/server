@@ -7,6 +7,7 @@ import { ImodbusAddress, ModbusCache } from "./modbuscache";
 import { ConverterMap, IReadRegisterResultOrError, ImodbusValues, M2mSpecification, emptyModbusValues } from '@modbus2mqtt/specification';
 import { Config } from "./config";
 import { Modbus } from "./modbus";
+import * as fs from 'fs'
 import { submitGetHoldingRegisterRequest } from "./submitRequestMock";
 import { IfileSpecification } from '@modbus2mqtt/specification';
 import { LogLevelEnum, Logger } from '@modbus2mqtt/specification';
@@ -65,19 +66,48 @@ export class Bus {
         }
         return b;
     }
+    private connectionChanged(connection: IModbusConnection): boolean {
+        let rtu = (this.properties.connectionData as IRTUConnection)
+        if (rtu.serialport) {
+            let connectionRtu = (connection as IRTUConnection)
+            if (!connectionRtu.serialport || connectionRtu.serialport !== rtu.serialport)
+                return true
+            if (!connectionRtu.baudrate || connectionRtu.baudrate !== rtu.baudrate)
+                return true
+            if (!connectionRtu.timeout || connectionRtu.timeout !== rtu.timeout)
+                return true
+            return false;
+        }
+        else {
+            let tcp = (this.properties.connectionData as ITCPConnection)
+            let connectionTcp = (connection as ITCPConnection)
+            if (!connectionTcp.host || connectionTcp.host !== tcp.host)
+                return true
+            if (!connectionTcp.port || connectionTcp.port !== tcp.port)
+                return true
+            if (!connectionTcp.timeout || connectionTcp.timeout !== tcp.timeout)
+                return true
+            return false;
+        }
+    }
+
     updateBus(connection: IModbusConnection): Bus {
         debug("updateBus()")
-        let busP = Config.updateBusProperties(this.properties, connection)
-        let b = Bus.getBusses().find(b => b.getId() == busP.busId)
-        if (b) {
-            b.properties = busP
-            // Change of bus properties can influence the modbus data
-            // E.g. set of lower timeout can lead to error messages
-            b.slaves.clear()
+        if (this.connectionChanged(connection)) {
+            let busP = Config.updateBusProperties(this.properties, connection)
+            let b = Bus.getBusses().find(b => b.getId() == busP.busId)
+            if (b) {
+                b.properties = busP
+                // Change of bus properties can influence the modbus data
+                // E.g. set of lower timeout can lead to error messages
+                b.slaves.clear()
+                Bus.getAllAvailableModusData()
+            }
+            else
+                throw new Error("Bus does not exist")
+            return b;
         }
-        else
-            throw new Error("Bus does not exist")
-        return b;
+        return this;
     }
     static deleteBus(busid: number) {
         let idx = Bus.getBusses().findIndex(b => b.properties.busId == busid);
@@ -103,6 +133,8 @@ export class Bus {
             bus.properties.slaves.forEach(slave => {
                 bus.getAvailableSpecs(slave.slaveid, true).then(() => {
                     debug("Specs for " + bus.getId() + "/" + slave.slaveid + " cached")
+                }).catch((e) => {
+                    log.log(LogLevelEnum.error, "getAllAvailableModusData failed: " + e.message)
                 })
             })
         })
@@ -533,6 +565,12 @@ export class Bus {
             }
             // no result in cache, read from modbus
             // will be called once (per slave)
+            let usbPort = (this.properties.connectionData as IRTUConnection).serialport
+            if (usbPort && !fs.existsSync(usbPort)) {
+                reject(new Error("RTU is configured, but device is not available"))
+                return
+            }
+
             this.readModbusRegister("getAvailableSpecs", slaveid, addresses).then(values => {
                 // Add not available addresses to the values
                 let noData = { error: new Error("No data available") }

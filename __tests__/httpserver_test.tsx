@@ -10,18 +10,29 @@ import { submitGetHoldingRegisterRequest } from '../src/submitRequestMock';
 import { Bus } from '../src/bus';
 import { VERSION } from 'ts-node';
 import * as http from 'node:http'
-import { apiUri, IBus, IRTUConnection, IModbusConnection, IidentificationSpecification } from '@modbus2mqtt/server.shared';
+import { apiUri, IBus, IRTUConnection, IModbusConnection, IidentificationSpecification, IUserAuthenticationStatus } from '@modbus2mqtt/server.shared';
 import { IReadRegisterResultOrError, IfileSpecification, ImodbusValues } from '@modbus2mqtt/specification';
 import { ConfigSpecification } from '@modbus2mqtt/specification';
 import { Mutex } from 'async-mutex';
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU';
 import { join } from 'path';
 
+class TestConfig extends Config {
+    mockReject = false
+    override executeHassioGetRequest<T>(_url: string, next: (_dev: T) => void, reject: (error: any) => void): void {
+        if (this.mockReject)
+            reject("Failed")
+        else
+            next({ data: "noMatter" } as T)
+
+    }
+}
+
 const yamlDir = "__tests__/yaml-dir";
 ConfigSpecification.yamlDir = yamlDir;
 new ConfigSpecification().readYaml();
 Config.sslDir = yamlDir;
-let configObj = new Config()
+let configObj = new TestConfig()
 let mWaterlevel = new Mutex()
 let testdir = yamlDir + '/local/specifications/files/waterleveltransmitter/';
 let testPdf = 'test.pdf'
@@ -174,16 +185,18 @@ it("supervisor login", (done) => {
     }
     configObj.readYaml();
     process.env.HASSIO_TOKEN = "test"
-    let originalReadGetResponse = Config.prototype.readGetResponse;
-    Config.prototype.readGetResponse = mockedAuthorization
+    supertest(httpServer.app).
+        get(apiUri.userAuthenticationStatus).
+        expect(200).
+        then(response => {
+            let status = response.body as any as IUserAuthenticationStatus
+            expect(status.mqttConfigured).toBeTruthy()
+            expect(status.hasAuthToken).toBeFalsy()
+            done();
+        }).catch((e) => {
+            throw new Error('Exception caught ' + e)
+        })
 
-    let originalHttpRequest = http.request
-    configObj['getRequest'] = mockedHttp
-    oldAuthenticate.bind(httpServer)(req, res, () => {
-        Config.prototype.readGetResponse = originalReadGetResponse
-        configObj['getRequest'] = originalHttpRequest
-        done()
-    })
 })
 
 it("GET /" + apiUri.specifications, done => {
