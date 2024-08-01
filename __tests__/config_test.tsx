@@ -3,8 +3,7 @@ import { Config, MqttValidationResult } from '../src/config';
 import { getFileNameFromName } from '@modbus2mqtt/specification.shared';
 import * as fs from 'fs';
 import { yamlDir } from './testHelpers/configsbase';
-import * as http from 'node:http'
-import { AuthenticationErrors } from '@modbus2mqtt/server.shared';
+import { ImqttClient, AuthenticationErrors } from '@modbus2mqtt/server.shared';
 
 
 Config['yamlDir'] = yamlDir;
@@ -32,11 +31,11 @@ test('register/login/validate', (done) => {
                 expect(Config.validateUserToken(token)).toBe(MqttValidationResult.tokenExpired)
                 Config.login("test", "test124").catch(reason => {
                     expect(reason).toBe(AuthenticationErrors.InvalidUserPasswordCombination)
-                        done();
+                    done();
                 })
-    
+
             }, Config.tokenExpiryTime);
-    
+
         })
     })
 });
@@ -89,30 +88,33 @@ function mockedMqtt(_param: any): Promise<any> {
             reject(mockedReason)
     })
 }
-function mockedHttp(_options: http.RequestOptions, cb: (res: http.IncomingMessage) => void) {
-    (cb as () => {})();
+
+class TestConfig extends Config {
+    mockReject = false
+    override executeHassioGetRequest<T>(_url: string, next: (_dev: T) => void, reject: (error: any) => void): void {
+        if (this.mockReject)
+            reject(mockedReason)
+        else
+            next({ data: mqttService } as T)
+
+    }
 }
+
 it('getMqttConnectOptions: read connection from hassio', (done) => {
-    let cfg = new Config()
+    let cfg = new TestConfig()
     process.env.HASSIO_TOKEN = "test"
-    let origReadMqttGet = Config.prototype.readGetResponse
-    let originalHttpRequest = http.request
-    Config.prototype.readGetResponse = mockedMqtt
-    cfg['getRequest'] = mockedHttp
     cfg.readYaml();
     cfg.getMqttConnectOptions().then((_mqttData) => {
 
         expect(_mqttData.host).toBe(mqttService.host)
         expect(_mqttData.username).toBe(mqttService.username)
         expect(_mqttData.host).toBe(mqttService.host)
-        mockedMqttResolve = false
+        cfg.mockReject = true
         cfg.getMqttConnectOptions().catch((reason) => {
 
             expect(reason).toBe(mockedReason)
             // Restore class
             process.env.HASSIO_TOKEN = "";
-            Config.prototype.readGetResponse = origReadMqttGet
-            cfg['getRequest'] = originalHttpRequest
             done()
         })
 
