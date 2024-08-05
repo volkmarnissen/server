@@ -91,7 +91,7 @@
       "request": "launch",
       "program": "${workspaceFolder}/node_modules/.bin/jest",
       "env": {
-        "DEBUG": "m2mgithub",
+        "DEBUG": "bus.mutex",
         "NODE_OPTIONS": "--experimental-vm-modules npx jest"
       },
       "args": [
