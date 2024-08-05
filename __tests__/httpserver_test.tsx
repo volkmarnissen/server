@@ -308,7 +308,7 @@ test("GET /busses", (done) => {
       let busses: IBus[] = response.body;
       expect(busses.length).toBeGreaterThan(0);
       expect(
-        (busses[0].connectionData as ITCPConnection).host.length,
+        (busses[0].connectionData as IRTUConnection).serialport.length,
       ).toBeGreaterThan(0);
       done();
     })
