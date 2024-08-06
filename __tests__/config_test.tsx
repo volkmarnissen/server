@@ -2,12 +2,14 @@ import { expect, it, test, afterAll } from "@jest/globals";
 import { Config, MqttValidationResult } from "../src/config";
 import { getFileNameFromName } from "@modbus2mqtt/specification.shared";
 import * as fs from "fs";
-import { yamlDir } from "./testHelpers/configsbase";
+import { yamlDir } from "./configsbase";
 import { ImqttClient, AuthenticationErrors } from "@modbus2mqtt/server.shared";
+import Debug from "debug";
+
 
 Config["yamlDir"] = yamlDir;
 Config.sslDir = yamlDir;
-
+let debug = Debug("config_test")
 afterAll(() => {
   let cfg = Config.getConfiguration();
   new Config().writeConfiguration(cfg);
@@ -42,7 +44,7 @@ test("register/login/validate", (done) => {
 it("getFileNameFromName remove non ascii characters", () => {
   const name = "/\\*& asdf+-_.";
   let fn = getFileNameFromName(name);
-  console.log(fn);
+  debug(fn);
   expect(fn).toBe("asdf+-_.");
 });
 

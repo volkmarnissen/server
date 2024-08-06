@@ -2,7 +2,7 @@ import { Config } from '../src/config';
 import { ImodbusAddress, ModbusCache, ModbusStates, exportedForTesting } from '../src/modbuscache';
 import ModbusRTU from 'modbus-serial';
 const { ModbusStateMachine } = exportedForTesting;
-import { yamlDir } from './testHelpers/configsbase';
+import { yamlDir } from './configsbase';
 import { Mutex } from 'async-mutex';
 import { getReadRegisterResult } from '../src/submitRequestMock';
 import Debug from "debug"

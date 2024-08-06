@@ -2,18 +2,18 @@ import Debug from "debug";
 import { expect, it, describe, beforeAll,jest } from "@jest/globals";
 import { Config } from "../src/config";
 import { Bus } from "../src/bus";
-import { yamlDir } from "./testHelpers/configsbase";
+import { yamlDir } from "./configsbase";
 import { ModbusServer, XYslaveid } from "./../src/modbusTCPserver";
 import { ReadRegisterResult } from "modbus-serial/ModbusRTU";
 import { IdentifiedStates } from "@modbus2mqtt/specification.shared";
 import {
   ConfigSpecification,
   IReadRegisterResultOrError,
+  LogLevelEnum,
 } from "@modbus2mqtt/specification";
-import { singleMutex } from "@modbus2mqtt/specification/__tests__/configsbase";
+import { singleMutex } from "./configsbase";
 
 const debug = Debug("bustest");
-Debug.enable("bustest modbusserver");
 const testPort = 8888;
 Config["yamlDir"] = yamlDir;
 ConfigSpecification.yamlDir = yamlDir;
@@ -137,7 +137,6 @@ function testWrite(
                     });
                 })
                 .catch((e) => {
-                  console.error(e);
                   bus!.closeRTU("test", () => {
                     tcpServer.stopServer(resolve);
                   });
@@ -150,7 +149,7 @@ function testWrite(
 it("Bus getSpecsForDevice", (done) => {
   prepareIdentification();
   Config["config"].fakeModbus = true;
-  if (Config.getConfiguration().fakeModbus) console.log("Fakemodbus");
+  if (Config.getConfiguration().fakeModbus) debug( LogLevelEnum.notice, "Fakemodbus");
   Bus.getBus(0)!
     .getAvailableSpecs(1, false)
     .then((ispec) => {
@@ -185,7 +184,7 @@ function prepareIdentification() {
 it("Modbus getSpecsForDevice with specific slaveId no results 0-3", (done) => {
   prepareIdentification();
   Config["config"].fakeModbus = true;
-  if (Config.getConfiguration().fakeModbus) console.log("Fakemodbus");
+  if (Config.getConfiguration().fakeModbus) debug("Fakemodbus");
   Bus.getBus(0)!
     .getAvailableSpecs(1, false)
     .then((ispec) => {
