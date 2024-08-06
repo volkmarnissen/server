@@ -44,6 +44,8 @@ import {
   IReadRegisterResultOrError,
   IfileSpecification,
   ImodbusValues,
+  LogLevelEnum,
+  Logger,
 } from "@modbus2mqtt/specification";
 import { ConfigSpecification } from "@modbus2mqtt/specification";
 import { Mutex } from "async-mutex";
@@ -61,7 +63,7 @@ class TestConfig extends Config {
     else next({ data: "noMatter" } as T);
   }
 }
-
+let log = new Logger("httpserverTest")
 const yamlDir = "__tests__/yaml-dir";
 ConfigSpecification.yamlDir = yamlDir;
 new ConfigSpecification().readYaml();
@@ -254,7 +256,6 @@ it("GET /" + apiUri.specifications, (done) => {
     .get(apiUri.specifications)
     .expect(200)
     .then((response) => {
-      console.log(JSON.stringify(response.body));
       expect(response.body.length).toBeGreaterThan(0);
       expect(response.body[0]).toHaveProperty("filename");
       done();
@@ -398,9 +399,10 @@ describe("http POST", () => {
         .send(spec1)
         .expect(HttpErrorsEnum.ErrBadRequest)
         .catch((e) => {
-          console.log(e);
+          log.log(LogLevelEnum.error, JSON.stringify(e));
+          expect(1).toBeFalsy()
         })
-        .then((response) => {
+        .then((_response) => {
           // expect((response as any as Response).status).toBe(HttpErrorsEnum.ErrBadRequest)
           let testdata: ImodbusValues = {
             holdingRegisters: new Map<number, IReadRegisterResultOrError>(),
@@ -433,9 +435,8 @@ describe("http POST", () => {
               done();
             })
             .catch((_e) => {
-              console.log(_e);
+              log.log(LogLevelEnum.error ,_e);
             });
-          console.log("in then");
         })
         .finally(() => {
           fs.copyFileSync(lspec + "waterleveltransmitter.bck", filename);

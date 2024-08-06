@@ -18,7 +18,7 @@ import {
   getReadRegisterResult,
   submitGetHoldingRegisterRequest,
 } from "../src/submitRequestMock";
-import { yamlDir } from "./testHelpers/configsbase";
+import { yamlDir } from "./configsbase";
 import { Islave } from "@modbus2mqtt/server.shared";
 import {
   ConfigSpecification,
@@ -34,10 +34,11 @@ import {
   jest,
   beforeAll,
 } from "@jest/globals";
-
+import Debug from 'debug'
 Config["yamlDir"] = yamlDir;
 Config.sslDir = yamlDir;
 ConfigSpecification.yamlDir = yamlDir;
+let debug = Debug("modbus_test")
 
 beforeAll(() => {
   jest.mock("../src/modbus");
@@ -227,7 +228,7 @@ describe("Modbus read", () => {
         done();
       })
       .catch((err) => {
-        console.log(JSON.stringify(err));
+        debug(JSON.stringify(err));
       }); // unidenfified
   });
 
@@ -352,7 +353,7 @@ xit("Modbus modbusDataToSpec spec.identified = identified", () => {
   Config["config"].fakeModbus = false;
   let m = new ModbusForTest();
   let result = m.modbusDataToSpecForTest(spec);
-  console.debug(JSON.stringify(result));
+  debug(JSON.stringify(result));
   expect(result).toBeDefined();
   expect(result!.identified).toBe(IdentifiedStates.identified);
   Config["config"].fakeModbus = true;
@@ -364,7 +365,7 @@ function writeRegisters(
   registerType: ModbusRegisterType,
 ): Promise<void> {
   return new Promise<void>((resolve, reject) => {
-    console.log("write Registers");
+    debug("write Registers");
     resolve();
   });
 }

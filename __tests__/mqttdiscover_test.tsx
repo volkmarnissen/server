@@ -16,12 +16,12 @@ import {
   MqttClient,
 } from "mqtt";
 import { submitGetHoldingRegisterRequest } from "../src/submitRequestMock";
-import { yamlDir } from "./testHelpers/configsbase";
+import { yamlDir } from "./configsbase";
 import { Bus } from "../src/bus";
-import { debug } from "console";
+import  Debug  from "debug";
 import { ConfigSpecification, Logger } from "@modbus2mqtt/specification";
 import { expect, test, afterAll, beforeAll, jest, xtest } from "@jest/globals";
-
+const debug = Debug("mqttdiscover_test")
 enum FakeModes {
   Poll,
   Poll2,
