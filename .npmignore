@@ -10,6 +10,7 @@ local/
 **/.DS_Store
 **/secrets.*
 .jest/
+.github/
 .vscode/*
 **/*-yaml/**
 testHelpers/** 
