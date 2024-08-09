@@ -18,5 +18,4 @@ RUN echo '{}' >package.json && \
     apk add  --update --no-cache g++ make build-base linux-headers udev py3-pip  && \
     npm rebuild @serialport/bindings-cpp --build-from-source; \
     fi
-# COPY rootfs /
 CMD ["npx", "modbus2mqtt", "--ssl", "/ssl", "--yaml", "/data"]
