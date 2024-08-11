@@ -66,7 +66,7 @@ it("writeConfiguration change password ", () => {
   expect(secretsStr).toContain(oldpassword);
 });
 
-const mqttService = {
+export const mqttService = {
   host: "core-mosquitto",
   port: 1883,
   ssl: false,
@@ -84,32 +84,34 @@ function mockedMqtt(_param: any): Promise<any> {
   });
 }
 
-class TestConfig extends Config {
-  mockReject = false;
-  override executeHassioGetRequest<T>(
+  let mockReject = false;
+  function executeHassioGetRequest<T>(
     _url: string,
     next: (_dev: T) => void,
     reject: (error: any) => void,
   ): void {
-    if (this.mockReject) reject(mockedReason);
+    if (mockReject) reject(mockedReason);
     else next({ data: mqttService } as T);
   }
-}
 
 it("getMqttConnectOptions: read connection from hassio", (done) => {
-  let cfg = new TestConfig();
+  let oldExecute = Config['executeHassioGetRequest']
+  Config['executeHassioGetRequest'] = executeHassioGetRequest
   process.env.HASSIO_TOKEN = "test";
+  let cfg = new Config()
   cfg.readYaml();
   Config["config"].mqttusehassio = true;
   cfg.getMqttConnectOptions().then((_mqttData) => {
     expect(_mqttData.host).toBe(mqttService.host);
     expect(_mqttData.username).toBe(mqttService.username);
     expect(_mqttData.host).toBe(mqttService.host);
-    cfg.mockReject = true;
+    mockReject = true;
     cfg.getMqttConnectOptions().catch((reason) => {
       expect(reason).toBe(mockedReason);
       // Restore class
       process.env.HASSIO_TOKEN = "";
+      Config['executeHassioGetRequest'] = oldExecute
+
       done();
     });
   });

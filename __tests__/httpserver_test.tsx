@@ -51,24 +51,31 @@ import { ConfigSpecification } from "@modbus2mqtt/specification";
 import { Mutex } from "async-mutex";
 import { ReadRegisterResult } from "modbus-serial/ModbusRTU";
 import { join } from "path";
-
-class TestConfig extends Config {
-  mockReject = false;
-  override executeHassioGetRequest<T>(
-    _url: string,
-    next: (_dev: T) => void,
-    reject: (error: any) => void,
-  ): void {
-    if (this.mockReject) reject("Failed");
-    else next({ data: "noMatter" } as T);
-  }
+let mockReject = false;
+const mqttService = {
+  host: "core-mosquitto",
+  port: 1883,
+  ssl: false,
+  protocol: "3.1.1",
+  username: "addons",
+  password: "Euso6ahphaiWei9Aeli6Tei0si2paep5agethohboophe7vae9uc0iebeezohg8e",
+  addon: "core_mosquitto",
+};
+function executeHassioGetRequest<T>(
+  _url: string,
+  next: (_dev: T) => void,
+  reject: (error: any) => void,
+): void {
+  if (mockReject) reject("mockedReason");
+  else next({ data: mqttService }  as T);
 }
+
 let log = new Logger("httpserverTest");
 const yamlDir = "__tests__/yaml-dir";
 ConfigSpecification.yamlDir = yamlDir;
 new ConfigSpecification().readYaml();
 Config.sslDir = yamlDir;
-let configObj = new TestConfig();
+Config['executeHassioGetRequest'] = executeHassioGetRequest
 let mWaterlevel = new Mutex();
 let testdir = yamlDir + "/local/specifications/files/waterleveltransmitter/";
 let testPdf = "test.pdf";
@@ -131,7 +138,8 @@ const oldAuthenticate: (req: any, res: any, next: () => void) => void =
   HttpServer.prototype.authenticate;
 beforeAll(() => {
   Config["yamlDir"] = yamlDir;
-  configObj.readYaml();
+  let cfg = new Config()
+  cfg.readYaml();
   (Config as any)["fakeModbusCache"] = true;
   jest.mock("../src/modbus");
   ModbusCache.prototype.submitGetHoldingRegisterRequest =
@@ -139,7 +147,7 @@ beforeAll(() => {
   HttpServer.prototype.authenticate = (req, res, next) => {
     next();
   };
-  httpServer = new HttpServer(join(yamlDir, "angular"), configObj);
+  httpServer = new HttpServer(join(yamlDir, "angular"));
   httpServer.init();
   httpServer.setModbusCacheAvailable();
 });
@@ -169,6 +177,16 @@ it("GET /specsForSlave", (done) => {
       done();
     });
 });
+it("GET / (root)", (done) => {
+  supertest(httpServer.app)
+    .get("/")
+    .expect(200)
+    .then((response) => {
+      expect(response.text.indexOf('base href="/en-US/"')).toBeGreaterThanOrEqual(0)
+      done();
+    });
+});
+
 it("GET angular files", (done) => {
   supertest(httpServer.app)
     .get("/en-US/test.css")
@@ -189,6 +207,9 @@ it("GET local files", (done) => {
       expect(response.text.startsWith("- url:")).toBeTruthy();
       expect(response.type).toBe("text/yaml");
       done();
+    }).catch((e) => {
+      expect(1).toBeFalsy()
+      done()
     });
 });
 
@@ -235,7 +256,7 @@ it("supervisor login", (done) => {
       return undefined;
     },
   };
-  configObj.readYaml();
+  new Config().readYaml();
   process.env.HASSIO_TOKEN = "test";
   supertest(httpServer.app)
     .get(apiUri.userAuthenticationStatus)
@@ -350,7 +371,7 @@ xtest("POST /mqtt/validate", (done) => {
   let oldConfig = Config.getConfiguration();
   let config = Config.getConfiguration();
   config.mqttconnect.mqttserverurl = "mqtt://doesnt_exist:1007";
-  configObj.writeConfiguration(config);
+  new Config().writeConfiguration(config);
   supertest(httpServer.app)
     .post("/api/validate/mqtt")
     .send(config)
@@ -358,7 +379,7 @@ xtest("POST /mqtt/validate", (done) => {
     .then((response) => {
       expect(response.body.valid).toBeFalsy();
       expect(response.body.message.toString().length).toBeGreaterThan(0);
-      configObj.writeConfiguration(oldConfig);
+      new Config().writeConfiguration(oldConfig);
       done();
     })
     .catch((e) => {

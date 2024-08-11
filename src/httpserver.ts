@@ -1,11 +1,8 @@
 import Debug from "debug";
 import * as http from "http";
-import serveStatic from "serve-static";
-import fetch from "node-fetch";
-import { NextFunction, Request } from "express";
+import { Request } from "express";
 import * as express from "express";
-import * as bodyparser from "body-parser";
-import { ConverterMap, IModbusData, ImodbusValues, M2mGitHub } from "@modbus2mqtt/specification";
+import { ConverterMap, ImodbusValues, M2mGitHub } from "@modbus2mqtt/specification";
 import { Config, MqttValidationResult, filesUrlPrefix } from "./config";
 import { Modbus } from "./modbus";
 import {
@@ -20,17 +17,17 @@ import multer from "multer";
 
 import { GetRequestWithUploadParameter, fileStorage } from "./httpFileUpload";
 import { Bus } from "./bus";
-import { Subject, endWith } from "rxjs";
-import { MqttDiscover } from "./mqttdiscover";
+import { Subject } from "rxjs";
 import * as fs from "fs";
 import { LogLevelEnum, Logger } from "@modbus2mqtt/specification";
 
 import { TranslationServiceClient } from "@google-cloud/translate";
 import { M2mSpecification as M2mSpecification } from "@modbus2mqtt/specification";
-import { IUserAuthenticationStatus, IBus, Islave, apiUri, RoutingNames, ImqttClient } from "@modbus2mqtt/server.shared";
+import { IUserAuthenticationStatus, IBus, Islave, apiUri } from "@modbus2mqtt/server.shared";
 import { ConfigSpecification } from "@modbus2mqtt/specification";
+import { HttpServerBase } from "./httpServerBase";
+import exp from "constants";
 const debug = Debug("httpserver");
-const debugUrl = Debug("httpserverUrl");
 const log = new Logger("httpserver");
 // import cors from 'cors';
 //import { IfileSpecification } from './ispecification';
@@ -54,145 +51,26 @@ interface GetRequestWithParameter extends Request {
     showAllPublicSpecs: string;
   };
 }
-export class HttpServer {
-  app: express.Application;
-  config: Config;
-  private statics = new Map<string, string>();
-  languages = ["en"];
-  constructor(
-    private angulardir: string = ".",
-    private configObj: Config
-  ) {
-    this.app = require("express")();
+export class HttpServer extends HttpServerBase {
+  constructor(angulardir: string = ".") {
+    super(angulardir);
   }
-  static returnResult(req: Request, res: http.ServerResponse, code: HttpErrorsEnum, message: string, object: any = undefined) {
-    debugUrl("end: " + req.path);
-    if (code >= 299) {
-      log.log(LogLevelEnum.error, "%s: Http Result: %d %s", req.url, code, message);
-    } else debug(req.url + " :" + HttpErrorsEnum[code]);
-    if (object != undefined) debug("Info: " + object);
-    res.statusCode = code;
-    res.end(message);
+  override returnResult(req: Request, res: http.ServerResponse, code: HttpErrorsEnum, message: string, object: any = undefined) {
+    res.setHeader("Content-Type", " application/json");
+    super.returnResult(req, res, code, message, object)
+
   }
+  
   modbusCacheAvailable: boolean = false;
   setModbusCacheAvailable() {
     this.modbusCacheAvailable = true;
   }
-  static getAuthTokenFromHeader(authHeader: string): string {
-    let tokenPos = authHeader!.indexOf(" ") + 1;
-    return authHeader.substring(tokenPos);
-  }
-  static validateUserToken(authHeader: string): MqttValidationResult {
-    if (authHeader) {
-      let token = HttpServer.getAuthTokenFromHeader(authHeader);
-      return Config.validateUserToken(token);
-    }
-    return MqttValidationResult.error;
-  }
-  get(url: apiUri, func: (req: any, response: any) => void): void {
-    debugUrl("start get" + url);
-    this.app.get(url, func);
-  }
-  post(url: apiUri, func: (req: any, response: any) => void): void {
-    debugUrl("start post" + url);
-    this.app.post(url, func);
-  }
-  delete(url: apiUri, func: (req: any, response: any) => void): void {
-    debugUrl("start delete" + url);
-    this.app.delete(url, func);
-  }
-  authenticate(req: Request, res: http.ServerResponse, next: any) {
-    //  req.header('')
-    var pwd = Config.getConfiguration().password;
-    // All api callsand a user registration when a user is already registered needs authorization
-    if (req.url.indexOf("/api/") >= 0 || (req.url.indexOf("/user/register") >= 0 && pwd && pwd.length)) {
-      let authHeader = req.header("Authorization");
-      let config = Config.getConfiguration();
-      if (authHeader) {
-        switch (HttpServer.validateUserToken(authHeader)) {
-          case MqttValidationResult.OK:
-            next();
-            return;
-          case MqttValidationResult.tokenExpired:
-            log.log(LogLevelEnum.error, "Token expired");
-            HttpServer.returnResult(req, res, HttpErrorsEnum.ErrUnauthorized, "Token expired");
-            return;
-          default:
-            // case MqttValidationResult.error:
-            HttpServer.returnResult(req, res, HttpErrorsEnum.ErrForbidden, "Unauthorized (See server log)");
-            return;
-        }
-      }
-
-      if (config.hassiotoken) {
-        log.log(LogLevelEnum.notice, "Supervisor: validate hassio token");
-        this.configObj.executeHassioGetRequest(
-          "http://supervisor/hardware/info",
-          () => {
-            log.log(LogLevelEnum.notice, "Supervisor: validate hassio token OK");
-            next();
-          },
-          (e) => {
-            log.log(LogLevelEnum.error, "Supervisor: validate hassio token Failed");
-            HttpServer.returnResult(req, res, HttpErrorsEnum.ErrForbidden, JSON.stringify(e));
-          }
-        );
-        return;
-      } else {
-        HttpServer.returnResult(req, res, HttpErrorsEnum.ErrForbidden, "Unauthorized (See server log)");
-        return;
-      }
-    }
-
-    // No authentication required
-    next();
-    return;
-  }
-  private initStatics() {
-    fs.readdirSync(this.angulardir).forEach((langDir) => {
-      let lang = langDir.replace(/-.*/g, "");
-      let dir = join(this.angulardir, langDir);
-      this.statics.set(lang, dir);
-    });
-    if (this.statics.size > 0) this.languages = Array.from(this.statics.keys());
-  }
-
-  private getStaticsForLanguage(req: Request): string {
-    let lang = req.acceptsLanguages(["en", "fr"]);
-    if (!lang) lang = "en";
-    return this.statics.get(lang)!;
-  }
-
-  init() {
-    //this.app.use(cors);
-    this.app.use(bodyparser.json());
-    this.app.use(bodyparser.urlencoded({ extended: true }));
-    this.app.use(express.json());
-    //this.app.use(fileupload());
-    this.initStatics();
-
+  override initApp() {
     let localdir = join(Config.getConfiguration().filelocation, "local", filesUrlPrefix);
     let publicdir = join(Config.getConfiguration().filelocation, "public", filesUrlPrefix);
 
     this.app.use("/" + filesUrlPrefix, express.static(localdir));
     this.app.use("/" + filesUrlPrefix, express.static(publicdir));
-    this.app.use(express.static(this.angulardir));
-
-    // angular files have full path including language e.G. /en-US/polyfill.js
-    this.app.use(this.authenticate.bind(this));
-    //@ts-ignore
-    this.app.use(function (undefined: any, res: http.ServerResponse, next: any) {
-      //            res.setHeader('charset', 'utf-8')
-      res.setHeader("Access-Control-Allow-Methods", "POST, PUT, OPTIONS, DELETE, GET");
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      res.setHeader(
-        "Access-Control-Allow-Headers",
-        "Origin, X-Requested-With, Content-Type, X-Accel-Buffering, Accept,Connection,Cache-Control,x-access-token"
-      );
-      res.setHeader("Access-Control-Allow-Credentials", "true");
-      res.setHeader("Content-Type", " application/json");
-      next();
-    });
     //@ts-ignore
     // app.use(function (err:any, req:any, res:any, next:any) {
     //     res.status(409).json({status: err.status, message: err.message})
@@ -213,14 +91,14 @@ export class HttpServer {
       };
       if (a.registered && (a.hassiotoken || a.hasAuthToken)) a.mqttConfigured = Config.isMqttConfigured(config.mqttconnect);
 
-      HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(a));
+      this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(a));
       return;
     });
 
     this.get(apiUri.converters, (req: GetRequestWithParameter, res: http.ServerResponse) => {
       debug("(/converters");
       let a = ConverterMap.getConverters();
-      HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(a));
+      this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(a));
       return;
     });
     this.get(apiUri.userLogin, (req: GetRequestWithParameter, res: http.ServerResponse) => {
@@ -234,16 +112,16 @@ export class HttpServer {
                 result: "OK",
                 token: result,
               };
-              HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(a));
+              this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(a));
             } else {
-              HttpServer.returnResult(req, res, HttpErrorsEnum.ErrForbidden, '{result: "Forbidden"}');
+              this.returnResult(req, res, HttpErrorsEnum.ErrForbidden, '{result: "Forbidden"}');
             }
           })
           .catch((err) => {
-            HttpServer.returnResult(req, res, HttpErrorsEnum.ErrForbidden, '{result: "' + err + '"}', err);
+            this.returnResult(req, res, HttpErrorsEnum.ErrForbidden, '{result: "' + err + '"}', err);
           });
       } else {
-        HttpServer.returnResult(req, res, HttpErrorsEnum.ErrInvalidParameter, '{result: "Invalid Parameter"}');
+        this.returnResult(req, res, HttpErrorsEnum.ErrInvalidParameter, '{result: "Invalid Parameter"}');
       }
     });
 
@@ -253,20 +131,20 @@ export class HttpServer {
       if (req.query.name && req.query.password) {
         Config.register(req.query.name, req.query.password)
           .then(() => {
-            HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify({ result: "OK" }));
+            this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify({ result: "OK" }));
           })
           .catch((err) => {
-            HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify({ result: err }));
+            this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify({ result: err }));
           });
       } else {
-        HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify({ result: "Invalid Parameter" }));
+        this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify({ result: "Invalid Parameter" }));
       }
     });
     this.get(apiUri.specsForSlaveId, (req: GetRequestWithParameter, res: http.ServerResponse) => {
       debug(req.url);
       let msg = this.checkBusidSlaveidParameter(req);
       if (msg !== "") {
-        HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, msg);
+        this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, msg);
       } else {
         let slaveId = Number.parseInt(req.query.slaveid);
         let busid = Number.parseInt(req.query.busid);
@@ -276,10 +154,10 @@ export class HttpServer {
             .getAvailableSpecs(slaveId, req.query.showAllPublicSpecs != undefined)
             .then((result) => {
               debug("getAvailableSpecs  succeeded");
-              HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(result));
+              this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(result));
             })
             .catch((e) => {
-              HttpServer.returnResult(req, res, HttpErrorsEnum.ErrNotFound, "specsForSlaveId: " + e.message);
+              this.returnResult(req, res, HttpErrorsEnum.ErrNotFound, "specsForSlaveId: " + e.message);
             });
         }
       }
@@ -288,18 +166,18 @@ export class HttpServer {
     this.get(apiUri.sslFiles, (req: GetRequestWithParameter, res: http.ServerResponse) => {
       if (Config.sslDir && Config.sslDir.length) {
         let result = fs.readdirSync(Config.sslDir);
-        HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(result));
+        this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(result));
       } else {
-        HttpServer.returnResult(req, res, HttpErrorsEnum.ErrNotFound, "not found");
+        this.returnResult(req, res, HttpErrorsEnum.ErrNotFound, "not found");
       }
     });
 
     this.get(apiUri.specfication, (req: GetRequestWithParameter, res: http.ServerResponse) => {
       let spec = req.query.spec;
       if (spec && spec.length > 0) {
-        HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(ConfigSpecification.getSpecificationByFilename(spec)));
+        this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(ConfigSpecification.getSpecificationByFilename(spec)));
       } else {
-        HttpServer.returnResult(req, res, HttpErrorsEnum.ErrNotFound, "not found");
+        this.returnResult(req, res, HttpErrorsEnum.ErrNotFound, "not found");
       }
     });
     this.get(apiUri.specifications, (req: Request, res: http.ServerResponse) => {
@@ -308,7 +186,7 @@ export class HttpServer {
       new ConfigSpecification().filterAllSpecifications((spec) => {
         rc.push(M2mSpecification.fileToModbusSpecification(spec));
       });
-      HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(rc));
+      this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(rc));
     });
     this.get(apiUri.specificationFetchPublic, (req: Request, res: http.ServerResponse) => {
       debug(req.url);
@@ -316,7 +194,7 @@ export class HttpServer {
       ghToken = ghToken == undefined ? "" : ghToken;
       new M2mGitHub(ghToken, join(ConfigSpecification.yamlDir, "public")).fetchPublicFiles();
       new ConfigSpecification().readYaml();
-      HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify({ result: "OK" }));
+      this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify({ result: "OK" }));
     });
 
     this.get(apiUri.busses, (req: Request, res: http.ServerResponse) => {
@@ -326,7 +204,7 @@ export class HttpServer {
       busses.forEach((bus) => {
         ibs.push(bus.properties);
       });
-      HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(ibs));
+      this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(ibs));
     });
     this.get(apiUri.bus, (req: GetRequestWithParameter, res: http.ServerResponse) => {
       debug(req.originalUrl);
@@ -335,17 +213,17 @@ export class HttpServer {
         let bus = Bus.getBus(Number.parseInt(req.query.busid));
         if (bus && bus.properties) {
           bus.properties;
-          HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(bus.properties));
+          this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(bus.properties));
           return;
         }
       }
-      HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "invalid Parameter");
+      this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "invalid Parameter");
     });
 
     this.get(apiUri.slaves, (req: GetRequestWithParameter, res: http.ServerResponse) => {
       debug("listDevices");
       let invParam = () => {
-        HttpServer.returnResult(req, res, HttpErrorsEnum.ErrInvalidParameter, "Invalid parameter");
+        this.returnResult(req, res, HttpErrorsEnum.ErrInvalidParameter, "Invalid parameter");
         return;
       };
       if (req.query.busid !== undefined) {
@@ -353,7 +231,7 @@ export class HttpServer {
         let bus = Bus.getBus(busid);
         if (bus) {
           let slaves = bus.getSlaves();
-          HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(slaves));
+          this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(slaves));
           return;
         } else invParam();
       } else invParam();
@@ -364,9 +242,9 @@ export class HttpServer {
         let busid = Number.parseInt(req.query.busid);
         let slaveid = Number.parseInt(req.query.slaveid);
         let slave = Bus.getBus(busid)?.getSlaveBySlaveId(slaveid);
-        HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(slave));
+        this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(slave));
       } else {
-        HttpServer.returnResult(req, res, HttpErrorsEnum.ErrInvalidParameter, "Invalid parameter");
+        this.returnResult(req, res, HttpErrorsEnum.ErrInvalidParameter, "Invalid parameter");
       }
     });
 
@@ -374,10 +252,10 @@ export class HttpServer {
       debug("configuration");
       try {
         let config = Config.getConfiguration();
-        HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(config));
+        this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(config));
       } catch (e) {
         log.log(LogLevelEnum.error, "Error getConfiguration: " + JSON.stringify(e));
-        HttpServer.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, JSON.stringify(e));
+        this.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, JSON.stringify(e));
       }
     });
     this.get(apiUri.modbusSpecification, (req: GetRequestWithParameter, res: http.ServerResponse) => {
@@ -385,29 +263,24 @@ export class HttpServer {
       debug("get specification with modbus data for slave " + req.query.slaveid);
       let msg = this.checkBusidSlaveidParameter(req);
       if (msg !== "") {
-        HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, msg);
+        this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, msg);
         return;
       }
       let bus = Bus.getBus(Number.parseInt(req.query.busid));
       if (bus === undefined) {
-        HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "Bus not found. Id: " + req.query.busid);
+        this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "Bus not found. Id: " + req.query.busid);
         return;
       }
       Modbus.getModbusSpecification("http", bus, Number.parseInt(req.query.slaveid), req.query.spec, (e: any) => {
         log.log(LogLevelEnum.error, "http: get /specification " + e.message);
-        HttpServer.returnResult(
-          req,
-          res,
-          HttpErrorsEnum.SrvErrInternalServerError,
-          JSON.stringify("read specification " + e.message)
-        );
+        this.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, JSON.stringify("read specification " + e.message));
       }).subscribe((result) => {
-        HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(result));
+        this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(result));
       });
     });
     this.post(apiUri.specficationContribute, (req: GetRequestWithParameter, res: http.ServerResponse) => {
       if (!req.query.spec) {
-        HttpServer.returnResult(req, res, HttpErrorsEnum.ErrInvalidParameter, "specification name not passed");
+        this.returnResult(req, res, HttpErrorsEnum.ErrInvalidParameter, "specification name not passed");
         return;
       }
       let spec = ConfigSpecification.getSpecificationByFilename(req.query.spec);
@@ -420,7 +293,7 @@ export class HttpServer {
             client.startPolling((e) => {
               log.log(LogLevelEnum.error, e.message);
             });
-            HttpServer.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(response));
+            this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(response));
           })
           .catch((err) => {
             res.statusCode = HttpErrorsEnum.ErrNotAcceptable;
@@ -444,7 +317,7 @@ export class HttpServer {
             response[0].translations.forEach((translation) => {
               if (translation.translatedText) rc.push(translation.translatedText);
             });
-            HttpServer.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(rc));
+            this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(rc));
           }
         })
         .catch((err: any) => {
@@ -475,10 +348,10 @@ export class HttpServer {
     this.post(apiUri.configuration, (req: Request, res: http.ServerResponse) => {
       debug("POST: " + req.url);
       let config = Config.getConfiguration();
-      this.configObj.writeConfiguration(req.body);
+      new Config().writeConfiguration(req.body);
       config = Config.getConfiguration();
       ConfigSpecification.setMqttdiscoverylanguage(config.mqttdiscoverylanguage, config.githubPersonalToken);
-      HttpServer.returnResult(req, res, HttpErrorsEnum.OkNoContent, JSON.stringify(config));
+      this.returnResult(req, res, HttpErrorsEnum.OkNoContent, JSON.stringify(config));
     });
     this.post(apiUri.bus, (req: GetRequestWithParameter, res: http.ServerResponse) => {
       debug("POST: " + req.url);
@@ -488,19 +361,19 @@ export class HttpServer {
         let bus = Bus.getBus(busid);
         if (bus) bus.updateBus(req.body);
         else {
-          HttpServer.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, "Bus not found in busses");
+          this.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, "Bus not found in busses");
           return;
         }
       } else busid = Bus.addBus(req.body).properties.busId;
       let rc1 = { busid: busid };
-      HttpServer.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(rc1));
+      this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(rc1));
     });
 
     this.post(apiUri.modbusEntity, (req: GetRequestWithParameter, res: http.ServerResponse) => {
       debug(req.url);
       let msg = this.checkBusidSlaveidParameter(req);
       if (msg !== "") {
-        HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, msg);
+        this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, msg);
         return;
       } else {
         let bus = Bus.getBus(Number.parseInt(req.query.busid))!;
@@ -510,10 +383,10 @@ export class HttpServer {
           subscription.unsubscribe();
           let ent = result.entities.find((e) => e.id == entityid);
           if (ent) {
-            HttpServer.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(ent));
+            this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(ent));
             return;
           } else {
-            HttpServer.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, "No entity found in specfication");
+            this.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, "No entity found in specfication");
             return;
           }
         });
@@ -524,7 +397,7 @@ export class HttpServer {
       debug(req.url);
       let msg = this.checkBusidSlaveidParameter(req);
       if (msg !== "") {
-        HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, msg);
+        this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, msg);
         return;
       } else {
         let bus = Bus.getBus(Number.parseInt(req.query.busid))!;
@@ -534,25 +407,25 @@ export class HttpServer {
           new Modbus()
             .writeEntityMqtt(bus, Number.parseInt(req.query.slaveid), req.body, entityid, mqttValue)
             .then(() => {
-              HttpServer.returnResult(req, res, HttpErrorsEnum.OkCreated, "");
+              this.returnResult(req, res, HttpErrorsEnum.OkCreated, "");
             })
             .catch((e) => {
-              HttpServer.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, e);
+              this.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, e);
             });
-        else HttpServer.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, "No entity found in specfication");
+        else this.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, "No entity found in specfication");
       }
     });
     this.get(apiUri.serialDevices, (req: GetRequestWithParameter, res: http.ServerResponse) => {
       debug(req.url);
 
-      this.configObj.listDevices(
+      new Config().listDevices(
         (devices) => {
-          HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(devices));
+          this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(devices));
         },
         (error) => {
           // Log the error, but return empty array
           log.log(LogLevelEnum.notice, "listDevices: " + error.message);
-          HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify([]), error);
+          this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify([]), error);
         }
       );
     });
@@ -576,7 +449,7 @@ export class HttpServer {
         }
       }
       if (testdata == undefined) {
-        HttpServer.returnResult(
+        this.returnResult(
           req,
           res,
           HttpErrorsEnum.ErrBadRequest,
@@ -585,7 +458,7 @@ export class HttpServer {
         return;
       }
       if (msg !== "") {
-        HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "{message: '" + msg + "'}");
+        this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "{message: '" + msg + "'}");
         return;
       }
       let originalFilename: string | null = req.query.originalFilename ? req.query.originalFilename : null;
@@ -595,7 +468,7 @@ export class HttpServer {
         (filename: string) => {
           if (busId != undefined && bus != undefined && slave != undefined) {
             slave.specificationid = filename;
-            this.configObj.writeslave(busId, slave.slaveid, slave.specificationid, slave.name);
+            new Config().writeslave(busId, slave.slaveid, slave.specificationid, slave.name);
           }
         },
         originalFilename
@@ -610,50 +483,45 @@ export class HttpServer {
           debug("getAvailableModbusData failed:" + e.message);
         });
 
-      HttpServer.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(rc));
+      this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(rc));
     });
     this.post(apiUri.specificationValidate, (req: GetRequestWithParameter, res: http.ServerResponse) => {
       if (!req.query.language || req.query.language.length == 0) {
-        HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify("pass language "));
+        this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify("pass language "));
         return;
       }
       let spec = new M2mSpecification(req.body);
       let messages = spec.validate(req.query.language);
-      HttpServer.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(messages));
+      this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(messages));
     });
 
     this.get(apiUri.specificationValidate, (req: GetRequestWithParameter, res: http.ServerResponse) => {
       if (!req.query.language || req.query.language.length == 0) {
-        HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify("pass language "));
+        this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify("pass language "));
         return;
       }
       if (!req.query.spec || req.query.spec.length == 0) {
-        HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify("pass specification "));
+        this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify("pass specification "));
         return;
       }
       let fspec = ConfigSpecification.getSpecificationByFilename(req.query.spec);
       if (!fspec) {
-        HttpServer.returnResult(
-          req,
-          res,
-          HttpErrorsEnum.ErrBadRequest,
-          JSON.stringify("specification not found " + req.query.spec)
-        );
+        this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify("specification not found " + req.query.spec));
         return;
       }
       let spec = new M2mSpecification(fspec);
       let messages = spec.validate(req.query.language);
-      HttpServer.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(messages));
+      this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(messages));
     });
     this.post(apiUri.slave, (req: GetRequestWithParameter, res: http.ServerResponse) => {
       debug("POST /slave: " + JSON.stringify(req.body));
       let bus = Bus.getBus(Number.parseInt(req.query.busid));
       if (!req.query.busid || !bus) {
-        HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "Bus not found. Id: " + req.query.busid);
+        this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "Bus not found. Id: " + req.query.busid);
         return;
       }
       if (req.body.slaveid == undefined) {
-        HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "Bus Id: " + req.query.busid + " Slave Id is not defined");
+        this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "Bus Id: " + req.query.busid + " Slave Id is not defined");
         return;
       }
 
@@ -664,7 +532,7 @@ export class HttpServer {
       res.setHeader("Access-Control-Allow-Credentials", "true");
       res.setHeader("Content-Type", "application/json");
       let rc: Islave = bus.writeSlave(req.body.slaveid, req.body.specificationid, req.body.name, req.body.polInterval);
-      HttpServer.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(rc));
+      this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(rc));
     });
     this.post(apiUri.addFilesUrl, (req: GetRequestWithUploadParameter, res: http.ServerResponse) => {
       try {
@@ -673,16 +541,16 @@ export class HttpServer {
             // req.body.documents
             let config = new ConfigSpecification();
             let files = config.appendSpecificationUrl(req.query.specification!, req.body);
-            if (files) HttpServer.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(files));
-            else HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, " specification not found");
+            if (files) this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(files));
+            else this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, " specification not found");
           } else {
-            HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, " specification not found");
+            this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, " specification not found");
           }
         } else {
-          HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, " specification no passed");
+          this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, " specification no passed");
         }
       } catch (e: any) {
-        HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "Adding URL failed: " + e.message, e);
+        this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "Adding URL failed: " + e.message, e);
       }
     });
 
@@ -690,13 +558,13 @@ export class HttpServer {
     this.app.post(apiUri.upload, upload.array("documents"), (req: GetRequestWithUploadParameter, res: http.ServerResponse) => {
       try {
         if (!req.query.usage) {
-          HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "No Usage passed");
+          this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "No Usage passed");
           return;
         }
 
         let msg = this.checkBusidSlaveidParameter(req as any);
         if (msg !== "") {
-          HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, msg);
+          this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, msg);
           return;
         } else {
           debug("Files uploaded");
@@ -707,30 +575,30 @@ export class HttpServer {
             (req.files as Express.Multer.File[])!.forEach((f) => {
               files = config.appendSpecificationFile(req.query.specification!, f.originalname, req.query.usage!);
             });
-            if (files) HttpServer.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(files));
-            else HttpServer.returnResult(req, res, HttpErrorsEnum.OkNoContent, " specification not found or no files passed");
+            if (files) this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(files));
+            else this.returnResult(req, res, HttpErrorsEnum.OkNoContent, " specification not found or no files passed");
           } else {
-            HttpServer.returnResult(req, res, HttpErrorsEnum.OkNoContent, " specification not found or no files passed");
+            this.returnResult(req, res, HttpErrorsEnum.OkNoContent, " specification not found or no files passed");
           }
         }
       } catch (e: any) {
-        HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "Upload failed: " + e.message, e);
+        this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "Upload failed: " + e.message, e);
       }
     });
     this.delete(apiUri.upload, (req: GetRequestWithUploadParameter, res: http.ServerResponse) => {
       if (req.query.specification && req.query.url && req.query.usage) {
         let files = ConfigSpecification.deleteSpecificationFile(req.query.specification, req.query.url, req.query.usage);
-        HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(files));
+        this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(files));
       } else {
-        HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "Invalid Usage");
+        this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "Invalid Usage");
       }
     });
     this.delete(apiUri.newSpecificationfiles, (req: Request, res: http.ServerResponse) => {
       try {
         new ConfigSpecification().deleteNewSpecificationFiles();
-        HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify("OK"));
+        this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify("OK"));
       } catch (err: any) {
-        HttpServer.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "deletion failed: " + err.message, err);
+        this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "deletion failed: " + err.message, err);
       }
     });
     // app.post('/specification',  ( req:express.TypedRequestBody<IfileSpecification>) =>{
@@ -748,26 +616,19 @@ export class HttpServer {
           }
         });
       });
-      HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(rc));
+      this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(rc));
     });
     this.delete(apiUri.bus, (req: GetRequestWithParameter, res: http.ServerResponse) => {
       debug("DELETE /busses: " + req.query.busid);
       Bus.deleteBus(Number.parseInt(req.query.busid));
-      HttpServer.returnResult(req, res, HttpErrorsEnum.OK, "");
+      this.returnResult(req, res, HttpErrorsEnum.OK, "");
     });
     this.delete(apiUri.slave, (req: GetRequestWithParameter, res: http.ServerResponse) => {
       debug("Delete /slave: " + req.query.slaveid);
       if (req.query.slaveid.length > 0 && req.query.busid.length > 0) {
         let bus = Bus.getBus(Number.parseInt(req.query.busid));
         if (bus) bus.deleteSlave(Number.parseInt(req.query.slaveid));
-        HttpServer.returnResult(req, res, HttpErrorsEnum.OK, "");
-      }
-    });
-    this.app.all("*", (req: Request, res: express.Response, next: NextFunction) => {
-      let dir = this.getStaticsForLanguage(req);
-      if (dir) {
-        res.removeHeader("Content-Type");
-        res.status(200).sendFile(join(dir, "index.html"));
+        this.returnResult(req, res, HttpErrorsEnum.OK, "");
       }
     });
   }
@@ -783,6 +644,6 @@ export class HttpServer {
       valid: valid,
       message: message,
     };
-    HttpServer.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(rc));
+    this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(rc));
   }
 }

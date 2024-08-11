@@ -319,7 +319,7 @@ export class Config {
       }
     }
   }
-  executeHassioGetRequest<T>(url: string, next: (_dev: T) => void, reject: (error: any) => void): void {
+  static executeHassioGetRequest<T>(url: string, next: (_dev: T) => void, reject: (error: any) => void): void {
     let hassiotoken: string | undefined = Config.getConfiguration().hassiotoken;
     if (!hassiotoken || hassiotoken.length == 0) throw new Error("ENV: HASSIO_TOKEN not defined");
     fetch(url, {
@@ -341,7 +341,7 @@ export class Config {
       });
   }
   listDevicesHassio(next: (devices: string[]) => void, reject: (error: any) => void): void {
-    this.executeHassioGetRequest<string[]>(
+    Config.executeHassioGetRequest<string[]>(
       "http://supervisor/hardware/info",
       (dev) => {
         next(this.grepDevices(dev));
@@ -403,7 +403,7 @@ export class Config {
   private async getMqttLoginFromHassio(): Promise<ImqttClient> {
     return new Promise<ImqttClient>((resolve, reject) => {
       try {
-        this.executeHassioGetRequest<{ data: ImqttClient }>(
+        Config.executeHassioGetRequest<{ data: ImqttClient }>(
           "http://supervisor/services/mqtt",
           (mqtt) => {
             let config = Config.getConfiguration();
@@ -590,7 +590,8 @@ export class Config {
             .catch((reason) => {
               log.log(LogLevelEnum.error, "Unable to connect to mqtt " + reason);
               Config.config.mqttusehassio = false;
-              reject();
+              // This should not stop the application
+              resolve();
             });
         } else resolve();
       } catch (error: any) {

@@ -4,7 +4,6 @@ import { Config } from "../src/config";
 import { Bus } from "../src/bus";
 import { yamlDir } from "./configsbase";
 import { ModbusServer, XYslaveid } from "./../src/modbusTCPserver";
-import { ReadRegisterResult } from "modbus-serial/ModbusRTU";
 import { IdentifiedStates } from "@modbus2mqtt/specification.shared";
 import {
   ConfigSpecification,
@@ -98,7 +97,7 @@ function testRead(
                 bus!.closeRTU("test", () => {
                   tcpServer.stopServer(resolve);
                 });
-              });
+              }); 
           });
         });
     }

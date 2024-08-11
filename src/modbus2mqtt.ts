@@ -82,7 +82,7 @@ export class Modbus2Mqtt {
           join(ConfigSpecification.yamlDir, "public")
         );
 
-        let httpServer = new HttpServer(angulardir, readConfig);
+        let httpServer = new HttpServer(angulardir);
         debugAction("readBussesFromConfig starts");
         gh.init()
           .then(() => {
