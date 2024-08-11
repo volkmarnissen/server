@@ -51,9 +51,13 @@ function getCoil(addr: number, unitID: number): Promise<boolean> {
 const vector: IServiceVector = {
   getInputRegister: function (addr: number, unitID: number): Promise<number> {
     return new Promise<number>((resolve, reject) => {
-      let v = values.inputRegisters.find((v) => v.slaveid == unitID && v.address == addr);
+      let v = values.inputRegisters.find(
+        (v) => v.slaveid == unitID && v.address == addr,
+      );
       if (v) {
-        debug("getInputRegister slave:" + addr + "unit" + unitID + "v: " + v.value);
+        debug(
+          "getInputRegister slave:" + addr + "unit" + unitID + "v: " + v.value,
+        );
         resolve(v.value);
       } else {
         debug("getInputRegister slave:" + addr + "unit" + unitID);
@@ -63,37 +67,77 @@ const vector: IServiceVector = {
   },
   getHoldingRegister: function (addr: number, unitID: number): Promise<number> {
     return new Promise<number>((resolve, reject) => {
-      let v = values.holdingRegisters.find((v) => v.slaveid == unitID && v.address == addr);
+      let v = values.holdingRegisters.find(
+        (v) => v.slaveid == unitID && v.address == addr,
+      );
       if (v) {
-        debug("getHoldingRegister addr:" + addr + " slave: " + unitID + "v: " + v.value);
+        debug(
+          "getHoldingRegister addr:" +
+            addr +
+            " slave: " +
+            unitID +
+            "v: " +
+            v.value,
+        );
         resolve(v.value);
       } else {
-        debug("getHoldingRegister not found addr:" + addr + " slave: " + unitID);
+        debug(
+          "getHoldingRegister not found addr:" + addr + " slave: " + unitID,
+        );
         reject({ modbusErrorCode: 2, msg: "" });
       }
     });
   },
-  getMultipleInputRegisters: (addr: number, length: number, unitID: number, cb: FCallbackVal<number[]>): void => {
+  getMultipleInputRegisters: (
+    addr: number,
+    length: number,
+    unitID: number,
+    cb: FCallbackVal<number[]>,
+  ): void => {
     let rc: number[] = [];
     for (let idx = 0; idx < length; idx++) {
-      let v = values.inputRegisters.find((v) => v.slaveid == unitID && v.address == addr + idx);
+      let v = values.inputRegisters.find(
+        (v) => v.slaveid == unitID && v.address == addr + idx,
+      );
       if (v) rc.push(v.value);
       else {
-        debug("getMultipleInputRegisters not found addr:" + addr + " slave: " + unitID);
+        debug(
+          "getMultipleInputRegisters not found addr:" +
+            addr +
+            " slave: " +
+            unitID,
+        );
         cb({ modbusErrorCode: 2 } as any as Error, []);
         return;
       }
     }
-    debug("getMultipleInputRegisters addr:" + addr + " slave: " + unitID + "rc: " + JSON.stringify(rc));
+    debug(
+      "getMultipleInputRegisters addr:" +
+        addr +
+        " slave: " +
+        unitID +
+        "rc: " +
+        JSON.stringify(rc),
+    );
     cb(null, rc);
   },
-  getMultipleHoldingRegisters: (addr: number, length: number, unitID: number, cb: FCallbackVal<number[]>): void => {
+  getMultipleHoldingRegisters: (
+    addr: number,
+    length: number,
+    unitID: number,
+    cb: FCallbackVal<number[]>,
+  ): void => {
     let rc: number[] = [];
     for (let idx = 0; idx < length; idx++) {
-      let v = values.holdingRegisters.find((v) => v.slaveid == unitID && v.address == addr + idx);
+      let v = values.holdingRegisters.find(
+        (v) => v.slaveid == unitID && v.address == addr + idx,
+      );
       if (v) rc.push(v.value);
       else {
-        log.log(LogLevelEnum.notice, "Invalid holding reg s:" + unitID + " a: " + addr + idx);
+        log.log(
+          LogLevelEnum.notice,
+          "Invalid holding reg s:" + unitID + " a: " + addr + idx,
+        );
         cb({ modbusErrorCode: 2 } as any as Error, []);
         return;
       }
@@ -106,14 +150,21 @@ const vector: IServiceVector = {
 
   setRegister: (addr: number, value: number, unitID: number): Promise<void> => {
     return new Promise<void>((resolve, reject) => {
-      let v = values.holdingRegisters.find((v) => v.slaveid == unitID && v.address == addr);
+      let v = values.holdingRegisters.find(
+        (v) => v.slaveid == unitID && v.address == addr,
+      );
       if (v) {
         v.value = value;
         resolve();
       } else reject({ modbusErrorCode: 2, msg: "" });
     });
   },
-  setCoil: (addr: number, value: boolean, unitID: number, cb: FCallbackVal<number>): void => {
+  setCoil: (
+    addr: number,
+    value: boolean,
+    unitID: number,
+    cb: FCallbackVal<number>,
+  ): void => {
     let v = values.coils.find((v) => v.slaveid == unitID && v.address == addr);
     if (v) {
       v.value = value;
@@ -136,7 +187,10 @@ export class ModbusServer {
     });
 
     let rc = new Promise<ServerTCP>((resolve) => {
-      log.log(LogLevelEnum.notice, "ModbusTCP listening on modbus://0.0.0.0:" + port);
+      log.log(
+        LogLevelEnum.notice,
+        "ModbusTCP listening on modbus://0.0.0.0:" + port,
+      );
       this.serverTCP = new ServerTCP(vector, {
         host: "0.0.0.0",
         port: port,
@@ -160,7 +214,12 @@ export class ModbusServer {
       });
   }
 }
-export function addRegisterValue(slaveid: number, address: number, fc: ModbusRegisterType, value: number): void {
+export function addRegisterValue(
+  slaveid: number,
+  address: number,
+  fc: ModbusRegisterType,
+  value: number,
+): void {
   switch (fc) {
     case ModbusRegisterType.HoldingRegister:
       values.holdingRegisters.push({
@@ -191,15 +250,24 @@ export function addRegisterValue(slaveid: number, address: number, fc: ModbusReg
 export function logValues() {
   log.log(LogLevelEnum.notice, "coils");
   values.coils.forEach((c) => {
-    log.log(LogLevelEnum.notice, "s: " + c.slaveid + " a: " + c.address + " v: " + c.value);
+    log.log(
+      LogLevelEnum.notice,
+      "s: " + c.slaveid + " a: " + c.address + " v: " + c.value,
+    );
   });
   log.log(LogLevelEnum.notice, "holding");
   values.holdingRegisters.forEach((c) => {
-    log.log(LogLevelEnum.notice, "s: " + c.slaveid + " a: " + c.address + " v: " + c.value);
+    log.log(
+      LogLevelEnum.notice,
+      "s: " + c.slaveid + " a: " + c.address + " v: " + c.value,
+    );
   });
   log.log(LogLevelEnum.notice, "input");
   values.inputRegisters.forEach((c) => {
-    log.log(LogLevelEnum.notice, "s: " + c.slaveid + " a: " + c.address + " v: " + c.value);
+    log.log(
+      LogLevelEnum.notice,
+      "s: " + c.slaveid + " a: " + c.address + " v: " + c.value,
+    );
   });
 }
 export function runModbusServer(port: number = 8502): void {

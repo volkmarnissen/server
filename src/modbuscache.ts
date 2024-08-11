@@ -7,7 +7,6 @@
 import Debug from "debug";
 import { Mutex } from "async-mutex";
 import {
-  IModbusData,
   IReadRegisterResultOrError,
   ImodbusValues,
   LogLevelEnum,
@@ -18,7 +17,6 @@ import {
 import { Bus, ReadRegisterResultWithDuration } from "./bus";
 import { ReadRegisterResult } from "modbus-serial/ModbusRTU";
 import { ModbusRegisterType } from "@modbus2mqtt/specification.shared";
-import { error } from "console";
 const minTimeout = 100;
 const maxTimeouts = 1;
 const maxAddressDelta = 10;

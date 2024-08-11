@@ -6,10 +6,9 @@ import { yamlDir } from "./configsbase";
 import { ImqttClient, AuthenticationErrors } from "@modbus2mqtt/server.shared";
 import Debug from "debug";
 
-
 Config["yamlDir"] = yamlDir;
 Config.sslDir = yamlDir;
-let debug = Debug("config_test")
+let debug = Debug("config_test");
 afterAll(() => {
   let cfg = Config.getConfiguration();
   new Config().writeConfiguration(cfg);
@@ -101,6 +100,7 @@ it("getMqttConnectOptions: read connection from hassio", (done) => {
   let cfg = new TestConfig();
   process.env.HASSIO_TOKEN = "test";
   cfg.readYaml();
+  Config["config"].mqttusehassio = true;
   cfg.getMqttConnectOptions().then((_mqttData) => {
     expect(_mqttData.host).toBe(mqttService.host);
     expect(_mqttData.username).toBe(mqttService.username);

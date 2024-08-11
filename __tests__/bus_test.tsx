@@ -1,5 +1,5 @@
 import Debug from "debug";
-import { expect, it, describe, beforeAll,jest } from "@jest/globals";
+import { expect, it, describe, beforeAll, jest } from "@jest/globals";
 import { Config } from "../src/config";
 import { Bus } from "../src/bus";
 import { yamlDir } from "./configsbase";
@@ -149,7 +149,8 @@ function testWrite(
 it("Bus getSpecsForDevice", (done) => {
   prepareIdentification();
   Config["config"].fakeModbus = true;
-  if (Config.getConfiguration().fakeModbus) debug( LogLevelEnum.notice, "Fakemodbus");
+  if (Config.getConfiguration().fakeModbus)
+    debug(LogLevelEnum.notice, "Fakemodbus");
   Bus.getBus(0)!
     .getAvailableSpecs(1, false)
     .then((ispec) => {
@@ -195,45 +196,42 @@ it("Modbus getSpecsForDevice with specific slaveId no results 0-3", (done) => {
     });
 });
 describe("ServerTCP based", () => {
-
   it("read Discrete Inputs success, Illegal Address", (done) => {
-    singleMutex.runExclusive( ()=>{
+    singleMutex.runExclusive(() => {
       testRead(1, 4, 1, 1, Bus.prototype.readDiscreteInputs).then(() => {
         done();
       });
-        
-    })
+    });
   });
   it("read HoldingRegisters success, Illegal Address", (done) => {
-    singleMutex.runExclusive( ()=>{
+    singleMutex.runExclusive(() => {
       testRead(0x0101, 0x0109, 1, 1, Bus.prototype.readHoldingRegisters).then(
         () => {
           debug("done");
           done();
         },
       );
-    })
+    });
   });
   it("read readInputRegisters success, Illegal Address", (done) => {
-    singleMutex.runExclusive( ()=>{
-       
+    singleMutex.runExclusive(() => {
       testRead(1, 2, 195, 500, Bus.prototype.readInputRegisters).then(() => {
         done();
       });
-    })
+    });
   });
   it("writeHoldingRegisters success, Illegal Address", (done) => {
-    singleMutex.runExclusive( ()=>{
+    singleMutex.runExclusive(() => {
       testWrite(1, 2, 10, Bus.prototype.writeHoldingRegisters).then(() => {
         done();
       });
-    })
+    });
   });
   it("writeCoils success, Illegal Address", (done) => {
-    singleMutex.runExclusive( ()=>{
+    singleMutex.runExclusive(() => {
       testWrite(1, 4, 0, Bus.prototype.writeCoils).then(() => {
-      done();
+        done();
       });
-    })
+    });
   });
 });

@@ -5,27 +5,13 @@ import { MqttDiscover } from "./mqttdiscover";
 import * as path from "path";
 import { join } from "path";
 import { Observable, Subject } from "rxjs";
-import {
-  BUS_TIMEOUT_DEFAULT,
-  getBaseFilename,
-} from "@modbus2mqtt/specification.shared";
+import { BUS_TIMEOUT_DEFAULT, getBaseFilename } from "@modbus2mqtt/specification.shared";
 import { sign, verify } from "jsonwebtoken";
 import * as bcrypt from "bcryptjs";
 import * as http from "http";
-import {
-  ConfigSpecification,
-  LogLevelEnum,
-  Logger,
-} from "@modbus2mqtt/specification";
+import { ConfigSpecification, LogLevelEnum, Logger } from "@modbus2mqtt/specification";
 import { SerialPort } from "serialport";
-import {
-  ImqttClient,
-  AuthenticationErrors,
-  IBus,
-  Iconfiguration,
-  IModbusConnection,
-  Islave,
-} from "@modbus2mqtt/server.shared";
+import { ImqttClient, AuthenticationErrors, IBus, Iconfiguration, IModbusConnection, Islave } from "@modbus2mqtt/server.shared";
 
 const CONFIG_VERSION = "0.1";
 declare global {
@@ -75,8 +61,7 @@ export class Config {
                   log.log(LogLevelEnum.error, err);
                   reject(AuthenticationErrors.SignError);
                 }
-              } else
-                reject(AuthenticationErrors.InvalidUserPasswordCombination);
+              } else reject(AuthenticationErrors.InvalidUserPasswordCombination);
             })
             .catch((err) => {
               log.log(LogLevelEnum.error, "login: compare failed: " + err);
@@ -117,12 +102,10 @@ export class Config {
         complete: true,
         ignoreExpiration: false,
       });
-      if (bcrypt.compareSync(v.payload.password, Config.config.password!))
-        return MqttValidationResult.OK;
+      if (bcrypt.compareSync(v.payload.password, Config.config.password!)) return MqttValidationResult.OK;
       else return MqttValidationResult.error;
     } catch (err) {
-      if ((err as any).name && (err as any).name == "TokenExpiredError")
-        return MqttValidationResult.tokenExpired;
+      if ((err as any).name && (err as any).name == "TokenExpiredError") return MqttValidationResult.tokenExpired;
       log.log(LogLevelEnum.error, "Validate: " + err);
       return MqttValidationResult.error;
     }
@@ -168,12 +151,10 @@ export class Config {
   }
   static getSecret(pathStr: string): string {
     let result = "";
-    const characters =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     const charactersLength = characters.length;
     let counter = 0;
-    if (fs.existsSync(pathStr))
-      return fs.readFileSync(pathStr, { encoding: "utf8" }).toString();
+    if (fs.existsSync(pathStr)) return fs.readFileSync(pathStr, { encoding: "utf8" }).toString();
     debug("getSecret: Create secrets file at" + pathStr);
     while (counter < secretsLength) {
       result += characters.charAt(Math.floor(Math.random() * charactersLength));
@@ -235,22 +216,15 @@ export class Config {
 
   static getConfiguration(): Iconfiguration {
     if (Config.secret == undefined) {
-      var secretsfile =
-        Config.sslDir.length > 0
-          ? join(Config.sslDir, "secrets.txt")
-          : "secrets.txt";
+      var secretsfile = Config.sslDir.length > 0 ? join(Config.sslDir, "secrets.txt") : "secrets.txt";
       var sslDir = path.parse(secretsfile).dir;
-      if (sslDir.length && !fs.existsSync(sslDir))
-        fs.mkdirSync(sslDir, { recursive: true });
+      if (sslDir.length && !fs.existsSync(sslDir)) fs.mkdirSync(sslDir, { recursive: true });
       try {
         if (fs.existsSync(secretsfile)) {
           debug("secretsfile " + "secretsfile exists");
           fs.accessSync(secretsfile, fs.constants.W_OK);
         } else fs.accessSync(sslDir, fs.constants.W_OK);
-        debug(
-          "Config.getConfiguration: secretsfile permissions are OK " +
-            secretsfile,
-        );
+        debug("Config.getConfiguration: secretsfile permissions are OK " + secretsfile);
         Config.secret = Config.getSecret(secretsfile);
       } catch (err) {
         let msg =
@@ -267,51 +241,28 @@ export class Config {
     }
 
     if (Config.config) {
-      Config.config.version = Config.config.version
-        ? Config.config.version
-        : CONFIG_VERSION;
-      Config.config.mqttbasetopic = Config.config.mqttbasetopic
-        ? Config.config.mqttbasetopic
-        : "modbus2mqtt";
-      Config.config.mqttdiscoveryprefix = Config.config.mqttdiscoveryprefix
-        ? Config.config.mqttdiscoveryprefix
-        : "homeassistant";
-      Config.config.mqttdiscoverylanguage = Config.config.mqttdiscoverylanguage
-        ? Config.config.mqttdiscoverylanguage
-        : "en";
+      Config.config.version = Config.config.version ? Config.config.version : CONFIG_VERSION;
+      Config.config.mqttbasetopic = Config.config.mqttbasetopic ? Config.config.mqttbasetopic : "modbus2mqtt";
+      Config.config.mqttdiscoveryprefix = Config.config.mqttdiscoveryprefix ? Config.config.mqttdiscoveryprefix : "homeassistant";
+      Config.config.mqttdiscoverylanguage = Config.config.mqttdiscoverylanguage ? Config.config.mqttdiscoverylanguage : "en";
       if (!Config.config.mqttconnect) Config.config.mqttconnect = {};
       Config.updateMqttTlsConfig(Config.config);
 
-      Config.config.mqttconnect.connectTimeout = Config.config.mqttconnect
-        .connectTimeout
+      Config.config.mqttconnect.connectTimeout = Config.config.mqttconnect.connectTimeout
         ? Config.config.mqttconnect.connectTimeout
         : 60 * 1000;
-      Config.config.mqttconnect.clientId = Config.config.mqttconnect.clientId
-        ? Config.config.mqttconnect.clientId
-        : "modbus2mqtt";
-      Config.config.mqttconnect.clean = Config.config.mqttconnect.clean
-        ? Config.config.mqttconnect.clean
-        : true;
-      Config.config.httpport = Config.config.httpport
-        ? Config.config.httpport
-        : 3000;
-      Config.config.fakeModbus = Config.config.fakeModbus
-        ? Config.config.fakeModbus
-        : false;
-      Config.config.filelocation = Config.config.filelocation
-        ? Config.config.filelocation
-        : "/data/local";
-      Config.busses =
-        Config.busses && Config.busses.length > 0 ? Config.busses : [];
+      Config.config.mqttconnect.clientId = Config.config.mqttconnect.clientId ? Config.config.mqttconnect.clientId : "modbus2mqtt";
+      Config.config.mqttconnect.clean = Config.config.mqttconnect.clean ? Config.config.mqttconnect.clean : true;
+      Config.config.httpport = Config.config.httpport ? Config.config.httpport : 3000;
+      Config.config.fakeModbus = Config.config.fakeModbus ? Config.config.fakeModbus : false;
+      Config.config.filelocation = Config.config.filelocation ? Config.config.filelocation : "/data/local";
+      Config.busses = Config.busses && Config.busses.length > 0 ? Config.busses : [];
       Config.config.hassiotoken =
-        process.env.HASSIO_TOKEN && process.env.HASSIO_TOKEN.length
-          ? process.env.HASSIO_TOKEN
-          : undefined;
-      Config.config.mqttusehassiotoken =
-        Config.config.mqttusehassiotoken && Config.config.hassiotoken
-          ? Config.config.mqttusehassiotoken
-          : Config.config.hassiotoken != undefined &&
-            Config.config.hassiotoken.length > 0;
+        process.env.HASSIO_TOKEN && process.env.HASSIO_TOKEN.length ? process.env.HASSIO_TOKEN : undefined;
+      Config.config.mqttusehassio =
+        Config.config.mqttusehassio && Config.config.hassiotoken
+          ? Config.config.mqttusehassio
+          : Config.config.hassiotoken != undefined && Config.config.hassiotoken.length > 0;
     } else {
       log.log(LogLevelEnum.notice, "No config file found ");
       Config.config = structuredClone(Config.newConfig);
@@ -340,10 +291,7 @@ export class Config {
       });
     });
   }
-  listDevicesUdev(
-    next: (devices: string[]) => void,
-    reject: (error: any) => void,
-  ): void {
+  listDevicesUdev(next: (devices: string[]) => void, reject: (error: any) => void): void {
     SerialPort.list()
       .then((portInfo) => {
         log.log(LogLevelEnum.notice, JSON.stringify(portInfo));
@@ -358,10 +306,7 @@ export class Config {
       });
   }
 
-  listDevices(
-    next: (devices: string[]) => void,
-    reject: (error: any) => void,
-  ): void {
+  listDevices(next: (devices: string[]) => void, reject: (error: any) => void): void {
     try {
       this.listDevicesHassio(next, (_e) => {
         this.listDevicesUdev(next, reject);
@@ -374,14 +319,9 @@ export class Config {
       }
     }
   }
-  executeHassioGetRequest<T>(
-    url: string,
-    next: (_dev: T) => void,
-    reject: (error: any) => void,
-  ): void {
+  executeHassioGetRequest<T>(url: string, next: (_dev: T) => void, reject: (error: any) => void): void {
     let hassiotoken: string | undefined = Config.getConfiguration().hassiotoken;
-    if (!hassiotoken || hassiotoken.length == 0)
-      throw new Error("ENV: HASSIO_TOKEN not defined");
+    if (!hassiotoken || hassiotoken.length == 0) throw new Error("ENV: HASSIO_TOKEN not defined");
     fetch(url, {
       headers: {
         authorization: "Bearer " + hassiotoken,
@@ -400,16 +340,13 @@ export class Config {
         log.log(LogLevelEnum.error, JSON.stringify(e));
       });
   }
-  listDevicesHassio(
-    next: (devices: string[]) => void,
-    reject: (error: any) => void,
-  ): void {
+  listDevicesHassio(next: (devices: string[]) => void, reject: (error: any) => void): void {
     this.executeHassioGetRequest<string[]>(
       "http://supervisor/hardware/info",
       (dev) => {
         next(this.grepDevices(dev));
       },
-      reject,
+      reject
     );
   }
   private grepDevices(bodyObject: any): string[] {
@@ -421,22 +358,13 @@ export class Config {
           fs.accessSync(device.dev_path, fs.constants.R_OK);
           rc.push(device.dev_path);
         } catch (error) {
-          log.log(
-            LogLevelEnum.error,
-            "Permission denied for read serial device %s",
-            device.dev_path,
-          );
+          log.log(LogLevelEnum.error, "Permission denied for read serial device %s", device.dev_path);
         }
     });
     return rc;
   }
-  validateHassioToken(
-    hassiotoken: string,
-    next: () => void,
-    reject: () => void,
-  ): void {
-    if (!hassiotoken || hassiotoken.length == 0)
-      throw new Error("ENV: HASSIO_TOKEN not defined");
+  validateHassioToken(hassiotoken: string, next: () => void, reject: () => void): void {
+    if (!hassiotoken || hassiotoken.length == 0) throw new Error("ENV: HASSIO_TOKEN not defined");
 
     fetch("http://supervisor/core/api/config", {
       headers: {
@@ -448,10 +376,7 @@ export class Config {
         if (res.status! >= 200 && res.status! < 300) next();
         else {
           res.json().then((e) => {
-            log.log(
-              LogLevelEnum.error,
-              "Hassio validation error: " + JSON.stringify(e),
-            );
+            log.log(LogLevelEnum.error, "Hassio validation error: " + JSON.stringify(e));
             reject();
           });
         }
@@ -463,8 +388,7 @@ export class Config {
   private static readCertfile(filename?: string): string | undefined {
     if (filename && Config.sslDir) {
       let fn = join(Config.sslDir, filename);
-      if (fs.existsSync(fn))
-        return fs.readFileSync(fn, { encoding: "utf8" }).toString();
+      if (fs.existsSync(fn)) return fs.readFileSync(fn, { encoding: "utf8" }).toString();
     }
     return undefined;
   }
@@ -490,28 +414,19 @@ export class Config {
               config.mqttconnect.port != undefined
             )
               config.mqttconnect.mqttserverurl =
-                (config.mqttconnect.ssl ? "mqtts" : "mqtt") +
-                "://" +
-                config.mqttconnect.host +
-                ":" +
-                config.mqttconnect.port;
+                (config.mqttconnect.ssl ? "mqtts" : "mqtt") + "://" + config.mqttconnect.host + ":" + config.mqttconnect.port;
             if (mqtt.data.ssl) Config.updateMqttTlsConfig(config);
             delete (config.mqttconnect as any).ssl;
             delete (config.mqttconnect as any).protocol;
             delete (config.mqttconnect as any).addon;
-            debugAddon(
-              "getMqttLoginFromHassio: Read MQTT login data from Hassio",
-            );
+            debugAddon("getMqttLoginFromHassio: Read MQTT login data from Hassio");
 
             resolve(config.mqttconnect);
           },
-          reject,
+          reject
         );
       } catch (e: any) {
-        debugAddon(
-          "getMqttLoginFromHassio: failed to read MQTT login data from Hassio " +
-            e.message,
-        );
+        debugAddon("getMqttLoginFromHassio: failed to read MQTT login data from Hassio " + e.message);
         reject(e);
       }
     });
@@ -520,24 +435,21 @@ export class Config {
   async getMqttConnectOptions(): Promise<ImqttClient> {
     return new Promise<ImqttClient>((resolve, reject) => {
       let config = Config.getConfiguration();
-      if (config.mqttusehassiotoken) {
+      if (config.mqttusehassio) {
         this.getMqttLoginFromHassio().then(
           (mqttFromHassio) => {
             resolve(mqttFromHassio);
           },
           (reason) => {
             reject(reason);
-          },
+          }
         );
       } else {
         let config = Config.getConfiguration();
         Config.updateMqttTlsConfig(config);
-        if (!Config.config.mqttconnect.mqttserverurl)
-          reject("Configuration problem: no mqttserverurl defined");
-        else if (!Config.config.mqttconnect.username)
-          reject("Configuration problem: no mqttuser defined");
-        else if (!Config.config.mqttconnect.password)
-          reject("Configuration problem: no mqttpassword defined");
+        if (!Config.config.mqttconnect.mqttserverurl) reject("Configuration problem: no mqttserverurl defined");
+        else if (!Config.config.mqttconnect.username) reject("Configuration problem: no mqttuser defined");
+        else if (!Config.config.mqttconnect.password) reject("Configuration problem: no mqttpassword defined");
         else resolve(Config.getConfiguration().mqttconnect);
       }
     });
@@ -557,13 +469,7 @@ export class Config {
           log.log(LogLevelEnum.error, "Yamldir not defined in command line");
         }
         if (!fs.existsSync(Config.yamlDir)) {
-          log.log(
-            LogLevelEnum.notice,
-            "configuration directory  not found " +
-              process.cwd() +
-              "/" +
-              Config.yamlDir,
-          );
+          log.log(LogLevelEnum.notice, "configuration directory  not found " + process.cwd() + "/" + Config.yamlDir);
           Config.config = structuredClone(Config.newConfig);
           Config.busses = [];
           return;
@@ -573,19 +479,14 @@ export class Config {
         var yamlFile = Config.getConfigPath();
 
         if (!fs.existsSync(yamlFile)) {
-          log.log(
-            LogLevelEnum.notice,
-            "configuration file  not found " + yamlFile,
-          );
+          log.log(LogLevelEnum.notice, "configuration file  not found " + yamlFile);
           Config.config = structuredClone(Config.newConfig);
         } else {
           var secretsFile = Config.yamlDir + "/local/secrets.yaml";
           var src: string = fs.readFileSync(yamlFile, { encoding: "utf8" });
           if (fs.existsSync(secretsFile)) {
             var matches: IterableIterator<RegExpMatchArray>;
-            var secrets = parse(
-              fs.readFileSync(secretsFile, { encoding: "utf8" }),
-            );
+            var secrets = parse(fs.readFileSync(secretsFile, { encoding: "utf8" }));
             let srcLines = src.split("\n");
             src = "";
             srcLines.forEach((line) => {
@@ -598,25 +499,14 @@ export class Config {
                   line = line.replace(match[0], '"' + secrets[key] + '"');
                 } else {
                   skipLine = true;
-                  if (!secrets[key])
-                    debug(
-                      "no entry in secrets file for " +
-                        key +
-                        " line will be ignored",
-                    );
-                  else
-                    debug(
-                      "secrets file entry contains !secret for " +
-                        key +
-                        " line will be ignored",
-                    );
+                  if (!secrets[key]) debug("no entry in secrets file for " + key + " line will be ignored");
+                  else debug("secrets file entry contains !secret for " + key + " line will be ignored");
                 }
               }
               if (!skipLine) src = src.concat(line, "\n");
             });
             Config.config = parse(src);
-            if (Config.yamlDir.length)
-              Config.config.filelocation = Config.yamlDir;
+            if (Config.yamlDir.length) Config.config.filelocation = Config.yamlDir;
           }
         }
         Config.busses = [];
@@ -642,15 +532,12 @@ export class Config {
                   slaves: [],
                 });
                 oneBusFound = true;
-                let devFiles: string[] = fs.readdirSync(
-                  Config.yamlDir + "/local/busses/" + de.name,
-                );
+                let devFiles: string[] = fs.readdirSync(Config.yamlDir + "/local/busses/" + de.name);
                 devFiles.forEach(function (file: string) {
                   if (file.endsWith(".yaml") && file !== "bus.yaml") {
-                    var src: string = fs.readFileSync(
-                      Config.yamlDir + "/local/busses/" + de.name + "/" + file,
-                      { encoding: "utf8" },
-                    );
+                    var src: string = fs.readFileSync(Config.yamlDir + "/local/busses/" + de.name + "/" + file, {
+                      encoding: "utf8",
+                    });
                     var o: Islave = parse(src);
                     Config.busses[Config.busses.length - 1].slaves.push(o);
                   }
@@ -663,9 +550,7 @@ export class Config {
           this.listDevices(
             (devices) => {
               if (devices && devices.length) {
-                let usb = devices.find(
-                  (dev) => dev.toLocaleLowerCase().indexOf("usb") >= 0,
-                );
+                let usb = devices.find((dev) => dev.toLocaleLowerCase().indexOf("usb") >= 0);
                 if (usb)
                   Config.addBusProperties({
                     serialport: usb,
@@ -691,7 +576,7 @@ export class Config {
                 timeout: BUS_TIMEOUT_DEFAULT,
                 baudrate: 9600,
               });
-            },
+            }
           );
         }
 
@@ -703,11 +588,8 @@ export class Config {
               resolve();
             })
             .catch((reason) => {
-              log.log(
-                LogLevelEnum.error,
-                "Unable to connect to mqtt " + reason,
-              );
-              Config.config.mqttusehassiotoken = false;
+              log.log(LogLevelEnum.error, "Unable to connect to mqtt " + reason);
+              Config.config.mqttusehassio = false;
               reject();
             });
         } else resolve();
@@ -727,10 +609,7 @@ export class Config {
       () => {};
   }
 
-  async filterAllslaves<T>(
-    busid: number,
-    specFunction: <T>(slave: Islave) => Set<T> | any,
-  ): Promise<Set<T>> {
+  async filterAllslaves<T>(busid: number, specFunction: <T>(slave: Islave) => Set<T> | any): Promise<Set<T>> {
     let addresses = new Set<T>();
     for (let slave of Config.busses[busid].slaves) {
       for (let addr of specFunction(slave)) addresses.add(addr);
@@ -738,16 +617,9 @@ export class Config {
     return addresses;
   }
   static getMqttDiscover(): MqttDiscover {
-    if (Config.config.mqttusehassiotoken && this.mqttHassioLoginData)
-      return new MqttDiscover(
-        this.mqttHassioLoginData,
-        Config.config.mqttdiscoverylanguage,
-      );
-    else
-      return new MqttDiscover(
-        Config.config.mqttconnect,
-        Config.config.mqttdiscoverylanguage,
-      );
+    if (Config.config.mqttusehassio && this.mqttHassioLoginData)
+      return new MqttDiscover(this.mqttHassioLoginData, Config.config.mqttdiscoverylanguage);
+    else return new MqttDiscover(Config.config.mqttconnect, Config.config.mqttdiscoverylanguage);
   }
 
   triggerMqttPublishSlave(busid: number, slave: Islave) {
@@ -757,14 +629,7 @@ export class Config {
   deleteSlave(busid: number, slaveid: number) {
     let bus = Config.busses.find((bus) => bus.busId == busid);
     if (bus != undefined) {
-      debug(
-        "DELETE /slave slaveid" +
-          busid +
-          "/" +
-          slaveid +
-          " number of slaves: " +
-          bus.slaves.length,
-      );
+      debug("DELETE /slave slaveid" + busid + "/" + slaveid + " number of slaves: " + bus.slaves.length);
       let found = false;
       for (let idx = 0; idx < bus.slaves.length; idx++) {
         let dev = bus.slaves[idx];
@@ -778,12 +643,7 @@ export class Config {
           bus.slaves.splice(idx, 1);
           let mqd = Config.getMqttDiscover();
           mqd.deleteSlave(bus.busId, slaveid);
-          debug(
-            "DELETE /slave finished " +
-              slaveid +
-              " number of slaves: " +
-              bus.slaves.length,
-          );
+          debug("DELETE /slave finished " + slaveid + " number of slaves: " + bus.slaves.length);
           return;
         }
       }
@@ -828,13 +688,7 @@ export class Config {
     fs.writeFileSync(this.getSecretsPath(), s, { encoding: "utf8" });
   }
 
-  writeslave(
-    busid: number,
-    slaveid: number,
-    specification: string | undefined,
-    name?: string,
-    polInterval?: number,
-  ): Islave {
+  writeslave(busid: number, slaveid: number, specification: string | undefined, name?: string, polInterval?: number): Islave {
     // Make sure slaveid is unique
     let slave: Islave = {
       slaveid: slaveid,
@@ -861,32 +715,17 @@ export class Config {
       });
 
     if (specification) {
-      if (specification == "_new")
-        new ConfigSpecification().deleteNewSpecificationFiles();
+      if (specification == "_new") new ConfigSpecification().deleteNewSpecificationFiles();
       else {
-        let spec =
-          ConfigSpecification.getSpecificationByFilename(specification);
+        let spec = ConfigSpecification.getSpecificationByFilename(specification);
         this.triggerMqttPublishSlave(busid, slave);
         slave.specification = spec;
       }
-    } else
-      debug(
-        "No Specification found for slave: " +
-          filename +
-          " specification: " +
-          slave.specificationid,
-      );
+    } else debug("No Specification found for slave: " + filename + " specification: " + slave.specificationid);
     return slave;
   }
   getslavePath(busid: number, slave: Islave): string {
-    return (
-      Config.yamlDir +
-      "/local/busses/bus." +
-      busid +
-      "/s" +
-      slave.slaveid +
-      ".yaml"
-    );
+    return Config.yamlDir + "/local/busses/bus." + busid + "/s" + slave.slaveid + ".yaml";
   }
   static getConfigPath() {
     return Config.yamlDir + "/local/modbus2mqtt.yaml";
@@ -923,11 +762,7 @@ export class Config {
     return "s" + slaveid;
   }
 }
-export function getSpecificationImageOrDocumentUrl(
-  rootUrl: string | undefined,
-  specName: string,
-  url: string,
-): string {
+export function getSpecificationImageOrDocumentUrl(rootUrl: string | undefined, specName: string, url: string): string {
   let fn = getBaseFilename(url);
   let rc: string = "";
   if (rootUrl) {

@@ -16,6 +16,7 @@ processName="npm"
 npmRegex=processName +".*"
 
 def get_pid(name):
+    rc = -1
     try:
         for proc in psutil.process_iter():
             # check whether the process name matches
@@ -39,7 +40,7 @@ if ( os.path.isdir(sourceDir) ):
         print( targetDir, "not found. Continuing ... ")
     shutil.move(sourceDir, targetDir)
     if(originalNpmPid >= 0 ):
-        psutil.Process(originalNpmPid).kill()
+        psutil.Process(originalNpmPid).terminate()
         newPid = get_pid(processName)
         while newPid == originalNpmPid and newPid >=0:
             time.sleep(5)

@@ -18,10 +18,10 @@ import {
 import { submitGetHoldingRegisterRequest } from "../src/submitRequestMock";
 import { yamlDir } from "./configsbase";
 import { Bus } from "../src/bus";
-import  Debug  from "debug";
+import Debug from "debug";
 import { ConfigSpecification, Logger } from "@modbus2mqtt/specification";
 import { expect, test, afterAll, beforeAll, jest, xtest } from "@jest/globals";
-const debug = Debug("mqttdiscover_test")
+const debug = Debug("mqttdiscover_test");
 enum FakeModes {
   Poll,
   Poll2,
@@ -168,6 +168,7 @@ function spyMqttOnMessage(ev: string, _cb: Function): MqttClient {
 }
 
 test("Discover", (done) => {
+  Config["config"].mqttusehassio = false;
   new Config().getMqttConnectOptions().then((options) => {
     let md = new MqttDiscover(options, "en");
     let payloads: { topic: string; payload: string }[] = md[
@@ -223,6 +224,7 @@ test("validateConnection invalid port", (done) => {
 });
 test("onMqttConnect", (done) => {
   Config.setFakeModbus(true);
+  Config["config"].mqttusehassio = false;
   new Config().getMqttConnectOptions().then((options) => {
     md = new MqttDiscover(options, "en");
     jest.mock("mqtt");

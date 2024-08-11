@@ -1,0 +1,4 @@
+#!/bin/sh
+set +e
+cd /usr/app
+npx modbus2mqtt --yaml /data --ssl /ssl

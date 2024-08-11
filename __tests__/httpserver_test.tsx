@@ -63,7 +63,7 @@ class TestConfig extends Config {
     else next({ data: "noMatter" } as T);
   }
 }
-let log = new Logger("httpserverTest")
+let log = new Logger("httpserverTest");
 const yamlDir = "__tests__/yaml-dir";
 ConfigSpecification.yamlDir = yamlDir;
 new ConfigSpecification().readYaml();
@@ -400,7 +400,7 @@ describe("http POST", () => {
         .expect(HttpErrorsEnum.ErrBadRequest)
         .catch((e) => {
           log.log(LogLevelEnum.error, JSON.stringify(e));
-          expect(1).toBeFalsy()
+          expect(1).toBeFalsy();
         })
         .then((_response) => {
           // expect((response as any as Response).status).toBe(HttpErrorsEnum.ErrBadRequest)
@@ -435,7 +435,7 @@ describe("http POST", () => {
               done();
             })
             .catch((_e) => {
-              log.log(LogLevelEnum.error ,_e);
+              log.log(LogLevelEnum.error, _e);
             });
         })
         .finally(() => {

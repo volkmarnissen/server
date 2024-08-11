@@ -34,11 +34,11 @@ import {
   jest,
   beforeAll,
 } from "@jest/globals";
-import Debug from 'debug'
+import Debug from "debug";
 Config["yamlDir"] = yamlDir;
 Config.sslDir = yamlDir;
 ConfigSpecification.yamlDir = yamlDir;
-let debug = Debug("modbus_test")
+let debug = Debug("modbus_test");
 
 beforeAll(() => {
   jest.mock("../src/modbus");

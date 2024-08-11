@@ -3,12 +3,7 @@ import { HttpServer } from "./httpserver";
 import { Bus } from "./bus";
 import { Command } from "commander";
 import { VERSION } from "ts-node";
-import {
-  LogLevelEnum,
-  Logger,
-  M2mGitHub,
-  M2mSpecification,
-} from "@modbus2mqtt/specification";
+import { LogLevelEnum, Logger, M2mGitHub, M2mSpecification } from "@modbus2mqtt/specification";
 import * as os from "os";
 
 import Debug from "debug";
@@ -37,10 +32,7 @@ export class Modbus2Mqtt {
     Bus.readBussesFromConfig();
     if (Config.getConfiguration().githubPersonalToken)
       new ConfigSpecification().filterAllSpecifications((spec) => {
-        if (
-          spec.status == SpecificationStatus.contributed &&
-          spec.pullNumber != undefined
-        ) {
+        if (spec.status == SpecificationStatus.contributed && spec.pullNumber != undefined) {
           new M2mSpecification(spec).startPolling((e) => {
             log.log(LogLevelEnum.error, "Github:" + e.message);
           });
@@ -50,16 +42,11 @@ export class Modbus2Mqtt {
   init() {
     let cli = new Command();
     cli.version(VERSION);
-    cli.usage("[--ssl <ssl-dir>][--yaml <yaml-dir>][ --port <TCP port>]");
+    cli.usage("[--ssl <ssl-dir>][--yaml <yaml-dir>][ --port <TCP port>] --term <exit code for SIGTERM>");
     cli.option("-s, --ssl <ssl-dir>", "set directory for certificates");
-    cli.option(
-      "-y, --yaml <yaml-dir>",
-      "set directory for add on configuration",
-    );
-    cli.option(
-      "-b, --busid <busid>",
-      "starts Modbus TCP server for the given bus",
-    );
+    cli.option("-y, --yaml <yaml-dir>", "set directory for add on configuration");
+    cli.option("-b, --busid <busid>", "starts Modbus TCP server for the given bus");
+    cli.option("--term <exit code for SIGTERM>", "sets exit code in case of SIGTERM");
     cli.parse(process.argv);
     let options = cli.opts();
     if (options["yaml"]) {
@@ -69,18 +56,20 @@ export class Modbus2Mqtt {
       Config.yamlDir = ".";
       ConfigSpecification.yamlDir = ".";
     }
-
+    if (options["term"])
+      process.on("SIGTERM", () => {
+        process.exit(options["term"]);
+      });
     if (options["ssl"]) Config.sslDir = options["ssl"];
     else Config.sslDir = ".";
-    if (options["busid"])
-      startModbusTCPserver(Config.yamlDir, parseInt(options["busid"]));
+    if (options["busid"]) startModbusTCPserver(Config.yamlDir, parseInt(options["busid"]));
     readConfig = new Config();
     readConfig.readYamlAsync
       .bind(readConfig)()
       .then(() => {
         ConfigSpecification.setMqttdiscoverylanguage(
           Config.getConfiguration().mqttdiscoverylanguage,
-          Config.getConfiguration().githubPersonalToken,
+          Config.getConfiguration().githubPersonalToken
         );
         debug(Config.getConfiguration().mqttconnect.mqttserverurl);
         let angulardir = require.resolve("@modbus2mqtt/angular");
@@ -89,10 +78,8 @@ export class Modbus2Mqtt {
         angulardir = path.parse(angulardirLang).dir;
         log.log(LogLevelEnum.notice, "http root : " + angulardir);
         let gh = new M2mGitHub(
-          Config.getConfiguration().githubPersonalToken
-            ? Config.getConfiguration().githubPersonalToken!
-            : null,
-          join(ConfigSpecification.yamlDir, "public"),
+          Config.getConfiguration().githubPersonalToken ? Config.getConfiguration().githubPersonalToken! : null,
+          join(ConfigSpecification.yamlDir, "public")
         );
 
         let httpServer = new HttpServer(angulardir, readConfig);
@@ -107,21 +94,15 @@ export class Modbus2Mqtt {
               () => {
                 this.pollTasks();
               },
-              30 * 1000 * 60,
+              30 * 1000 * 60
             );
           })
           .catch((e) => {
-            log.log(
-              LogLevelEnum.error,
-              "Start polling Contributions: " + e.message,
-            );
+            log.log(LogLevelEnum.error, "Start polling Contributions: " + e.message);
           });
         httpServer.init();
         httpServer.app.listen(Config.getConfiguration().httpport, () => {
-          log.log(
-            LogLevelEnum.notice,
-            `modbus2mqtt listening on  ${os.hostname()}: ${Config.getConfiguration().httpport}`,
-          );
+          log.log(LogLevelEnum.notice, `modbus2mqtt listening on  ${os.hostname()}: ${Config.getConfiguration().httpport}`);
           new ConfigSpecification().deleteNewSpecificationFiles();
           Bus.getAllAvailableModusData();
           if (process.env.MODBUS_NOPOLL == undefined) {
