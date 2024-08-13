@@ -4,13 +4,17 @@ ARG BUILD_FROM=ghcr.io/hassio-addons/base-nodejs:0.2.3
 FROM $BUILD_FROM
 #ARG ALPINE_VERSION
 WORKDIR /usr/app
-# We need to install @modbus2mqtt/server because 
-# @serialport/bindings-cpp might need recompilation. 
-# Otherwise one could use npx @modbus2mqtt/server directly
-RUN apk add --update --no-cache npm py3-psutil
+RUN apk add --update --no-cache npm py3-psutil \
+    icu-data-full \
+    nginx \
+    openssh-client \
+    patch 
 ADD rootfs.tar /
+# We need to install @modbus2mqtt/server only
 RUN echo '{}' >package.json && \
     npm install --omit-dev @modbus2mqtt/server
+# @serialport/bindings-cpp might need recompilation. 
+# Otherwise one could use npx @modbus2mqtt/server directly
 RUN apk --print-arch && \
     alpineArch="$(apk --print-arch)" && \
     if [ "x86_64" != "${alpineArch}"  ] ; then \

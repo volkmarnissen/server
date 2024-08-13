@@ -23,8 +23,9 @@ beforeAll(() => {
   jest.clearAllMocks();
 
   Config["yamlDir"] = yamlDir;
-  new Config().readYaml();
   new ConfigSpecification().readYaml();
+  return new Config().readYamlAsync();
+
 });
 
 it("read slaves/delete slave/addSlave/read slave", () => {

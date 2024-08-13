@@ -322,6 +322,11 @@ export class Config {
   static executeHassioGetRequest<T>(url: string, next: (_dev: T) => void, reject: (error: any) => void): void {
     let hassiotoken: string | undefined = Config.getConfiguration().hassiotoken;
     if (!hassiotoken || hassiotoken.length == 0) throw new Error("ENV: HASSIO_TOKEN not defined");
+
+    const timer = setTimeout(() => {
+      reject(new Error("TIMEOUT"));
+    }, 100 /* ms */);
+
     fetch(url, {
       headers: {
         authorization: "Bearer " + hassiotoken,
@@ -329,6 +334,7 @@ export class Config {
       },
     })
       .then((res) => {
+        clearTimeout(timer);
         if (res) {
           res.json().then((obj) => {
             if (obj) next(obj);
@@ -336,8 +342,10 @@ export class Config {
           });
         }
       })
-      .catch((e) => {
-        log.log(LogLevelEnum.error, JSON.stringify(e));
+      .catch((reason) => {
+        clearTimeout(timer);
+        log.log(LogLevelEnum.error, JSON.stringify(reason));
+        reject(reason);
       });
   }
   listDevicesHassio(next: (devices: string[]) => void, reject: (error: any) => void): void {
@@ -618,7 +626,7 @@ export class Config {
     return addresses;
   }
   static getMqttDiscover(): MqttDiscover {
-    if (Config.config.mqttusehassio && this.mqttHassioLoginData)
+    if (Config.config. mqttusehassio && this.mqttHassioLoginData)
       return new MqttDiscover(this.mqttHassioLoginData, Config.config.mqttdiscoverylanguage);
     else return new MqttDiscover(Config.config.mqttconnect, Config.config.mqttdiscoverylanguage);
   }

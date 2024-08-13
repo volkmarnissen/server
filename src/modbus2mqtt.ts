@@ -100,17 +100,18 @@ export class Modbus2Mqtt {
           .catch((e) => {
             log.log(LogLevelEnum.error, "Start polling Contributions: " + e.message);
           });
-        httpServer.init();
-        httpServer.app.listen(Config.getConfiguration().httpport, () => {
-          log.log(LogLevelEnum.notice, `modbus2mqtt listening on  ${os.hostname()}: ${Config.getConfiguration().httpport}`);
-          new ConfigSpecification().deleteNewSpecificationFiles();
-          Bus.getAllAvailableModusData();
-          if (process.env.MODBUS_NOPOLL == undefined) {
-            let md = Config.getMqttDiscover();
-            md.startPolling((error: any) => {
-              log.log(LogLevelEnum.error, error.message);
-            });
-          }
+        httpServer.init().then(() => {
+          httpServer.app.listen(Config.getConfiguration().httpport, () => {
+            log.log(LogLevelEnum.notice, `modbus2mqtt listening on  ${os.hostname()}: ${Config.getConfiguration().httpport}`);
+            new ConfigSpecification().deleteNewSpecificationFiles();
+            Bus.getAllAvailableModusData();
+            if (process.env.MODBUS_NOPOLL == undefined) {
+              let md = Config.getMqttDiscover();
+              md.startPolling((error: any) => {
+                log.log(LogLevelEnum.error, error.message);
+              });
+            }
+          });
         });
       });
   }

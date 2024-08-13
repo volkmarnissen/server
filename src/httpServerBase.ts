@@ -5,12 +5,22 @@ import * as express from "express";
 import * as bodyparser from "body-parser";
 import { Config, MqttValidationResult } from "./config";
 import { HttpErrorsEnum } from "@modbus2mqtt/specification.shared";
-import { join } from "path";
+import { join, basename } from "path";
 import { parse } from "node-html-parser";
 import * as fs from "fs";
 import { LogLevelEnum, Logger } from "@modbus2mqtt/specification";
 
 import { apiUri } from "@modbus2mqtt/server.shared";
+
+interface IAddonInfo {
+  slug: string;
+  ingress: boolean;
+  ingress_entry: string;
+  ingress_panel: boolean;
+  ingress_port: number;
+  ingress_url: string;
+}
+
 const debug = Debug("HttpServerBase");
 const debugUrl = Debug("HttpServerBaseUrl");
 const log = new Logger("HttpServerBase");
@@ -24,7 +34,7 @@ export class HttpServerBase {
     this.app = require("express")();
   }
   private statics = new Map<string, string>();
-
+  private ingressUrl: string = "test";
   returnResult(req: Request, res: http.ServerResponse, code: HttpErrorsEnum, message: string, object: any = undefined) {
     debugUrl("end: " + req.path);
     if (code >= 299) {
@@ -45,7 +55,7 @@ export class HttpServerBase {
     }
     return MqttValidationResult.error;
   }
-  private getStaticsForLanguage(req: Request): string {
+  private getDirectoryForLanguage(req: Request): string {
     let lang = req.acceptsLanguages(["en", "fr"]);
     if (!lang) lang = "en";
     return this.statics.get(lang)!;
@@ -76,7 +86,7 @@ export class HttpServerBase {
     //  req.header('')
     var pwd = Config.getConfiguration().password;
     // All api callsand a user registration when a user is already registered needs authorization
-    if (req.url.indexOf("/api/") >= 0 || (req.url.indexOf("/user/register") >= 0 && pwd && pwd.length)) {
+    if (req.url.indexOf(join(this.ingressUrl, "/api/")) >= 0 || (req.url.indexOf("/user/register") >= 0 && pwd && pwd.length)) {
       let authHeader = req.header("Authorization");
       let config = Config.getConfiguration();
       if (authHeader) {
@@ -121,13 +131,90 @@ export class HttpServerBase {
   }
 
   initApp() {}
-  init() {
+  init(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      try {
+        Config.executeHassioGetRequest<{ data: IAddonInfo }>(
+          "http://supervisor/addons/self/info",
+          (info) => {
+            //this.ingressUrl = join("/hassio/ingress/", info.data.slug);
+            this.ingressUrl = info.data.ingress_entry;
+
+            this.initBase();
+            resolve();
+          },
+          () => {
+            this.initBase();
+            resolve();
+          }
+        );
+      } catch (e) {
+        this.initBase();
+        resolve();
+      }
+    });
+  }
+  private setIngressUrl(req: Request) {
+    let h = req.header("X-Ingress-Path");
+    this.ingressUrl = h ? h : "/";
+  }
+
+  private sendIndexFile(req: Request, res: express.Response) {
+    this.setIngressUrl(req);
+    let dir = this.getDirectoryForLanguage(req);
+    let file = join(this.angulardir, dir, "index.html");
+    let content = fs.readFileSync(file).toString();
+    let htmlDom = parse(content.toString());
+    if (this.ingressUrl && content && htmlDom) {
+      let base = htmlDom.querySelector("base");
+      base?.setAttribute("href", join("/", this.ingressUrl, "/"));
+      content = htmlDom.toString();
+      res.status(200).setHeader("Content-Type", "text/html").send(htmlDom.toString());
+    } else res.status(401).setHeader("Content-Type", "text/html").send("Invalid index.html file ");
+  }
+
+  /*
+   * All angular files are language specific.
+   * This method checks if the url is available in a language dependant angular directory
+   * E.g. "/en-US/index.html". In this case it returns the files
+   * If it's the index file, the base href will be replaced
+   */
+  private processStaticAngularFiles(req: Request, res: express.Response, next: NextFunction) {
+    try {
+      let dir = this.getDirectoryForLanguage(req);
+      if (dir) {
+        res.removeHeader("Content-Type");
+        let file = join(this.angulardir, dir, req.url);
+        if (fs.existsSync(file) && !fs.lstatSync(file).isDirectory()) {
+          if (req.url.indexOf("index.html") >= 0) {
+            this.sendIndexFile(req, res);
+          } else {
+            res.contentType(basename(req.url));
+            let content = fs.readFileSync(file);
+            res.setHeader("Content-Length", content.byteLength);
+            res.status(200);
+            res.send(content);
+          }
+        }
+      }
+      next();
+      return;
+    } catch (e) {
+      res.status(401).setHeader("Content-Type", "text/html").send("No or invalid index.html file ");
+    }
+  }
+
+  processAll(req: Request, res: express.Response, next: NextFunction) {
+    this.sendIndexFile(req, res);
+  }
+  initBase() {
     this.initStatics();
 
     //this.app.use(cors);
     this.app.use(bodyparser.json());
     this.app.use(bodyparser.urlencoded({ extended: true }));
     this.app.use(express.json());
+    this.app.use(this.processStaticAngularFiles.bind(this));
     this.app.use(express.static(this.angulardir));
     // angular files have full path including language e.G. /en-US/polyfill.js
     this.app.use(this.authenticate.bind(this));
@@ -143,24 +230,14 @@ export class HttpServerBase {
       res.setHeader("Access-Control-Allow-Credentials", "true");
       next();
     });
+    this.app.get("/", (req: Request, res: express.Response, next: NextFunction) => {
+      res.redirect("index.html");
+    });
     this.initApp();
-    this.app.all("*", (req: Request, res: express.Response, next: NextFunction) => {
-      let dir = this.getStaticsForLanguage(req);
-      if (dir) {
-        res.removeHeader("Content-Type");
-        let indexFile = join(this.angulardir, dir, "index.html");
-        let content = fs.readFileSync(indexFile);
-        let htmlDom = parse(content.toString());
-        if (htmlDom) {
-          try {
-            let base = htmlDom.querySelector("base");
-            base?.setAttribute("href", "/" + dir + "/");
-            res.status(200).setHeader("Content-Type", "text/html").send(htmlDom.toString());
-          } catch (e) {
-            res.status(401).setHeader("Content-Type", "text/html").send("No or invalid index.html file ");
-          }
-        } else res.status(200).send(join(dir, "index.html"));
-      }
+    this.app.all("*", this.processAll.bind(this));
+    this.app.on("connection", function (socket: any) {
+      socket.setTimeout(30 * 1000);
+      // 30 second timeout. Change this as you see fit.
     });
   }
 }

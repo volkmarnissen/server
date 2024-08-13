@@ -1,6 +1,7 @@
 import {
   expect,
   it,
+  xit,
   xtest,
   test,
   jest,
@@ -8,6 +9,7 @@ import {
   beforeAll,
   afterAll,
 } from "@jest/globals";
+import Debug from "debug";
 import { HttpServer as HttpServer } from "../src/httpserver";
 import {
   ImodbusEntity,
@@ -52,6 +54,8 @@ import { Mutex } from "async-mutex";
 import { ReadRegisterResult } from "modbus-serial/ModbusRTU";
 import { join } from "path";
 let mockReject = false;
+let debug = Debug("testhttpserver")
+
 const mqttService = {
   host: "core-mosquitto",
   port: 1883,
@@ -60,6 +64,7 @@ const mqttService = {
   username: "addons",
   password: "Euso6ahphaiWei9Aeli6Tei0si2paep5agethohboophe7vae9uc0iebeezohg8e",
   addon: "core_mosquitto",
+  ingress_entry:"test"
 };
 function executeHassioGetRequest<T>(
   _url: string,
@@ -134,6 +139,7 @@ function mockedAuthorization(_param: any): Promise<any> {
 function mockedHttp(_options: any, cb: (res: any) => any) {
   cb({ statusCode: 200 });
 }
+let oldExecuteHassioGetRequest:any
 const oldAuthenticate: (req: any, res: any, next: () => void) => void =
   HttpServer.prototype.authenticate;
 beforeAll(() => {
@@ -148,18 +154,24 @@ beforeAll(() => {
     next();
   };
   httpServer = new HttpServer(join(yamlDir, "angular"));
-  httpServer.init();
+  
   httpServer.setModbusCacheAvailable();
+  let rc =  httpServer.init()
+  oldExecuteHassioGetRequest = Config['executeHassioGetRequest']
+  return rc;
 });
 
 it("GET /devices", (done) => {
   supertest(httpServer.app)
-    .get("/api/slaves?busid=0")
+    .get(apiUri.slaves +"?busid=0")
     .expect(200)
     .then((response) => {
       expect(response.body.length).toBeGreaterThan(0);
       expect(response.body[0]).toHaveProperty("slaveid");
       done();
+    }).catch(e => {
+      log.log(LogLevelEnum.error, "error")
+      expect(1).toBeFalsy()
     });
 });
 it("GET /specsForSlave", (done) => {
@@ -178,12 +190,29 @@ it("GET /specsForSlave", (done) => {
     });
 });
 it("GET / (root)", (done) => {
+  Config['executeHassioGetRequest'] = oldExecuteHassioGetRequest
   supertest(httpServer.app)
-    .get("/")
+    .get("/index.html")
     .expect(200)
     .then((response) => {
-      expect(response.text.indexOf('base href="/en-US/"')).toBeGreaterThanOrEqual(0)
+      expect(response.text.indexOf('base href="/"')).toBeGreaterThanOrEqual(0)
       done();
+    }).catch(e=>{
+      expect(1).toBeFalsy()
+    });
+});
+
+it("GET / (root) with Ingress header", (done) => {
+  Config['executeHassioGetRequest'] = oldExecuteHassioGetRequest
+  supertest(httpServer.app)
+    .get("/index.html")
+    .set({ "X-Ingress-Path": "test" })
+    .expect(200)
+    .then((response) => {
+      expect(response.text.indexOf('base href="/test/"')).toBeGreaterThanOrEqual(0)
+      done();
+    }).catch(e=>{
+      expect(1).toBeFalsy()
     });
 });
 
@@ -339,7 +368,7 @@ test("GET /busses", (done) => {
     });
 });
 
-xtest("ADD/DELETE /busses", (done) => {
+test("ADD/DELETE /busses", (done) => {
   let newConn: IModbusConnection = {
     baudrate: 9600,
     serialport: "/dev/ttyACM1",
@@ -367,7 +396,7 @@ xtest("ADD/DELETE /busses", (done) => {
     });
 });
 
-xtest("POST /mqtt/validate", (done) => {
+test("POST /mqtt/validate", (done) => {
   let oldConfig = Config.getConfiguration();
   let config = Config.getConfiguration();
   config.mqttconnect.mqttserverurl = "mqtt://doesnt_exist:1007";
