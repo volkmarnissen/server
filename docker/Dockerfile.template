@@ -1,18 +1,12 @@
-ARG BUILD_FROM=ghcr.io/hassio-addons/base-nodejs:0.2.3
-#ARG ALPINE_VERSION=3.20 
-#ARG BUILD_FROM=node:alpine$ALPINE_VERSION
+ARG ALPINE_VERSION=3.20 
+ARG BUILD_FROM=node:alpine$ALPINE_VERSION
 FROM $BUILD_FROM
-#ARG ALPINE_VERSION
+ARG ALPINE_VERSION
 WORKDIR /usr/app
-RUN apk add --update --no-cache npm py3-psutil \
-    icu-data-full \
-    nginx \
+RUN apk add --update --no-cache git npm py3-psutil \   
     openssh-client \
     patch 
 ADD rootfs.tar /
-# We need to install @modbus2mqtt/server only
-RUN echo '{}' >package.json && \
-    npm install --omit-dev @modbus2mqtt/server
 # @serialport/bindings-cpp might need recompilation. 
 # Otherwise one could use npx @modbus2mqtt/server directly
 RUN apk --print-arch && \
@@ -20,7 +14,8 @@ RUN apk --print-arch && \
     if [ "x86_64" != "${alpineArch}"  ] ; then \
     apk update && \
     apk upgrade && \
-    apk add  --update --no-cache git && \
+    apk add  --update --no-cache && \
     apk add g++ make build-base linux-headers udev  && \
     npm rebuild @serialport/bindings-cpp --build-from-source; \
     fi
+CMD ["npx", "modbus2mqtt", "--ssl", "/ssl", "--yaml", "/data"]

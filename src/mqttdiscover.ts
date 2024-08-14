@@ -784,7 +784,7 @@ export class MqttDiscover {
     this.client.subscribe(this.getDevicesCommandTopic(), (err) => {
       if (err)
         log.log(
-          LogLevelEnum.error,
+          LogLevelEnum.notice,
           "updatPublishSlave: MQTT subscribe error: ",
           err.message,
         );

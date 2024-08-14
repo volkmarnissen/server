@@ -108,7 +108,7 @@ export class Modbus2Mqtt {
             if (process.env.MODBUS_NOPOLL == undefined) {
               let md = Config.getMqttDiscover();
               md.startPolling((error: any) => {
-                log.log(LogLevelEnum.error, error.message);
+                log.log(LogLevelEnum.notice, error.message);
               });
             }
           });
