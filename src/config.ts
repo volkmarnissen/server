@@ -374,7 +374,7 @@ export class Config {
   validateHassioToken(hassiotoken: string, next: () => void, reject: () => void): void {
     if (!hassiotoken || hassiotoken.length == 0) throw new Error("ENV: HASSIO_TOKEN not defined");
 
-    fetch("http://supervisor/core/api/config", {
+    fetch("http://supervisor/hardware/info", {
       headers: {
         authorization: "Bearer " + hassiotoken,
         accept: "application/json",

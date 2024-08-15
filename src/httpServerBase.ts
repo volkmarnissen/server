@@ -11,6 +11,7 @@ import * as fs from 'fs'
 import { LogLevelEnum, Logger } from '@modbus2mqtt/specification'
 
 import { apiUri } from '@modbus2mqtt/server.shared'
+import { AddressInfo } from 'net'
 
 interface IAddonInfo {
   slug: string
@@ -105,7 +106,14 @@ export class HttpServerBase {
         }
       }
 
+      // Check addon access
       if (config.hassiotoken) {
+        let address = (req.socket.address() as AddressInfo).address
+        if (!address || address.indexOf('172.30.32.1') < 0) {
+          log.log(LogLevelEnum.warn, 'Denied: IP Address is not allowed ' + address)
+          this.returnResult(req, res, HttpErrorsEnum.ErrForbidden, 'Unauthorized (See server log)')
+          return
+        }
         log.log(LogLevelEnum.notice, 'Supervisor: validate hassio token')
         Config.executeHassioGetRequest(
           'http://supervisor/hardware/info',
