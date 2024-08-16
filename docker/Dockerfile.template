@@ -1,7 +1,5 @@
-ARG ALPINE_VERSION=3.20 
-ARG BUILD_FROM=node:alpine$ALPINE_VERSION
+ARG BUILD_FROM
 FROM $BUILD_FROM
-ARG ALPINE_VERSION
 WORKDIR /usr/app
 RUN apk add --update --no-cache git npm py3-psutil \   
     openssh-client \
