@@ -6,7 +6,7 @@ RUN apk add --update --no-cache git npm py3-psutil \
     patch 
 ADD rootfs.tar /
 RUN echo '{}' >package.json && \
-    npm install --omit-dev @modbus2mqtt/server
+    npm install --omit-dev @modbus2mqtt/server@<version>
 # @serialport/bindings-cpp might need recompilation. 
 # Otherwise one could use npx @modbus2mqtt/server directly
 RUN apk --print-arch && \
