@@ -128,6 +128,7 @@ export class HttpServerBase {
         )
         return
       } else {
+        log.log(LogLevelEnum.notice, 'HASSIO_TOKEN not set in environment')
         this.returnResult(req, res, HttpErrorsEnum.ErrForbidden, 'Unauthorized (See server log)')
         return
       }
@@ -147,11 +148,12 @@ export class HttpServerBase {
           (info) => {
             //this.ingressUrl = join("/hassio/ingress/", info.data.slug);
             this.ingressUrl = info.data.ingress_entry
-
+            log.log(LogLevelEnum.notice, 'Hassio authentication successful')
             this.initBase()
             resolve()
           },
-          () => {
+          (e) => {
+            log.log(LogLevelEnum.warn, 'Hassio authentication failed' + e.message)
             this.initBase()
             resolve()
           }
