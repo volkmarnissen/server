@@ -1,4 +1,4 @@
-name:  Publish Dockerfile and Addon
+name:  Test variables
 
 on:
   workflow_dispatch:
@@ -14,6 +14,8 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     environment: release
+    env:
+      TAG_NAME: ""
     steps:
       - name: Check out hassio-addon-repository
         uses: actions/checkout@v4
