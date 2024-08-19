@@ -3,8 +3,8 @@ import argparse
 import os
 import re
 import json
+import sys
 import tarfile
-from python_on_whales import docker
  
 server ='server'
 hassioAddonRepository= 'hassio-addon-repository'
@@ -38,48 +38,39 @@ def reset(tarinfo):
 # runs in (@modbus2mqtt)/server
 # updates config.yaml in (@modbus2mqtt)/hassio-addon-repository
 def createAddonDirectoryForRelease(basedir,version):
-    print("createAddonDirectory release", basedir, version)
+    sys.stderr.write("createAddonDirectory release " + basedir  + " " +  version)
     replaceStringInFile(os.path.join(basedir, server, 'hassio-addon', configYaml), \
         os.path.join(basedir, hassioAddonRepository,modbus2mqtt,  configYaml),"<version>", version )
-    tar = tarfile.open(os.path.join(basedir, hassioAddonRepository,modbus2mqtt,"roofs.tar"), "w")
+    tar = tarfile.open(os.path.join(basedir, hassioAddonRepository,modbus2mqtt,"rootfs.tar"), "w")
     tar.add(os.path.join(basedir, server,dockerDir, "rootfs"))
     tar.close()
 
 def createAddonDirectoryForDebug(basedir):
-    print("createAddonDirectory debug", basedir) 
+    sys.stderr.write("createAddonDirectory debug " +  basedir + "\n") 
 
 # runs in (@modbus2mqtt)/server
 # Creates Dockerfile in (@modbus2mqtt)/hassio-addon-repository
 # Creates rootfs.tar in (@modbus2mqtt)/hassio-addon-repository
 def createDockerDirectoryForRelease(basedir, version):
-    print("createDockerforRelease", basedir, version)
+    sys.stderr.write("createDockerforRelease " + basedir + " "  + version  + "\n")
     replaceStringInFile(os.path.join(basedir, server, dockerDir, DockerfileTemplate), \
         os.path.join(basedir, hassioAddonRepository,modbus2mqtt,  dockerFile),"<version>", version )
     
 
 
 def createDockerDirectoryForDebug(basedir):
-    print("createDockerforDebug", basedir)
+    sys.stderr.write("createDockerforDebug  " +  basedir)
 
 
 # publishes docker image from (@modbus2mqtt)/hassio-addon-repository
 # docker login needs to be executed in advance 
 def pusblishDocker(basedir, version):
-    print("publishDocker", basedir, version)
-    #docker.login(username='modbus2mqtt', password='dckr_pat_Z85yqVrPDIWS9TV1fzf4wkf1PMQ')
-    addonDir = os.path.join(basedir, hassioAddonRepository,modbus2mqtt )
-    docker.run(remove=True,name='builder',privileged=True,
-               volumes=[(addonDir, '/data'),('/var/run/docker.sock','/var/run/docker.sock','ro')],
-               image='ghcr.io/home-assistant/amd64-builder',
-               tty=True, interactive=True,
-               command=['-t', '/data', '--amd64','-i', 'modbus2mqtt', '--docker-user' ,'modbus2mqtt' \
-                    '--docker-password', '' ] )
-
+    sys.stderr.write("publishDocker "  + basedir + " " + version)
 
 # copy addon directory from (@modbus2mqtt)/hassio-addon-repository
 # docker login needs to be executed in advance 
 def copyAddon(basedir, host,port ):
-    print("copy addon", basedir, host, port )
+    sys.stderr.write("copy addon ", basedir + " " +  host + " " +  port )
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-b", "--basedir", help="base directory of all repositories", default='.')
@@ -95,10 +86,8 @@ if args.release:
     createDockerDirectoryForRelease(args.basedir, version)
     createAddonDirectoryForRelease(args.basedir, version)
     # pusblishDocker(args.basedir, version)
+    print("TAG_NAME=v" + version)
 else:
     createDockerDirectoryForDebug(args.basedir)
     createAddonDirectoryForDebug(args.basedir)
     copyAddon(args.basedir,args.sshhost, args.sshport)
-
-
-
