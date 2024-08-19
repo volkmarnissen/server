@@ -4,7 +4,6 @@ import os
 import re
 import json
 import tarfile
-from python_on_whales import docker
  
 server ='server'
 hassioAddonRepository= 'hassio-addon-repository'
@@ -66,15 +65,6 @@ def createDockerDirectoryForDebug(basedir):
 # docker login needs to be executed in advance 
 def pusblishDocker(basedir, version):
     print("publishDocker", basedir, version)
-    #docker.login(username='modbus2mqtt', password='dckr_pat_Z85yqVrPDIWS9TV1fzf4wkf1PMQ')
-    addonDir = os.path.join(basedir, hassioAddonRepository,modbus2mqtt )
-    docker.run(remove=True,name='builder',privileged=True,
-               volumes=[(addonDir, '/data'),('/var/run/docker.sock','/var/run/docker.sock','ro')],
-               image='ghcr.io/home-assistant/amd64-builder',
-               tty=True, interactive=True,
-               command=['-t', '/data', '--amd64','-i', 'modbus2mqtt', '--docker-user' ,'modbus2mqtt' \
-                    '--docker-password', '' ] )
-
 
 # copy addon directory from (@modbus2mqtt)/hassio-addon-repository
 # docker login needs to be executed in advance 
