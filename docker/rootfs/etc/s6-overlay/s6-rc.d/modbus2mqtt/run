@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/command/with-contenv bashio
 set +e
 cd /usr/app
 export HASSIO_TOKEN
