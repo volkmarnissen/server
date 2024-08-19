@@ -39,6 +39,7 @@ jobs:
           args: |
             --all \
             --target ./hassio-addon-repository/modbus2mqtt/ \
+            --image modbus2mqtt \
             --docker-hub modbus2mqtt
         
     
