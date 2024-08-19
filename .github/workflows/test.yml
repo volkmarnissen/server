@@ -8,6 +8,8 @@ on:
         required: true
       DOCKERHUB_PASSWORD:
         required: true
+env:
+  TAG_NAME: ""
 permissions:
   contents: write
 jobs:
