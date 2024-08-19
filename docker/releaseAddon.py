@@ -41,7 +41,7 @@ def createAddonDirectoryForRelease(basedir,version):
     sys.stderr.write("createAddonDirectory release " + basedir  + " " +  version)
     replaceStringInFile(os.path.join(basedir, server, 'hassio-addon', configYaml), \
         os.path.join(basedir, hassioAddonRepository,modbus2mqtt,  configYaml),"<version>", version )
-    tar = tarfile.open(os.path.join(basedir, hassioAddonRepository,modbus2mqtt,"roofs.tar"), "w")
+    tar = tarfile.open(os.path.join(basedir, hassioAddonRepository,modbus2mqtt,"rootfs.tar"), "w")
     tar.add(os.path.join(basedir, server,dockerDir, "rootfs"))
     tar.close()
 
