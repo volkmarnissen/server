@@ -1,0 +1,37 @@
+name:  Publish Dockerfile and Addon
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_PASSWORD:
+        required: true
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - name: Check out hassio-addon-repository
+        uses: actions/checkout@v4
+        with:
+          path: 'hassio-addon-repository'
+          repository: 'modbus2mqtt/hassio-addon-repository'
+      - name: Prepare Addon Directory
+        id: prepareAddonDirectory
+        run: |
+         chmod +x ./server/docker/releaseAddon.py \
+         ./server/docker/releaseAddon.py --release >>$GITHUB_ENV
+      - name: Checkin hassio-addon-repository
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          repository: ./hassio-addon-repository
+          tagging_message: ${{TAG_NAME }}
+          commit_message: ${{TAG_NAME }}
+        
+    
+
+  
