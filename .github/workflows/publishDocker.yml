@@ -1,6 +1,7 @@
 name:  Publish Dockerfile and Addon
 
 on:
+  workflow_dispatch:
   workflow_call:
     secrets:
       DOCKERHUB_USERNAME:
