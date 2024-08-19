@@ -25,6 +25,7 @@ jobs:
           path: 'hassio-addon-repository'
           repository: 'modbus2mqtt/hassio-addon-repository'
       - name: Prepare Addon Directory
+        id: prepareAddonDirectory
         run: |
          chmod +x ./server/docker/releaseAddon.py
          ./server/docker/releaseAddon.py --release
@@ -41,6 +42,12 @@ jobs:
             --target ./hassio-addon-repository/modbus2mqtt/ \
             --image modbus2mqtt \
             --docker-hub modbus2mqtt
+      - name: Checkin hassio-addon-repository
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          repository: ./hassio-addon-repository
+          tagging_message: ${{ steps.prepareAddonDirectory.outputs.TAG_NAME }}
+          commit_message: ${{ steps.prepareAddonDirectory.outputs.TAG_NAME }}
         
     
 
