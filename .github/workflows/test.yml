@@ -34,8 +34,8 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           repository: ./hassio-addon-repository
-          tagging_message: ${{TAG_NAME }}
-          commit_message: ${{TAG_NAME }}
+          tagging_message: $TAG_NAME
+          commit_message: $TAG_NAME
         
     
 
