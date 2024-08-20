@@ -29,6 +29,9 @@ jobs:
         run: |
          chmod +x ./server/docker/releaseAddon.py \
          ./server/docker/releaseAddon.py --release >>$GITHUB_ENV
+      - name: show variables
+        run: env
+         
       - name: Checkin hassio-addon-repository
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
