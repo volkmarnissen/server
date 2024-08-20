@@ -8,6 +8,9 @@ on:
         required: true
       DOCKERHUB_PASSWORD:
         required: true
+      PAT:
+        required: true
+
 permissions:
   contents: write
 jobs:
@@ -26,6 +29,7 @@ jobs:
         with:
           path: 'hassio-addon-repository'
           repository: 'modbus2mqtt/hassio-addon-repository'
+          token: ${{ secrets.PAT }}
       - name: Prepare Addon Directory
         id: prepareAddonDirectory
         run: |
