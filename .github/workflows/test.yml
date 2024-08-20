@@ -25,7 +25,7 @@ jobs:
       - name: Prepare Addon Directory
         id: prepareAddonDirectory
         run: |
-         chmod +x ./server/docker/releaseAddon.py \
+         chmod +x ./server/docker/releaseAddon.py 
          ./server/docker/releaseAddon.py --release >>$GITHUB_ENV
       - name: show variables
         run: env
