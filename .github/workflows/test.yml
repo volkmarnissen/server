@@ -8,8 +8,6 @@ on:
         required: true
       DOCKERHUB_PASSWORD:
         required: true
-env:
-  TAG_NAME: ""
 permissions:
   contents: write
 jobs:
@@ -17,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: release
     env:
-      TAG_NAME: ""
+      TAG_NAME: "test"
     steps:
       - name: Check out hassio-addon-repository
         uses: actions/checkout@v4
