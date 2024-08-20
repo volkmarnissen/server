@@ -17,6 +17,10 @@ jobs:
     env:
       TAG_NAME: "test"
     steps:
+      - name: Check out server
+        uses: actions/checkout@v4
+        with:
+          path: 'server'
       - name: Check out hassio-addon-repository
         uses: actions/checkout@v4
         with:
