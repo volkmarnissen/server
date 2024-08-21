@@ -1,6 +1,6 @@
 {
   "name": "@modbus2mqtt/server",
-  "version": "0.16.0",
+  "version": "0.16.1",
   "sshserver": "odroid@homeassistant.fritz.box",
   "homepage": "https://github.com/modbus2mqtt/server/README.md",
   "description": "server for modbus2mqtt for REST API of configuration and publishing modbus values to mqtt",
