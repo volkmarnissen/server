@@ -47,7 +47,7 @@ jobs:
           args: |
             --all \
             --target ./hassio-addon-repository/modbus2mqtt/ \
-            --image modbus2mqtt \
+            --image modbus2mqtt-{arch} \
             --docker-hub modbus2mqtt
       - name: "✏️ Generate release changelog"
         uses: heinrichreimer/action-github-changelog-generator@v2.4
