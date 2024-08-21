@@ -57,14 +57,24 @@ def numberOfChanges(basedir,component):
     return nc
 
 def releaseComponent(basedir, componentInfo):
-    pwd = os.getcwd()
-    os.chdir(os.path.join(basedir, componentInfo.name))
-    cmd='git tag -a "v' + componentInfo.name + \
-                              '" -m "Release &&  git push --tags --force' + \
-                              componentInfo.pkgVersion + '"'
-    result = subprocess.Popen(cmd)
+    result = subprocess.Popen(['git', 'tag', '-a', 
+	'v'+ str(componentInfo.pkgVersion) , '-m', 
+	'Release ' + str(componentInfo.pkgVersion)],
+	cwd=os.path.join(basedir, componentInfo.name),
+ 	stdout=subprocess.PIPE,
+ 	stderr=subprocess.PIPE) 
+    out, err = result.communicate()
+    print('tag' , out, err)
     return_code = result.returncode
-    os.chdir(pwd)
+    print( 'tag' , return_code)
+    if return_code == 0:
+    	result = subprocess.Popen(['git', 'push', '--tags', 
+		'--force'],
+		cwd=os.path.join(basedir, componentInfo.name),
+		stdout=subprocess.PIPE, 
+                stderr=subprocess.PIPE) 
+    	out, err = result.communicate()
+    	print('push', out, err)
     return return_code
 
 def replaceStringInFile(inFile, outFile, replaceName, replaceValue):
@@ -109,9 +119,10 @@ for componentInfo in componentInfos:
                 print( componentInfo.name +  ' is up to date' )
             else:
                 if 'v'+ componentInfo.pkgVersion == componentInfo.releaseTag:
-                    print(component + ' is outdated in npm but has up to date release tag')
+                    print(component + '/' + componentInfo.pkgVersion +  ' is outdated in npm but has up to date release tag ' + componentInfo.releaseTag)
                 else:
                     print( "component will be released ")
+                    print( componentInfo )
                     if releaseComponent(args.basedir, componentInfo) == 0:
                         print(componentInfo.name + " released successfully")
                     else:
