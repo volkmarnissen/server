@@ -1,3 +1,4 @@
+name:  Publish NPM, Dockerfile and Addon
 on:
   push:
     tags:
