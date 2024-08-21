@@ -4,12 +4,14 @@ on:
       - "v*"
 jobs:
   release:
+    name: "Publish to NPM and release in github"
     uses: modbus2mqtt/specification.shared/.github/workflows/publish.yml@main
     permissions:
       contents: write
     secrets:
       NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
   releaseDocker:
+    name: "Publish to Docker and Addon"
     uses: modbus2mqtt/server/.github/workflows/publishDocker.yml@main
     permissions:
       contents: write
