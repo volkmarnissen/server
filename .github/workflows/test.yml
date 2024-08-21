@@ -24,6 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: 'server'
+          token: ${{ secrets.PAT }}
       - name: Check out hassio-addon-repository
         uses: actions/checkout@v4
         with:
@@ -35,9 +36,27 @@ jobs:
         run: |
          chmod +x ./server/docker/releaseAddon.py 
          ./server/docker/releaseAddon.py --release >>$GITHUB_ENV
-      - name: show variables
-        run: env
-         
+      - name: "✏️ Generate release changelog"
+        uses: heinrichreimer/action-github-changelog-generator@v2.4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          output: server/CHANGES.md
+      - name: Copy CHANGES.md
+        id: changes
+        run: |
+         cp server/CHANGES.md hassio-addon-repository/CHANGES.md
+      - name: Checkin CHANGES.md server 
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          repository: ./server
+          commit_message: "Update CHANGES.md"
+      - name: Checkin hassio-addon-repository
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          repository: ./hassio-addon-repository
+          tagging_message: ${{env.TAG_NAME}}
+          commit_message: ${{env.TAG_NAME}}
+   
       - name: Checkin hassio-addon-repository
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
