@@ -3,8 +3,11 @@ import argparse
 import os
 import re
 import json
-from typing import NamedTuple, List
+from typing import NamedTuple
 import subprocess
+import tarfile
+import shutil
+
 
 
 
@@ -16,6 +19,11 @@ class ComponentInfo(NamedTuple):
     numLocalChanges:int
     numRemoteChanges:int
 
+class StringReplacement(NamedTuple):
+    pattern: str
+    newValue:str
+
+
 server ='server'
 
 modbus2mqtt ='modbus2mqtt'
@@ -23,6 +31,9 @@ configYaml='config.yaml'
 dockerDir ='docker'
 DockerfileTemplate = 'Dockerfile.template'
 dockerFile = 'Dockerfile'
+ha_addonDir='/usr/share/hassio/addons/local/modbus2mqtt'
+addonRepositoryModbus2mqtt =  os.path.join( 'hassio-addon-repository',modbus2mqtt)
+
 components = ['specification.shared','server.shared','angular','specification','server']
 
 def getVersion(basedir, component):
@@ -57,22 +68,107 @@ def numberOfChanges(basedir,component):
     return nc
 
 def releaseComponent(basedir, componentInfo):
-    pwd = os.getcwd()
-    os.chdir(os.path.join(basedir, componentInfo.name))
-    cmd='git tag -a "v' + componentInfo.name + \
-                              '" -m "Release &&  git push --tags --force' + \
-                              componentInfo.pkgVersion + '"'
-    result = subprocess.Popen(cmd)
+    result = subprocess.Popen(['git', 'tag', '-a', 
+	'v'+ str(componentInfo.pkgVersion) , '-m', 
+	'Release ' + str(componentInfo.pkgVersion)],
+	cwd=os.path.join(basedir, componentInfo.name),
+ 	stdout=subprocess.PIPE,
+ 	stderr=subprocess.PIPE) 
+    out, err = result.communicate()
+    print('tag' , out, err)
     return_code = result.returncode
-    os.chdir(pwd)
+    print( 'tag' , return_code)
+    if return_code == 0:
+        result = subprocess.Popen(['git', 'push', '--tags', 
+		    '--force'],
+		    cwd=os.path.join(basedir, componentInfo.name),
+		    stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE) 
+        
+        out, err = result.communicate()
+        print('push', out, err)
     return return_code
 
-def replaceStringInFile(inFile, outFile, replaceName, replaceValue):
+def npmInstall(basedir, componentInfo):
+    print("npmInstall", basedir, componentInfo)
+
+def npmPack(basedir, addonDir, name):
+    print("npm pack", basedir)
+    tarsDir = os.path.join(addonDir, 'tars')
+    os.makedirs(tarsDir,exist_ok=True)
+    result = subprocess.Popen(['npm', 'pack', '--silent',
+            '--pack-destination', addonDir  ],
+		    cwd=os.path.join(basedir, name),
+		    stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE) 
+    out, err = result.communicate()
+    tarname=out.decode("utf-8").rstrip() 
+    return tarname
+
+def replaceStringInFile(inFile, outFile, replacements):
     with open(inFile, 'r') as r:
         with open(outFile, 'w') as w:
             for line in r:
-                line = re.sub(rf"{replaceName}", replaceValue,line)
+                for repl in replacements:
+                    line = re.sub(rf"{repl.pattern}", repl.newValue,line)
                 w.write( line)
+
+def prepareConfigYaml( basedir, serverVersion):
+    inFile = os.path.join(basedir, server,'hassio-addon', configYaml)
+#    tmpFile = os.path.join('/tmp', configYaml)
+    outFile = os.path.join(basedir, addonRepositoryModbus2mqtt, configYaml)
+    replaceStringInFile(inFile, outFile,[
+        StringReplacement(pattern='<version>', newValue=serverVersion),
+        StringReplacement(pattern='description:.*', newValue='description: Test Addon\nhost_network: true\nports:\n  9229/tcp: 9229'),
+        StringReplacement(pattern='slug:.*', newValue='slug: modbuslocal'),
+        StringReplacement(pattern='image:.*', newValue=''),
+        StringReplacement(pattern='codenotary:.*', newValue=''),
+        ])
+def writeTarfile(dir, addonDir, mode):
+    tar = tarfile.open( os.path.join(addonDir,"rootfs.tar"), mode)
+    pwd = os.getcwd()
+    os.chdir(dir)
+    tar.add('.')
+    os.chdir(pwd)
+    tar.close()
+def extractTarfile( file, targetDir):
+    tar = tarfile.open( file, "r:gz")
+    tar.extractall(targetDir)
+    tar.close()
+
+def prepareDockerfile( basedir, serverVersion):
+    inFile = os.path.join(basedir, server,dockerDir, DockerfileTemplate)
+    outFile = os.path.join(basedir, addonRepositoryModbus2mqtt, 'Dockerfile')
+    addonDir= os.path.join(basedir, addonRepositoryModbus2mqtt)
+#    addonAppDir = os.path.join(addonDir, 'rootfs')
+    writeTarfile(os.path.join(basedir,server,dockerDir, 'rootfs'),addonDir, "w" )
+    writeTarfile(os.path.join(basedir,server,dockerDir, 'rootfs.debug'),addonDir, "a" )
+    npmTarInstall = ""
+    tarsDir = os.path.join(addonDir, '@modbus2mqtt')
+    shutil.rmtree(tarsDir,ignore_errors=True)
+    os.makedirs(tarsDir,exist_ok=True)
+    for componentInfo in componentInfos:
+        tarname = os.path.join('.', npmPack(basedir, addonDir, componentInfo.name ))
+
+        npmTarInstall = npmTarInstall + ' ' + tarname
+        replaceStringInFile(inFile, outFile,[
+            StringReplacement(pattern='<version>', newValue=serverVersion),
+            StringReplacement(pattern='RUN npm install --omit-dev.*', newValue='COPY '+ npmTarInstall + ' .\nRUN npm install ' + npmTarInstall),
+            ])
+        extractTarfile( os.path.join(basedir, addonDir, "modbus2mqtt-"+ componentInfo.name + "-" + componentInfo.pkgVersion + ".tgz" ), tarsDir)
+        os.rename( os.path.join(tarsDir, 'package'),os.path.join(tarsDir, componentInfo.name))
+
+def copyToHassio(addonDir,sshport, sshhost):
+    cmd = 'tar c -f - . |ssh -p ' + str(sshport) + \
+            ' homeassistant@' + sshhost + ' "cd ' + ha_addonDir  +'; tar xf - "'
+    print( cmd)
+    result = subprocess.Popen([
+        cmd],
+		    cwd=addonDir,
+		    stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE, shell=True) 
+    out, err = result.communicate()
+    print(out, err)
 
 
 def reset(tarinfo):
@@ -82,38 +178,47 @@ def reset(tarinfo):
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-b", "--basedir", help="base directory of all repositories", default='.')
-# parser.add_argument("-r", "--release", help="releases Dockerfile for production", action='store_true')
-# parser.add_argument("-d", "--debug", help="Creates local addon directory for debugging", type=bool)
-# parser.add_argument("-p", "--sshport", help="Sets the ssh port for addon directory default: 22",  nargs='?', default=None, const=22, type=int)
-# parser.add_argument("-s", "--sshhost", help="Sets the ssh host for addon directory default: localhost", nargs='?', default='localhost', const='localhost')
+parser.add_argument("-d", "--debug", help="Creates local addon directory for debugging", action='store_true')
+parser.add_argument("-p", "--sshport", help="Sets the ssh port for addon directory default: 22",  nargs='?', default=22, type=int)
+parser.add_argument("-s", "--sshhost", help="Sets the ssh host for addon directory default: localhost", nargs='?', default='localhost', const='localhost')
 
 args = parser.parse_args()
 componentInfos=[]
-
+serverComponent=""
 for component in components:
-    componentInfos.append( ComponentInfo(component, getVersion(args.basedir, component),
-                         getNpmVersion(component),
-                         getReleaseTag(args.basedir, component),
-                         numberOfChanges(args.basedir, component),
-                         numberOfRemoteChanges(args.basedir, component)))
-print(componentInfos)
-for componentInfo in componentInfos:
-    
-    if int(componentInfo.numLocalChanges) > 0:
-        print( componentInfo.name +  ' has local changes, please commit first' )
-    else:
-        if int (componentInfo.numRemoteChanges) > 0:
-            print( componentInfo.name +  ' has differences to remote push/pull first' )
+    ci = ComponentInfo(component, getVersion(args.basedir, component),
+                        getNpmVersion(component),
+                        getReleaseTag(args.basedir, component),
+                        numberOfChanges(args.basedir, component),
+                         numberOfRemoteChanges(args.basedir, component))
+    componentInfos.append( ci )
+    if component == server:
+        serverComponent = ci
+
+    print(componentInfos)
+
+if( args.debug):
+    print("debug")
+    prepareConfigYaml(args.basedir, serverComponent.pkgVersion)
+    prepareDockerfile(args.basedir, serverComponent.pkgVersion)
+    copyToHassio(os.path.join(args.basedir, addonRepositoryModbus2mqtt ), args.sshport, args.sshhost)
+else:
+    for componentInfo in componentInfos:        
+        if int(componentInfo.numLocalChanges) > 0:
+            print( componentInfo.name +  ' has local changes, please commit first' )
         else:
-            if componentInfo.pkgVersion == componentInfo.npmVersion:
-                print( componentInfo.name +  ' is up to date' )
+            if int (componentInfo.numRemoteChanges) > 0:
+                print( componentInfo.name +  ' has differences to remote push/pull first' )
             else:
-                if 'v'+ componentInfo.pkgVersion == componentInfo.releaseTag:
-                    print(component + ' is outdated in npm but has up to date release tag')
+                if componentInfo.pkgVersion == componentInfo.npmVersion:
+                    print( componentInfo.name +  ' is up to date' )
                 else:
-                    print( "component will be released ")
-                    if releaseComponent(args.basedir, componentInfo) == 0:
-                        print(componentInfo.name + " released successfully")
+                    if 'v'+ componentInfo.pkgVersion == componentInfo.releaseTag:
+                        print(component + '/' + componentInfo.pkgVersion +  ' is outdated in npm but has up to date release tag ' + componentInfo.releaseTag)
                     else:
-                        print(componentInfo.name + " released failed")
-        
+                        print( "component will be released ")
+                        print( componentInfo )
+                        if releaseComponent(args.basedir, componentInfo) == 0:
+                            print(componentInfo.name + " released successfully")
+                        else:
+                            print(componentInfo.name + " released failed")
