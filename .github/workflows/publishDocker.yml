@@ -53,7 +53,7 @@ jobs:
         uses: heinrichreimer/action-github-changelog-generator@v2.4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          output: hassio-addon-repository/CHANGES.md
+          output: hassio-addon-repository/CHANGELOG.md
       - name: Checkin hassio-addon-repository
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
