@@ -1,6 +1,6 @@
 #!/bin/sh
 set -e
-CONTAINER=$(docker container ps | grep modbus2mqtt| awk '{print $1}')
+CONTAINER=$(docker container ps | grep modbuslocal| awk '{print $1}')
 echo Container: $CONTAINER
 if [ "$CONTAINER" = "" ] 
 then
