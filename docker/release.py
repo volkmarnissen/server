@@ -140,7 +140,7 @@ def prepareDockerfile( basedir, serverVersion):
     inFile = os.path.join(basedir, server,dockerDir, DockerfileTemplate)
     outFile = os.path.join(basedir, addonRepositoryModbus2mqtt, 'Dockerfile')
     addonDir= os.path.join(basedir, addonRepositoryModbus2mqtt)
-#    addonAppDir = os.path.join(addonDir, 'rootfs')
+    # addonAppDir = os.path.join(addonDir, 'rootfs' , 'usr', 'app')
     writeTarfile(os.path.join(basedir,server,dockerDir, 'rootfs'),addonDir, "w" )
     writeTarfile(os.path.join(basedir,server,dockerDir, 'rootfs.debug'),addonDir, "a" )
     npmTarInstall = ""
@@ -153,10 +153,11 @@ def prepareDockerfile( basedir, serverVersion):
         npmTarInstall = npmTarInstall + ' ' + tarname
         replaceStringInFile(inFile, outFile,[
             StringReplacement(pattern='<version>', newValue=serverVersion),
-            StringReplacement(pattern='RUN npm install --omit-dev.*', newValue='COPY '+ npmTarInstall + ' .\nRUN npm install ' + npmTarInstall),
+            StringReplacement(pattern='RUN npm install --omit-dev.*', newValue='COPY '+ npmTarInstall + ' ./\nRUN npm install ' + npmTarInstall),
             ])
         extractTarfile( os.path.join(basedir, addonDir, "modbus2mqtt-"+ componentInfo.name + "-" + componentInfo.pkgVersion + ".tgz" ), tarsDir)
         os.rename( os.path.join(tarsDir, 'package'),os.path.join(tarsDir, componentInfo.name))
+    return npmTarInstall
 
 def copyToHassio(addonDir,sshport, sshhost):
     cmd = 'tar c -f - . |ssh -p ' + str(sshport) + \
@@ -170,7 +171,26 @@ def copyToHassio(addonDir,sshport, sshhost):
     out, err = result.communicate()
     print(out, err)
 
+def executeCpSh(sshport, sshhost ):
 
+    cmd = 'ssh -p ' + str(sshport) + \
+            ' homeassistant@' + sshhost + ' "cd ' + ha_addonDir  +'; ' + os.path.join(ha_addonDir, 'cp.sh') + '"'
+    print( cmd)
+    result = subprocess.Popen([cmd],
+		    cwd=addonDir,
+		    stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE, shell=True) 
+    out, err = result.communicate()
+    print(out, err)    
+def cleanAddonDir(addonDir, tgzfiles):
+    shutil.rmtree(os.path.join(addonDir, "rootfs.tar"), ignore_errors=True)
+    shutil.rmtree(os.path.join(addonDir, "Dockerfile"), ignore_errors=True)
+    shutil.rmtree(os.path.join(addonDir, "@modbus2mqtt"), ignore_errors=True)
+    shutil.rmtree(os.path.join(addonDir, "@modbus2mqtt"), ignore_errors=True)
+    cmd = "cd " + addonDir + " ; rm cp.sh " +tgzfiles
+    print(cmd)
+    rc = subprocess.call(cmd , shell=True)
+    print(rc)
 def reset(tarinfo):
     tarinfo.uid = tarinfo.gid = 0
     tarinfo.uname = tarinfo.gname = "root"
@@ -200,8 +220,13 @@ for component in components:
 if( args.debug):
     print("debug")
     prepareConfigYaml(args.basedir, serverComponent.pkgVersion)
-    prepareDockerfile(args.basedir, serverComponent.pkgVersion)
-    copyToHassio(os.path.join(args.basedir, addonRepositoryModbus2mqtt ), args.sshport, args.sshhost)
+    tgzs = prepareDockerfile(args.basedir, serverComponent.pkgVersion)
+    addonDir = os.path.join(args.basedir, addonRepositoryModbus2mqtt )
+    inFile = os.path.join(args.basedir, server,dockerDir, "cp.sh")
+    shutil.copy( inFile, addonDir)  
+    copyToHassio(addonDir, args.sshport, args.sshhost)
+    cleanAddonDir(addonDir,tgzs)
+    executeCpSh(args.sshport, args.sshhost)
 else:
     for componentInfo in componentInfos:        
         if int(componentInfo.numLocalChanges) > 0:
