@@ -479,7 +479,7 @@ export class Config {
           log.log(LogLevelEnum.notice, 'configuration directory  not found ' + process.cwd() + '/' + Config.yamlDir)
           Config.config = structuredClone(Config.newConfig)
           Config.busses = []
-          return
+          resolve()
         }
         debug('yamlDir: ' + Config.yamlDir + ' ' + process.argv.length)
 
