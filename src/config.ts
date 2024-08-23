@@ -21,7 +21,7 @@ declare global {
     }
   }
 }
-
+const DEFAULT_MQTT_CONNECT_TIMEOUT = 60 * 1000
 export enum MqttValidationResult {
   OK = 0,
   tokenExpired = 1,
@@ -130,7 +130,7 @@ export class Config {
     mqttdiscoveryprefix: 'homeassistant',
     mqttdiscoverylanguage: 'en',
     mqttconnect: {
-      connectTimeout: 60 * 1000,
+      connectTimeout: DEFAULT_MQTT_CONNECT_TIMEOUT,
     },
     httpport: 3000,
     fakeModbus: false,
@@ -250,7 +250,7 @@ export class Config {
 
       Config.config.mqttconnect.connectTimeout = Config.config.mqttconnect.connectTimeout
         ? Config.config.mqttconnect.connectTimeout
-        : 60 * 1000
+        : DEFAULT_MQTT_CONNECT_TIMEOUT
       Config.config.mqttconnect.clientId = Config.config.mqttconnect.clientId ? Config.config.mqttconnect.clientId : 'modbus2mqtt'
       Config.config.mqttconnect.clean = Config.config.mqttconnect.clean ? Config.config.mqttconnect.clean : true
       Config.config.httpport = Config.config.httpport ? Config.config.httpport : 3000
@@ -427,7 +427,7 @@ export class Config {
             delete (config.mqttconnect as any).protocol
             delete (config.mqttconnect as any).addon
             debugAddon('getMqttLoginFromHassio: Read MQTT login data from Hassio')
-
+            config.mqttconnect.connectTimeout = DEFAULT_MQTT_CONNECT_TIMEOUT
             resolve(config.mqttconnect)
           },
           reject
@@ -479,7 +479,7 @@ export class Config {
           log.log(LogLevelEnum.notice, 'configuration directory  not found ' + process.cwd() + '/' + Config.yamlDir)
           Config.config = structuredClone(Config.newConfig)
           Config.busses = []
-          return
+          resolve()
         }
         debug('yamlDir: ' + Config.yamlDir + ' ' + process.argv.length)
 
