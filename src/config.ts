@@ -22,6 +22,8 @@ declare global {
   }
 }
 const DEFAULT_MQTT_CONNECT_TIMEOUT = 60 * 1000
+const HASSIO_TIMEOUT = 300
+
 export enum MqttValidationResult {
   OK = 0,
   tokenExpired = 1,
@@ -323,8 +325,8 @@ export class Config {
     if (!hassiotoken || hassiotoken.length == 0) throw new Error('ENV: HASSIO_TOKEN not defined')
 
     const timer = setTimeout(() => {
-      reject(new Error('TIMEOUT'))
-    }, 100 /* ms */)
+      reject(new Error('TIMEOUT(' + HASSIO_TIMEOUT + 'ms)'))
+    }, HASSIO_TIMEOUT /* ms */)
 
     fetch(url, {
       headers: {

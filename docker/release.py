@@ -104,6 +104,15 @@ def npmPack(basedir, addonDir, name):
     out, err = result.communicate()
     tarname=out.decode("utf-8").rstrip() 
     return tarname
+def npmBuildServer(basedir):
+    print("npm build.all server", basedir)
+    result = subprocess.Popen(['npm', 'run', 'build.all' ],
+		    cwd=os.path.join(basedir, server),
+		    stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE) 
+    out, err = result.communicate()
+    print(out, err)
+    return result.returncode
 
 def replaceStringInFile(inFile, outFile, replacements):
     with open(inFile, 'r') as r:
@@ -155,7 +164,7 @@ def prepareDockerfile( basedir, serverVersion):
             StringReplacement(pattern='<version>', newValue=serverVersion),
             StringReplacement(pattern='RUN npm install --omit-dev.*', newValue='COPY '+ npmTarInstall + ' ./\nRUN npm install ' + npmTarInstall),
             ])
-        extractTarfile( os.path.join(basedir, addonDir, "modbus2mqtt-"+ componentInfo.name + "-" + componentInfo.pkgVersion + ".tgz" ), tarsDir)
+        extractTarfile( os.path.join(addonDir, "modbus2mqtt-"+ componentInfo.name + "-" + componentInfo.pkgVersion + ".tgz" ), tarsDir)
         os.rename( os.path.join(tarsDir, 'package'),os.path.join(tarsDir, componentInfo.name))
     return npmTarInstall
 
@@ -228,6 +237,8 @@ if( args.debug):
     cleanAddonDir(addonDir,tgzs)
     executeCpSh(args.sshport, args.sshhost)
 else:
+    if npmBuildServer(args.basedir) != 0:
+        exit(1)
     for componentInfo in componentInfos:        
         if int(componentInfo.numLocalChanges) > 0:
             print( componentInfo.name +  ' has local changes, please commit first' )
