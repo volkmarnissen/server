@@ -390,8 +390,8 @@ export class MqttDiscover {
       return
     }
 
-    if (!this.client) log.log(LogLevelEnum.error, 'Internal error: mqtt client is not defined')
-    else if (this.mqttConnectionData.mqttserverurl) {
+    if (!this.client) debug('Internal error: mqtt client is not defined')
+    if (this.mqttConnectionData.mqttserverurl) {
       let opts = this.mqttConnectionData
       opts.clean = true
       opts.clientId = 'modbus2mqtt'

@@ -17,26 +17,27 @@ afterAll(() => {
 test("register/login/validate", (done) => {
   const config = new Config();
   let loginExecuted: boolean = false;
-  config.readYaml();
-  let cfg = Config.getConfiguration();
-  Config.tokenExpiryTime = 2000;
-  expect((cfg as any).noentry).toBeUndefined();
-  new Config().writeConfiguration(cfg);
-  Config.register("test", "test123").then(() => {
-    Config.login("test", "test123").then((token) => {
-      expect(Config.validateUserToken(token)).toBe(MqttValidationResult.OK);
-      setTimeout(() => {
-        expect(Config.validateUserToken(token)).toBe(
-          MqttValidationResult.tokenExpired,
-        );
-        Config.login("test", "test124").catch((reason) => {
-          expect(reason).toBe(
-            AuthenticationErrors.InvalidUserPasswordCombination,
+  config.readYamlAsync().then(() => {
+    let cfg = Config.getConfiguration();
+    Config.tokenExpiryTime = 2000;
+    expect((cfg as any).noentry).toBeUndefined();
+    new Config().writeConfiguration(cfg);
+    Config.register("test", "test123").then(() => {
+      Config.login("test", "test123").then((token) => {
+        expect(Config.validateUserToken(token)).toBe(MqttValidationResult.OK);
+        setTimeout(() => {
+          expect(Config.validateUserToken(token)).toBe(
+            MqttValidationResult.tokenExpired,
           );
-          done();
-        });
-      }, Config.tokenExpiryTime);
-    });
+          Config.login("test", "test124").catch((reason) => {
+            expect(reason).toBe(
+              AuthenticationErrors.InvalidUserPasswordCombination,
+            );
+            done();
+          });
+        }, Config.tokenExpiryTime);
+      });
+    });      
   });
 });
 
