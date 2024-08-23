@@ -237,8 +237,6 @@ if( args.debug):
     cleanAddonDir(addonDir,tgzs)
     executeCpSh(args.sshport, args.sshhost)
 else:
-    if npmBuildServer(args.basedir) != 0:
-        exit(1)
     for componentInfo in componentInfos:        
         if int(componentInfo.numLocalChanges) > 0:
             print( componentInfo.name +  ' has local changes, please commit first' )
