@@ -1,5 +1,5 @@
-import { Bus } from "../src/bus";
-import { Config } from "../src/config";
+import { Bus } from '../src/bus'
+import { Config } from '../src/config'
 import {
   Itext,
   IdentifiedStates,
@@ -11,378 +11,338 @@ import {
   ModbusRegisterType,
   FileLocation,
   SpecificationFileUsage,
-} from "@modbus2mqtt/specification.shared";
-import { Modbus, ModbusForTest } from "../src/modbus";
-import { IslaveId, ModbusCache } from "../src/modbuscache";
-import {
-  getReadRegisterResult,
-  submitGetHoldingRegisterRequest,
-} from "../src/submitRequestMock";
-import { yamlDir } from "./configsbase";
-import { Islave } from "@modbus2mqtt/server.shared";
-import {
-  ConfigSpecification,
-  IfileSpecification,
-  emptyModbusValues,
-} from "@modbus2mqtt/specification";
-import {
-  expect,
-  xit,
-  it,
-  describe,
-  beforeEach,
-  jest,
-  beforeAll,
-} from "@jest/globals";
-import Debug from "debug";
-Config["yamlDir"] = yamlDir;
-Config.sslDir = yamlDir;
-ConfigSpecification.yamlDir = yamlDir;
-let debug = Debug("modbus_test");
+} from '@modbus2mqtt/specification.shared'
+import { Modbus, ModbusForTest } from '../src/modbus'
+import { IslaveId, ModbusCache } from '../src/modbuscache'
+import { getReadRegisterResult, submitGetHoldingRegisterRequest } from '../src/submitRequestMock'
+import { yamlDir } from './configsbase'
+import { Islave } from '@modbus2mqtt/server.shared'
+import { ConfigSpecification, IfileSpecification, emptyModbusValues } from '@modbus2mqtt/specification'
+import { expect, xit, it, describe, beforeEach, jest, beforeAll } from '@jest/globals'
+import Debug from 'debug'
+Config['yamlDir'] = yamlDir
+Config.sslDir = yamlDir
+ConfigSpecification.yamlDir = yamlDir
+let debug = Debug('modbus_test')
 
 beforeAll(() => {
-  jest.mock("../src/modbus");
-  ModbusCache.prototype.submitGetHoldingRegisterRequest =
-    submitGetHoldingRegisterRequest;
-});
+  jest.mock('../src/modbus')
+  ModbusCache.prototype.submitGetHoldingRegisterRequest = submitGetHoldingRegisterRequest
+})
 beforeEach(() => {
   spec = {
     entities: [
       {
         id: 1,
-        mqttname: "mqtt",
-        converter: { name: "sensor" as Converters, registerTypes: [] },
+        mqttname: 'mqtt',
+        converter: { name: 'sensor' as Converters, registerTypes: [] },
         modbusAddress: 4,
         registerType: ModbusRegisterType.HoldingRegister,
         readonly: true,
-        icon: "",
+        icon: '',
         converterParameters: {
           multiplier: 0.1,
           offset: 0,
-          uom: "cm",
+          uom: 'cm',
           identification: { min: 0, max: 200 },
         },
       },
       {
         id: 2,
-        mqttname: "mqtt2",
-        converter: { name: "select_sensor" as Converters, registerTypes: [] },
+        mqttname: 'mqtt2',
+        converter: { name: 'select_sensor' as Converters, registerTypes: [] },
         modbusAddress: 2,
         registerType: ModbusRegisterType.HoldingRegister,
         readonly: true,
-        icon: "",
+        icon: '',
         converterParameters: { optionModbusValues: [1, 2, 3] },
       },
       {
         id: 3,
-        mqttname: "mqtt3",
-        converter: { name: "select" as Converters, registerTypes: [] },
+        mqttname: 'mqtt3',
+        converter: { name: 'select' as Converters, registerTypes: [] },
         modbusAddress: 3,
         registerType: ModbusRegisterType.HoldingRegister,
         readonly: true,
-        icon: "",
+        icon: '',
         converterParameters: { optionModbusValues: [0, 1, 2, 3] },
       },
     ],
     status: 2,
-    manufacturer: "unknown",
-    model: "QDY30A",
-    filename: "waterleveltransmitter",
+    manufacturer: 'unknown',
+    model: 'QDY30A',
+    filename: 'waterleveltransmitter',
     i18n: [
       {
-        lang: "en",
+        lang: 'en',
         texts: [
-          { textId: "e1o.1", text: "ON" },
-          { textId: "e1o.0", text: "OFF" },
-          { textId: "e1o.2", text: "test" },
+          { textId: 'e1o.1', text: 'ON' },
+          { textId: 'e1o.0', text: 'OFF' },
+          { textId: 'e1o.2', text: 'test' },
         ],
       },
     ],
     files: [],
-  };
-});
+  }
+})
 
-let spec: Ispecification;
-var mr = new Modbus();
-var dev: Islave | undefined = undefined;
+let spec: Ispecification
+var mr = new Modbus()
+var dev: Islave | undefined = undefined
 var ent: ImodbusEntity = {
   id: 1,
-  mqttname: "mqtt",
+  mqttname: 'mqtt',
   modbusAddress: 3,
   readonly: true,
   registerType: ModbusRegisterType.HoldingRegister,
   modbusValue: [1],
-  mqttValue: "",
+  mqttValue: '',
   identified: IdentifiedStates.unknown,
   converterParameters: { multiplier: 0.01 },
-  converter: { name: "number", registerTypes: [] },
-};
-var ents: Ientity[] = [ent];
+  converter: { name: 'number', registerTypes: [] },
+}
+var ents: Ientity[] = [ent]
 var entText: ImodbusEntity = {
   id: 2,
-  mqttname: "mqtt",
+  mqttname: 'mqtt',
   modbusAddress: 5,
   registerType: ModbusRegisterType.HoldingRegister,
   readonly: true,
   modbusValue: [(65 << 8) | 66, (67 << 8) | 68],
-  mqttValue: "",
+  mqttValue: '',
   identified: IdentifiedStates.unknown,
   converterParameters: { stringlength: 10 },
-  converter: { name: "text", registerTypes: [] },
-};
-var readConfig = new Config();
-var prepared: boolean = false;
+  converter: { name: 'text', registerTypes: [] },
+}
+var readConfig = new Config()
+var prepared: boolean = false
 function prepareIdentification() {
   if (!prepared) {
-    prepared = true;
-    readConfig = new Config();
-    readConfig.readYaml();
-    new ConfigSpecification().readYaml();
-    dev = Config.getSlave(0, 1)!;
+    prepared = true
+    readConfig = new Config()
+    readConfig.readYaml()
+    new ConfigSpecification().readYaml()
+    dev = Config.getSlave(0, 1)!
   }
 }
 
-describe("Modbus read", () => {
-  it("Modbus read", (done) => {
-    let readConfig: Config = new Config();
-    readConfig.readYaml();
-    new ConfigSpecification().readYaml();
-    let dev = Config.getSlave(0, 1)!;
-    expect(dev).toBeDefined;
-    Modbus.getModbusSpecification(
-      "test",
-      Bus.getBus(0)!,
-      1,
-      dev!.specificationid!,
-      (_e) => {
-        expect(false).toBeTruthy();
-        done();
-      },
-    ).subscribe((spec1) => {
-      let spec = ConfigSpecification.getSpecificationByFilename(
-        dev!.specificationid!,
-      )!;
-      expect(spec).toBeDefined();
-      expect((spec1?.entities[0] as ImodbusEntity).mqttValue).toBe(
-        (spec1?.entities[0] as ImodbusEntity).mqttValue,
-      );
-      expect(
-        ((spec1?.entities[0] as ImodbusEntity).mqttValue as number) - 21,
-      ).toBeLessThan(0.001);
-      done();
-    });
-  });
+describe('Modbus read', () => {
+  it('Modbus read', (done) => {
+    let readConfig: Config = new Config()
+    readConfig.readYaml()
+    new ConfigSpecification().readYaml()
+    let dev = Config.getSlave(0, 1)!
+    expect(dev).toBeDefined
+    Modbus.getModbusSpecification('test', Bus.getBus(0)!, 1, dev!.specificationid!, (_e) => {
+      expect(false).toBeTruthy()
+      done()
+    }).subscribe((spec1) => {
+      let spec = ConfigSpecification.getSpecificationByFilename(dev!.specificationid!)!
+      expect(spec).toBeDefined()
+      expect((spec1?.entities[0] as ImodbusEntity).mqttValue).toBe((spec1?.entities[0] as ImodbusEntity).mqttValue)
+      expect(((spec1?.entities[0] as ImodbusEntity).mqttValue as number) - 21).toBeLessThan(0.001)
+      done()
+    })
+  })
 
-  it("Modbus read Entity identifiation unknown", (done) => {
-    prepareIdentification();
-    expect(dev).toBeDefined;
-    spec.entities = ents;
+  it('Modbus read Entity identifiation unknown', (done) => {
+    prepareIdentification()
+    expect(dev).toBeDefined
+    spec.entities = ents
     mr.readEntityFromModbus(Bus.getBus(0)!, 1, spec, 1)
       .then((arg0: ImodbusEntity) => {
-        expect(arg0!.identified).toBe(IdentifiedStates.unknown);
-        done();
+        expect(arg0!.identified).toBe(IdentifiedStates.unknown)
+        done()
       })
       .catch((_e) => {
-        expect(false).toBeTruthy();
-        done();
-      }); // unidenfified
-  });
-  it("Modbus read Entity identifiation identified", (done) => {
-    prepareIdentification();
-    expect(dev).toBeDefined;
+        expect(false).toBeTruthy()
+        done()
+      }) // unidenfified
+  })
+  it('Modbus read Entity identifiation identified', (done) => {
+    prepareIdentification()
+    expect(dev).toBeDefined
     if (ent.converterParameters)
       (ent.converterParameters as Inumber).identification = {
         min: 0.01,
         max: 0.4,
-      };
-    spec.entities = ents;
-    mr.readEntityFromModbus(Bus.getBus(0)!, 1, spec, 1).then(
-      (arg0: ImodbusEntity) => {
-        expect(arg0!.identified).toBe(IdentifiedStates.identified);
-        done();
-      },
-    ); // unidenfified
-  });
-  it("Modbus read Entity identifiation Iselect identified", (done) => {
-    prepareIdentification();
-    expect(dev).toBeDefined;
-    Config["config"].fakeModbus = false;
+      }
+    spec.entities = ents
+    mr.readEntityFromModbus(Bus.getBus(0)!, 1, spec, 1).then((arg0: ImodbusEntity) => {
+      expect(arg0!.identified).toBe(IdentifiedStates.identified)
+      done()
+    }) // unidenfified
+  })
+  it('Modbus read Entity identifiation Iselect identified', (done) => {
+    prepareIdentification()
+    expect(dev).toBeDefined
+    Config['config'].fakeModbus = false
 
     if (ent.converterParameters)
       (ent.converterParameters as Inumber).identification = {
         min: 0.02,
         max: 0.04,
-      };
-    ent.converter = { name: "select", registerTypes: [] };
-    ent.modbusValue = [1];
+      }
+    ent.converter = { name: 'select', registerTypes: [] }
+    ent.modbusValue = [1]
     ent.converterParameters = {
       optionModbusValues: [0, 1, 2, 3],
-    };
-    ent.id = 1;
-    spec.entities = [ent];
+    }
+    ent.id = 1
+    spec.entities = [ent]
     mr.readEntityFromModbus(Bus.getBus(0)!, 1, spec, 1)
       .then((arg0: ImodbusEntity) => {
-        expect(arg0!.identified).toBe(IdentifiedStates.identified);
-        Config["config"].fakeModbus = true;
+        expect(arg0!.identified).toBe(IdentifiedStates.identified)
+        Config['config'].fakeModbus = true
 
-        done();
+        done()
       })
       .catch((err) => {
-        debug(JSON.stringify(err));
-      }); // unidenfified
-  });
+        debug(JSON.stringify(err))
+      }) // unidenfified
+  })
 
-  it("Modbus read Entity identifiation string not identified", (done) => {
+  it('Modbus read Entity identifiation string not identified', (done) => {
     //@ts-ignore
-    prepareIdentification();
-    Config["config"].fakeModbus = false;
-    expect(dev).toBeDefined;
-    if (entText.converterParameters)
-      (entText.converterParameters as Itext).identification = "test";
-    spec.entities = [entText];
-    mr.readEntityFromModbus(Bus.getBus(0)!, 2, spec, 2).then(
-      (arg0: ImodbusEntity) => {
-        expect(arg0!.identified).toBe(IdentifiedStates.notIdentified);
-        done();
-      },
-    ); // unidenfified
-  });
+    prepareIdentification()
+    Config['config'].fakeModbus = false
+    expect(dev).toBeDefined
+    if (entText.converterParameters) (entText.converterParameters as Itext).identification = 'test'
+    spec.entities = [entText]
+    mr.readEntityFromModbus(Bus.getBus(0)!, 2, spec, 2).then((arg0: ImodbusEntity) => {
+      expect(arg0!.identified).toBe(IdentifiedStates.notIdentified)
+      done()
+    }) // unidenfified
+  })
 
-  it("Modbus read Entity identifiation string identified", (done) => {
-    prepareIdentification();
-    Config["config"].fakeModbus = false;
+  it('Modbus read Entity identifiation string identified', (done) => {
+    prepareIdentification()
+    Config['config'].fakeModbus = false
     //jest.spyOn(Modbus.prototype, 'readHoldingRegister').mockReturnValue([65 << 8 | 66, 67 << 8 | 68])
-    expect(dev).toBeDefined;
-    if (entText.converterParameters)
-      (entText.converterParameters as Itext).identification = "ABCD";
-    dev!.slaveid = 2;
-    spec.entities = [entText];
-    mr.readEntityFromModbus(Bus.getBus(1)!, 2, spec, 2).then(
-      (arg0: ImodbusEntity) => {
-        expect(arg0!.identified).toBe(IdentifiedStates.identified);
-        done();
-      },
-    ); // unidenfified
-  });
+    expect(dev).toBeDefined
+    if (entText.converterParameters) (entText.converterParameters as Itext).identification = 'ABCD'
+    dev!.slaveid = 2
+    spec.entities = [entText]
+    mr.readEntityFromModbus(Bus.getBus(1)!, 2, spec, 2).then((arg0: ImodbusEntity) => {
+      expect(arg0!.identified).toBe(IdentifiedStates.identified)
+      done()
+    }) // unidenfified
+  })
   // it("Modbus getUsbDevices", done => {
   //     mr.getUsbDevices();
   //     done();
   // });
-});
-xit("Modbus modbusDataToSpec spec.identified = identified", () => {
+})
+xit('Modbus modbusDataToSpec spec.identified = identified', () => {
   let spec: IfileSpecification = {
-    version: "0.1",
+    version: '0.1',
     entities: [
       {
         id: 1,
-        mqttname: "mqtt",
-        converter: { name: "number" as Converters, registerTypes: [] },
+        mqttname: 'mqtt',
+        converter: { name: 'number' as Converters, registerTypes: [] },
         modbusAddress: 4,
         registerType: ModbusRegisterType.HoldingRegister,
         readonly: true,
-        icon: "",
+        icon: '',
         converterParameters: {
           multiplier: 0.1,
           offset: 0,
-          uom: "cm",
+          uom: 'cm',
           identification: { min: 0, max: 200 },
         },
       },
       {
         id: 2,
-        mqttname: "mqtt2",
-        converter: { name: "select_sensor" as Converters, registerTypes: [] },
+        mqttname: 'mqtt2',
+        converter: { name: 'select_sensor' as Converters, registerTypes: [] },
         modbusAddress: 2,
         registerType: ModbusRegisterType.HoldingRegister,
         readonly: true,
-        icon: "",
+        icon: '',
         converterParameters: {
           options: [
-            { key: 1, name: "cm" },
-            { key: 2, name: "mm" },
-            { key: 3, name: "mPa" },
+            { key: 1, name: 'cm' },
+            { key: 2, name: 'mm' },
+            { key: 3, name: 'mPa' },
           ],
         },
       },
       {
         id: 3,
-        mqttname: "mqtt3",
-        converter: { name: "select_sensor" as Converters, registerTypes: [] },
+        mqttname: 'mqtt3',
+        converter: { name: 'select_sensor' as Converters, registerTypes: [] },
         modbusAddress: 3,
         registerType: ModbusRegisterType.HoldingRegister,
         readonly: true,
-        icon: "",
+        icon: '',
         converterParameters: {
           options: [
-            { key: 0, name: "1" },
-            { key: 1, name: "0.1" },
-            { key: 2, name: "0.01" },
-            { key: 3, name: "0.001" },
+            { key: 0, name: '1' },
+            { key: 1, name: '0.1' },
+            { key: 2, name: '0.01' },
+            { key: 3, name: '0.001' },
           ],
         },
       },
     ],
     status: 2,
-    manufacturer: "unknown",
-    model: "QDY30A",
+    manufacturer: 'unknown',
+    model: 'QDY30A',
 
-    filename: "waterleveltransmitter",
+    filename: 'waterleveltransmitter',
     i18n: [],
     files: [
       {
-        url: "/documents/waterleveltransmitter.pdf",
+        url: '/documents/waterleveltransmitter.pdf',
         fileLocation: FileLocation.Local,
         usage: SpecificationFileUsage.documentation,
       },
       {
-        url: "https://m.media-amazon.com/images/I/51WMttnsOML._AC_SX569_.jpg",
+        url: 'https://m.media-amazon.com/images/I/51WMttnsOML._AC_SX569_.jpg',
         fileLocation: FileLocation.Local,
         usage: SpecificationFileUsage.img,
       },
     ],
     testdata: {},
-  };
+  }
   //"modbusValue": [210], "mqttValue": 21,
   //        "modbusValue": [1], "mqttValue": "cm", "identified": 1,
   //"modbusValue": [1], "mqttValue": "0.1", "identified": 1,
-  let results = emptyModbusValues();
-  results.holdingRegisters.set(4, getReadRegisterResult(210));
-  results.holdingRegisters.set(2, getReadRegisterResult(1));
-  results.holdingRegisters.set(3, getReadRegisterResult(1));
-  Config.getConfiguration();
-  Config["config"].fakeModbus = false;
-  let m = new ModbusForTest();
-  let result = m.modbusDataToSpecForTest(spec);
-  debug(JSON.stringify(result));
-  expect(result).toBeDefined();
-  expect(result!.identified).toBe(IdentifiedStates.identified);
-  Config["config"].fakeModbus = true;
-});
+  let results = emptyModbusValues()
+  results.holdingRegisters.set(4, getReadRegisterResult(210))
+  results.holdingRegisters.set(2, getReadRegisterResult(1))
+  results.holdingRegisters.set(3, getReadRegisterResult(1))
+  Config.getConfiguration()
+  Config['config'].fakeModbus = false
+  let m = new ModbusForTest()
+  let result = m.modbusDataToSpecForTest(spec)
+  debug(JSON.stringify(result))
+  expect(result).toBeDefined()
+  expect(result!.identified).toBe(IdentifiedStates.identified)
+  Config['config'].fakeModbus = true
+})
 
-function writeRegisters(
-  _slaveid: IslaveId,
-  _startaddress: number,
-  registerType: ModbusRegisterType,
-): Promise<void> {
+function writeRegisters(_slaveid: IslaveId, _startaddress: number, registerType: ModbusRegisterType): Promise<void> {
   return new Promise<void>((resolve, reject) => {
-    debug("write Registers");
-    resolve();
-  });
+    debug('write Registers')
+    resolve()
+  })
 }
-it("Modbus writeEntityMqtt", (done) => {
-  ModbusCache.prototype.writeRegisters = writeRegisters;
-  let readConfig: Config = new Config();
-  readConfig.readYaml();
-  new ConfigSpecification().readYaml();
-  let dev = Config.getSlave(0, 1)!;
-  expect(dev).toBeDefined;
+it('Modbus writeEntityMqtt', (done) => {
+  ModbusCache.prototype.writeRegisters = writeRegisters
+  let readConfig: Config = new Config()
+  readConfig.readYaml()
+  new ConfigSpecification().readYaml()
+  let dev = Config.getSlave(0, 1)!
+  expect(dev).toBeDefined
 
   new Modbus()
-    .writeEntityMqtt(Bus.getBus(0)!, 1, spec, 3, "test")
+    .writeEntityMqtt(Bus.getBus(0)!, 1, spec, 3, 'test')
     .catch((e) => {
-      expect(`[FAIL] ${e}`.trim()).toBeFalsy();
+      expect(`[FAIL] ${e}`.trim()).toBeFalsy()
     })
     .then(() => {
-      done();
-    });
-});
+      done()
+    })
+})

@@ -338,8 +338,10 @@ export class Config {
         clearTimeout(timer)
         if (res) {
           res.json().then((obj) => {
-            if (obj) next(obj)
-            else reject('Not found')
+            if (obj)
+              if (obj.data) next(obj)
+              else if (obj.result == 'error') reject(new Error('HASSIO: ' + obj.message))
+              else reject(new Error('Not found'))
           })
         }
       })
@@ -391,7 +393,7 @@ export class Config {
         }
       })
       .catch((e) => {
-        log.log(LogLevelEnum.error, JSON.stringify(e))
+        log.log(LogLevelEnum.error, e.message)
       })
   }
   private static readCertfile(filename?: string): string | undefined {

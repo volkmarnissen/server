@@ -4,11 +4,17 @@
   "configurations": [
     {
       "address": "localhost",
-      "localRoot": "${workspaceFolder}",
+      "localRoot": "${workspaceFolder}/..",
       "name": "Attach to homeassistant(local)",
       "port": 9229,
       "remoteRoot": "/usr/app/node_modules/@modbus2mqtt",
       "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "server/*/*": "${workspaceFolder}/*",
+        "specification.shared/*/*": "${workspaceFolder}../specification.shared/*/*",
+        "server.shared/*/*": "${workspaceFolder}../server.shared/*/*",
+        "specification/*/*": "${workspaceFolder}../specification/*/*",
+      },
       "request": "attach",
       "skipFiles": [
         "<node_internals>/**"
