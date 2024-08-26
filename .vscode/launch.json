@@ -3,6 +3,19 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "address": "localhost",
+      "localRoot": "${workspaceFolder}",
+      "name": "Attach to homeassistant(local)",
+      "port": 9229,
+      "remoteRoot": "/usr/app/node_modules/@modbus2mqtt",
+      "sourceMaps": true,
+      "request": "attach",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "type": "node"
+    },
+    {
       "type": "node",
       "request": "attach",
       "name": "Docker: Attach to Node",
@@ -107,5 +120,18 @@
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
     },
+    {
+      "name": "Launch Chrome",
+      "type": "chrome",
+      "request": "launch",
+      "preLaunchTask": "start",
+      "postDebugTask": "stop",
+      "port": 9222,
+      "sourceMaps": true,
+      /*"diagnosticLogging": true,*/
+      "webRoot": "${workspaceRoot}/angular",
+      "url": "http://localhost:4200/"
+    }
+
   ]
 }
