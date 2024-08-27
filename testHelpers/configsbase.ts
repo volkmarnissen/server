@@ -1,1 +1,1 @@
-export const yamlDir = "__tests__/yaml-dir";
+export const yamlDir = '__tests__/yaml-dir'

@@ -228,6 +228,7 @@ for component in components:
 
 if( args.debug):
     print("debug")
+    subprocess.run( "npm run build.dev", cwd=os.path.join(args.basedir, server), shell=True)
     prepareConfigYaml(args.basedir, serverComponent.pkgVersion)
     tgzs = prepareDockerfile(args.basedir, serverComponent.pkgVersion)
     addonDir = os.path.join(args.basedir, addonRepositoryModbus2mqtt )

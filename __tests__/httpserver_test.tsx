@@ -1,16 +1,6 @@
-import {
-  expect,
-  it,
-  xit,
-  xtest,
-  test,
-  jest,
-  describe,
-  beforeAll,
-  afterAll,
-} from "@jest/globals";
-import Debug from "debug";
-import { HttpServer as HttpServer } from "../src/httpserver";
+import { expect, it, xit, xtest, test, jest, describe, beforeAll, afterAll } from '@jest/globals'
+import Debug from 'debug'
+import { HttpServer as HttpServer } from '../src/httpserver'
 import {
   ImodbusEntity,
   ModbusRegisterType,
@@ -19,20 +9,16 @@ import {
   Iconverter,
   HttpErrorsEnum,
   FileLocation,
-} from "@modbus2mqtt/specification.shared";
-import { Config } from "../src/config";
-import supertest from "supertest";
-import * as fs from "fs";
-import {
-  ImodbusSpecification,
-  SpecificationFileUsage,
-  getSpecificationI18nName,
-} from "@modbus2mqtt/specification.shared";
-import { ModbusCache } from "../src/modbuscache";
-import { submitGetHoldingRegisterRequest } from "../src/submitRequestMock";
-import { Bus } from "../src/bus";
-import { VERSION } from "ts-node";
-import * as http from "node:http";
+} from '@modbus2mqtt/specification.shared'
+import { Config } from '../src/config'
+import supertest from 'supertest'
+import * as fs from 'fs'
+import { ImodbusSpecification, SpecificationFileUsage, getSpecificationI18nName } from '@modbus2mqtt/specification.shared'
+import { ModbusCache } from '../src/modbuscache'
+import { submitGetHoldingRegisterRequest } from '../src/submitRequestMock'
+import { Bus } from '../src/bus'
+import { VERSION } from 'ts-node'
+import * as http from 'node:http'
 import {
   apiUri,
   IBus,
@@ -41,87 +27,77 @@ import {
   IidentificationSpecification,
   IUserAuthenticationStatus,
   ITCPConnection,
-} from "@modbus2mqtt/server.shared";
-import {
-  IReadRegisterResultOrError,
-  IfileSpecification,
-  ImodbusValues,
-  LogLevelEnum,
-  Logger,
-} from "@modbus2mqtt/specification";
-import { ConfigSpecification } from "@modbus2mqtt/specification";
-import { Mutex } from "async-mutex";
-import { ReadRegisterResult } from "modbus-serial/ModbusRTU";
-import { join } from "path";
-let mockReject = false;
-let debug = Debug("testhttpserver")
+} from '@modbus2mqtt/server.shared'
+import { IReadRegisterResultOrError, IfileSpecification, ImodbusValues, LogLevelEnum, Logger } from '@modbus2mqtt/specification'
+import { ConfigSpecification } from '@modbus2mqtt/specification'
+import { Mutex } from 'async-mutex'
+import { ReadRegisterResult } from 'modbus-serial/ModbusRTU'
+import { join } from 'path'
+let mockReject = false
+let debug = Debug('testhttpserver')
 
 const mqttService = {
-  host: "core-mosquitto",
+  host: 'core-mosquitto',
   port: 1883,
   ssl: false,
-  protocol: "3.1.1",
-  username: "addons",
-  password: "Euso6ahphaiWei9Aeli6Tei0si2paep5agethohboophe7vae9uc0iebeezohg8e",
-  addon: "core_mosquitto",
-  ingress_entry:"test"
-};
-function executeHassioGetRequest<T>(
-  _url: string,
-  next: (_dev: T) => void,
-  reject: (error: any) => void,
-): void {
-  if (mockReject) reject("mockedReason");
-  else next({ data: mqttService }  as T);
+  protocol: '3.1.1',
+  username: 'addons',
+  password: 'Euso6ahphaiWei9Aeli6Tei0si2paep5agethohboophe7vae9uc0iebeezohg8e',
+  addon: 'core_mosquitto',
+  ingress_entry: 'test',
+}
+function executeHassioGetRequest<T>(_url: string, next: (_dev: T) => void, reject: (error: any) => void): void {
+  if (mockReject) reject('mockedReason')
+  else next({ data: mqttService } as T)
 }
 
-let log = new Logger("httpserverTest");
-const yamlDir = "__tests__/yaml-dir";
-ConfigSpecification.yamlDir = yamlDir;
-new ConfigSpecification().readYaml();
-Config.sslDir = yamlDir;
+let log = new Logger('httpserverTest')
+const yamlDir = '__tests__/yaml-dir'
+ConfigSpecification.yamlDir = yamlDir
+new ConfigSpecification().readYaml()
+Config.sslDir = yamlDir
 Config['executeHassioGetRequest'] = executeHassioGetRequest
-let mWaterlevel = new Mutex();
-let testdir = yamlDir + "/local/specifications/files/waterleveltransmitter/";
-let testPdf = "test.pdf";
-let test1 = "test2.jpg";
+let mWaterlevel = new Mutex()
+let testdir = yamlDir + '/local/specifications/files/waterleveltransmitter/'
+let testPdf = 'test.pdf'
+let test1 = 'test2.jpg'
 
 let spec: ImodbusSpecification = {
-  filename: "waterleveltransmitter",
+  filename: 'waterleveltransmitter',
   status: 2,
   entities: [
     {
       id: 1,
-      mqttname: "waterleveltransmitter",
-      converter: { name: "number", registerTypes: [] },
+      mqttname: 'waterleveltransmitter',
+      converter: { name: 'number', registerTypes: [] },
       modbusAddress: 3,
       registerType: ModbusRegisterType.HoldingRegister,
       readonly: true,
       converterParameters: { multiplier: 0.01 },
-      mqttValue: "",
+      mqttValue: '',
       modbusValue: [],
       identified: IdentifiedStates.unknown,
     },
   ],
   i18n: [
     {
-      lang: "en",
+      lang: 'en',
       texts: [
-        { textId: "name", text: "Water Level Transmitter" },
-        { textId: "e1", text: "Water Level Transmitter" },
+        { textId: 'name', text: 'Water Level Transmitter' },
+        { textId: 'e1', text: 'Water Level Transmitter' },
       ],
     },
   ],
   files: [],
   identified: IdentifiedStates.unknown,
-};
-var httpServer: HttpServer;
+}
+var httpServer: HttpServer
 
-let spec2: IfileSpecification = { ...spec, version: VERSION, testdata: {} };
+let spec2: IfileSpecification = { ...spec, version: VERSION, testdata: {} }
 spec2.entities.push({
   id: 2,
-  mqttname: "",
-  converter: { name: "number", registerTypes: [] },
+  mqttname: '',
+  converter: { name: 'number', registerTypes: [] },
   modbusAddress: 4,
   registerType: ModbusRegisterType.HoldingRegister,
   readonly: true,
@@ -130,327 +106,309 @@ spec2.entities.push({
     targetParameter: 2,
     entityId: 1,
   },
-});
+})
 function mockedAuthorization(_param: any): Promise<any> {
   return new Promise<any>((resolve) => {
-    resolve({ justForTesting: true });
-  });
+    resolve({ justForTesting: true })
+  })
 }
 function mockedHttp(_options: any, cb: (res: any) => any) {
-  cb({ statusCode: 200 });
+  cb({ statusCode: 200 })
 }
-let oldExecuteHassioGetRequest:any
-const oldAuthenticate: (req: any, res: any, next: () => void) => void =
-  HttpServer.prototype.authenticate;
+let oldExecuteHassioGetRequest: any
+const oldAuthenticate: (req: any, res: any, next: () => void) => void = HttpServer.prototype.authenticate
 beforeAll(() => {
-  Config["yamlDir"] = yamlDir;
+  Config['yamlDir'] = yamlDir
   let cfg = new Config()
-  cfg.readYaml();
-  (Config as any)["fakeModbusCache"] = true;
-  jest.mock("../src/modbus");
-  ModbusCache.prototype.submitGetHoldingRegisterRequest =
-    submitGetHoldingRegisterRequest;
+  cfg.readYaml()
+  ;(Config as any)['fakeModbusCache'] = true
+  jest.mock('../src/modbus')
+  ModbusCache.prototype.submitGetHoldingRegisterRequest = submitGetHoldingRegisterRequest
   HttpServer.prototype.authenticate = (req, res, next) => {
-    next();
-  };
-  httpServer = new HttpServer(join(yamlDir, "angular"));
-  
-  httpServer.setModbusCacheAvailable();
-  let rc =  httpServer.init()
-  oldExecuteHassioGetRequest = Config['executeHassioGetRequest']
-  return rc;
-});
+    next()
+  }
+  httpServer = new HttpServer(join(yamlDir, 'angular'))
 
-it("GET /devices", (done) => {
+  httpServer.setModbusCacheAvailable()
+  let rc = httpServer.init()
+  oldExecuteHassioGetRequest = Config['executeHassioGetRequest']
+  return rc
+})
+
+it('GET /devices', (done) => {
   supertest(httpServer.app)
-    .get(apiUri.slaves +"?busid=0")
+    .get(apiUri.slaves + '?busid=0')
     .expect(200)
     .then((response) => {
-      expect(response.body.length).toBeGreaterThan(0);
-      expect(response.body[0]).toHaveProperty("slaveid");
-      done();
-    }).catch(e => {
-      log.log(LogLevelEnum.error, "error")
+      expect(response.body.length).toBeGreaterThan(0)
+      expect(response.body[0]).toHaveProperty('slaveid')
+      done()
+    })
+    .catch((e) => {
+      log.log(LogLevelEnum.error, 'error')
       expect(1).toBeFalsy()
-    });
-});
-it("GET /specsForSlave", (done) => {
+    })
+})
+it('GET /specsForSlave', (done) => {
   supertest(httpServer.app)
-    .get(apiUri.specsForSlaveId + "?busid=0&slaveid=1")
+    .get(apiUri.specsForSlaveId + '?busid=0&slaveid=1')
     .expect(200)
     .then((response) => {
-      expect(response.body.length).toBeGreaterThan(0);
-      expect(
-        response.body.find(
-          (specs: IidentificationSpecification) =>
-            specs.filename == "waterleveltransmitter",
-        ),
-      ).not.toBeNull();
-      done();
-    });
-});
-it("GET / (root)", (done) => {
+      expect(response.body.length).toBeGreaterThan(0)
+      expect(response.body.find((specs: IidentificationSpecification) => specs.filename == 'waterleveltransmitter')).not.toBeNull()
+      done()
+    })
+})
+it('GET / (root)', (done) => {
   Config['executeHassioGetRequest'] = oldExecuteHassioGetRequest
   supertest(httpServer.app)
-    .get("/index.html")
+    .get('/index.html')
     .expect(200)
     .then((response) => {
       expect(response.text.indexOf('base href="/"')).toBeGreaterThanOrEqual(0)
-      done();
-    }).catch(e=>{
+      done()
+    })
+    .catch((e) => {
       expect(1).toBeFalsy()
-    });
-});
+    })
+})
 
-it("GET / (root) with Ingress header", (done) => {
+it('GET / (root) with Ingress header', (done) => {
   Config['executeHassioGetRequest'] = oldExecuteHassioGetRequest
   supertest(httpServer.app)
-    .get("/index.html")
-    .set({ "X-Ingress-Path": "test" })
+    .get('/index.html')
+    .set({ 'X-Ingress-Path': 'test' })
     .expect(200)
     .then((response) => {
       expect(response.text.indexOf('base href="/test/"')).toBeGreaterThanOrEqual(0)
-      done();
-    }).catch(e=>{
+      done()
+    })
+    .catch((e) => {
       expect(1).toBeFalsy()
-    });
-});
+    })
+})
 
-it("GET angular files", (done) => {
+it('GET angular files', (done) => {
   supertest(httpServer.app)
-    .get("/en-US/test.css")
+    .get('/en-US/test.css')
     .expect(200)
     .then((response) => {
-      expect(response.text).toBe(
-        ".justContent {\n" + "  margin: 1pt;\n" + "}\n",
-      );
-      expect(response.type).toBe("text/css");
-      done();
-    });
-});
-it("GET local files", (done) => {
+      expect(response.text).toBe('.justContent {\n' + '  margin: 1pt;\n' + '}\n')
+      expect(response.type).toBe('text/css')
+      done()
+    })
+})
+it('GET local files', (done) => {
   supertest(httpServer.app)
-    .get("/specifications/files/waterleveltransmitter/files.yaml")
+    .get('/specifications/files/waterleveltransmitter/files.yaml')
     .expect(200)
     .then((response) => {
-      expect(response.text.startsWith("- url:")).toBeTruthy();
-      expect(response.type).toBe("text/yaml");
-      done();
-    }).catch((e) => {
+      expect(response.text.startsWith('- url:')).toBeTruthy()
+      expect(response.type).toBe('text/yaml')
+      done()
+    })
+    .catch((e) => {
       expect(1).toBeFalsy()
       done()
-    });
-});
+    })
+})
 
-it("register,login validate", (done) => {
-  var token = "";
+it('register,login validate', (done) => {
+  var token = ''
   supertest(httpServer.app)
-    .get("/user/reqister?name=test&password=test123")
+    .get('/user/reqister?name=test&password=test123')
     .then((_response) => {
       supertest(httpServer.app)
-        .get("/user/login?name=test&password=test123")
+        .get('/user/login?name=test&password=test123')
         .expect(200)
         .then((response) => {
-          token = response.body.token;
-          let hdrs: Headers = new Map<string, string>() as any;
-          hdrs.set("Authorization", "Bearer " + token);
-          expect(response.body.token.length).toBeGreaterThan(0);
+          token = response.body.token
+          let hdrs: Headers = new Map<string, string>() as any
+          hdrs.set('Authorization', 'Bearer ' + token)
+          expect(response.body.token.length).toBeGreaterThan(0)
           let req: any = {
-            url: "/noauthorization needed",
-          };
-          let res: any = {};
+            url: '/noauthorization needed',
+          }
+          let res: any = {}
           oldAuthenticate.bind(httpServer)(req, res, () => {
-            req.url = "/api/Needs authorization";
-            req["header"] = (key: string): string => {
-              expect(key).toBe("Authorization");
-              return "Bearer " + token;
-            };
+            req.url = '/api/Needs authorization'
+            req['header'] = (key: string): string => {
+              expect(key).toBe('Authorization')
+              return 'Bearer ' + token
+            }
             oldAuthenticate.bind(httpServer)(req, undefined, () => {
-              done();
-            });
-          });
-        });
+              done()
+            })
+          })
+        })
     })
     .catch((_err) => {
-      expect(false).toBeTruthy();
-    });
-});
+      expect(false).toBeTruthy()
+    })
+})
 
-it("supervisor login", (done) => {
+it('supervisor login', (done) => {
   // This enables hassio validation
-  let res: any = {};
+  let res: any = {}
   let req: any = {
-    url: "/api/Needs authorization",
+    url: '/api/Needs authorization',
     header: () => {
-      return undefined;
+      return undefined
     },
-  };
-  new Config().readYaml();
-  process.env.HASSIO_TOKEN = "test";
+  }
+  new Config().readYaml()
+  process.env.HASSIO_TOKEN = 'test'
   supertest(httpServer.app)
     .get(apiUri.userAuthenticationStatus)
     .expect(200)
     .then((response) => {
-      let status = response.body as any as IUserAuthenticationStatus;
-      expect(status.mqttConfigured).toBeTruthy();
-      expect(status.hasAuthToken).toBeFalsy();
-      done();
+      let status = response.body as any as IUserAuthenticationStatus
+      expect(status.mqttConfigured).toBeTruthy()
+      expect(status.hasAuthToken).toBeFalsy()
+      done()
     })
     .catch((e) => {
-      throw new Error("Exception caught " + e);
-    });
-});
+      throw new Error('Exception caught ' + e)
+    })
+})
 
-it("GET /" + apiUri.specifications, (done) => {
+it('GET /' + apiUri.specifications, (done) => {
   supertest(httpServer.app)
     .get(apiUri.specifications)
     .expect(200)
     .then((response) => {
-      expect(response.body.length).toBeGreaterThan(0);
-      expect(response.body[0]).toHaveProperty("filename");
-      done();
+      expect(response.body.length).toBeGreaterThan(0)
+      expect(response.body[0]).toHaveProperty('filename')
+      done()
     })
     .catch((e) => {
-      throw new Error("Exception caught " + e);
-    });
-});
+      throw new Error('Exception caught ' + e)
+    })
+})
 
-test("GET /converters", (done) => {
+test('GET /converters', (done) => {
   supertest(httpServer.app)
-    .get("/api/converters")
+    .get('/api/converters')
     .expect(200)
     .then((response) => {
-      let sensorExist = false;
+      let sensorExist = false
       response.body.forEach((element: Iconverter) => {
-        if (element.name == "number") {
-          expect(element.registerTypes).toBeDefined();
-          expect(element.registerTypes.length).toBe(2);
-          sensorExist = true;
+        if (element.name == 'number') {
+          expect(element.registerTypes).toBeDefined()
+          expect(element.registerTypes.length).toBe(2)
+          sensorExist = true
         }
-      });
-      expect(sensorExist).toBeTruthy();
-      done();
+      })
+      expect(sensorExist).toBeTruthy()
+      done()
     })
     .catch((e) => {
-      throw new Error("Exception caught " + e);
-    });
-});
+      throw new Error('Exception caught ' + e)
+    })
+})
 
-test("GET /modbus/specification", (done) => {
+test('GET /modbus/specification', (done) => {
   supertest(httpServer.app)
-    .get(
-      "/api/modbus/specification?busid=0&slaveid=1&spec=waterleveltransmitter",
-    )
+    .get('/api/modbus/specification?busid=0&slaveid=1&spec=waterleveltransmitter')
     .expect(HttpErrorsEnum.OK)
     .then((response) => {
-      let spec: ImodbusSpecification = response.body;
-      expect(
-        ((spec?.entities[0] as ImodbusEntity).mqttValue as number) - 21,
-      ).toBeLessThan(0.001);
-      done();
-    });
-});
+      let spec: ImodbusSpecification = response.body
+      expect(((spec?.entities[0] as ImodbusEntity).mqttValue as number) - 21).toBeLessThan(0.001)
+      done()
+    })
+})
 
-test("GET /busses", (done) => {
+test('GET /busses', (done) => {
   supertest(httpServer.app)
-    .get("/api/busses")
+    .get('/api/busses')
     .expect(200)
     .then((response) => {
-      let busses: IBus[] = response.body;
-      expect(busses.length).toBeGreaterThan(0);
-      expect(
-        (busses[0].connectionData as IRTUConnection).serialport.length,
-      ).toBeGreaterThan(0);
-      done();
+      let busses: IBus[] = response.body
+      expect(busses.length).toBeGreaterThan(0)
+      expect((busses[0].connectionData as IRTUConnection).serialport.length).toBeGreaterThan(0)
+      done()
     })
     .catch((e) => {
-      throw new Error("Exception caught " + e);
-    });
-});
+      throw new Error('Exception caught ' + e)
+    })
+})
 
-test("ADD/DELETE /busses", (done) => {
+test('ADD/DELETE /busses', (done) => {
   let newConn: IModbusConnection = {
     baudrate: 9600,
-    serialport: "/dev/ttyACM1",
+    serialport: '/dev/ttyACM1',
     timeout: 200,
-  };
-  Bus.readBussesFromConfig();
-  let oldLength = Bus.getBusses().length;
+  }
+  Bus.readBussesFromConfig()
+  let oldLength = Bus.getBusses().length
 
   supertest(httpServer.app)
-    .post("/api/bus")
-    .accept("application/json")
+    .post('/api/bus')
+    .accept('application/json')
     .send(newConn)
-    .set("Content-Type", "application/json")
+    .set('Content-Type', 'application/json')
     .expect(201)
     .then((response) => {
-      expect(Bus.getBusses().length).toBe(oldLength + 1);
-      let newNumber = response.body;
+      expect(Bus.getBusses().length).toBe(oldLength + 1)
+      let newNumber = response.body
       supertest(httpServer.app)
-        .delete("/api/bus?busid=" + newNumber.busid)
+        .delete('/api/bus?busid=' + newNumber.busid)
         .then((_response) => {
-          expect(200);
-          expect(Bus.getBusses().length).toBe(oldLength);
-          done();
-        });
-    });
-});
+          expect(200)
+          expect(Bus.getBusses().length).toBe(oldLength)
+          done()
+        })
+    })
+})
 
-test("POST /mqtt/validate", (done) => {
-  let oldConfig = Config.getConfiguration();
-  let config = Config.getConfiguration();
-  config.mqttconnect.mqttserverurl = "mqtt://doesnt_exist:1007";
-  new Config().writeConfiguration(config);
+test('POST /mqtt/validate', (done) => {
+  let oldConfig = Config.getConfiguration()
+  let config = Config.getConfiguration()
+  config.mqttconnect.mqttserverurl = 'mqtt://doesnt_exist:1007'
+  new Config().writeConfiguration(config)
   supertest(httpServer.app)
-    .post("/api/validate/mqtt")
+    .post('/api/validate/mqtt')
     .send(config)
     .expect(200)
     .then((response) => {
-      expect(response.body.valid).toBeFalsy();
-      expect(response.body.message.toString().length).toBeGreaterThan(0);
-      new Config().writeConfiguration(oldConfig);
-      done();
+      expect(response.body.valid).toBeFalsy()
+      expect(response.body.message.toString().length).toBeGreaterThan(0)
+      new Config().writeConfiguration(oldConfig)
+      done()
     })
     .catch((e) => {
-      done();
-      console.error("Exception caught " + e.toString());
-    });
-});
+      done()
+      console.error('Exception caught ' + e.toString())
+    })
+})
 
-describe("http POST", () => {
+describe('http POST', () => {
   afterAll(() => {
     // Cleanup
-    if (fs.existsSync(testdir + test1)) fs.unlinkSync(testdir + test1);
-  });
+    if (fs.existsSync(testdir + test1)) fs.unlinkSync(testdir + test1)
+  })
 
-  test("POST /specification: add new Specification rename device.specification", (done) => {
+  test('POST /specification: add new Specification rename device.specification', (done) => {
     mWaterlevel.runExclusive(() => {
-      jest.mock("../src/mqttdiscover");
+      jest.mock('../src/mqttdiscover')
 
-      let spec1: ImodbusSpecification = Object.assign(spec);
-      let lspec = yamlDir + "/local/specifications/";
-      fs.copyFileSync(
-        lspec + "waterleveltransmitter.yaml",
-        lspec + "waterleveltransmitter.bck",
-        undefined,
-      );
+      let spec1: ImodbusSpecification = Object.assign(spec)
+      let lspec = yamlDir + '/local/specifications/'
+      fs.copyFileSync(lspec + 'waterleveltransmitter.yaml', lspec + 'waterleveltransmitter.bck', undefined)
 
-      let filename =
-        yamlDir + "/local/specifications/waterleveltransmitter.yaml";
-      fs.unlinkSync(new ConfigSpecification().getSpecificationPath(spec1));
-      let url =
-        apiUri.specfication +
-        "?busid=0&slaveid=2&originalFilename=waterleveltransmitter";
+      let filename = yamlDir + '/local/specifications/waterleveltransmitter.yaml'
+      fs.unlinkSync(new ConfigSpecification().getSpecificationPath(spec1))
+      let url = apiUri.specfication + '?busid=0&slaveid=2&originalFilename=waterleveltransmitter'
 
       //@ts-ignore
       supertest(httpServer.app)
         .post(url)
-        .accept("application/json")
+        .accept('application/json')
         .send(spec1)
         .expect(HttpErrorsEnum.ErrBadRequest)
         .catch((e) => {
-          log.log(LogLevelEnum.error, JSON.stringify(e));
-          expect(1).toBeFalsy();
+          log.log(LogLevelEnum.error, JSON.stringify(e))
+          expect(1).toBeFalsy()
         })
         .then((_response) => {
           // expect((response as any as Response).status).toBe(HttpErrorsEnum.ErrBadRequest)
@@ -458,179 +416,154 @@ describe("http POST", () => {
             holdingRegisters: new Map<number, IReadRegisterResultOrError>(),
             analogInputs: new Map<number, IReadRegisterResultOrError>(),
             coils: new Map<number, IReadRegisterResultOrError>(),
-          };
-          testdata.holdingRegisters.set(100, { error: new Error("failed!!!") });
-          Bus.getBus(0)!["setModbusAddressesForSlave"](2, testdata);
+          }
+          testdata.holdingRegisters.set(100, { error: new Error('failed!!!') })
+          Bus.getBus(0)!['setModbusAddressesForSlave'](2, testdata)
           supertest(httpServer.app)
             .post(url)
-            .accept("application/json")
+            .accept('application/json')
             .send(spec1)
             .expect(HttpErrorsEnum.OkCreated)
             .then((response) => {
-              var found = ConfigSpecification.getSpecificationByFilename(
-                spec1.filename,
-              )!;
-              let newFilename = new ConfigSpecification().getSpecificationPath(
-                response.body,
-              );
-              let foundData = found.testdata.holdingRegisters?.find(
-                (data) => data.address == 100 && !data.value,
-              );
-              expect(foundData).toBeDefined();
-              expect(fs.existsSync(newFilename)).toBeTruthy();
-              expect(getSpecificationI18nName(found!, "en")).toBe(
-                "Water Level Transmitter",
-              );
-              expect(response);
-              done();
+              var found = ConfigSpecification.getSpecificationByFilename(spec1.filename)!
+              let newFilename = new ConfigSpecification().getSpecificationPath(response.body)
+              let foundData = found.testdata.holdingRegisters?.find((data) => data.address == 100 && !data.value)
+              expect(foundData).toBeDefined()
+              expect(fs.existsSync(newFilename)).toBeTruthy()
+              expect(getSpecificationI18nName(found!, 'en')).toBe('Water Level Transmitter')
+              expect(response)
+              done()
             })
             .catch((_e) => {
-              log.log(LogLevelEnum.error, _e);
-            });
+              log.log(LogLevelEnum.error, _e)
+            })
         })
         .finally(() => {
-          fs.copyFileSync(lspec + "waterleveltransmitter.bck", filename);
-          fs.unlinkSync(lspec + "waterleveltransmitter.bck");
-        });
-    });
-  });
-  test("POST /modbus/entity: update ModbusCache data", (done) => {
+          fs.copyFileSync(lspec + 'waterleveltransmitter.bck', filename)
+          fs.unlinkSync(lspec + 'waterleveltransmitter.bck')
+        })
+    })
+  })
+  test('POST /modbus/entity: update ModbusCache data', (done) => {
     //@ts-ignore
     supertest(httpServer.app)
-      .post("/api/modbus/entity?busid=0&slaveid=1&entityid=1")
+      .post('/api/modbus/entity?busid=0&slaveid=1&entityid=1')
       .send(spec2)
-      .accept("application/json")
+      .accept('application/json')
       .expect(201)
       .then((response) => {
-        let entityAndMessages = response.body as ImodbusEntity;
-        expect(entityAndMessages.modbusValue[0]).toBe(1);
-        expect(parseFloat(entityAndMessages.mqttValue as string)).toBe(0.01);
+        let entityAndMessages = response.body as ImodbusEntity
+        expect(entityAndMessages.modbusValue[0]).toBe(1)
+        expect(parseFloat(entityAndMessages.mqttValue as string)).toBe(0.01)
 
-        expect(response);
-        done();
+        expect(response)
+        done()
       })
       .catch((e) => {
-        throw new Error("Exception caught " + e);
-      });
-  });
+        throw new Error('Exception caught ' + e)
+      })
+  })
 
-  test("POST /modbus/bus: update bus", (done) => {
-    let conn = structuredClone(Bus.getBus(0)!.properties.connectionData);
-    conn.timeout = 500;
-    Config.updateBusProperties(Bus.getBus(0)!.properties!, conn);
+  test('POST /modbus/bus: update bus', (done) => {
+    let conn = structuredClone(Bus.getBus(0)!.properties.connectionData)
+    conn.timeout = 500
+    Config.updateBusProperties(Bus.getBus(0)!.properties!, conn)
     //@ts-ignore
     supertest(httpServer.app)
-      .post("/api/bus?busid=0")
+      .post('/api/bus?busid=0')
       .send(conn)
       .expect(201)
       .then((_response) => {
-        expect(Bus.getBus(0)!.properties.connectionData.timeout).toBe(500);
-        conn.timeout = 100;
-        Config.updateBusProperties(Bus.getBus(0)!.properties!, conn);
-        expect(Bus.getBus(0)!.properties.connectionData.timeout).toBe(100);
-        done();
+        expect(Bus.getBus(0)!.properties.connectionData.timeout).toBe(500)
+        conn.timeout = 100
+        Config.updateBusProperties(Bus.getBus(0)!.properties!, conn)
+        expect(Bus.getBus(0)!.properties.connectionData.timeout).toBe(100)
+        done()
       })
       .catch((e) => {
-        throw new Error("Exception caught " + e);
-      });
-  });
+        throw new Error('Exception caught ' + e)
+      })
+  })
 
-  test("POST /upload: upload files, delete uploaded file, add url, delete url", (done) => {
+  test('POST /upload: upload files, delete uploaded file, add url, delete url', (done) => {
     mWaterlevel.runExclusive(() => {
-      if (fs.existsSync(testdir + test)) fs.unlinkSync(testdir + test);
-      if (fs.existsSync(testdir + test1)) fs.unlinkSync(testdir + test1);
-      let lspec = yamlDir + "/local/specifications/";
-      if (!fs.existsSync(lspec + "waterleveltransmitter.bck"))
-        fs.copyFileSync(
-          lspec + "waterleveltransmitter.yaml",
-          lspec + "waterleveltransmitter.bck",
-          undefined,
-        );
-      else if (!fs.existsSync(lspec + "waterleveltransmitter.yaml"))
-        fs.copyFileSync(
-          lspec + "waterleveltransmitter.bck",
-          lspec + "waterleveltransmitter.yaml",
-          undefined,
-        );
+      if (fs.existsSync(testdir + test)) fs.unlinkSync(testdir + test)
+      if (fs.existsSync(testdir + test1)) fs.unlinkSync(testdir + test1)
+      let lspec = yamlDir + '/local/specifications/'
+      if (!fs.existsSync(lspec + 'waterleveltransmitter.bck'))
+        fs.copyFileSync(lspec + 'waterleveltransmitter.yaml', lspec + 'waterleveltransmitter.bck', undefined)
+      else if (!fs.existsSync(lspec + 'waterleveltransmitter.yaml'))
+        fs.copyFileSync(lspec + 'waterleveltransmitter.bck', lspec + 'waterleveltransmitter.yaml', undefined)
       supertest(httpServer.app)
-        .post("/api/upload?specification=waterleveltransmitter&usage=doc")
-        .attach("documents", Buffer.from("whatever"), { filename: testPdf })
-        .attach("documents", Buffer.from("whatever2"), { filename: test1 })
+        .post('/api/upload?specification=waterleveltransmitter&usage=doc')
+        .attach('documents', Buffer.from('whatever'), { filename: testPdf })
+        .attach('documents', Buffer.from('whatever2'), { filename: test1 })
         .then((_response) => {
-          let d = _response.body as IimageAndDocumentUrl[];
+          let d = _response.body as IimageAndDocumentUrl[]
           expect(
             d.find(
-              (ul) =>
-                ul.url.endsWith("waterleveltransmitter" + "/" + testPdf) &&
-                ul.usage === SpecificationFileUsage.documentation,
-            ),
-          ).toBeTruthy();
+              (ul) => ul.url.endsWith('waterleveltransmitter' + '/' + testPdf) && ul.usage === SpecificationFileUsage.documentation
+            )
+          ).toBeTruthy()
           expect(
             d.find(
-              (ul) =>
-                ul.url.endsWith("waterleveltransmitter" + "/" + test1) &&
-                ul.usage === SpecificationFileUsage.documentation,
-            ),
-          ).toBeTruthy();
-          expect(fs.existsSync(testdir + testPdf)).toBeTruthy();
-          expect(fs.existsSync(testdir + test1)).toBeTruthy();
-          fs.unlinkSync(testdir + test1);
-          fs.copyFileSync(
-            lspec + "waterleveltransmitter.bck",
-            lspec + "waterleveltransmitter.yaml",
-            undefined,
-          );
-          fs.unlinkSync(lspec + "waterleveltransmitter.bck");
+              (ul) => ul.url.endsWith('waterleveltransmitter' + '/' + test1) && ul.usage === SpecificationFileUsage.documentation
+            )
+          ).toBeTruthy()
+          expect(fs.existsSync(testdir + testPdf)).toBeTruthy()
+          expect(fs.existsSync(testdir + test1)).toBeTruthy()
+          fs.unlinkSync(testdir + test1)
+          fs.copyFileSync(lspec + 'waterleveltransmitter.bck', lspec + 'waterleveltransmitter.yaml', undefined)
+          fs.unlinkSync(lspec + 'waterleveltransmitter.bck')
           supertest(httpServer.app)
             .delete(
-              "/api/upload?specification=waterleveltransmitter&url=/files/waterleveltransmitter/" +
+              '/api/upload?specification=waterleveltransmitter&url=/files/waterleveltransmitter/' +
                 testPdf +
-                "&usage=" +
-                SpecificationFileUsage.documentation,
+                '&usage=' +
+                SpecificationFileUsage.documentation
             )
             .then(() => {
-              expect(fs.existsSync(testdir + testPdf)).toBeFalsy();
-              if (fs.existsSync(testdir + test1))
-                fs.unlinkSync(testdir + test1);
+              expect(fs.existsSync(testdir + testPdf)).toBeFalsy()
+              if (fs.existsSync(testdir + test1)) fs.unlinkSync(testdir + test1)
               let i = {
-                url: "http://www.spiegel.de",
+                url: 'http://www.spiegel.de',
                 fileLocation: FileLocation.Global,
                 usage: SpecificationFileUsage.documentation,
-              };
+              }
               supertest(httpServer.app)
-                .post("/api/addFilesUrl?specification=waterleveltransmitter")
-                .set("Content-Type", "application/json; charset=utf-8")
+                .post('/api/addFilesUrl?specification=waterleveltransmitter')
+                .set('Content-Type', 'application/json; charset=utf-8')
                 .send(i)
                 .expect(201)
                 .then((_response) => {
-                  expect(_response.body.length).toBe(4);
+                  expect(_response.body.length).toBe(4)
                   supertest(httpServer.app)
                     .delete(
-                      "/api/upload?specification=waterleveltransmitter&url=http://www.spiegel.de&usage=" +
-                        SpecificationFileUsage.documentation,
+                      '/api/upload?specification=waterleveltransmitter&url=http://www.spiegel.de&usage=' +
+                        SpecificationFileUsage.documentation
                     )
                     .expect(200)
                     .then((_response) => {
-                      expect(_response.body.length).toBe(3);
+                      expect(_response.body.length).toBe(3)
                       supertest(httpServer.app)
                         .delete(
-                          "/api/upload?specification=waterleveltransmitter&url=" +
+                          '/api/upload?specification=waterleveltransmitter&url=' +
                             _response.body[1].url +
-                            "&usage=' + SpecificationFileUsage.documentation)",
+                            "&usage=' + SpecificationFileUsage.documentation)"
                         )
                         .expect(200)
                         .then((_response) => {
-                          expect(_response.body.length).toBe(2);
+                          expect(_response.body.length).toBe(2)
 
-                          done();
-                        });
-                    });
-                });
-            });
+                          done()
+                        })
+                    })
+                })
+            })
         })
         .catch((e) => {
-          throw new Error("Exception caught " + e);
-        });
-    });
-  });
-});
+          throw new Error('Exception caught ' + e)
+        })
+    })
+  })
+})

@@ -13,5 +13,7 @@ local/
 .github/
 .vscode/*
 **/*-yaml/**
+hassio-addon/**
+docker/**
 testHelpers/** 
 package.json.bck

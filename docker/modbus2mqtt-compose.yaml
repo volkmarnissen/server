@@ -15,7 +15,7 @@ services:
       - ${CONFIG_ROOT}/modbus2mqtt/data:/data
       - ${CONFIG_ROOT}/modbus2mqtt/ssl:/ssl
       - /run/udev:/run/udev:ro
-    devices:
-      - ${DEVICE_MODBUS}:/dev/ttyACM0
+      - /dev:/dev
+    privileged: true
     group_add:
       - dialout #docker group id
