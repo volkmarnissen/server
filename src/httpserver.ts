@@ -329,6 +329,7 @@ export class HttpServer extends HttpServerBase {
     this.post(apiUri.validateMqtt, (req: Request, res: http.ServerResponse) => {
       debug(req.url)
       let config = req.body
+
       Config.updateMqttTlsConfig(config)
       try {
         if (config.mqttconnect == undefined) {
@@ -336,7 +337,9 @@ export class HttpServer extends HttpServerBase {
           return
         }
         let mqttdiscover = Config.getMqttDiscover()
-        mqttdiscover.validateConnection((valid, message) => {
+        let client = req.body.mqttconnect.mqttserverurl ? req.body.mqttconnect : undefined
+
+        mqttdiscover.validateConnection(client, (valid, message) => {
           this.validateMqttConnectionResult(req, res, valid, message)
         })
       } catch (err) {

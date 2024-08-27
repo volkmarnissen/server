@@ -16,6 +16,7 @@ import { Bus } from './bus'
 import Debug from 'debug'
 import { LogLevelEnum, Logger } from '@modbus2mqtt/specification'
 import { ImqttClient, Islave } from '@modbus2mqtt/server.shared'
+import { Mutex } from 'async-mutex'
 
 const debug = Debug('mqttdiscover')
 const debugAction = Debug('actions')
@@ -50,6 +51,7 @@ export class MqttDiscover {
   private isSubscribed: boolean
   private static lastMessage: string = ''
   private interval: NodeJS.Timeout | undefined
+  private pollMutex = new Mutex()
   validate(_discover: any) {
     // currently no meaningful checks
   }
@@ -384,21 +386,22 @@ export class MqttDiscover {
     MqttDiscover.lastMessage = message
   }
 
-  private connectMqtt(onConnected: () => void, error: (e: any) => void) {
-    if (!this.mqttConnectionData) {
+  private connectMqtt(connectionData: ImqttClient | undefined, onConnected: () => void, error: (e: any) => void) {
+    if (!connectionData) connectionData = this.mqttConnectionData
+    if (!connectionData) {
       error('No mqtt connection configured.')
       return
     }
 
     if (!this.client) debug('Internal error: mqtt client is not defined')
-    if (this.mqttConnectionData.mqttserverurl) {
-      let opts = this.mqttConnectionData
+    if (connectionData.mqttserverurl) {
+      let opts = connectionData
       opts.clean = true
       opts.clientId = 'modbus2mqtt'
       if (opts.ca == undefined) delete opts.ca
       if (opts.key == undefined) delete opts.key
       if (opts.cert == undefined) delete opts.cert
-      this.client = connect(this.mqttConnectionData.mqttserverurl, opts as IClientOptions)
+      this.client = connect(connectionData.mqttserverurl, opts as IClientOptions)
       this.client.on('error', error)
       this.client.on('connect', onConnected)
     } else {
@@ -406,14 +409,17 @@ export class MqttDiscover {
     }
   }
 
-  validateConnection(callback: (valid: boolean, message: string) => void) {
+  validateConnection(client: ImqttClient | undefined, callback: (valid: boolean, message: string) => void) {
+    if (!client) client = this.client
     if (!this.client)
       this.connectMqtt(
+        client,
         () => {
           callback(true, 'OK')
           if (this.client) this.client.end()
         },
         (e) => {
+          
           this.error(e)
           this.client!.end()
           callback(false, e.toString())
@@ -422,7 +428,7 @@ export class MqttDiscover {
   }
 
   private publishDiscoverySlave(bus: Bus, slave: Islave, spec: ImodbusSpecification) {
-    if (bus && slave) this.connectMqtt(this.publishDiscoveryForSlave.bind(this, bus, slave, spec), this.error)
+    if (bus && slave) this.publishDiscoveryForSlave(bus, slave, spec)
   }
   getMqttClient(): MqttClient {
     if (this.client && this.client.connected) {
@@ -485,6 +491,10 @@ export class MqttDiscover {
   private poll(): Promise<void> {
     return new Promise<void>((resolve, error) => {
       let allTopics: Promise<void>[] = []
+      let needPolls:{
+        bus:Bus,
+        slave:Islave
+      }[]=[]
 
       Bus.getBusses().forEach((bus) => {
         bus.getSlaves().forEach((slave) => {
@@ -492,45 +502,49 @@ export class MqttDiscover {
           let pc: number | undefined = this.pollCounts.get(key)
           if (pc == undefined || pc > (slave.polInterval != undefined ? slave.polInterval / 100 : defaultPollCount)) pc = 0
           if (pc == 0) {
-            this.connectMqtt(() => {
-              this.subscribeDiscovery()
-
-              debug('Update Discovery')
-              debugAction('poll start (' + bus.getId() + ',' + slave.slaveid + ')interval: ' + slave.polInterval)
-              debug('poll: start sending payload busid: ' + bus.getId() + ' slaveid: ' + slave.slaveid)
-              debugAction('poll end')
-              if (slave.specificationid && slave.specificationid.length > 0) {
-                allTopics.push(this.publishStateAndSendDiscovery(bus, slave))
-                this.pollCounts.set(key, 0)
+                debug('Update Discovery')
+                debugAction('poll start (' + bus.getId() + ',' + slave.slaveid + ')interval: ' + slave.polInterval)
+                debug('poll: start sending payload busid: ' + bus.getId() + ' slaveid: ' + slave.slaveid)
+                debugAction('poll end')
+                if (slave.specificationid && slave.specificationid.length > 0) {
+                  needPolls.push({bus:bus, slave:slave})
+                }
               }
-            }, error)
-          }
-
           this.pollCounts.set(key, ++pc)
-        })
       })
-      if (allTopics.length > 0) debugAction('publish states starts')
-
-      Promise.allSettled(allTopics).then((values) => {
-        values.forEach((v) => {
-          if (v.status == 'rejected') log.log(LogLevelEnum.error, v.reason.message)
-        })
-        if (allTopics.length > 0) debugAction('publish states finished')
-        // Delete Discovery Topics of deleted Objects
-        for (let key of this.mqttDiscoveryTopics.keys()) {
-          if (!this.pollCounts.has(key)) {
-            let ents = this.mqttDiscoveryTopics.get(key)
-            if (ents)
-              for (let tpi of ents.values())
-                tpi.forEach((tpx) => {
-                  this.connectMqtt(() => {
-                      this.getMqttClient().publish(tpx.topic, '')
-                }, error)
-              })
-          }
-        }
-        resolve()
       })
+      if (needPolls.length > 0) 
+        this.connectMqtt(
+        undefined,
+        () => {
+          this.subscribeDiscovery()
+          needPolls.forEach( bs=>{
+            allTopics.push(this.publishStateAndSendDiscovery(bs.bus, bs.slave))
+          })
+          Promise.allSettled(allTopics).then((values) => {
+            values.forEach((v) => {
+              if (v.status == 'rejected') log.log(LogLevelEnum.error, v.reason.message)
+            })
+            if (allTopics.length > 0) debugAction('publish states finished')
+            // Delete Discovery Topics of deleted Objects
+                for (let key of this.mqttDiscoveryTopics.keys()) {
+                  if (!this.pollCounts.has(key)) {
+                    let ents = this.mqttDiscoveryTopics.get(key)
+                    if (ents)
+                      for (let tpi of ents.values()){
+                        tpi.forEach((tpx) => {
+                              this.getMqttClient().publish(tpx.topic, '')
+                      })
+                    
+                      }
+                  }
+                }
+                this.client?.end()
+                resolve()
+          })
+        },  error)
+        else
+          resolve()
     })
   }
 

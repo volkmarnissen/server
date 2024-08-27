@@ -63,7 +63,10 @@ class FakeMqtt {
       debug('publish: ' + topic + '\n' + message)
     }
   }
-  public on(event: 'message', cb: () => {}) {}
+  public end(){
+    debug('end')
+  }
+public on(event: 'message', cb: () => {}) {}
 }
 
 Config['yamlDir'] = yamlDir
@@ -203,7 +206,7 @@ xtest('validateConnection success', (done) => {
   let options = Config.getConfiguration().mqttconnect
 
   let md = new MqttDiscover(options, 'en')
-  md.validateConnection((valid, message) => {
+  md.validateConnection(undefined, (valid, message) => {
     expect(valid).toBeTruthy()
     done()
   })
@@ -214,7 +217,7 @@ test('validateConnection invalid port', (done) => {
   options.mqttserverurl = 'mqtt://localhost:999'
   options.connectTimeout = 200
   let md = new MqttDiscover(options, 'en')
-  md.validateConnection((valid, message) => {
+  md.validateConnection(undefined, (valid, message) => {
     expect(valid).toBeFalsy()
     done()
   })
@@ -266,7 +269,9 @@ test('poll', (done) => {
   md = new MqttDiscover({}, 'en')
   let fake = new FakeMqtt(md, FakeModes.Poll)
   md['client'] = fake as any as MqttClient
-  md['connectMqtt'] = function (onConnected: () => void, error: (e: any) => void){ onConnected()}
+  md['connectMqtt'] = function (undefined, onConnected: () => void, error: (e: any) => void) {
+    onConnected()
+  }
   md['poll']().then(() => {
     expect(fake.isAsExcpected).toBeTruthy()
     expect(md!['pollCounts'].size).toBeGreaterThan(0)
@@ -283,6 +288,7 @@ test('poll', (done) => {
     md!['poll']().then(() => {
       expect(fake.isAsExcpected).toBeTruthy()
       let c = md!['pollCounts'].values().next()
+      md!['pollCounts'].set("0s1", 10000)
       expect(c.value).toBeGreaterThan(1)
       //call discovery explictely
       // Expectation: It should not publish anything, because this has happened already
@@ -290,9 +296,11 @@ test('poll', (done) => {
       fake.isAsExcpected = false
       fake.fakeMode = FakeModes.Discovery
       let slave = bus?.getSlaveBySlaveId(1)
-      md!['publishDiscoverySlave'](bus!, slave!, spec)
-      expect(md!['mqttDiscoveryTopics'].get('1s0') == undefined).toBeTruthy()
+      md!['poll']().then(() => {
+
+          expect(md!['mqttDiscoveryTopics'].get('1s0') == undefined).toBeTruthy()
       done()
+      })
     })
   })
 })
