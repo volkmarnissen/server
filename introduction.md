@@ -54,20 +54,21 @@ You need either a Modbus Controller (USB) or
 Modbus TCP based devices
 
 **Homeassistant Addons:**
-   - Mosquitto broker Addon [Addon Information](https://github.com/home-assistant/addons/tree/master/mosquitto)
-      - Install the Addon
-      - Start it (no configuration is required)
-   - Mosbus <=> MQTT from this repository: https://github.com/modbus2mqtt/hassio-addon-repository
-      - In the Addon Store click on the three dots in the upper right corner
-      - Select repositories
-      - Add this URL: https://github.com/modbus2mqtt/hassio-addon-repository
-      - Refresh the Web Page if required
-      - install Modbus <=> MQTT
-      - start Modbus <=> MQTT (no configuration is required)
-      - Open the User Interface for Modbus <=> MQTT to configure your Modbus devices and continue
-        with Configuration (next Chapter)
+- Mosquitto broker Addon [Addon Information](https://github.com/home-assistant/addons/tree/master/mosquitto)
+  - Install the Addon
+  - Start it (no configuration is required)
+  - Mosbus <=> MQTT from this repository: https://github.com/modbus2mqtt/hassio-addon-repository
+    - In the Addon Store click on the three dots in the upper right corner
+    - Select repositories
+    - Add this URL: https://github.com/modbus2mqtt/hassio-addon-repository
+    - Refresh the Web Page if required
+    - install Modbus <=> MQTT
+    - start Modbus <=> MQTT (no configuration is required)
+    - Open the User Interface for Modbus <=> MQTT to configure your Modbus devices and continue
+      with Configuration (next Chapter)
+      
 **Configure the MQTT Integration**
-  - in Settings -> Devices & Services -> Integration
+- in Settings -> Devices & Services -> Integration
   - The MQTT Integration should be discovered, but not configured.
   - Press "Configure" Button of the MQTT Integration
   - Press "OK"
