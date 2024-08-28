@@ -1,6 +1,6 @@
 ﻿# **Modbus2mqtt**
 ## **Introduction**
-In this document gives an overview about modbus2mqtt. The complete documentationcan is here (will follow).
+In this document gives an overview about modbus2mqtt.
 
 Modbus2mqtt  is an application to read data from multiple modbus devices and publish it to MQTT. A modbus device is called slave where as modbus2mqtt is the master.
 
