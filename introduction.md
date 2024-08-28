@@ -48,12 +48,12 @@ There are three options for installation:
 - Run in a Docker image
 - Run as Node application (not documented yet)
 
-**Homeassistant Supervisor**
+####**Homeassistant Supervisor**
 Hardware Requirements:
 You need either a Modbus Controller (USB) or
 Modbus TCP based devices
 
-Homeassistant Addons:
+**Homeassistant Addons:**
    - Mosquitto broker Addon [Addon Information](https://github.com/home-assistant/addons/tree/master/mosquitto)
       - Install the Addon
       - Start it (no configuration is required)
@@ -66,6 +66,11 @@ Homeassistant Addons:
       - start Modbus <=> MQTT (no configuration is required)
       - Open the User Interface for Modbus <=> MQTT to configure your Modbus devices and continue
         with Configuration (next Chapter)
+**Configure the MQTT Integration**
+  - in Settings -> Devices & Services -> Integration
+  - The MQTT Integration should be discovered, but not configured.
+  - Press "Configure" Button of the MQTT Integration
+  - Press "OK"
      
 ### **Configuration**
 Modbus2mqtt has a web Web UI to do nearly all required configurations.
