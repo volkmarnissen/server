@@ -336,7 +336,7 @@ export class ModbusStateMachine {
               this.retryProcessAction.name
             )
           })
-      } else if (length) this.processReadFromModbus(startAddress, startAddress, bus!, start, length, msg, tbl.get(fc)!)
+      } else if (length) this.processReadFromModbus(startAddress, startAddress, bus!, start, length, msg, tbl.get(fc)!, false)
     }
   }
   // optimizes the timeout for slaves
@@ -347,12 +347,15 @@ export class ModbusStateMachine {
     start: number,
     length: number,
     msg: string,
-    read: IModbusProcess
+    read: IModbusProcess,
+    afterTimeout: boolean
   ) {
     let slave = bus?.getSlaveBySlaveId(this.slaveId.slaveid)
     read.func
       .bind(bus)(this.slaveId.slaveid, readAddress, length)
       .then((value) => {
+        if( afterTimeout)
+          log.log(LogLevelEnum.notice, 'Retry successfully executed: slave:' + slave?.slaveid + ' address: ' + startAddress + " length:" + length )
         debugTime('read success (' + this.slaveId.slaveid + ',' + readAddress + ',' + length + ') duration: ' + value.duration)
         this.retryCount = 0
         this.timeoutCount = 0
@@ -428,8 +431,8 @@ export class ModbusStateMachine {
         //     }
         // }
         if (e.errno == 'ETIMEDOUT' && this.timeoutCount++ < maxTimeouts) {
-          this.logNotice(read.func.name + ' TIMEOUT:' + (e.readDetails ? e.readDetails : '') + ' retrying ... ')
-          this.processReadFromModbus(startAddress, readAddress, bus, start, length, msg, read)
+          this.logNotice(read.func.name + ' TIMEOUT: slave:' + slave?.slaveid + ' address: ' + startAddress + " length:" + length + " " + (e.readDetails ? e.readDetails : '') + ' retrying ... ')
+          this.processReadFromModbus(startAddress, readAddress, bus, start, length, msg, read, true)
           return
         }
 

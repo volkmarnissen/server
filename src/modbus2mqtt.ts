@@ -109,6 +109,9 @@ export class Modbus2Mqtt {
               let md = Config.getMqttDiscover()
               md.startPolling()
             }
+            else{
+              log.log(LogLevelEnum.notice, "Poll disabled by environment variable MODBUS_POLL")
+            }
           })
         })
       })

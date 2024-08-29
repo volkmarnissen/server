@@ -29,7 +29,7 @@
     "serverTCP": "npm run build.dev && node dist/modbus2mqtt.js -s ../ssl -y ../yaml-dir --busid 0",
     "build": "tsc && npx  @opengovsg/credits-generator",
     "build.docker": "docker buildx build --load --tag modbus2mqtt/server docker",
-    "ng serve": "cd ../angular && ng serve",
+    "ng serve": "cd ../angular && ng serve --open",
     "prettier": "prettier --write '**/*.{ts,js,css,html,tsx}'"
   },
   "dependencies": {
