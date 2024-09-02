@@ -405,7 +405,7 @@ describe('http POST', () => {
         .post(url)
         .accept('application/json')
         .send(spec1)
-        .expect(HttpErrorsEnum.ErrBadRequest)
+        .expect(HttpErrorsEnum.OkCreated)
         .catch((e) => {
           log.log(LogLevelEnum.error, JSON.stringify(e))
           expect(1).toBeFalsy()
@@ -427,8 +427,6 @@ describe('http POST', () => {
             .then((response) => {
               var found = ConfigSpecification.getSpecificationByFilename(spec1.filename)!
               let newFilename = new ConfigSpecification().getSpecificationPath(response.body)
-              let foundData = found.testdata.holdingRegisters?.find((data) => data.address == 100 && !data.value)
-              expect(foundData).toBeDefined()
               expect(fs.existsSync(newFilename)).toBeTruthy()
               expect(getSpecificationI18nName(found!, 'en')).toBe('Water Level Transmitter')
               expect(response)

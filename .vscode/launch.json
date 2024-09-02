@@ -61,11 +61,12 @@
         "DEBUGX": "express:* modbuscache modbuscache.time",
         "MODBUS_NOPOLL": "true",
       },
+      "sourceMaps": true,
       "sourceMapPathOverrides": {
         "server/*/*": "${workspaceFolder}/*",
-        "specification.shared/*/*": "${workspaceFolder}../specification.shared/*/*",
-        "server.shared/*/*": "${workspaceFolder}../server.shared/*/*",
-        "specification/*/*": "${workspaceFolder}../specification/*/*",
+        "specification.shared/*/*": "${workspaceFolder}/../specification.shared/*",
+        "server.shared/*/*": "${workspaceFolder}/../server.shared/*",
+        "specification/*/*": "${workspaceFolder}/../specification/*",
       },
     },
     {

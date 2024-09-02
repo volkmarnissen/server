@@ -31,7 +31,4 @@ i18n:
       - textId: e1
         text: Water Level Transmitter
 version: "0.3"
-testdata:
-  holdingRegisters:
-    - address: 100
-      error: failed!!!
+testdata: {}

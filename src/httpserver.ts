@@ -439,21 +439,6 @@ export class HttpServer extends HttpServerBase {
       let bus: Bus | undefined
       let slave: Islave | undefined
       let busId: number | undefined
-      let testdata: ImodbusValues | undefined
-      if ((req.query.busid, req.query.slaveid)) {
-        busId = Number.parseInt(req.query.busid)
-        let slaveId = Number.parseInt(req.query.slaveid)
-        bus = Bus.getBus(busId)
-        if (bus !== undefined) {
-          slave = bus.getSlaveBySlaveId(slaveId)
-          let slaveAddresses = bus.getModbusAddressesForSlave(slaveId)
-          if (slaveAddresses) testdata = M2mSpecification.getEmptyModbusAddressesFromSlaveToTestdata(slaveAddresses)
-        }
-      }
-      if (testdata == undefined) {
-        this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify('No extended testdata available, try again later'))
-        return
-      }
       if (msg !== '') {
         this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "{message: '" + msg + "'}")
         return
@@ -461,7 +446,6 @@ export class HttpServer extends HttpServerBase {
       let originalFilename: string | null = req.query.originalFilename ? req.query.originalFilename : null
       var rc = rd.writeSpecification(
         req.body,
-        testdata,
         (filename: string) => {
           if (busId != undefined && bus != undefined && slave != undefined) {
             slave.specificationid = filename

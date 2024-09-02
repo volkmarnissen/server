@@ -109,6 +109,7 @@ function resultFunction1(addresses: Set<ImodbusAddress>, results: ImodbusValues)
 function resultFunction0Illegal(addresses: Set<ImodbusAddress>, results: ImodbusValues): void {
   expect(results.holdingRegisters.get(4)).toBeDefined()
   expect(results.holdingRegisters.get(4)!.result!.data[0]).toBe(4)
+  expect(results.holdingRegisters.get(3)!.error).toBeDefined()
   let na = structuredClone(addresses)
   na.add({ address: 10, registerType: ModbusRegisterType.HoldingRegister })
   submitReadRequest(na, resultFunctions[1])
