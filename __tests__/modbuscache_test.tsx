@@ -169,8 +169,10 @@ describe('submitGetHoldingRegisterRequests', () => {
         address: 4,
         registerType: ModbusRegisterType.HoldingRegister,
       })
-      let f = (_addresses: Set<ImodbusAddress>, _results: ImodbusValues) => {
+      let f = (_addresses: Set<ImodbusAddress>, results: ImodbusValues) => {
         expect(readHoldingRegisters).toHaveBeenCalledTimes(4)
+        expect(results.holdingRegisters.get(4)!.error).not.toBeDefined()
+        expect(results.holdingRegisters.get(5)!.error).not.toBeDefined()
         mockMutex.release()
         done()
       }
@@ -191,6 +193,7 @@ describe('submitGetHoldingRegisterRequests', () => {
       })
       let f = (_addresses: Set<ImodbusAddress>, results: ImodbusValues) => {
         expectObjectToBe(results.holdingRegisters.get(10), getReadRegisterResult(10))
+        expect(results.holdingRegisters.get(4)!.error).not.toBeDefined()
         expect(readHoldingRegisters).toHaveBeenCalledTimes(12)
         mockMutex.release()
         done()

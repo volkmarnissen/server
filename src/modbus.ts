@@ -107,7 +107,6 @@ export class Modbus {
     let mspec = M2mSpecification.fileToModbusSpecification(specification!, values)
     if (mspec) sub.next(mspec)
   }
-
   static getModbusSpecificationFromData(
     task: string,
     bus: Bus,
@@ -116,6 +115,7 @@ export class Modbus {
     sub: Subject<ImodbusSpecification>
   ): void {
     let addresses = new Set<ImodbusAddress>()
+    ConfigSpecification.clearModbusData(specification)
     let info = '(' + bus.getId() + ',' + slaveid + ')'
     Bus.getModbusAddressesForSpec(specification, addresses)
 
