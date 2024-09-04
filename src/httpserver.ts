@@ -291,7 +291,9 @@ export class HttpServer extends HttpServerBase {
             // poll status updates of pull request
             client.startPolling((e) => {
               log.log(LogLevelEnum.error, e.message)
-            })
+            })?.subscribe(pullRequest=>{
+              log.log(LogLevelEnum.notice, "Merged " + pullRequest.pullNumber)
+            } )
             this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(response))
           })
           .catch((err) => {
