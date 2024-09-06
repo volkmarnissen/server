@@ -34,9 +34,9 @@
   },
   "dependencies": {
     "@google-cloud/translate": "^8.3.0",
-    "@modbus2mqtt/angular": "^0.12.2",
+    "@modbus2mqtt/angular": "^0.12.3",
     "@modbus2mqtt/server.shared": "^0.13.0",
-    "@modbus2mqtt/specification": "^0.15.0",
+    "@modbus2mqtt/specification": "^0.15.1",
     "@modbus2mqtt/specification.shared": "^0.10.0",
     "@octokit/rest": "^20.1.1",
     "assert": "^2.1.0",
