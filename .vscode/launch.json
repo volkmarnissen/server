@@ -37,8 +37,14 @@
       "type": "node-terminal",
       "env": {
         "DEBUG": "m2mgithub",
-        "MODBUS2MQTT_NOPOLL": "",
-      }
+        "MODBUS_NOPOLL": "true",
+      },
+      "sourceMapPathOverrides": {
+        "server/*/*": "${workspaceFolder}/*",
+        "specification.shared/*/*": "${workspaceFolder}../specification.shared/*/*",
+        "server.shared/*/*": "${workspaceFolder}../server.shared/*/*",
+        "specification/*/*": "${workspaceFolder}../specification/*/*",
+      },
     },
     {
       "command": "npm run modbusanalysis",
@@ -52,9 +58,16 @@
       "request": "launch",
       "type": "node-terminal",
       "env": {
-        "DEBUG": "express:* modbuscache modbuscache.time",
-        "MODBUS2MQTT_NOPOLL": "",
-      }
+        "DEBUG": "httpserver",
+        "MODBUS_NOPOLL": "true",
+      },
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "server/*/*": "${workspaceFolder}/*",
+        "specification.shared/*/*": "${workspaceFolder}/../specification.shared/*",
+        "server.shared/*/*": "${workspaceFolder}/../server.shared/*",
+        "specification/*/*": "${workspaceFolder}/../specification/src/*",
+      },
     },
     {
       "command": "npm run serverTCP",
@@ -64,7 +77,7 @@
       "type": "node-terminal",
       "env": {
         "DEBUG": "express:* modbuscache modbuscache.time",
-        "MODBUS2MQTT_NOPOLL": "",
+        "MODBUS2_NOPOLL": "",
       }
     },
     {
@@ -76,7 +89,6 @@
       "env": {
         "DEBUG": "m2mgithubvalidate",
         "PR_NUMBER": "62",
-        "GITHUB_TOKEN": "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"
       }
     },
     {
@@ -86,7 +98,7 @@
       "type": "node-terminal",
       "env": {
         "DEBUG": "express:* modbuscache modbuscache.time",
-        "MODBUS2MQTT_NOPOLL": "",
+        "MODBUS2_NOPOLL": "",
       },
     },
     {

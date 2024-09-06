@@ -38,7 +38,7 @@ def reset(tarinfo):
 # runs in (@modbus2mqtt)/server
 # updates config.yaml in (@modbus2mqtt)/hassio-addon-repository
 def createAddonDirectoryForRelease(basedir,version):
-    sys.stderr.write("createAddonDirectory release " + basedir  + " " +  version)
+    sys.stderr.write("createAddonDirectory release " + basedir  + " " +  version + "\n")
     replaceStringInFile(os.path.join(basedir, server, 'hassio-addon', configYaml), \
         os.path.join(basedir, hassioAddonRepository,modbus2mqtt,  configYaml),"<version>", version )
 

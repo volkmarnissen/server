@@ -112,6 +112,7 @@ export class ModbusStateMachine {
   private static lastNoticeMessageTime: number | undefined
   private pid!: number
   private result = emptyModbusValues()
+  private isSplitted = false;
   private preparedAddresses: ImodbusAddress[] = []
   private preparedAddressesIndex = 0
   private retryCount = 0
@@ -336,7 +337,7 @@ export class ModbusStateMachine {
               this.retryProcessAction.name
             )
           })
-      } else if (length) this.processReadFromModbus(startAddress, startAddress, bus!, start, length, msg, tbl.get(fc)!)
+      } else if (length) this.processReadFromModbus(startAddress, startAddress, bus!, start, length, msg, tbl.get(fc)!, false)
     }
   }
   // optimizes the timeout for slaves
@@ -347,12 +348,15 @@ export class ModbusStateMachine {
     start: number,
     length: number,
     msg: string,
-    read: IModbusProcess
+    read: IModbusProcess,
+    afterTimeout: boolean
   ) {
     let slave = bus?.getSlaveBySlaveId(this.slaveId.slaveid)
     read.func
       .bind(bus)(this.slaveId.slaveid, readAddress, length)
       .then((value) => {
+        if( afterTimeout)
+          log.log(LogLevelEnum.notice, 'Retry successfully executed: slave:' + slave?.slaveid + ' address: ' + startAddress + " length:" + length )
         debugTime('read success (' + this.slaveId.slaveid + ',' + readAddress + ',' + length + ') duration: ' + value.duration)
         this.retryCount = 0
         this.timeoutCount = 0
@@ -428,8 +432,8 @@ export class ModbusStateMachine {
         //     }
         // }
         if (e.errno == 'ETIMEDOUT' && this.timeoutCount++ < maxTimeouts) {
-          this.logNotice(read.func.name + ' TIMEOUT:' + (e.readDetails ? e.readDetails : '') + ' retrying ... ')
-          this.processReadFromModbus(startAddress, readAddress, bus, start, length, msg, read)
+          this.logNotice(read.func.name + ' TIMEOUT: slave:' + slave?.slaveid + ' address: ' + startAddress + " length:" + length + " " + (e.readDetails ? e.readDetails : '') + ' retrying ... ')
+          this.processReadFromModbus(startAddress, readAddress, bus, start, length, msg, read, true)
           return
         }
 
@@ -470,8 +474,11 @@ export class ModbusStateMachine {
       } else this.doClose(e)
     }
   }
-  private splitAddresses(module: string, e: any) {
+  private splitAddresses(module: string, e: any):boolean {
     debug('Split addresses')
+    if( this.isSplitted)
+      return false;
+    this.isSplitted = true;
     // split request into single parts to avoid invalid address errors as often as possible
     if (this.preparedAddresses[this.preparedAddressesIndex].length! > 1) {
       let startAddress = this.preparedAddresses[this.preparedAddressesIndex].address
@@ -502,6 +509,7 @@ export class ModbusStateMachine {
       )
       this.preparedAddressesIndex++
     }
+    return true
   }
   private reopenAndContinue() {
     let bus = Bus.getBus(this.slaveId.busid)
@@ -556,8 +564,11 @@ export class ModbusStateMachine {
             slave.modbusTimout +
             (e.readDetails ? e.readDetails : '')
         )
-      else debug(' Timeout. continue with next data')
-      this.preparedAddressesIndex++
+      else 
+        debug(' Timeout. continue with next data')
+      let success = this.splitAddresses(module,e)
+      if(!success)
+        this.preparedAddressesIndex++
       this.next(ModbusStates.Processing, this.processAction)
     } else if (e.modbusCode) {
       switch (e.modbusCode) {
@@ -569,10 +580,16 @@ export class ModbusStateMachine {
         case 2: // Illegal Address
           debug('retryProcessAction: ' + e.message)
           // split request into single parts to avoid invalid address errors as often as possible
-          this.splitAddresses(module, e)
+          let success= this.splitAddresses(module, e)
           // Need to reopen the RTU connection, because of it's errourous state after this error
           // then continue with next addresses
-          this.reopenAndContinue()
+          if( success)
+            this.reopenAndContinue()
+          else
+          {
+            this.preparedAddressesIndex++
+            this.reopenAndContinue()
+          }
           break
         default:
           log.log(LogLevelEnum.error, 'Modbus Error: ' + e.modbusCode)

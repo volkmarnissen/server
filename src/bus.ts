@@ -317,12 +317,12 @@ export class Bus {
           this.modbusClient!.readInputRegisters(dataaddress, length)
             .then((data) => {
               this.modbusClientActionMutex.release()
+              this.clearModbusTimout()
               let rc: ReadRegisterResultWithDuration = {
                 result: data,
                 duration: Date.now() - start,
               }
               resolve(rc)
-              this.clearModbusTimout()
             })
             .catch((e) => {
               this.modbusClientActionMutex.release()
@@ -345,6 +345,7 @@ export class Bus {
           this.modbusClient!.readDiscreteInputs(dataaddress, length)
             .then((resolveBoolean) => {
               this.modbusClientActionMutex.release()
+              this.clearModbusTimout()
               let readResult: ReadRegisterResult = {
                 data: [],
                 buffer: Buffer.allocUnsafe(0),
@@ -357,7 +358,6 @@ export class Bus {
                 duration: Date.now() - start,
               }
               resolve(rc)
-              this.clearModbusTimout()
             })
             .catch((e) => {
               this.modbusClientActionMutex.release()

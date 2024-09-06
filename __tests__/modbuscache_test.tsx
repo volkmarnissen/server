@@ -109,6 +109,7 @@ function resultFunction1(addresses: Set<ImodbusAddress>, results: ImodbusValues)
 function resultFunction0Illegal(addresses: Set<ImodbusAddress>, results: ImodbusValues): void {
   expect(results.holdingRegisters.get(4)).toBeDefined()
   expect(results.holdingRegisters.get(4)!.result!.data[0]).toBe(4)
+  expect(results.holdingRegisters.get(3)!.error).toBeDefined()
   let na = structuredClone(addresses)
   na.add({ address: 10, registerType: ModbusRegisterType.HoldingRegister })
   submitReadRequest(na, resultFunctions[1])
@@ -168,8 +169,10 @@ describe('submitGetHoldingRegisterRequests', () => {
         address: 4,
         registerType: ModbusRegisterType.HoldingRegister,
       })
-      let f = (_addresses: Set<ImodbusAddress>, _results: ImodbusValues) => {
+      let f = (_addresses: Set<ImodbusAddress>, results: ImodbusValues) => {
         expect(readHoldingRegisters).toHaveBeenCalledTimes(4)
+        expect(results.holdingRegisters.get(4)!.error).not.toBeDefined()
+        expect(results.holdingRegisters.get(5)!.error).not.toBeDefined()
         mockMutex.release()
         done()
       }
@@ -190,6 +193,7 @@ describe('submitGetHoldingRegisterRequests', () => {
       })
       let f = (_addresses: Set<ImodbusAddress>, results: ImodbusValues) => {
         expectObjectToBe(results.holdingRegisters.get(10), getReadRegisterResult(10))
+        expect(results.holdingRegisters.get(4)!.error).not.toBeDefined()
         expect(readHoldingRegisters).toHaveBeenCalledTimes(12)
         mockMutex.release()
         done()
