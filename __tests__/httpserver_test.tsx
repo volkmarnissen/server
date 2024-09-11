@@ -28,7 +28,14 @@ import {
   IUserAuthenticationStatus,
   ITCPConnection,
 } from '@modbus2mqtt/server.shared'
-import { IReadRegisterResultOrError, IfileSpecification, ImodbusValues, LogLevelEnum, Logger } from '@modbus2mqtt/specification'
+import {
+  IReadRegisterResultOrError,
+  IfileSpecification,
+  ImodbusValues,
+  LogLevelEnum,
+  Logger,
+  M2mSpecification,
+} from '@modbus2mqtt/specification'
 import { ConfigSpecification } from '@modbus2mqtt/specification'
 import { Mutex } from 'async-mutex'
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU'
@@ -149,6 +156,23 @@ it('GET /devices', (done) => {
       expect(1).toBeFalsy()
     })
 })
+
+it('GET /nextCheck', (done) => {
+  M2mSpecification['ghContributions'].set('test', {
+    nextCheck: '10 Min',
+  })
+  supertest(httpServer.app)
+    .get(apiUri.nextCheck + '?spec=test')
+    .expect(200)
+    .then((response) => {
+      done()
+    })
+    .catch((e) => {
+      log.log(LogLevelEnum.error, 'error')
+      expect(1).toBeFalsy()
+    })
+})
+
 it('GET /specsForSlave', (done) => {
   supertest(httpServer.app)
     .get(apiUri.specsForSlaveId + '?busid=0&slaveid=1')

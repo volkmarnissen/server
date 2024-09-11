@@ -419,7 +419,6 @@ export class MqttDiscover {
           if (this.client) this.client.end()
         },
         (e) => {
-          
           this.error(e)
           this.client!.end()
           callback(false, e.toString())
@@ -491,10 +490,10 @@ export class MqttDiscover {
   private poll(): Promise<void> {
     return new Promise<void>((resolve, error) => {
       let allTopics: Promise<void>[] = []
-      let needPolls:{
-        bus:Bus,
-        slave:Islave
-      }[]=[]
+      let needPolls: {
+        bus: Bus
+        slave: Islave
+      }[] = []
 
       Bus.getBusses().forEach((bus) => {
         bus.getSlaves().forEach((slave) => {
@@ -502,49 +501,49 @@ export class MqttDiscover {
           let pc: number | undefined = this.pollCounts.get(key)
           if (pc == undefined || pc > (slave.polInterval != undefined ? slave.polInterval / 100 : defaultPollCount)) pc = 0
           if (pc == 0) {
-                debug('Update Discovery')
-                debugAction('poll start (' + bus.getId() + ',' + slave.slaveid + ')interval: ' + slave.polInterval)
-                debug('poll: start sending payload busid: ' + bus.getId() + ' slaveid: ' + slave.slaveid)
-                debugAction('poll end')
-                if (slave.specificationid && slave.specificationid.length > 0) {
-                  needPolls.push({bus:bus, slave:slave})
+            debug('Update Discovery')
+            debugAction('poll start (' + bus.getId() + ',' + slave.slaveid + ')interval: ' + slave.polInterval)
+            debug('poll: start sending payload busid: ' + bus.getId() + ' slaveid: ' + slave.slaveid)
+            debugAction('poll end')
+            if (slave.specificationid && slave.specificationid.length > 0) {
+              needPolls.push({ bus: bus, slave: slave })
+            }
+          }
+          this.pollCounts.set(key, ++pc)
+        })
+      })
+      if (needPolls.length > 0)
+        this.connectMqtt(
+          undefined,
+          () => {
+            this.subscribeDiscovery()
+            needPolls.forEach((bs) => {
+              allTopics.push(this.publishStateAndSendDiscovery(bs.bus, bs.slave))
+            })
+            Promise.allSettled(allTopics).then((values) => {
+              values.forEach((v) => {
+                if (v.status == 'rejected') log.log(LogLevelEnum.error, v.reason.message)
+              })
+              if (allTopics.length > 0) debugAction('publish states finished')
+              // Delete Discovery Topics of deleted Objects
+              for (let key of this.mqttDiscoveryTopics.keys()) {
+                if (!this.pollCounts.has(key)) {
+                  let ents = this.mqttDiscoveryTopics.get(key)
+                  if (ents)
+                    for (let tpi of ents.values()) {
+                      tpi.forEach((tpx) => {
+                        this.getMqttClient().publish(tpx.topic, '')
+                      })
+                    }
                 }
               }
-          this.pollCounts.set(key, ++pc)
-      })
-      })
-      if (needPolls.length > 0) 
-        this.connectMqtt(
-        undefined,
-        () => {
-          this.subscribeDiscovery()
-          needPolls.forEach( bs=>{
-            allTopics.push(this.publishStateAndSendDiscovery(bs.bus, bs.slave))
-          })
-          Promise.allSettled(allTopics).then((values) => {
-            values.forEach((v) => {
-              if (v.status == 'rejected') log.log(LogLevelEnum.error, v.reason.message)
+              this.client?.end()
+              resolve()
             })
-            if (allTopics.length > 0) debugAction('publish states finished')
-            // Delete Discovery Topics of deleted Objects
-                for (let key of this.mqttDiscoveryTopics.keys()) {
-                  if (!this.pollCounts.has(key)) {
-                    let ents = this.mqttDiscoveryTopics.get(key)
-                    if (ents)
-                      for (let tpi of ents.values()){
-                        tpi.forEach((tpx) => {
-                              this.getMqttClient().publish(tpx.topic, '')
-                      })
-                    
-                      }
-                  }
-                }
-                this.client?.end()
-                resolve()
-          })
-        },  error)
-        else
-          resolve()
+          },
+          error
+        )
+      else resolve()
     })
   }
 

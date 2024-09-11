@@ -63,10 +63,10 @@ class FakeMqtt {
       debug('publish: ' + topic + '\n' + message)
     }
   }
-  public end(){
+  public end() {
     debug('end')
   }
-public on(event: 'message', cb: () => {}) {}
+  public on(event: 'message', cb: () => {}) {}
 }
 
 Config['yamlDir'] = yamlDir
@@ -288,7 +288,7 @@ test('poll', (done) => {
     md!['poll']().then(() => {
       expect(fake.isAsExcpected).toBeTruthy()
       let c = md!['pollCounts'].values().next()
-      md!['pollCounts'].set("0s1", 10000)
+      md!['pollCounts'].set('0s1', 10000)
       expect(c.value).toBeGreaterThan(1)
       //call discovery explictely
       // Expectation: It should not publish anything, because this has happened already
@@ -297,9 +297,8 @@ test('poll', (done) => {
       fake.fakeMode = FakeModes.Discovery
       let slave = bus?.getSlaveBySlaveId(1)
       md!['poll']().then(() => {
-
-          expect(md!['mqttDiscoveryTopics'].get('1s0') == undefined).toBeTruthy()
-      done()
+        expect(md!['mqttDiscoveryTopics'].get('1s0') == undefined).toBeTruthy()
+        done()
       })
     })
   })
