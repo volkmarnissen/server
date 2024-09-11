@@ -74,7 +74,7 @@ def pusblishDocker(basedir, version):
 # copy addon directory from (@modbus2mqtt)/hassio-addon-repository
 # docker login needs to be executed in advance 
 def copyAddon(basedir, host,port ):
-    sys.stderr.write("copy addon ", basedir + " " +  host + " " +  port )
+    sys.stderr.write("copy addon " + basedir + " " +  host )
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-b", "--basedir", help="base directory of all repositories", default='.')

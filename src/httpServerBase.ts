@@ -77,7 +77,6 @@ export class HttpServerBase {
         debug(req.method + ': ' + req.originalUrl)
         func(req, response)
       })
-      .bind(this)
   }
   post<T extends Request>(url: apiUri, func: (req: T, response: any) => void): void {
     debugUrl('start post' + url)
@@ -86,7 +85,6 @@ export class HttpServerBase {
         debug(req.method + ': ' + req.originalUrl)
         func(req, response)
       })
-      .bind(this)
   }
   delete<T extends Request>(url: apiUri, func: (req: T, response: any) => void): void {
     debugUrl('start delete')
@@ -95,7 +93,6 @@ export class HttpServerBase {
         debug(req.method + ': ' + req.originalUrl)
         func(req, response)
       })
-      .bind(this)
   }
   authenticate(req: Request, res: http.ServerResponse, next: any) {
     //  req.header('')

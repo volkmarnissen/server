@@ -142,7 +142,7 @@ export class ModbusStateMachine {
     if (repeatMessage || msg != ModbusStateMachine.lastNoticeMessage) {
       ModbusStateMachine.lastNoticeMessage = msg
       ModbusStateMachine.lastNoticeMessageTime = Date.now()
-      log.log(LogLevelEnum.notice, msg)
+      log.log(LogLevelEnum.notice, this.task + ' ' + msg)
     }
   }
   async next(newState: ModbusStates, action: () => void, actionName?: string) {
@@ -374,7 +374,7 @@ export class ModbusStateMachine {
           slave.durationOfLongestModbusCall = value.duration
           debugData(read.func.name + ': set durationOfLongestModbusCall for slaveid: ' + slave.slaveid + 'to: ' + value.duration)
           if (slave.modbusTimout > slave.durationOfLongestModbusCall * 2 && slave.modbusTimout > minTimeout) {
-            slave.modbusTimout = slave.durationOfLongestModbusCall * 2
+            // slave.modbusTimout = slave.durationOfLongestModbusCall * 2
             debugData(read.func.name + ': set modbusTimout for slaveid: ' + slave.slaveid + 'to: ' + slave.modbusTimout)
           }
         }
