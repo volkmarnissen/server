@@ -490,19 +490,28 @@ export class Bus {
     return Bus.allSpecificationsModbusAddresses!
   }
 
-  readModbusRegister(task: string, slaveid: number, addresses: Set<ImodbusAddress>): Promise<ImodbusValues> {
+  private readModbusRegisterLogControl(
+    task: string,
+    printLog: boolean,
+    slaveid: number,
+    addresses: Set<ImodbusAddress>
+  ): Promise<ImodbusValues> {
     return new Promise((resolve, reject) => {
       debug('readModbusRegister slaveid: ' + slaveid + ' addresses: ' + JSON.stringify(Array.from(addresses)))
 
       if (Config.getConfiguration().fakeModbus)
         submitGetHoldingRegisterRequest({ busid: this.getId(), slaveid: slaveid }, addresses).then(resolve).catch(reject)
       else
-        new ModbusCache(task + '(' + slaveid + ')')
+        new ModbusCache(task + '(' + slaveid + ')', printLog)
           .submitGetHoldingRegisterRequest({ busid: this.getId(), slaveid: slaveid }, addresses)
           .then(resolve)
           .catch(reject)
     })
   }
+  readModbusRegister(task: string, slaveid: number, addresses: Set<ImodbusAddress>): Promise<ImodbusValues> {
+    return this.readModbusRegisterLogControl(task, true, slaveid, addresses)
+  }
+
   /*
    * getAvailableSpecs uses bus.slaves cache if possible
    */
@@ -565,7 +574,7 @@ export class Bus {
         return
       }
 
-      this.readModbusRegister('getAvailableSpecs', slaveid, addresses)
+      this.readModbusRegisterLogControl('getAvailableSpecs', false, slaveid, addresses)
         .then((values) => {
           // Add not available addresses to the values
           let noData = { error: new Error('No data available') }

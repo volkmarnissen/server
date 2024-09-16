@@ -70,18 +70,29 @@ export class HttpServerBase {
     })
     if (this.statics.size > 0) this.languages = Array.from(this.statics.keys())
   }
-
-  get(url: apiUri, func: (req: any, response: any) => void): void {
+  get<T extends Request>(url: apiUri, func: (req: T, response: any) => void): void {
     debugUrl('start get' + url)
-    this.app.get(url, func)
+    this.app
+      .get(url, (req: T, response: any) => {
+        debug(req.method + ': ' + req.originalUrl)
+        func(req, response)
+      })
   }
-  post(url: apiUri, func: (req: any, response: any) => void): void {
+  post<T extends Request>(url: apiUri, func: (req: T, response: any) => void): void {
     debugUrl('start post' + url)
-    this.app.post(url, func)
+    this.app
+      .post(url, (req: T, response: any) => {
+        debug(req.method + ': ' + req.originalUrl)
+        func(req, response)
+      })
   }
-  delete(url: apiUri, func: (req: any, response: any) => void): void {
-    debugUrl('start delete' + url)
-    this.app.delete(url, func)
+  delete<T extends Request>(url: apiUri, func: (req: T, response: any) => void): void {
+    debugUrl('start delete')
+    this.app
+      .delete(url, (req: T, response: any) => {
+        debug(req.method + ': ' + req.originalUrl)
+        func(req, response)
+      })
   }
   authenticate(req: Request, res: http.ServerResponse, next: any) {
     //  req.header('')

@@ -19,7 +19,7 @@ export class Modbus {
   writeEntityModbus(bus: Bus, slaveid: number, entity: Ientity, modbusValue: ReadRegisterResult) {
     // this.modbusClient.setID(device.slaveid);
     if (entity.modbusAddress && entity.registerType) {
-      new ModbusCache('write')
+      new ModbusCache('write', true)
         .writeRegisters(
           { busid: bus.getId(), slaveid: slaveid },
           entity.modbusAddress,
@@ -44,7 +44,7 @@ export class Modbus {
         if (entity.modbusAddress && entity.registerType && converter) {
           let modbusValue = converter?.mqtt2modbus(spec, entityid, mqttValue)
           if (modbusValue && modbusValue.data.length > 0) {
-            new ModbusCache('write')
+            new ModbusCache('write', true)
               .writeRegisters(
                 { busid: bus.getId(), slaveid: slaveid },
                 entity.modbusAddress,

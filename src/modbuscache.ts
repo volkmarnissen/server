@@ -112,7 +112,7 @@ export class ModbusStateMachine {
   private static lastNoticeMessageTime: number | undefined
   private pid!: number
   private result = emptyModbusValues()
-  private isSplitted = false;
+  private isSplitted = false
   private preparedAddresses: ImodbusAddress[] = []
   private preparedAddressesIndex = 0
   private retryCount = 0
@@ -125,6 +125,7 @@ export class ModbusStateMachine {
   private retryConnectCount = 0
   constructor(
     private task: string,
+    private printLogs: boolean,
     private slaveId: IslaveId,
     private addresses: Set<ImodbusAddress>,
     private returnAction: (results: ImodbusValues) => void,
@@ -133,6 +134,7 @@ export class ModbusStateMachine {
     this.pid = ++ModbusStateMachine.maxPid
   }
   private logNotice(msg: string) {
+    if (!this.printLogs) return
     // suppress similar duplicate messages
     let repeatMessage =
       ModbusStateMachine.lastNoticeMessageTime != undefined &&
@@ -140,7 +142,7 @@ export class ModbusStateMachine {
     if (repeatMessage || msg != ModbusStateMachine.lastNoticeMessage) {
       ModbusStateMachine.lastNoticeMessage = msg
       ModbusStateMachine.lastNoticeMessageTime = Date.now()
-      log.log(LogLevelEnum.notice, msg)
+      log.log(LogLevelEnum.notice, this.task + ' ' + msg)
     }
   }
   async next(newState: ModbusStates, action: () => void, actionName?: string) {
@@ -355,8 +357,11 @@ export class ModbusStateMachine {
     read.func
       .bind(bus)(this.slaveId.slaveid, readAddress, length)
       .then((value) => {
-        if( afterTimeout)
-          log.log(LogLevelEnum.notice, 'Retry successfully executed: slave:' + slave?.slaveid + ' address: ' + startAddress + " length:" + length )
+        if (afterTimeout)
+          log.log(
+            LogLevelEnum.notice,
+            'Retry successfully executed: slave:' + slave?.slaveid + ' address: ' + startAddress + ' length:' + length
+          )
         debugTime('read success (' + this.slaveId.slaveid + ',' + readAddress + ',' + length + ') duration: ' + value.duration)
         this.retryCount = 0
         this.timeoutCount = 0
@@ -369,7 +374,7 @@ export class ModbusStateMachine {
           slave.durationOfLongestModbusCall = value.duration
           debugData(read.func.name + ': set durationOfLongestModbusCall for slaveid: ' + slave.slaveid + 'to: ' + value.duration)
           if (slave.modbusTimout > slave.durationOfLongestModbusCall * 2 && slave.modbusTimout > minTimeout) {
-            slave.modbusTimout = slave.durationOfLongestModbusCall * 2
+            // slave.modbusTimout = slave.durationOfLongestModbusCall * 2
             debugData(read.func.name + ': set modbusTimout for slaveid: ' + slave.slaveid + 'to: ' + slave.modbusTimout)
           }
         }
@@ -415,24 +420,19 @@ export class ModbusStateMachine {
       .catch((e: any) => {
         if (e.duration) debugTime('read fail duration: ' + e.duration)
         else debugTime('read fail Total duration: ' + (Date.now() - start))
-        //  disable timeout setting
-        //  let maxTimeout = bus.getMaxModbusTimeout()
-        // increase timeout if timeout occured and current timeout < max timeout for bus
-        // if (e.errno == "ETIMEDOUT" && slave && slave.modbusTimout && slave.evalTimeout) {
-        //     if (slave.modbusTimout < maxTimeout) {
-        //         this.logNotice( read.name + "(" + slave.slaveid + "," + readAddress + ")" + ": Modbus timeout: " + slave.modbusTimout + " retrying with new timeout " + slave.modbusTimout * 2 + "... ")
-        //         slave.modbusTimout = slave.modbusTimout * 2
-        //         this.processReadFromModbus(startAddress, readAddress, bus, start, length, msg, read)
-        //         return
-        //     } else if (slave.durationOfLongestModbusCall != undefined) {
-        //         // reset timeout, because it's longer than maximu
-        //         let timeout = slave.durationOfLongestModbusCall * 2 > maxTimeout ? maxTimeout : slave.durationOfLongestModbusCall * 2
-        //         slave.modbusTimout = timeout
-        //         this.logNotice( "Reset timeout to " + "(" + slave.slaveid + "," + readAddress + ")" + timeout)
-        //     }
-        // }
         if (e.errno == 'ETIMEDOUT' && this.timeoutCount++ < maxTimeouts) {
-          this.logNotice(read.func.name + ' TIMEOUT: slave:' + slave?.slaveid + ' address: ' + startAddress + " length:" + length + " " + (e.readDetails ? e.readDetails : '') + ' retrying ... ')
+          this.logNotice(
+            read.func.name +
+              ' TIMEOUT: slave:' +
+              slave?.slaveid +
+              ' address: ' +
+              startAddress +
+              ' length:' +
+              length +
+              ' ' +
+              (e.readDetails ? e.readDetails : '') +
+              ' retrying ... '
+          )
           this.processReadFromModbus(startAddress, readAddress, bus, start, length, msg, read, true)
           return
         }
@@ -474,11 +474,10 @@ export class ModbusStateMachine {
       } else this.doClose(e)
     }
   }
-  private splitAddresses(module: string, e: any):boolean {
+  private splitAddresses(module: string, e: any): boolean {
     debug('Split addresses')
-    if( this.isSplitted)
-      return false;
-    this.isSplitted = true;
+    if (this.isSplitted) return false
+    this.isSplitted = true
     // split request into single parts to avoid invalid address errors as often as possible
     if (this.preparedAddresses[this.preparedAddressesIndex].length! > 1) {
       let startAddress = this.preparedAddresses[this.preparedAddressesIndex].address
@@ -564,11 +563,9 @@ export class ModbusStateMachine {
             slave.modbusTimout +
             (e.readDetails ? e.readDetails : '')
         )
-      else 
-        debug(' Timeout. continue with next data')
-      let success = this.splitAddresses(module,e)
-      if(!success)
-        this.preparedAddressesIndex++
+      else debug(' Timeout. continue with next data')
+      let success = this.splitAddresses(module, e)
+      if (!success) this.preparedAddressesIndex++
       this.next(ModbusStates.Processing, this.processAction)
     } else if (e.modbusCode) {
       switch (e.modbusCode) {
@@ -580,13 +577,11 @@ export class ModbusStateMachine {
         case 2: // Illegal Address
           debug('retryProcessAction: ' + e.message)
           // split request into single parts to avoid invalid address errors as often as possible
-          let success= this.splitAddresses(module, e)
+          let success = this.splitAddresses(module, e)
           // Need to reopen the RTU connection, because of it's errourous state after this error
           // then continue with next addresses
-          if( success)
-            this.reopenAndContinue()
-          else
-          {
+          if (success) this.reopenAndContinue()
+          else {
             this.preparedAddressesIndex++
             this.reopenAndContinue()
           }
@@ -667,7 +662,10 @@ export class ModbusStateMachine {
 
 export class ModbusCache {
   static readMutex = new Mutex()
-  constructor(private task: string) {}
+  constructor(
+    private task: string,
+    private printLogs: boolean
+  ) {}
   //static resultMutex:Mutex
   writeRegisters(
     slaveId: IslaveId,
@@ -678,6 +676,7 @@ export class ModbusCache {
     return new Promise<void>((resolve, reject) => {
       new ModbusStateMachine(
         'write',
+        this.printLogs,
         slaveId,
         new Set<ImodbusAddress>(),
         (data) => {
@@ -693,7 +692,7 @@ export class ModbusCache {
       if (slaveId.slaveid == -1) {
         reject(new Error('no slaveId passed to submitGetHoldingRegisterRequest'))
       } else {
-        new ModbusStateMachine(this.task, slaveId, addresses, resolve, reject).loadAction()
+        new ModbusStateMachine(this.task, this.printLogs, slaveId, addresses, resolve, reject).loadAction()
       }
     })
   }

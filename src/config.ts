@@ -630,10 +630,13 @@ export class Config {
     }
     return addresses
   }
+  static mqttDiscoverInstance: MqttDiscover| undefined
   static getMqttDiscover(): MqttDiscover {
-    if (Config.config.mqttusehassio && this.mqttHassioLoginData)
-      return new MqttDiscover(this.mqttHassioLoginData, Config.config.mqttdiscoverylanguage)
-    else return new MqttDiscover(Config.config.mqttconnect, Config.config.mqttdiscoverylanguage)
+    if(!Config.mqttDiscoverInstance )
+      if (Config.config.mqttusehassio && this.mqttHassioLoginData)
+        Config.mqttDiscoverInstance = new MqttDiscover(this.mqttHassioLoginData, Config.config.mqttdiscoverylanguage)
+      else Config.mqttDiscoverInstance = new MqttDiscover(Config.config.mqttconnect, Config.config.mqttdiscoverylanguage)
+    return Config.mqttDiscoverInstance
   }
 
   triggerMqttPublishSlave(busid: number, slave: Islave) {

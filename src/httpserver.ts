@@ -94,7 +94,7 @@ export class HttpServer extends HttpServerBase {
       return
     })
 
-    this.get(apiUri.converters, (req: GetRequestWithParameter, res: http.ServerResponse) => {
+    this.get(apiUri.converters, (req: Request, res: http.ServerResponse) => {
       debug('(/converters')
       let a = ConverterMap.getConverters()
       this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(a))
@@ -178,6 +178,17 @@ export class HttpServer extends HttpServerBase {
       } else {
         this.returnResult(req, res, HttpErrorsEnum.ErrNotFound, 'not found')
       }
+    })
+
+    this.get(apiUri.nextCheck, (req: GetRequestWithParameter, res: http.ServerResponse) => {
+      debug(req.url)
+      let nc = M2mSpecification.getNextCheck(req.query.spec)
+      this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(nc))
+    })
+    this.post(apiUri.nextCheck, (req: GetRequestWithParameter, res: http.ServerResponse) => {
+      debug(req.url)
+      let nc = M2mSpecification.triggerPoll(req.query.spec)
+      this.returnResult(req, res, HttpErrorsEnum.OK, 'OK')
     })
     this.get(apiUri.specifications, (req: Request, res: http.ServerResponse) => {
       debug(req.url)
@@ -289,11 +300,13 @@ export class HttpServer extends HttpServerBase {
           .contribute(req.body.note)
           .then((response) => {
             // poll status updates of pull request
-            client.startPolling((e) => {
+            M2mSpecification.startPolling(spec.filename, (e) => {
               log.log(LogLevelEnum.error, e.message)
-            })?.subscribe(pullRequest=>{
-              log.log(LogLevelEnum.notice, "Merged " + pullRequest.pullNumber)
-            } )
+            })?.subscribe((pullRequest) => {
+              if (pullRequest.merged) log.log(LogLevelEnum.notice, 'Merged ' + pullRequest.pullNumber)
+              else if (pullRequest.closed) log.log(LogLevelEnum.notice, 'Closed ' + pullRequest.pullNumber)
+              else debug('Polled pullrequest ' + pullRequest.pullNumber)
+            })
             this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(response))
           })
           .catch((err) => {
@@ -302,10 +315,12 @@ export class HttpServer extends HttpServerBase {
             else res.end(JSON.stringify(err))
             log.log(LogLevelEnum.error, JSON.stringify(err))
           })
-      } else if (spec && spec.status && spec.status == SpecificationStatus.contributed)
-        client.startPolling((e) => {
+      } else if (spec && spec.status && spec.status == SpecificationStatus.contributed) {
+        M2mSpecification.startPolling(spec.filename, (e) => {
           log.log(LogLevelEnum.error, e.message)
         })
+        this.returnResult(req, res, HttpErrorsEnum.ErrNotAcceptable, 'Specification is already contributed')
+      }
     })
 
     this.post(apiUri.translate, (req: Request, res: http.ServerResponse) => {

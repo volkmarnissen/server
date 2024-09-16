@@ -33,7 +33,7 @@ export class Modbus2Mqtt {
     if (Config.getConfiguration().githubPersonalToken)
       new ConfigSpecification().filterAllSpecifications((spec) => {
         if (spec.status == SpecificationStatus.contributed && spec.pullNumber != undefined) {
-          new M2mSpecification(spec).startPolling((e) => {
+          M2mSpecification.startPolling(spec.filename, (e) => {
             log.log(LogLevelEnum.error, 'Github:' + e.message)
           })
         }
@@ -73,10 +73,9 @@ export class Modbus2Mqtt {
         )
         debug(Config.getConfiguration().mqttconnect.mqttserverurl)
         let angulardir = require.resolve('@modbus2mqtt/angular')
-        log.log(LogLevelEnum.notice, 'module dir: ' + angulardir)
         let angulardirLang = path.parse(angulardir).dir
         angulardir = path.parse(angulardirLang).dir
-        log.log(LogLevelEnum.notice, 'http root : ' + angulardir)
+        debug('http root : ' + angulardir)
         let gh = new M2mGitHub(
           Config.getConfiguration().githubPersonalToken ? Config.getConfiguration().githubPersonalToken! : null,
           join(ConfigSpecification.yamlDir, 'public')
@@ -108,9 +107,8 @@ export class Modbus2Mqtt {
             if (process.env.MODBUS_NOPOLL == undefined) {
               let md = Config.getMqttDiscover()
               md.startPolling()
-            }
-            else{
-              log.log(LogLevelEnum.notice, "Poll disabled by environment variable MODBUS_POLL")
+            } else {
+              log.log(LogLevelEnum.notice, 'Poll disabled by environment variable MODBUS_POLL')
             }
           })
         })

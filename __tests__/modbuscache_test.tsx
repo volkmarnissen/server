@@ -75,7 +75,7 @@ function submitReadRequest(
   resultFunction: (addresses: Set<ImodbusAddress>, results: ImodbusValues) => void
 ) {
   jest.spyOn(ModbusRTU.prototype, 'isOpen', 'get').mockReturnValue(true)
-  new ModbusCache('test')
+  new ModbusCache('test', true)
     .submitGetHoldingRegisterRequest({ busid: 0, slaveid: 1 }, addresses)
     .then((result) => {
       resultFunction(addresses, result)
@@ -226,6 +226,7 @@ test('prepareAddressesAction', () => {
   ModbusStateMachine.prototype.next = mockedfn
   let sm = new ModbusStateMachine(
     'test',
+    false,
     { busid: 0, slaveid: 1 },
     addresses,
     () => {},
@@ -238,7 +239,7 @@ test('prepareAddressesAction', () => {
 })
 
 test('writeRegisters', (done) => {
-  new ModbusCache('test')
+  new ModbusCache('test', true)
     .writeRegisters({ busid: 0, slaveid: 1 }, 4, ModbusRegisterType.HoldingRegister, { data: [5], buffer: Buffer.from([5]) })
     .then(() => {
       done()
