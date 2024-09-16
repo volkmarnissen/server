@@ -229,6 +229,7 @@ test('onMqttConnect', (done) => {
     md = new MqttDiscover(options, 'en')
     jest.mock('mqtt')
     let c: MqttClient = Object.create(Client.prototype)
+    c.connected = true
     md['client'] = c
     // subscribe to discovery for one device
     const mockPublish = jest.fn((_topic: string, _payload: string | Buffer) => c)
