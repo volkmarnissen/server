@@ -72,7 +72,7 @@ export class MqttDiscover {
   // bus/slave name:entity id:payload
   private mqttDiscoveryTopics: Map<string, Map<number, ItopicAndPayloads[]>> = new Map<string, Map<number, ItopicAndPayloads[]>>()
 
-  private generateStateTopic(busid: number, slave: Islave): string {
+  private static generateStateTopic(busid: number, slave: Islave): string {
     return Config.getConfiguration().mqttbasetopic + '/' + busid + Config.getFileNameFromSlaveId(slave.slaveid) + '/state'
   }
   private generateEntityConfigurationTopic(busid: number, slaveId: number, ent: Ientity): string {
@@ -104,7 +104,7 @@ export class MqttDiscover {
       '/config'
     )
   }
-  private generateEntityCommandTopic(busid: number, slave: Islave, ent: Ientity): string {
+  static generateEntityCommandTopic(busid: number, slave: Islave, ent: Ientity): string {
     return Config.getConfiguration().mqttbasetopic + '/set/' + busid + Config.getFileNameFromSlaveId(slave.slaveid) + '/e' + ent.id
   }
   private getDevicesCommandTopic(): string {
@@ -178,10 +178,10 @@ export class MqttDiscover {
               if (!obj.unique_id) obj.unique_id = 'M2M' + busid + filename + e.mqttname
 
               if (!obj.value_template) obj.value_template = '{{ value_json.' + obj.object_id + ' }}'
-              if (!obj.state_topic) obj.state_topic = this.generateStateTopic(busid, slave)
+              if (!obj.state_topic) obj.state_topic = MqttDiscover.generateStateTopic(busid, slave)
               if (!obj.availability && !obj.availability_topic)
                 obj.availability_topic = this.generateAvailatibilityTopic(busid, slave)
-              if (!obj.command_topic && !e.readonly) obj.command_topic = this.generateEntityCommandTopic(busid, slave, ent)
+              if (!obj.command_topic && !e.readonly) obj.command_topic = MqttDiscover.generateEntityCommandTopic(busid, slave, ent)
               switch (converter.getParameterType(e)) {
                 case 'Iselect':
                   let ns = e.converterParameters as Iselect
@@ -472,9 +472,30 @@ private getMqttClient(): Promise<MqttClient> {
       })
     })
   }
-
-  private publishState(bus: Bus, slave: Islave, spec: ImodbusSpecification) {
+  static addTopicAndPayloads(spec: ImodbusSpecification, busid: number, slave: Islave):void {
+    let hasWritableEntities = spec.entities.find(e=> !e.readonly)
+    spec.entities.forEach(ent=>{
+      if( !ent.readonly)
+        ent.commandTopic = MqttDiscover.generateEntityCommandTopic(busid, slave, ent)
+    })
+    spec.stateTopic = MqttDiscover.generateStateTopic(busid, slave)
+    spec.statePayload = MqttDiscover.generateStatePayload(busid, slave, spec)
+  }
+  static generateStatePayload(busid: number, slave: Islave,spec:ImodbusSpecification):string{
     let o: any = {}
+    for (let e of spec.entities) {
+      let entity = e as ImodbusEntity
+      let cv = ConverterMap.getConverter(entity)
+      if (!cv) {
+        let msg = 'No converter found for bus: ' + busid + ' slave: ' + slave.slaveid + ' entity id: ' + entity.id
+        log.log(LogLevelEnum.error, msg)
+      } else 
+        if (e.mqttname && e.mqttValue && !e.variableConfiguration) 
+          o[e.mqttname] = e.mqttValue
+    }
+    return JSON.stringify(o, null, " ")
+  }
+  private publishState(bus: Bus, slave: Islave, spec: ImodbusSpecification) {
     if (!bus) {
       let msg = 'Bus not defined'
       log.log(LogLevelEnum.error, msg)
@@ -486,19 +507,10 @@ private getMqttClient(): Promise<MqttClient> {
       return
     }
 
-    for (let e of spec.entities) {
-      let entity = e as ImodbusEntity
-      let cv = ConverterMap.getConverter(entity)
-      if (!cv) {
-        let msg = 'No converter found for bus: ' + bus.getId() + ' slave: ' + slave.slaveid + ' entity id: ' + entity.id
-        log.log(LogLevelEnum.error, msg)
-        return
-      } else if (e.mqttname && e.mqttValue && !e.variableConfiguration) o[e.mqttname] = e.mqttValue
-    }
-    let topic = this.generateStateTopic(bus.getId(), slave)
+    let topic = MqttDiscover.generateStateTopic(bus.getId(), slave)
     this.getMqttClient().then((mqttClient) => {
       try {
-        mqttClient.publish(topic, JSON.stringify(o))
+        mqttClient.publish(topic, MqttDiscover.generateStatePayload(bus.getId(), slave, spec))
         mqttClient.publish(this.generateAvailatibilityTopic(bus.getId(), slave), 'online')
       } catch (e) {
         try {

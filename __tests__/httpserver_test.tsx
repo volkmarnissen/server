@@ -179,7 +179,9 @@ it('GET /specsForSlave', (done) => {
     .expect(200)
     .then((response) => {
       expect(response.body.length).toBeGreaterThan(0)
-      expect(response.body.find((specs: IidentificationSpecification) => specs.filename == 'waterleveltransmitter')).not.toBeNull()
+      let spec:ImodbusSpecification = response.body.find((specs: IidentificationSpecification) => specs.filename == 'waterleveltransmitter')
+      expect(spec).not.toBeNull()
+      expect(spec.stateTopic).not.toBeNull()
       done()
     })
 })
