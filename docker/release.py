@@ -353,14 +353,14 @@ else:
         else:
             if int (componentInfo.numRemoteChanges) > 0:
                 print( componentInfo.name +  ' has differences to remote push/pull first' )
+            if componentInfo.hasChanges:
+              if  componentInfo.pkgVersion == componentInfo.npmVersion  :
+                print( componentInfo.name + " please update package.json version" )
+                exit(3)
+              if releaseComponent(args.basedir, componentInfo) == 0:
+                print(componentInfo.name + " released successfully")
+                exit(5)
+              else:
+                print(componentInfo.name + " released failed")
             else:
-                if componentInfo.hasChanges:
-                    if  componentInfo.pkgVersion == componentInfo.npmVersion  :
-                        print( componentInfo.name + " please update package.json version" )
-                        exit(3)
-                    if releaseComponent(args.basedir, componentInfo) == 0:
-                        print(componentInfo.name + " released successfully")
-                    else:
-                        print(componentInfo.name + " released failed")
-                else:
-                    print("no changes since last release")
+                print("no changes since last release")
