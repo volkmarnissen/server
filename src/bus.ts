@@ -33,6 +33,7 @@ import {
   IidentificationSpecification,
 } from '@modbus2mqtt/server.shared'
 import { ConfigSpecification } from '@modbus2mqtt/specification'
+import { MqttDiscover } from './mqttdiscover'
 const debug = Debug('bus')
 const debugMutex = Debug('bus.mutex')
 const log = new Logger('bus')
@@ -523,6 +524,7 @@ export class Bus {
         let cfg = new ConfigSpecification()
         cfg.filterAllSpecifications((spec) => {
           let mspec = M2mSpecification.fileToModbusSpecification(spec, modbusData)
+          MqttDiscover.addTopicAndPayloads(mspec, this.getId(), this.getSlaveBySlaveId(slaveid)!)
           debug('getAvailableSpecs')
           if (mspec) {
             // list only identified public specs, but all local specs
@@ -608,11 +610,14 @@ export class Bus {
         modbusValue: ment.modbusValue,
         mqttValue: ment.mqttValue,
         identified: ment.identified,
+        commandTopic: ment.commandTopic,
       })
     }
     let configuredslave = this.properties.slaves.find((dev) => dev.specificationid === mspec.filename && dev.slaveid == slaveid)
     return {
       filename: mspec.filename,
+      stateTopic: mspec.stateTopic,
+      statePayload: mspec.statePayload,
       files: mspec.files,
       i18n: mspec.i18n,
       status: mspec.status!,

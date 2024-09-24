@@ -27,6 +27,7 @@ import { IUserAuthenticationStatus, IBus, Islave, apiUri } from '@modbus2mqtt/se
 import { ConfigSpecification } from '@modbus2mqtt/specification'
 import { HttpServerBase } from './httpServerBase'
 import exp from 'constants'
+import { MqttDiscover } from './mqttdiscover'
 const debug = Debug('httpserver')
 const log = new Logger('httpserver')
 // import cors from 'cors';
@@ -281,10 +282,12 @@ export class HttpServer extends HttpServerBase {
         this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, 'Bus not found. Id: ' + req.query.busid)
         return
       }
-      Modbus.getModbusSpecification('http', bus, Number.parseInt(req.query.slaveid), req.query.spec, (e: any) => {
+      let slaveid = Number.parseInt(req.query.slaveid)!
+      Modbus.getModbusSpecification('http', bus, slaveid, req.query.spec, (e: any) => {
         log.log(LogLevelEnum.error, 'http: get /specification ' + e.message)
         this.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, JSON.stringify('read specification ' + e.message))
       }).subscribe((result) => {
+        MqttDiscover.addTopicAndPayloads(result, bus.getId(),bus.getSlaveBySlaveId(slaveid)! )
         this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(result))
       })
     })
