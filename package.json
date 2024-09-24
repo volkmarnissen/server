@@ -1,6 +1,6 @@
 {
   "name": "@modbus2mqtt/server",
-  "version": "0.16.6",
+  "version": "0.16.7",
   "sshserver": "homeassistant@homeassistant.lan",
   "homepage": "https://github.com/modbus2mqtt/server/README.md",
   "description": "server for modbus2mqtt for REST API of configuration and publishing modbus values to mqtt",
@@ -35,8 +35,8 @@
   "dependencies": {
     "@google-cloud/translate": "^8.3.0",
     "@modbus2mqtt/angular": "^0.12.5",
-    "@modbus2mqtt/server.shared": "^0.13.1",
-    "@modbus2mqtt/specification": "^0.15.15",
+    "@modbus2mqtt/server.shared": "^0.13.2",
+    "@modbus2mqtt/specification": "^0.15.16",
     "@modbus2mqtt/specification.shared": "^0.10.1",
     "@octokit/rest": "^20.1.1",
     "assert": "^2.1.0",
