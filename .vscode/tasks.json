@@ -68,7 +68,7 @@
     },
     {
       "type": "npm",
-      "script": "build-dev",
+      "script": "build.dev",
       "group": "build",
       "problemMatcher": [
         {
