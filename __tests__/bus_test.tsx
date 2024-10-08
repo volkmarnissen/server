@@ -20,7 +20,7 @@ beforeAll(() => {
 
   Config['yamlDir'] = yamlDir
   new ConfigSpecification().readYaml()
-  return new Config().readYamlAsync()
+  new Config().readYamlAsync()
 })
 
 it('read slaves/delete slave/addSlave/read slave', () => {

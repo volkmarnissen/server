@@ -3,6 +3,20 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Run Server",
+      "preLaunchTask": "npm: build.dev",
+      "timeout": 10000,
+      "program": "${workspaceFolder}/dist/modbus2mqtt.js",
+      "args": [  "-s", "../ssl", "-y" ,"../yaml-dir"],
+      "console": "integratedTerminal",
+      "request": "launch",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "sourceMaps": true,  
+      "type": "node"
+    },
+    {
       "address": "localhost",
       "localRoot": "${workspaceFolder}/..",
       "name": "Attach to homeassistant(local)",
@@ -31,47 +45,8 @@
       "address": "localhost",
     },
     {
-      "command": "npm run server",
-      "name": "Run run dev server",
-      "request": "launch",
-      "type": "node-terminal",
-      "env": {
-        "DEBUG": "m2mgithub",
-        "MODBUS_NOPOLL": "true",
-      },
-      "sourceMapPathOverrides": {
-        "server/*/*": "${workspaceFolder}/*",
-        "specification.shared/*/*": "${workspaceFolder}../specification.shared/*/*",
-        "server.shared/*/*": "${workspaceFolder}../server.shared/*/*",
-        "specification/*/*": "${workspaceFolder}../specification/*/*",
-      },
-    },
-    {
-      "command": "npm run modbusanalysis",
-      "name": "Run run modbusanalysis",
-      "request": "launch",
-      "type": "node-terminal"
-    },
-    {
-      "command": "npm run server",
-      "name": "Run server",
-      "request": "launch",
-      "type": "node-terminal",
-      "env": {
-        "DEBUG": "httpserver",
-        "MODBUS_NOPOLL": "true",
-      },
-      "sourceMaps": true,
-      "sourceMapPathOverrides": {
-        "server/*/*": "${workspaceFolder}/*",
-        "specification.shared/*/*": "${workspaceFolder}/../specification.shared/*",
-        "server.shared/*/*": "${workspaceFolder}/../server.shared/*",
-        "specification/*/*": "${workspaceFolder}/../specification/src/*",
-      },
-    },
-    {
       "command": "npm run serverTCP",
-      "name": "Run serverTCP",
+      "name": "OUTDATED: Run serverTCP",
       "request": "launch",
       "sourceMaps": true,
       "type": "node-terminal",
@@ -82,7 +57,7 @@
     },
     {
       "command": "npm run validate",
-      "name": "Run validate",
+      "name": "OUTDATED: Run validate",
       "request": "launch",
       "sourceMaps": true,
       "type": "node-terminal",
@@ -90,31 +65,6 @@
         "DEBUG": "m2mgithubvalidate",
         "PR_NUMBER": "62",
       }
-    },
-    {
-      "command": "npm run  ui",
-      "name": "Run ui",
-      "request": "launch",
-      "type": "node-terminal",
-      "env": {
-        "DEBUG": "express:* modbuscache modbuscache.time",
-        "MODBUS2_NOPOLL": "",
-      },
-    },
-    {
-      "name": "ng serve",
-      "type": "chrome",
-      "request": "launch",
-      "preLaunchTask": "npm: ng serve",
-      "postDebugTask": "npm: stop",
-      "url": "http://localhost:4200/"
-    },
-    {
-      "name": "ng test",
-      "type": "chrome",
-      "request": "launch",
-      "preLaunchTask": "npm: test",
-      "url": "http://localhost:9876/debug.html"
     },
     {
       "type": "node",

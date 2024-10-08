@@ -611,6 +611,7 @@ export class Bus {
         mqttValue: ment.mqttValue,
         identified: ment.identified,
         commandTopic: ment.commandTopic,
+        commandTopicModbus: ment.commandTopicModbus,
       })
     }
     let configuredslave = this.properties.slaves.find((dev) => dev.specificationid === mspec.filename && dev.slaveid == slaveid)

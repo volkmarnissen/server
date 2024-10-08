@@ -22,6 +22,7 @@ const debug = Debug('mqttdiscover')
 const debugAction = Debug('actions')
 const log = new Logger('mqttdiscover')
 const defaultPollCount = 50 // 5 seconds
+Debug.debug("mqttdiscover")
 export interface ItopicAndPayloads {
   topic: string
   payload: string
@@ -108,7 +109,7 @@ export class MqttDiscover {
     return Config.getConfiguration().mqttbasetopic + '/set/' + busid + Config.getFileNameFromSlaveId(slave.slaveid) + '/e' + ent.id
   }
   private getDevicesCommandTopic(): string {
-    return Config.getConfiguration().mqttbasetopic + '/set/+/+'
+    return Config.getConfiguration().mqttbasetopic + '/set/+/#'
   }
 
   private getSlavesConfigurationTopic(): string {
@@ -269,8 +270,10 @@ export class MqttDiscover {
       } else this.updatePayload(topic, payload.toString(), tpy)
     }
   }
-  private onMqttCommandMessage(topic: string, payload: Buffer) {
+  private onMqttCommandMessage(topic: string, payload: Buffer):string {
     let parts = topic.split('/')
+    let msg = ""
+  
     if( parts.length >2)
     {
       let busid = Number.parseInt(parts[2].substring(0, 1))
@@ -278,13 +281,13 @@ export class MqttDiscover {
       let bus = Bus.getBus(busid)
       if (!bus) {
         log.log(LogLevelEnum.error, 'onMqttCommandMessage: invalid busid ' + busid)
-        return
+        return ""
       }
-  
+        
       const device = bus!.getSlaveBySlaveId(slaveid)
       if (device && device.specificationid) {
         const spec = ConfigSpecification.getSpecificationByFilename(device.specificationid)
-        if (spec) {
+        if (spec && parts.length > 4) {
           const entity = spec.entities.find((ent) => {
             return 'e' + ent.id == parts[3]
           })
@@ -292,19 +295,24 @@ export class MqttDiscover {
             const cnv = ConverterMap.getConverter(entity)
             if (cnv) {
               const mr = new Modbus()
-              mr.writeEntityMqtt(bus, slaveid, spec, entity.id, payload.toString())
-                .then(() => {
-                  this.triggerPoll(bus!.getId(), bus!.getSlaveBySlaveId(slaveid)!)
-                })
-                .catch((e) => {
-                  log.log(LogLevelEnum.error, 'writeEntityMqtt failed: ' + e.mesgs)
-                })
+              let promise:Promise<void>
+              let modbus = parts.length == 5 && parts[4]== "modbusValues"
+              if (!Config.getConfiguration().fakeModbus)
+              {
+                if( modbus)
+                  promise = mr.writeEntityModbus(bus, slaveid, entity, { data: JSON.parse(payload.toString()), buffer: Buffer.allocUnsafe(0) })
+                else
+                  promise = mr.writeEntityMqtt(bus, slaveid, spec, entity.id, payload.toString())
+              }
+              else // for Testing               
+                return (modbus? "Modbus ": "MQTT ") + payload.toString()
             }
-          }
-        }
-      }
-  
-    }
+          }else msg = 'writeEntity: invalid topic: ' + topic
+
+        }else msg = 'writeEntity: invalid topic: ' + topic
+      }else msg = 'writeEntity: Device not found: ' + topic
+    }else msg = 'writeEntity: invalid topic: ' + topic
+    return msg
   }
 
   private onMqttMessage(topic: string, payload: Buffer) {
@@ -490,8 +498,14 @@ private getMqttClient(): Promise<MqttClient> {
         let msg = 'No converter found for bus: ' + busid + ' slave: ' + slave.slaveid + ' entity id: ' + entity.id
         log.log(LogLevelEnum.error, msg)
       } else 
-        if (e.mqttname && e.mqttValue && !e.variableConfiguration) 
+        if (e.mqttname && e.mqttValue && !e.variableConfiguration) {
           o[e.mqttname] = e.mqttValue
+          if( cv.publishModbusValues()){
+            if( o.modbusValues == undefined )
+              o.modbusValues = {}
+            o.modbusValues[e.mqttname ] = e.modbusValue[0]
+          }
+        }
     }
     return JSON.stringify(o, null, " ")
   }
