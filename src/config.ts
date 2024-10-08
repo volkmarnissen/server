@@ -5,7 +5,7 @@ import { MqttDiscover } from './mqttdiscover'
 import * as path from 'path'
 import { join } from 'path'
 import { Observable, Subject } from 'rxjs'
-import { BUS_TIMEOUT_DEFAULT, getBaseFilename } from '@modbus2mqtt/specification.shared'
+import { BUS_TIMEOUT_DEFAULT, getBaseFilename, IbaseSpecification } from '@modbus2mqtt/specification.shared'
 import { sign, verify } from 'jsonwebtoken'
 import * as bcrypt from 'bcryptjs'
 import * as http from 'http'
@@ -736,7 +736,7 @@ export class Config {
       else {
         let spec = ConfigSpecification.getSpecificationByFilename(specification)
         this.triggerMqttPublishSlave(busid, slave)
-        slave.specification = spec
+        slave.specification = spec as any as IbaseSpecification
       }
     } else debug('No Specification found for slave: ' + filename + ' specification: ' + slave.specificationid)
     return slave

@@ -28,7 +28,8 @@ export interface ItopicAndPayloads {
   payload: string
 }
 const retain: IClientPublishOptions = { retain: true }
-
+const modbusValues = "modbusValues"
+ 
 export interface ImqttDevice extends Islave {
   busid: number
 }
@@ -57,7 +58,6 @@ export class MqttDiscover {
   validate(_discover: any) {
     // currently no meaningful checks
   }
-
   private pollCounts: Map<string, number> = new Map<string, number>()
   private onDestroy(this: MqttDiscover) {
     if (this.client) this.client.end()
@@ -296,7 +296,7 @@ export class MqttDiscover {
             if (cnv) {
               const mr = new Modbus()
               let promise:Promise<void>
-              let modbus = parts.length == 5 && parts[4]== "modbusValues"
+              let modbus = parts.length == 5 && parts[4]== modbusValues
               if (!Config.getConfiguration().fakeModbus)
               {
                 if( modbus)
@@ -335,7 +335,7 @@ export class MqttDiscover {
         let bus = Bus.getBus(busId)
         let slave: Islave | undefined
         if (bus) slave = bus.getSlaveBySlaveId(slaveId)
-        if (slave && slave.specification) ent = (slave.specification as IfileSpecification).entities.find((e) => entity == e.id)
+        if (slave && slave.specification) ent = (slave.specification as unknown as IfileSpecification).entities.find((e) => entity == e.id)
 
         // If the slave has no specification, it has been removed. Remove all topics related to it
         // Or there is an entity which has another converter than configured in current specification
@@ -436,8 +436,7 @@ export class MqttDiscover {
   }
 
   validateConnection(client: ImqttClient | undefined, callback: (valid: boolean, message: string) => void) {
-    if (!client) client = this.client
-    if (!this.client)
+    let conn = ()=> {
       this.connectMqtt(
         client,
         () => {
@@ -450,6 +449,11 @@ export class MqttDiscover {
           callback(false, e.toString())
         }
       )
+    }
+    if( this.client?.connected )
+        this.client.end(conn)
+    else
+      conn()
   }
 
 private getMqttClient(): Promise<MqttClient> {
@@ -485,6 +489,10 @@ private getMqttClient(): Promise<MqttClient> {
     spec.entities.forEach(ent=>{
       if( !ent.readonly)
         ent.commandTopic = MqttDiscover.generateEntityCommandTopic(busid, slave, ent)
+        let cv = ConverterMap.getConverter(ent)
+        if (cv &&cv.publishModbusValues()) {
+          ent.commandTopicModbus = ent.commandTopic + "/" + modbusValues
+        } 
     })
     spec.stateTopic = MqttDiscover.generateStateTopic(busid, slave)
     spec.statePayload = MqttDiscover.generateStatePayload(busid, slave, spec)

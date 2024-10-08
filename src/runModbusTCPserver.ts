@@ -38,28 +38,34 @@ export function startModbusTCPserver(yamlDir: string, busId: number) {
         let specFilename = slave.specificationid
         if (specFilename) {
           let fn = join(directoryLocalSpecs, specFilename + '.yaml')
-          console.log(fn)
-          content = fs.readFileSync(fn, { encoding: 'utf8' })
-          let spec: IfileSpecification = parse(content.toString())
-          spec = new Migrator().migrate(spec)
-          if (spec.testdata) {
-            let testdata = spec.testdata
-            if (spec.testdata.analogInputs)
-              spec.testdata.analogInputs.forEach((avp) => {
+          if(! fs.existsSync(fn))
+            fn = join(directoryPublicSpecs, specFilename + '.yaml')
+          if(! fs.existsSync(fn))
+            console.log("TCP Server: Spec file not found: " + fn )
+          else {
+            content = fs.readFileSync(fn, { encoding: 'utf8' })
+            let spec: IfileSpecification = parse(content.toString())
+            spec = new Migrator().migrate(spec)
+            if (spec.testdata) {
+              let testdata = spec.testdata
+              if (spec.testdata.analogInputs)
+                spec.testdata.analogInputs.forEach((avp) => {
                 let a = avp.address
                 if (avp.value != undefined) addRegisterValue(slaveid, a, ModbusRegisterType.AnalogInputs, avp.value)
+                })
+              if (spec.testdata.holdingRegisters)
+                spec.testdata.holdingRegisters.forEach((avp) => {
+                  let a = avp.address
+                  if (avp.value != undefined) addRegisterValue(slaveid, a, ModbusRegisterType.HoldingRegister, avp.value)
+                })
+              if (spec.testdata.coils)
+                spec.testdata.coils.forEach((avp) => {
+                  let a = avp.address
+                  if (avp.value != undefined) addRegisterValue(slaveid, a, ModbusRegisterType.Coils, avp.value)
               })
-            if (spec.testdata.holdingRegisters)
-              spec.testdata.holdingRegisters.forEach((avp) => {
-                let a = avp.address
-                if (avp.value != undefined) addRegisterValue(slaveid, a, ModbusRegisterType.HoldingRegister, avp.value)
-              })
-            if (spec.testdata.coils)
-              spec.testdata.coils.forEach((avp) => {
-                let a = avp.address
-                if (avp.value != undefined) addRegisterValue(slaveid, a, ModbusRegisterType.Coils, avp.value)
-              })
+            }
           }
+       
         }
         logValues()
       } catch (e: any) {

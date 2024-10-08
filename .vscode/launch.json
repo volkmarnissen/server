@@ -17,9 +17,29 @@
       "type": "node"
     },
     {
+      "name": "Run Server TCP",
+      "preLaunchTask": "npm: build.dev",
+      "timeout": 10000,
+      "program": "${workspaceFolder}/dist/modbus2mqtt.js",
+      "args": [  "-s", "../ssl", "-y" ,"../yaml-dir", "--busid", "0"],
+      "console": "integratedTerminal",
+      "request": "launch",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "../specification.shared/cjs/*.js": "${workspaceFolder}../specification.shared/src/*.ts",
+        "../server.shared/*/*": "${workspaceFolder}../server.shared/*/*",
+        "../specification/dist/*/*.js": "${workspaceFolder}../specification/src/*.ts",
+      },  
+      "type": "node"
+    },
+    
+    {
+      "name": "Attach to homeassistant(local)",
       "address": "localhost",
       "localRoot": "${workspaceFolder}/..",
-      "name": "Attach to homeassistant(local)",
       "port": 9229,
       "remoteRoot": "/usr/app/node_modules/@modbus2mqtt",
       "sourceMaps": true,
@@ -44,28 +64,7 @@
       "port": 9229,
       "address": "localhost",
     },
-    {
-      "command": "npm run serverTCP",
-      "name": "OUTDATED: Run serverTCP",
-      "request": "launch",
-      "sourceMaps": true,
-      "type": "node-terminal",
-      "env": {
-        "DEBUG": "express:* modbuscache modbuscache.time",
-        "MODBUS2_NOPOLL": "",
-      }
-    },
-    {
-      "command": "npm run validate",
-      "name": "OUTDATED: Run validate",
-      "request": "launch",
-      "sourceMaps": true,
-      "type": "node-terminal",
-      "env": {
-        "DEBUG": "m2mgithubvalidate",
-        "PR_NUMBER": "62",
-      }
-    },
+
     {
       "type": "node",
       "name": "vscode-jest-tests.v2",
@@ -88,18 +87,6 @@
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
     },
-    {
-      "name": "Launch Chrome",
-      "type": "chrome",
-      "request": "launch",
-      "preLaunchTask": "start",
-      "postDebugTask": "stop",
-      "port": 9222,
-      "sourceMaps": true,
-      /*"diagnosticLogging": true,*/
-      "webRoot": "${workspaceRoot}/angular",
-      "url": "http://localhost:4200/"
-    }
 
   ]
 }
