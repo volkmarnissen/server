@@ -2,7 +2,7 @@ import Debug from 'debug'
 import * as http from 'http'
 import { Request } from 'express'
 import * as express from 'express'
-import { ConverterMap, ImodbusValues, M2mGitHub } from '@modbus2mqtt/specification'
+import { ConverterMap, IimportMessages, M2mGitHub } from '@modbus2mqtt/specification'
 import { Config, MqttValidationResult, filesUrlPrefix } from './config'
 import { Modbus } from './modbus'
 import {
@@ -15,7 +15,7 @@ import {
 import { join } from 'path'
 import multer from 'multer'
 
-import { GetRequestWithUploadParameter, fileStorage } from './httpFileUpload'
+import { GetRequestWithUploadParameter, fileStorage, zipStorage } from './httpFileUpload'
 import { Bus } from './bus'
 import { Subject } from 'rxjs'
 import * as fs from 'fs'
@@ -26,8 +26,8 @@ import { M2mSpecification as M2mSpecification } from '@modbus2mqtt/specification
 import { IUserAuthenticationStatus, IBus, Islave, apiUri } from '@modbus2mqtt/server.shared'
 import { ConfigSpecification } from '@modbus2mqtt/specification'
 import { HttpServerBase } from './httpServerBase'
-import exp from 'constants'
 import { MqttDiscover } from './mqttdiscover'
+import { Writable } from 'stream'
 const debug = Debug('httpserver')
 const log = new Logger('httpserver')
 // import cors from 'cors';
@@ -51,6 +51,16 @@ interface GetRequestWithParameter extends Request {
     forContribution: string
     showAllPublicSpecs: string
   }
+}
+interface RequestParams {}
+
+interface ResponseBody {}
+
+interface RequestBody {}
+
+
+interface RequestDownloadQuery {
+  what?: string;
 }
 export class HttpServer extends HttpServerBase {
   constructor(angulardir: string = '.') {
@@ -85,7 +95,7 @@ export class HttpServer extends HttpServerBase {
         registered: config.mqttusehassio || (config.username != undefined && config.password != undefined),
         hassiotoken: config.mqttusehassio ? config.mqttusehassio : false,
         hasAuthToken: authHeader ? true : false,
-        authTokenExpired: authHeader != undefined && HttpServer.validateUserToken(authHeader) == MqttValidationResult.tokenExpired,
+        authTokenExpired: authHeader != undefined && HttpServer.validateUserToken(req) == MqttValidationResult.tokenExpired,
         mqttConfigured: false,
         preSelectedBusId: Bus.getBusses().length == 1 ? Bus.getBusses()[0].getId() : undefined,
       }
@@ -289,6 +299,33 @@ export class HttpServer extends HttpServerBase {
       }).subscribe((result) => {
         MqttDiscover.addTopicAndPayloads(result, bus.getId(),bus.getSlaveBySlaveId(slaveid)! )
         this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(result))
+      })
+    })
+    this.get( apiUri.download,(req: Request<any,any,any,RequestDownloadQuery>, res: http.ServerResponse) => {
+      debug(req.url) 
+       var downloadMethod:  (filename:string,r:Writable)=>Promise<void>;
+      var filename ="local.zip"
+      if(req.params.what == "local" )
+        downloadMethod = Config.createZipFromLocal
+      else{
+        filename = req.params.what + ".zip"
+        downloadMethod = (file:string, r:Writable)=>{
+          return new Promise<void>((resolve, reject)=>{
+            try{
+              ConfigSpecification.createZipFromSpecification(file,r)
+              resolve()
+            }
+            catch( e:any){reject(e)  }
+          })
+        }
+      }
+        res.setHeader('Content-Type', 'application/zip')
+        res.setHeader('Content-disposition', 'attachment; filename=' + filename )
+         // Tell the browser that this is a zip file.
+      downloadMethod(req.params.what, res).then(()=>{
+        super.returnResult(req as Request, res, HttpErrorsEnum.OK, undefined)
+      }).catch(e=>{
+        this.returnResult(req as Request, res, HttpErrorsEnum.SrvErrInternalServerError, JSON.stringify('download Zip ' + req.params.what + e.message))
       })
     })
     this.post(apiUri.specficationContribute, (req: GetRequestWithParameter, res: http.ServerResponse) => {
@@ -586,6 +623,29 @@ export class HttpServer extends HttpServerBase {
         this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, 'Upload failed: ' + e.message, e)
       }
     })
+    this.app.post(apiUri.uploadSpec,multer({ storage: zipStorage }).array("zips"), (req: Request, res: http.ServerResponse) => {
+      if (req.files) {
+        // req.body.documents
+       
+        (req.files as Express.Multer.File[])!.forEach((f) => {
+          try{
+            let errors =  ConfigSpecification.importSpecificationZip(join(f.destination, f.filename)) 
+            if(errors.errors.length > 0)
+              this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, 'Import failed: ' + errors.errors, errors)
+            else
+              this.returnResult(req, res, HttpErrorsEnum.OkCreated,JSON.stringify(errors))
+          }
+          catch(e:any){
+            let errors:IimportMessages = {errors:"Import error: "  + e.message, warnings:""}
+            this.returnResult(req, res, HttpErrorsEnum.OkNoContent, errors.errors, errors)
+          }
+          
+        })
+       } else {
+        this.returnResult(req, res, HttpErrorsEnum.OkNoContent, 'No files passed')
+      }
+    })
+   
     this.delete(apiUri.upload, (req: GetRequestWithUploadParameter, res: http.ServerResponse) => {
       if (req.query.specification && req.query.url && req.query.usage) {
         let files = ConfigSpecification.deleteSpecificationFile(req.query.specification, req.query.url, req.query.usage)

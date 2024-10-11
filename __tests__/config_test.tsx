@@ -1,23 +1,19 @@
-import { expect, it, test, afterAll } from '@jest/globals'
+import { expect, it, test, afterAll, jest, beforeAll } from '@jest/globals'
 import { Config, MqttValidationResult } from '../src/config'
 import { getFileNameFromName } from '@modbus2mqtt/specification.shared'
 import * as fs from 'fs'
 import { yamlDir } from './configsbase'
 import { ImqttClient, AuthenticationErrors } from '@modbus2mqtt/server.shared'
+import AdmZip from 'adm-zip'
 import Debug from 'debug'
-
+import exp from 'constants'
 Config['yamlDir'] = yamlDir
 Config.sslDir = yamlDir
 let debug = Debug('config_test')
-afterAll(() => {
-  let cfg = Config.getConfiguration()
-  new Config().writeConfiguration(cfg)
-})
-
-test('register/login/validate', (done) => {
-  const config = new Config()
-  let loginExecuted: boolean = false
-  config.readYamlAsync().then(() => {
+beforeAll(()=>{
+  return new Promise<void>((resolve, reject)=>{
+    const config = new Config()
+   config.readYamlAsync().then(() => {
     let cfg = Config.getConfiguration()
     Config.tokenExpiryTime = 2000
     expect((cfg as any).noentry).toBeUndefined()
@@ -29,12 +25,38 @@ test('register/login/validate', (done) => {
           expect(Config.validateUserToken(token)).toBe(MqttValidationResult.tokenExpired)
           Config.login('test', 'test124').catch((reason) => {
             expect(reason).toBe(AuthenticationErrors.InvalidUserPasswordCombination)
-            done()
+            resolve()
           })
         }, Config.tokenExpiryTime)
       })
     })
   })
+  })
+})
+afterAll(() => {
+  let cfg = Config.getConfiguration()
+  new Config().writeConfiguration(cfg)
+})
+test('register/login/validate', (done) => {
+  const config = new Config()
+  let loginExecuted: boolean = false
+   let cfg = Config.getConfiguration()
+   Config.tokenExpiryTime = 2000
+   expect((cfg as any).noentry).toBeUndefined()
+   new Config().writeConfiguration(cfg)
+   Config.register('test', 'test123').then(() => {
+      Config.login('test', 'test123').then((token) => {
+        expect(Config.validateUserToken(token)).toBe(MqttValidationResult.OK)
+        setTimeout(() => {
+          expect(Config.validateUserToken(token)).toBe(MqttValidationResult.tokenExpired)
+          Config.login('test', 'test124').catch((reason) => {
+            expect(reason).toBe(AuthenticationErrors.InvalidUserPasswordCombination)
+            done()
+          })
+        }, Config.tokenExpiryTime)
+      })
+    })
+  
 })
 
 it('getFileNameFromName remove non ascii characters', () => {
@@ -92,7 +114,6 @@ it('getMqttConnectOptions: read connection from hassio', (done) => {
   Config['executeHassioGetRequest'] = executeHassioGetRequest
   process.env.HASSIO_TOKEN = 'test'
   let cfg = new Config()
-  cfg.readYaml()
   Config['config'].mqttusehassio = true
   cfg.getMqttConnectOptions().then((_mqttData) => {
     expect(_mqttData.host).toBe(mqttService.host)
@@ -109,3 +130,4 @@ it('getMqttConnectOptions: read connection from hassio', (done) => {
     })
   })
 })
+

@@ -4,6 +4,7 @@ import * as fs from 'fs'
 import { MqttDiscover } from './mqttdiscover'
 import * as path from 'path'
 import { join } from 'path'
+import stream from "stream";
 import { Observable, Subject } from 'rxjs'
 import { BUS_TIMEOUT_DEFAULT, getBaseFilename, IbaseSpecification } from '@modbus2mqtt/specification.shared'
 import { sign, verify } from 'jsonwebtoken'
@@ -12,6 +13,7 @@ import * as http from 'http'
 import { ConfigSpecification, LogLevelEnum, Logger } from '@modbus2mqtt/specification'
 import { SerialPort } from 'serialport'
 import { ImqttClient, AuthenticationErrors, IBus, Iconfiguration, IModbusConnection, Islave } from '@modbus2mqtt/server.shared'
+import AdmZip from 'adm-zip'
 
 const CONFIG_VERSION = '0.1'
 declare global {
@@ -23,7 +25,6 @@ declare global {
 }
 const DEFAULT_MQTT_CONNECT_TIMEOUT = 60 * 1000
 const HASSIO_TIMEOUT = 300
-
 export enum MqttValidationResult {
   OK = 0,
   tokenExpired = 1,
@@ -778,6 +779,22 @@ export class Config {
   static getFileNameFromSlaveId(slaveid: number): string {
     return 's' + slaveid
   }
+  static createZipFromLocal(_filename:string, r:stream.Writable ):Promise<void>{
+    return new Promise<void>((resolve, reject) => {
+       let archive = new AdmZip()
+       let dir = Config.getLocalDir()
+       let files:string[] = fs.readdirSync(Config.getLocalDir(),{ recursive: true }) as string[]
+       files.forEach(file=>{
+         let p = join(dir, file )
+         if(fs.statSync(p).isFile() && file.indexOf("secrets.yaml") < 0 )
+           archive.addLocalFile( p,path.dirname(file) )
+       })
+       r.write(archive.toBuffer())
+       r.end(()=>{
+        resolve()
+       })
+    })
+  }
 }
 export function getSpecificationImageOrDocumentUrl(rootUrl: string | undefined, specName: string, url: string): string {
   let fn = getBaseFilename(url)
@@ -790,3 +807,4 @@ export function getSpecificationImageOrDocumentUrl(rootUrl: string | undefined, 
 
   return rc
 }
+

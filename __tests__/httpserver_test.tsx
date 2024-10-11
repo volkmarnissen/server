@@ -42,7 +42,7 @@ import { ReadRegisterResult } from 'modbus-serial/ModbusRTU'
 import { join } from 'path'
 let mockReject = false
 let debug = Debug('testhttpserver')
-
+Debug.debug('testhttpserver')
 const mqttService = {
   host: 'core-mosquitto',
   port: 1883,
@@ -57,6 +57,7 @@ function executeHassioGetRequest<T>(_url: string, next: (_dev: T) => void, rejec
   if (mockReject) reject('mockedReason')
   else next({ data: mqttService } as T)
 }
+
 
 let log = new Logger('httpserverTest')
 const yamlDir = '__tests__/yaml-dir'
@@ -125,21 +126,26 @@ function mockedHttp(_options: any, cb: (res: any) => any) {
 let oldExecuteHassioGetRequest: any
 const oldAuthenticate: (req: any, res: any, next: () => void) => void = HttpServer.prototype.authenticate
 beforeAll(() => {
-  Config['yamlDir'] = yamlDir
-  let cfg = new Config()
-  cfg.readYaml()
-  ;(Config as any)['fakeModbusCache'] = true
-  jest.mock('../src/modbus')
-  ModbusCache.prototype.submitGetHoldingRegisterRequest = submitGetHoldingRegisterRequest
-  HttpServer.prototype.authenticate = (req, res, next) => {
-    next()
-  }
-  httpServer = new HttpServer(join(yamlDir, 'angular'))
-
-  httpServer.setModbusCacheAvailable()
-  let rc = httpServer.init()
-  oldExecuteHassioGetRequest = Config['executeHassioGetRequest']
-  return rc
+  return new Promise<void>((resolve, reject)=>{
+    Config['yamlDir'] = yamlDir
+    let cfg = new Config()
+    cfg.readYamlAsync().then(()=>{
+       ;(Config as any)['fakeModbusCache'] = true
+      jest.mock('../src/modbus')
+      ModbusCache.prototype.submitGetHoldingRegisterRequest = submitGetHoldingRegisterRequest
+      HttpServer.prototype.authenticate = (req, res, next) => {
+        next()
+      }
+      httpServer = new HttpServer(join(yamlDir, 'angular'))
+  
+      httpServer.setModbusCacheAvailable()
+      httpServer.init()
+      oldExecuteHassioGetRequest = Config['executeHassioGetRequest']
+      resolve()
+    })
+   
+  })
+  
 })
 
 it('GET /devices', (done) => {
@@ -282,7 +288,6 @@ it('supervisor login', (done) => {
       return undefined
     },
   }
-  new Config().readYaml()
   process.env.HASSIO_TOKEN = 'test'
   supertest(httpServer.app)
     .get(apiUri.userAuthenticationStatus)
@@ -423,7 +428,7 @@ describe('http POST', () => {
       fs.copyFileSync(lspec + 'waterleveltransmitter.yaml', lspec + 'waterleveltransmitter.bck', undefined)
 
       let filename = yamlDir + '/local/specifications/waterleveltransmitter.yaml'
-      fs.unlinkSync(new ConfigSpecification().getSpecificationPath(spec1))
+      fs.unlinkSync( ConfigSpecification['getSpecificationPath'](spec1))
       let url = apiUri.specfication + '?busid=0&slaveid=2&originalFilename=waterleveltransmitter'
 
       //@ts-ignore
@@ -452,7 +457,7 @@ describe('http POST', () => {
             .expect(HttpErrorsEnum.OkCreated)
             .then((response) => {
               var found = ConfigSpecification.getSpecificationByFilename(spec1.filename)!
-              let newFilename = new ConfigSpecification().getSpecificationPath(response.body)
+              let newFilename = ConfigSpecification['getSpecificationPath'](response.body)
               expect(fs.existsSync(newFilename)).toBeTruthy()
               expect(getSpecificationI18nName(found!, 'en')).toBe('Water Level Transmitter')
               expect(response)

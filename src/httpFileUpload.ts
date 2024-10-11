@@ -1,6 +1,5 @@
 import { Request } from 'express'
 import * as multer from 'multer'
-import { FileFilterCallback } from 'multer'
 import { Config, getSpecificationImageOrDocumentUrl } from './config'
 import { join } from 'path'
 import * as fs from 'fs'
@@ -38,16 +37,12 @@ export const fileStorage = multer.diskStorage({
     callback(null, file.originalname)
   },
 })
+export const zipStorage = multer.diskStorage({
+  destination: (request: Request, _file: Express.Multer.File, callback: DestinationCallback): void =>{
+      callback(null, fs.mkdtempSync("zip"))
+   },
+   filename: (_req: Request, file: Express.Multer.File, callback: FileNameCallback): void => {
+    callback(null, file.originalname)
+  },
+})
 
-export const fileFilter = (_request: Request, file: Express.Multer.File, callback: FileFilterCallback): void => {
-  if (
-    file.mimetype === 'application/pdf' ||
-    file.mimetype === 'image/png' ||
-    file.mimetype === 'image/jpg' ||
-    file.mimetype === 'image/jpeg'
-  ) {
-    callback(null, true)
-  } else {
-    callback(null, false)
-  }
-}
