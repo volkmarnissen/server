@@ -10,12 +10,12 @@ import {
   ImodbusSpecification,
 } from '@modbus2mqtt/specification.shared'
 import { Ientity, ImodbusEntity, VariableTargetParameters, getSpecificationI18nEntityName } from '@modbus2mqtt/specification.shared'
-import { IClientOptions, IClientPublishOptions, MqttClient, connect } from 'mqtt'
+import { ClientSubscribeCallback, IClientOptions, IClientPublishOptions, MqttClient, connect } from 'mqtt'
 import { Modbus } from './modbus'
 import { Bus } from './bus'
 import Debug from 'debug'
 import { LogLevelEnum, Logger } from '@modbus2mqtt/specification'
-import { ImqttClient, Islave } from '@modbus2mqtt/server.shared'
+import { ImqttClient, Islave, PollModes } from '@modbus2mqtt/server.shared'
 import { Mutex } from 'async-mutex'
 
 const debug = Debug('mqttdiscover')
@@ -59,6 +59,7 @@ export class MqttDiscover {
     // currently no meaningful checks
   }
   private pollCounts: Map<string, number> = new Map<string, number>()
+  private triggers:string[]=[]
   private onDestroy(this: MqttDiscover) {
     if (this.client) this.client.end()
   }
@@ -76,6 +77,13 @@ export class MqttDiscover {
   private static generateStateTopic(busid: number, slave: Islave): string {
     return Config.getConfiguration().mqttbasetopic + '/' + busid + Config.getFileNameFromSlaveId(slave.slaveid) + '/state'
   }
+  private static getTriggerPollTopicPrefix(){
+    return Config.getConfiguration().mqttbasetopic + '/triggerPoll'
+  }
+  private static generateTriggerPollTopic(busid: number, slave: Islave): string {
+    return MqttDiscover.getTriggerPollTopicPrefix() + '/' + busid + Config.getFileNameFromSlaveId(slave.slaveid)
+  }
+
   private generateEntityConfigurationTopic(busid: number, slaveId: number, ent: Ientity): string {
     let haType = 'sensor'
     if (ent.readonly)
@@ -106,7 +114,7 @@ export class MqttDiscover {
     )
   }
   static generateEntityCommandTopic(busid: number, slave: Islave, ent: Ientity): string {
-    return Config.getConfiguration().mqttbasetopic + '/set/' + busid + Config.getFileNameFromSlaveId(slave.slaveid) + '/e' + ent.id
+    return Config.getConfiguration().mqttbasetopic + '/set/' + busid +'s' + Config.getFileNameFromSlaveId(slave.slaveid) + '/e' + ent.id
   }
   private getDevicesCommandTopic(): string {
     return Config.getConfiguration().mqttbasetopic + '/set/+/#'
@@ -270,7 +278,7 @@ export class MqttDiscover {
       } else this.updatePayload(topic, payload.toString(), tpy)
     }
   }
-  private onMqttCommandMessage(topic: string, payload: Buffer):string {
+  private static getBusAndSlaveFromTopic(topic:string):{bus:Bus, slave:Islave}{
     let parts = topic.split('/')
     let msg = ""
   
@@ -280,44 +288,76 @@ export class MqttDiscover {
       let slaveid = Number.parseInt(parts[2].substring(2))
       let bus = Bus.getBus(busid)
       if (!bus) {
-        log.log(LogLevelEnum.error, 'onMqttCommandMessage: invalid busid ' + busid)
-        return ""
+        log.log(LogLevelEnum.error, 'getBusAndSlaveFromTopic: invalid busid ' + busid)
+        throw new Error('getBusAndSlaveFromTopic' + busid)
       }
         
       const device = bus!.getSlaveBySlaveId(slaveid)
-      if (device && device.specificationid) {
-        const spec = ConfigSpecification.getSpecificationByFilename(device.specificationid)
-        if (spec && parts.length > 4) {
-          const entity = spec.entities.find((ent) => {
-            return 'e' + ent.id == parts[3]
-          })
-          if (entity) {
-            const cnv = ConverterMap.getConverter(entity)
-            if (cnv) {
-              const mr = new Modbus()
-              let promise:Promise<void>
-              let modbus = parts.length == 5 && parts[4]== modbusValues
-              if (!Config.getConfiguration().fakeModbus)
-              {
-                if( modbus)
-                  promise = mr.writeEntityModbus(bus, slaveid, entity, { data: JSON.parse(payload.toString()), buffer: Buffer.allocUnsafe(0) })
-                else
-                  promise = mr.writeEntityMqtt(bus, slaveid, spec, entity.id, payload.toString())
-              }
-              else // for Testing               
-                return (modbus? "Modbus ": "MQTT ") + payload.toString()
+     if( device)
+     return {
+      bus:bus,
+      slave:device
+     }
+     else
+      throw new Error('device '+ slaveid + 'not found for Bus' + busid)
+    
+    }
+    throw new Error('Invalid topic. No bus and slave information: ' + topic)
+  }
+  private onMqttCommandMessage(topic: string, payload: Buffer):string {
+    try{
+      let busAndSlave = MqttDiscover.getBusAndSlaveFromTopic(topic)
+      if( undefined == busAndSlave.slave.specificationid )
+        throw new Error('No specification Id for slave available')
+      const spec = ConfigSpecification.getSpecificationByFilename(busAndSlave.slave.specificationid)
+      let parts = topic.split('/')
+      if (spec && parts.length > 4) {
+        const entity = spec.entities.find((ent) => {
+          return 'e' + ent.id == parts[3]
+        })
+        if (entity) {
+          const cnv = ConverterMap.getConverter(entity)
+          if (cnv) {
+            const mr = new Modbus()
+            let promise:Promise<void>
+            let modbus = parts.length == 5 && parts[4]== modbusValues
+            if (!Config.getConfiguration().fakeModbus)
+            {
+              if( modbus)
+                promise = mr.writeEntityModbus(busAndSlave.bus, busAndSlave.slave.slaveid, entity, { data: JSON.parse(payload.toString()), buffer: Buffer.allocUnsafe(0) })
+              else
+                promise = mr.writeEntityMqtt(busAndSlave.bus, busAndSlave.slave.slaveid, spec, entity.id, payload.toString())
             }
-          }else msg = 'writeEntity: invalid topic: ' + topic
-
-        }else msg = 'writeEntity: invalid topic: ' + topic
-      }else msg = 'writeEntity: Device not found: ' + topic
-    }else msg = 'writeEntity: invalid topic: ' + topic
-    return msg
+            else // for Testing               
+              return (modbus? "Modbus ": "MQTT ") + payload.toString()
+          }
+          
+        } else
+            throw new Error('Entity not found topic ' + topic)
+         
+        } else
+            throw new Error('No entity passed to command topic ' + topic)
+      }catch(e:any){
+          return e.message as string
+        }
+      return "unknown issue"
   }
 
   private onMqttMessage(topic: string, payload: Buffer) {
     if (topic.startsWith(Config.getConfiguration().mqttdiscoveryprefix)) this.onMqttDiscoverMessage(topic, payload)
-    else this.onMqttCommandMessage(topic, payload)
+    else 
+    if (topic.startsWith( MqttDiscover.getTriggerPollTopicPrefix() ))
+    {
+      try{
+        let busAndSlave = MqttDiscover.getBusAndSlaveFromTopic(topic)
+        this.triggerPoll(busAndSlave.bus.getId(), busAndSlave.slave)
+      }
+      catch(e:any ){
+        log.log(LogLevelEnum.error, e.message)
+      }
+    }
+    else
+      this.onMqttCommandMessage(topic, payload)
   }
   private containsTopic(tp: ItopicAndPayloads, tps: ItopicAndPayloads[]) {
     let t = tps.findIndex((t) => tp.topic === t.topic)
@@ -427,6 +467,8 @@ export class MqttDiscover {
           log.log(LogLevelEnum.notice, "MQTT Connection will be closed by Last will")
           //this.client!.end()
         })
+        this.client!.subscribe( MqttDiscover.getTriggerPollTopicPrefix() + '/+',(topic, payload)=>{
+        })
         onConnected()
       }
       )
@@ -472,14 +514,21 @@ private getMqttClient(): Promise<MqttClient> {
       }
     })
   }
-  private publishStateAndSendDiscovery(bus: Bus, slave: Islave): Promise<void> {
+  private publishStateAndSendDiscovery(bus: Bus, slave: Islave, pollMode:PollModes): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       Modbus.getModbusSpecification('poll', bus, slave.slaveid, slave.specificationid!, (e) => {
         log.log(LogLevelEnum.error, 'reading spec failed' + e.message)
         reject(e)
       }).subscribe((spec) => {
         this.publishDiscoveryForSlave(bus, slave, spec) // no wait
-        this.publishState(bus, slave, spec)
+        // Trigger state only if it's configured to do so
+        if(slave.pollMode == undefined || [PollModes.intervall, PollModes.intervallAndTrigger].includes(slave.pollMode) || pollMode == PollModes.trigger)
+          this.publishState(bus, slave, spec)
+        let key = new BusSlave(bus.getId(), slave.slaveid).key
+        let idx = this.triggers.findIndex(k=>k==key)
+        // Remove trigger
+        if( idx >=0 )
+          this.triggers.splice(idx,1)
         resolve()
       })
     })
@@ -496,6 +545,7 @@ private getMqttClient(): Promise<MqttClient> {
     })
     spec.stateTopic = MqttDiscover.generateStateTopic(busid, slave)
     spec.statePayload = MqttDiscover.generateStatePayload(busid, slave, spec)
+    spec.triggerPollTopic = MqttDiscover.generateTriggerPollTopic(busid, slave)
   }
   static generateStatePayload(busid: number, slave: Islave,spec:ImodbusSpecification):string{
     let o: any = {}
@@ -555,21 +605,24 @@ private getMqttClient(): Promise<MqttClient> {
       let allTopics: Promise<void>[] = []
       let needPolls: {
         bus: Bus
-        slave: Islave
+        slave: Islave,
+        pollMode: PollModes
       }[] = []
 
       Bus.getBusses().forEach((bus) => {
         bus.getSlaves().forEach((slave) => {
           let key = new BusSlave(bus.getId(), slave.slaveid).key
           let pc: number | undefined = this.pollCounts.get(key)
+          let trigger =  this.triggers.find(k=>k == key)
+         
           if (pc == undefined || pc > (slave.polInterval != undefined ? slave.polInterval / 100 : defaultPollCount)) pc = 0
-          if (pc == 0) {
+          if (pc == 0|| trigger != undefined) {
             debug('Update Discovery')
             debugAction('poll start (' + bus.getId() + ',' + slave.slaveid + ')interval: ' + slave.polInterval)
             debug('poll: start sending payload busid: ' + bus.getId() + ' slaveid: ' + slave.slaveid)
             debugAction('poll end')
             if (slave.specificationid && slave.specificationid.length > 0) {
-              needPolls.push({ bus: bus, slave: slave })
+              needPolls.push({ bus: bus, slave: slave, pollMode: trigger == undefined?PollModes.intervall:PollModes.trigger })
             }
           }
           this.pollCounts.set(key, ++pc)
@@ -580,7 +633,7 @@ private getMqttClient(): Promise<MqttClient> {
           (mqttClient) => {
             this.subscribeDiscovery()
             needPolls.forEach((bs) => {
-              allTopics.push(this.publishStateAndSendDiscovery(bs.bus, bs.slave))
+              allTopics.push(this.publishStateAndSendDiscovery(bs.bus, bs.slave, bs.pollMode))
             })
             Promise.allSettled(allTopics)
               .then((values) => {
@@ -629,10 +682,10 @@ private getMqttClient(): Promise<MqttClient> {
   }
   triggerPoll(busid: number, slave: Islave) {
     if (slave) {
-      let key = '' + busid + Config.getFileNameFromSlaveId(slave.slaveid)
-      this.pollCounts.set(key, 0)
-    } else this.pollCounts = new Map<string, number>()
-  }
+      let  key = new BusSlave(busid, slave.slaveid).key
+      this.triggers.push(key)
+    }
+   }
   private subscribeDiscovery() {
     if (this.isSubscribed) return
     this.isSubscribed = true

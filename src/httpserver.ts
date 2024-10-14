@@ -2,7 +2,7 @@ import Debug from 'debug'
 import * as http from 'http'
 import { Request } from 'express'
 import * as express from 'express'
-import { ConverterMap, IimportMessages, M2mGitHub } from '@modbus2mqtt/specification'
+import { ConverterMap, M2mGitHub } from '@modbus2mqtt/specification'
 import { Config, MqttValidationResult, filesUrlPrefix } from './config'
 import { Modbus } from './modbus'
 import {
@@ -11,6 +11,7 @@ import {
   IimageAndDocumentUrl,
   Ispecification,
   SpecificationStatus,
+  IimportMessages,
 } from '@modbus2mqtt/specification.shared'
 import { join } from 'path'
 import multer from 'multer'
@@ -23,7 +24,7 @@ import { LogLevelEnum, Logger } from '@modbus2mqtt/specification'
 
 import { TranslationServiceClient } from '@google-cloud/translate'
 import { M2mSpecification as M2mSpecification } from '@modbus2mqtt/specification'
-import { IUserAuthenticationStatus, IBus, Islave, apiUri } from '@modbus2mqtt/server.shared'
+import { IUserAuthenticationStatus, IBus, Islave, apiUri, PollModes } from '@modbus2mqtt/server.shared'
 import { ConfigSpecification } from '@modbus2mqtt/specification'
 import { HttpServerBase } from './httpServerBase'
 import { MqttDiscover } from './mqttdiscover'
@@ -569,7 +570,7 @@ export class HttpServer extends HttpServerBase {
       res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, x-access-token')
       res.setHeader('Access-Control-Allow-Credentials', 'true')
       res.setHeader('Content-Type', 'application/json')
-      let rc: Islave = bus.writeSlave(req.body.slaveid, req.body.specificationid, req.body.name, req.body.polInterval)
+      let rc: Islave = bus.writeSlave(req.body.slaveid, req.body.specificationid, req.body.name, req.body.polInterval,req.body.pollMode)
       this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(rc))
     })
     this.post(apiUri.addFilesUrl, (req: GetRequestWithUploadParameter, res: http.ServerResponse) => {
@@ -673,7 +674,7 @@ export class HttpServer extends HttpServerBase {
         bus.getSlaves().forEach((slave) => {
           if (slave.specificationid == req.query.spec) {
             delete slave.specificationid
-            bus.writeSlave(slave.slaveid, undefined, slave.name, slave.polInterval)
+            bus.writeSlave(slave.slaveid, undefined, slave.name, slave.polInterval, slave.pollMode == undefined? PollModes.intervall: slave.pollMode)
           }
         })
       })
