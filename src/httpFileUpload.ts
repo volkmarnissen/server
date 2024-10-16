@@ -38,11 +38,10 @@ export const fileStorage = multer.diskStorage({
   },
 })
 export const zipStorage = multer.diskStorage({
-  destination: (request: Request, _file: Express.Multer.File, callback: DestinationCallback): void =>{
-      callback(null, fs.mkdtempSync("zip"))
-   },
-   filename: (_req: Request, file: Express.Multer.File, callback: FileNameCallback): void => {
+  destination: (request: Request, _file: Express.Multer.File, callback: DestinationCallback): void => {
+    callback(null, fs.mkdtempSync('zip'))
+  },
+  filename: (_req: Request, file: Express.Multer.File, callback: FileNameCallback): void => {
     callback(null, file.originalname)
   },
 })
-

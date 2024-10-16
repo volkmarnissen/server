@@ -13,7 +13,7 @@ import {
   SpecificationStatus,
   IimportMessages,
 } from '@modbus2mqtt/specification.shared'
-import { join } from 'path'
+import path, { join } from 'path'
 import multer from 'multer'
 
 import { GetRequestWithUploadParameter, fileStorage, zipStorage } from './httpFileUpload'
@@ -59,9 +59,8 @@ interface ResponseBody {}
 
 interface RequestBody {}
 
-
 interface RequestDownloadQuery {
-  what?: string;
+  what?: string
 }
 export class HttpServer extends HttpServerBase {
   constructor(angulardir: string = '.') {
@@ -298,36 +297,43 @@ export class HttpServer extends HttpServerBase {
         log.log(LogLevelEnum.error, 'http: get /specification ' + e.message)
         this.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, JSON.stringify('read specification ' + e.message))
       }).subscribe((result) => {
-        MqttDiscover.addTopicAndPayloads(result, bus.getId(),bus.getSlaveBySlaveId(slaveid)! )
+        MqttDiscover.addTopicAndPayloads(result, bus.getId(), bus.getSlaveBySlaveId(slaveid)!)
         this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(result))
       })
     })
-    this.get( apiUri.download,(req: Request<any,any,any,RequestDownloadQuery>, res: http.ServerResponse) => {
-      debug(req.url) 
-       var downloadMethod:  (filename:string,r:Writable)=>Promise<void>;
-      var filename ="local.zip"
-      if(req.params.what == "local" )
-        downloadMethod = Config.createZipFromLocal
-      else{
-        filename = req.params.what + ".zip"
-        downloadMethod = (file:string, r:Writable)=>{
-          return new Promise<void>((resolve, reject)=>{
-            try{
-              ConfigSpecification.createZipFromSpecification(file,r)
+    this.get(apiUri.download, (req: Request<any, any, any, RequestDownloadQuery>, res: http.ServerResponse) => {
+      debug(req.url)
+      var downloadMethod: (filename: string, r: Writable) => Promise<void>
+      var filename = 'local.zip'
+      if (req.params.what == 'local') downloadMethod = Config.createZipFromLocal
+      else {
+        filename = req.params.what + '.zip'
+        downloadMethod = (file: string, r: Writable) => {
+          return new Promise<void>((resolve, reject) => {
+            try {
+              ConfigSpecification.createZipFromSpecification(file, r)
               resolve()
+            } catch (e: any) {
+              reject(e)
             }
-            catch( e:any){reject(e)  }
           })
         }
       }
-        res.setHeader('Content-Type', 'application/zip')
-        res.setHeader('Content-disposition', 'attachment; filename=' + filename )
-         // Tell the browser that this is a zip file.
-      downloadMethod(req.params.what, res).then(()=>{
-        super.returnResult(req as Request, res, HttpErrorsEnum.OK, undefined)
-      }).catch(e=>{
-        this.returnResult(req as Request, res, HttpErrorsEnum.SrvErrInternalServerError, JSON.stringify('download Zip ' + req.params.what + e.message))
-      })
+      res.setHeader('Content-Type', 'application/zip')
+      res.setHeader('Content-disposition', 'attachment; filename=' + filename)
+      // Tell the browser that this is a zip file.
+      downloadMethod(req.params.what, res)
+        .then(() => {
+          super.returnResult(req as Request, res, HttpErrorsEnum.OK, undefined)
+        })
+        .catch((e) => {
+          this.returnResult(
+            req as Request,
+            res,
+            HttpErrorsEnum.SrvErrInternalServerError,
+            JSON.stringify('download Zip ' + req.params.what + e.message)
+          )
+        })
     })
     this.post(apiUri.specficationContribute, (req: GetRequestWithParameter, res: http.ServerResponse) => {
       if (!req.query.spec) {
@@ -570,7 +576,13 @@ export class HttpServer extends HttpServerBase {
       res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, x-access-token')
       res.setHeader('Access-Control-Allow-Credentials', 'true')
       res.setHeader('Content-Type', 'application/json')
-      let rc: Islave = bus.writeSlave(req.body.slaveid, req.body.specificationid, req.body.name, req.body.polInterval,req.body.pollMode)
+      let rc: Islave = bus.writeSlave(
+        req.body.slaveid,
+        req.body.specificationid,
+        req.body.name,
+        req.body.polInterval,
+        req.body.pollMode
+      )
       this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(rc))
     })
     this.post(apiUri.addFilesUrl, (req: GetRequestWithUploadParameter, res: http.ServerResponse) => {
@@ -624,29 +636,29 @@ export class HttpServer extends HttpServerBase {
         this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, 'Upload failed: ' + e.message, e)
       }
     })
-    this.app.post(apiUri.uploadSpec,multer({ storage: zipStorage }).array("zips"), (req: Request, res: http.ServerResponse) => {
+    this.app.post(apiUri.uploadSpec, multer({ storage: zipStorage }).array('zips'), (req: Request, res: http.ServerResponse) => {
       if (req.files) {
         // req.body.documents
-       
-        (req.files as Express.Multer.File[])!.forEach((f) => {
-          try{
-            let errors =  ConfigSpecification.importSpecificationZip(join(f.destination, f.filename)) 
-            if(errors.errors.length > 0)
+
+        ;(req.files as Express.Multer.File[])!.forEach((f) => {
+          try {
+            let zipfilename = join(f.destination, f.filename)
+            let errors = ConfigSpecification.importSpecificationZip(zipfilename)
+            fs.rmdirSync(path.dirname(zipfilename), {recursive:true})
+   
+            if (errors.errors.length > 0)
               this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, 'Import failed: ' + errors.errors, errors)
-            else
-              this.returnResult(req, res, HttpErrorsEnum.OkCreated,JSON.stringify(errors))
+            else this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(errors))
+          } catch (e: any) {
+            let errors: IimportMessages = { errors: 'Import error: ' + e.message, warnings: '' }
+            this.returnResult(req, res, HttpErrorsEnum.ErrNotAcceptable, errors.errors, errors)
           }
-          catch(e:any){
-            let errors:IimportMessages = {errors:"Import error: "  + e.message, warnings:""}
-            this.returnResult(req, res, HttpErrorsEnum.OkNoContent, errors.errors, errors)
-          }
-          
         })
-       } else {
-        this.returnResult(req, res, HttpErrorsEnum.OkNoContent, 'No files passed')
+      } else {
+        this.returnResult(req, res, HttpErrorsEnum.ErrNotAcceptable, 'No or incorrect files passed')
       }
     })
-   
+
     this.delete(apiUri.upload, (req: GetRequestWithUploadParameter, res: http.ServerResponse) => {
       if (req.query.specification && req.query.url && req.query.usage) {
         let files = ConfigSpecification.deleteSpecificationFile(req.query.specification, req.query.url, req.query.usage)
@@ -674,7 +686,13 @@ export class HttpServer extends HttpServerBase {
         bus.getSlaves().forEach((slave) => {
           if (slave.specificationid == req.query.spec) {
             delete slave.specificationid
-            bus.writeSlave(slave.slaveid, undefined, slave.name, slave.polInterval, slave.pollMode == undefined? PollModes.intervall: slave.pollMode)
+            bus.writeSlave(
+              slave.slaveid,
+              undefined,
+              slave.name,
+              slave.polInterval,
+              slave.pollMode == undefined ? PollModes.intervall : slave.pollMode
+            )
           }
         })
       })

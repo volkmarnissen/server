@@ -58,7 +58,6 @@ function executeHassioGetRequest<T>(_url: string, next: (_dev: T) => void, rejec
   else next({ data: mqttService } as T)
 }
 
-
 let log = new Logger('httpserverTest')
 const yamlDir = '__tests__/yaml-dir'
 ConfigSpecification.yamlDir = yamlDir
@@ -126,26 +125,24 @@ function mockedHttp(_options: any, cb: (res: any) => any) {
 let oldExecuteHassioGetRequest: any
 const oldAuthenticate: (req: any, res: any, next: () => void) => void = HttpServer.prototype.authenticate
 beforeAll(() => {
-  return new Promise<void>((resolve, reject)=>{
+  return new Promise<void>((resolve, reject) => {
     Config['yamlDir'] = yamlDir
     let cfg = new Config()
-    cfg.readYamlAsync().then(()=>{
-       ;(Config as any)['fakeModbusCache'] = true
+    cfg.readYamlAsync().then(() => {
+      ;(Config as any)['fakeModbusCache'] = true
       jest.mock('../src/modbus')
       ModbusCache.prototype.submitGetHoldingRegisterRequest = submitGetHoldingRegisterRequest
       HttpServer.prototype.authenticate = (req, res, next) => {
         next()
       }
       httpServer = new HttpServer(join(yamlDir, 'angular'))
-  
+
       httpServer.setModbusCacheAvailable()
       httpServer.init()
       oldExecuteHassioGetRequest = Config['executeHassioGetRequest']
       resolve()
     })
-   
   })
-  
 })
 
 it('GET /devices', (done) => {
@@ -185,7 +182,9 @@ it('GET /specsForSlave', (done) => {
     .expect(200)
     .then((response) => {
       expect(response.body.length).toBeGreaterThan(0)
-      let spec:ImodbusSpecification = response.body.find((specs: IidentificationSpecification) => specs.filename == 'waterleveltransmitter')
+      let spec: ImodbusSpecification = response.body.find(
+        (specs: IidentificationSpecification) => specs.filename == 'waterleveltransmitter'
+      )
       expect(spec).not.toBeNull()
       expect(spec.stateTopic).not.toBeNull()
       done()
@@ -392,6 +391,17 @@ test('ADD/DELETE /busses', (done) => {
     })
 })
 
+test('post specification zip', (done) => {
+  supertest(httpServer.app)
+    .post(apiUri.uploadSpec)
+    .accept('application/json')
+    .send('Just some text to make sure it fails')
+    .set('Content-Type', 'application/zip')
+    .catch((e) => {
+      expect(e.statusCode).toBe(HttpErrorsEnum.ErrNotAcceptable)
+      done()
+    })
+})
 test('POST /mqtt/validate', (done) => {
   let oldConfig = Config.getConfiguration()
   let config = Config.getConfiguration()
@@ -428,7 +438,7 @@ describe('http POST', () => {
       fs.copyFileSync(lspec + 'waterleveltransmitter.yaml', lspec + 'waterleveltransmitter.bck', undefined)
 
       let filename = yamlDir + '/local/specifications/waterleveltransmitter.yaml'
-      fs.unlinkSync( ConfigSpecification['getSpecificationPath'](spec1))
+      fs.unlinkSync(ConfigSpecification['getSpecificationPath'](spec1))
       let url = apiUri.specfication + '?busid=0&slaveid=2&originalFilename=waterleveltransmitter'
 
       //@ts-ignore

@@ -36,7 +36,14 @@ export class HttpServerBase {
   }
   private statics = new Map<string, string>()
   private ingressUrl: string = 'test'
-  returnResult(req: Request, res: http.ServerResponse, code: HttpErrorsEnum, message: any, cb?: () => void, object: any = undefined) {
+  returnResult(
+    req: Request,
+    res: http.ServerResponse,
+    code: HttpErrorsEnum,
+    message: any,
+    cb?: () => void,
+    object: any = undefined
+  ) {
     debugUrl('end: ' + req.path)
     if (code >= 299) {
       log.log(LogLevelEnum.error, '%s: Http Result: %d %s', req.url, code, message)
@@ -45,34 +52,32 @@ export class HttpServerBase {
     res.statusCode = code
     res.end(message)
   }
-  private static  getAuthTokenFromHeader(req:Request): string|undefined {
-    let authHeader = req.header('Authorization') 
+  private static getAuthTokenFromHeader(req: Request): string | undefined {
+    let authHeader = req.header('Authorization')
     if (authHeader) {
-     let tokenPos = authHeader!.indexOf(' ') + 1
+      let tokenPos = authHeader!.indexOf(' ') + 1
       return authHeader.substring(tokenPos)
-     }
-     return undefined
     }
-  private static getAuthTokenFromUrl(url:string):string|undefined{
+    return undefined
+  }
+  private static getAuthTokenFromUrl(url: string): string | undefined {
     let parts = url.split('/')
-    let apiIdx = parts.findIndex(part=> ["api", "download"].includes(part))
-    if( apiIdx >=1 ){
-      return parts[apiIdx-1]
+    let apiIdx = parts.findIndex((part) => ['api', 'download'].includes(part))
+    if (apiIdx >= 1) {
+      return parts[apiIdx - 1]
     }
-      
+
     return undefined
   }
   protected static validateUserToken(req: Request): MqttValidationResult {
-      let token  = HttpServerBase.getAuthTokenFromHeader(req)
-      if ( token == undefined){
-        token = HttpServerBase.getAuthTokenFromUrl(req.url)
-        if( token == undefined)
-          return MqttValidationResult.error
-        req.url = req.url.replace(token +"/", "")
-      }
-      return Config.validateUserToken(token)
+    let token = HttpServerBase.getAuthTokenFromHeader(req)
+    if (token == undefined) {
+      token = HttpServerBase.getAuthTokenFromUrl(req.url)
+      if (token == undefined) return MqttValidationResult.error
+      req.url = req.url.replace(token + '/', '')
+    }
+    return Config.validateUserToken(token)
   }
-  
 
   private getDirectoryForLanguage(req: Request): string {
     let lang = req.acceptsLanguages(['en', 'fr'])
@@ -90,56 +95,54 @@ export class HttpServerBase {
   }
   get<T extends Request>(url: apiUri, func: (req: T, response: any) => void): void {
     debugUrl('start get' + url)
-    this.app
-      .get(url, (req: T, response: any) => {
-        debug(req.method + ': ' + req.originalUrl)
-        func(req, response)
-      })
+    this.app.get(url, (req: T, response: any) => {
+      debug(req.method + ': ' + req.originalUrl)
+      func(req, response)
+    })
   }
   post<T extends Request>(url: apiUri, func: (req: T, response: any) => void): void {
     debugUrl('start post' + url)
-    this.app
-      .post(url, (req: T, response: any) => {
-        debug(req.method + ': ' + req.originalUrl)
-        func(req, response)
-      })
+    this.app.post(url, (req: T, response: any) => {
+      debug(req.method + ': ' + req.originalUrl)
+      func(req, response)
+    })
   }
   delete<T extends Request>(url: apiUri, func: (req: T, response: any) => void): void {
     debugUrl('start delete' + url)
-    this.app
-      .delete(url, (req: T, response: any) => {
-        debug(req.method + ': ' + req.originalUrl)
-        func(req, response)
-      })
+    this.app.delete(url, (req: T, response: any) => {
+      debug(req.method + ': ' + req.originalUrl)
+      func(req, response)
+    })
   }
-  validate(){
-    
-  }
+  validate() {}
   authenticate(req: Request, res: http.ServerResponse, next: any) {
     //  req.header('')
     var pwd = Config.getConfiguration().password
     // All api callsand a user registration when a user is already registered needs authorization
-    if ((req.url.indexOf('/api/') >= 0 || req.url.indexOf('/user/register') >= 0 || req.url.indexOf('download/') >= 0 ) && 
-        pwd && pwd.length){
+    if (
+      (req.url.indexOf('/api/') >= 0 || req.url.indexOf('/user/register') >= 0 || req.url.indexOf('download/') >= 0) &&
+      pwd &&
+      pwd.length
+    ) {
       let config = Config.getConfiguration()
       if (config.hassiotoken) {
         debug('Supervisor: validate hassio token')
         next()
         return
-      } else 
-      switch (HttpServerBase.validateUserToken(req)) {
-        case MqttValidationResult.OK:
-          next()
-          return
-        case MqttValidationResult.tokenExpired:
-          log.log(LogLevelEnum.error, 'Token expired')
-          this.returnResult(req, res, HttpErrorsEnum.ErrUnauthorized, 'Token expired')
-          return
-        default:
-          // case MqttValidationResult.error:
-          this.returnResult(req, res, HttpErrorsEnum.ErrForbidden, 'Unauthorized (See server log)')
-          return
-      }
+      } else
+        switch (HttpServerBase.validateUserToken(req)) {
+          case MqttValidationResult.OK:
+            next()
+            return
+          case MqttValidationResult.tokenExpired:
+            log.log(LogLevelEnum.error, 'Token expired')
+            this.returnResult(req, res, HttpErrorsEnum.ErrUnauthorized, 'Token expired')
+            return
+          default:
+            // case MqttValidationResult.error:
+            this.returnResult(req, res, HttpErrorsEnum.ErrForbidden, 'Unauthorized (See server log)')
+            return
+        }
       // Check addon access
     }
 

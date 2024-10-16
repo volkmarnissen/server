@@ -32,7 +32,7 @@ it('read slaves/delete slave/addSlave/read slave', () => {
     let slaves = bus.getSlaves()
     let oldLength = slaves.length
     expect(bus.getSlaves().find((s) => s.slaveid == 10)).not.toBeDefined()
-    bus.writeSlave(10, undefined, undefined, undefined,PollModes.intervall)
+    bus.writeSlave(10, undefined, undefined, undefined, PollModes.intervall)
     slaves = bus.getSlaves()
     expect(slaves.length).toBeGreaterThan(oldLength)
     let b2 = Bus.getBus(0)

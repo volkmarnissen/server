@@ -10,27 +10,27 @@ import exp from 'constants'
 Config['yamlDir'] = yamlDir
 Config.sslDir = yamlDir
 let debug = Debug('config_test')
-beforeAll(()=>{
-  return new Promise<void>((resolve, reject)=>{
+beforeAll(() => {
+  return new Promise<void>((resolve, reject) => {
     const config = new Config()
-   config.readYamlAsync().then(() => {
-    let cfg = Config.getConfiguration()
-    Config.tokenExpiryTime = 2000
-    expect((cfg as any).noentry).toBeUndefined()
-    new Config().writeConfiguration(cfg)
-    Config.register('test', 'test123').then(() => {
-      Config.login('test', 'test123').then((token) => {
-        expect(Config.validateUserToken(token)).toBe(MqttValidationResult.OK)
-        setTimeout(() => {
-          expect(Config.validateUserToken(token)).toBe(MqttValidationResult.tokenExpired)
-          Config.login('test', 'test124').catch((reason) => {
-            expect(reason).toBe(AuthenticationErrors.InvalidUserPasswordCombination)
-            resolve()
-          })
-        }, Config.tokenExpiryTime)
+    config.readYamlAsync().then(() => {
+      let cfg = Config.getConfiguration()
+      Config.tokenExpiryTime = 2000
+      expect((cfg as any).noentry).toBeUndefined()
+      new Config().writeConfiguration(cfg)
+      Config.register('test', 'test123').then(() => {
+        Config.login('test', 'test123').then((token) => {
+          expect(Config.validateUserToken(token)).toBe(MqttValidationResult.OK)
+          setTimeout(() => {
+            expect(Config.validateUserToken(token)).toBe(MqttValidationResult.tokenExpired)
+            Config.login('test', 'test124').catch((reason) => {
+              expect(reason).toBe(AuthenticationErrors.InvalidUserPasswordCombination)
+              resolve()
+            })
+          }, Config.tokenExpiryTime)
+        })
       })
     })
-  })
   })
 })
 afterAll(() => {
@@ -40,23 +40,22 @@ afterAll(() => {
 test('register/login/validate', (done) => {
   const config = new Config()
   let loginExecuted: boolean = false
-   let cfg = Config.getConfiguration()
-   Config.tokenExpiryTime = 2000
-   expect((cfg as any).noentry).toBeUndefined()
-   new Config().writeConfiguration(cfg)
-   Config.register('test', 'test123').then(() => {
-      Config.login('test', 'test123').then((token) => {
-        expect(Config.validateUserToken(token)).toBe(MqttValidationResult.OK)
-        setTimeout(() => {
-          expect(Config.validateUserToken(token)).toBe(MqttValidationResult.tokenExpired)
-          Config.login('test', 'test124').catch((reason) => {
-            expect(reason).toBe(AuthenticationErrors.InvalidUserPasswordCombination)
-            done()
-          })
-        }, Config.tokenExpiryTime)
-      })
+  let cfg = Config.getConfiguration()
+  Config.tokenExpiryTime = 2000
+  expect((cfg as any).noentry).toBeUndefined()
+  new Config().writeConfiguration(cfg)
+  Config.register('test', 'test123').then(() => {
+    Config.login('test', 'test123').then((token) => {
+      expect(Config.validateUserToken(token)).toBe(MqttValidationResult.OK)
+      setTimeout(() => {
+        expect(Config.validateUserToken(token)).toBe(MqttValidationResult.tokenExpired)
+        Config.login('test', 'test124').catch((reason) => {
+          expect(reason).toBe(AuthenticationErrors.InvalidUserPasswordCombination)
+          done()
+        })
+      }, Config.tokenExpiryTime)
     })
-  
+  })
 })
 
 it('getFileNameFromName remove non ascii characters', () => {
@@ -130,4 +129,3 @@ it('getMqttConnectOptions: read connection from hassio', (done) => {
     })
   })
 })
-

@@ -72,10 +72,9 @@ class FakeMqtt {
   public on(event: 'message', cb: () => {}) {}
 }
 
-
 let oldLog: any
-let slave:Islave 
-let spec:ImodbusSpecification
+let slave: Islave
+let spec: ImodbusSpecification
 
 beforeAll((done) => {
   ModbusCache.prototype.submitGetHoldingRegisterRequest = submitGetHoldingRegisterRequest
@@ -85,7 +84,7 @@ beforeAll((done) => {
   Config.sslDir = yamlDir
 
   let readConfig: Config = new Config()
-  readConfig.readYamlAsync().then(()=>{
+  readConfig.readYamlAsync().then(() => {
     new ConfigSpecification().readYaml()
     slave = Bus.getBus(0)!.getSlaveBySlaveId(2)!
     spec = slave.specification as ImodbusSpecification
@@ -142,9 +141,8 @@ beforeAll((done) => {
     spec.entities.push(serialNumber)
     spec.entities.push(currentSolarPower)
     spec.entities.push(selectTest)
-    done();
-  } )
-
+    done()
+  })
 
   Logger.prototype.log = jest.fn()
 })
@@ -275,35 +273,34 @@ test('onMqttConnect', (done) => {
   })
 })
 
-test("selectConverter adds modbusValue to statePayload",()=>{
-  let specEntity:ImodbusEntity = {
+test('selectConverter adds modbusValue to statePayload', () => {
+  let specEntity: ImodbusEntity = {
     id: 1,
     modbusValue: [3],
-    mqttValue: "Some Text",
+    mqttValue: 'Some Text',
     identified: 1,
-    mqttname: "selectTest",
+    mqttname: 'selectTest',
     converter: {
       name: 'select',
-      registerTypes: []
+      registerTypes: [],
     },
     readonly: false,
     registerType: ModbusRegisterType.HoldingRegister,
     modbusAddress: 44,
     converterParameters: {
-      options: [{key:3, name:"Some Text"}]
-    }
+      options: [{ key: 3, name: 'Some Text' }],
+    },
   }
-  let spec:ImodbusSpecification = { entities: [specEntity] } as any as ImodbusSpecification
-  let payload = JSON.parse(MqttDiscover['generateStatePayload'](0,{slaveid:0 }, spec))
-  expect( payload.modbusValues).toBeDefined()
+  let spec: ImodbusSpecification = { entities: [specEntity] } as any as ImodbusSpecification
+  let payload = JSON.parse(MqttDiscover['generateStatePayload'](0, { slaveid: 0 }, spec))
+  expect(payload.modbusValues).toBeDefined()
   expect(payload.modbusValues.selectTest).toBe(3)
-  
 })
 test('onCommandTopic', () => {
   Config.setFakeModbus(true)
   Config['config'].mqttusehassio = false
   md = new MqttDiscover({}, 'en')
-  let rc = md['onMqttCommandMessage']("m2m/set/0s1/e1/modbusValues", Buffer.from("[3]", 'utf8'))
+  let rc = md['onMqttCommandMessage']('m2m/set/0s1/e1/modbusValues', Buffer.from('[3]', 'utf8'))
   expect(rc).toBe('Modbus [3]')
 })
 

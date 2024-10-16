@@ -620,7 +620,7 @@ export class Bus {
       filename: mspec.filename,
       stateTopic: mspec.stateTopic,
       statePayload: mspec.statePayload,
-      triggerPollTopic:mspec.triggerPollTopic,
+      triggerPollTopic: mspec.triggerPollTopic,
       files: mspec.files,
       i18n: mspec.i18n,
       status: mspec.status!,

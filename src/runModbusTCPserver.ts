@@ -38,10 +38,8 @@ export function startModbusTCPserver(yamlDir: string, busId: number) {
         let specFilename = slave.specificationid
         if (specFilename) {
           let fn = join(directoryLocalSpecs, specFilename + '.yaml')
-          if(! fs.existsSync(fn))
-            fn = join(directoryPublicSpecs, specFilename + '.yaml')
-          if(! fs.existsSync(fn))
-            console.log("TCP Server: Spec file not found: " + fn )
+          if (!fs.existsSync(fn)) fn = join(directoryPublicSpecs, specFilename + '.yaml')
+          if (!fs.existsSync(fn)) console.log('TCP Server: Spec file not found: ' + fn)
           else {
             content = fs.readFileSync(fn, { encoding: 'utf8' })
             let spec: IfileSpecification = parse(content.toString())
@@ -50,8 +48,8 @@ export function startModbusTCPserver(yamlDir: string, busId: number) {
               let testdata = spec.testdata
               if (spec.testdata.analogInputs)
                 spec.testdata.analogInputs.forEach((avp) => {
-                let a = avp.address
-                if (avp.value != undefined) addRegisterValue(slaveid, a, ModbusRegisterType.AnalogInputs, avp.value)
+                  let a = avp.address
+                  if (avp.value != undefined) addRegisterValue(slaveid, a, ModbusRegisterType.AnalogInputs, avp.value)
                 })
               if (spec.testdata.holdingRegisters)
                 spec.testdata.holdingRegisters.forEach((avp) => {
@@ -62,10 +60,9 @@ export function startModbusTCPserver(yamlDir: string, busId: number) {
                 spec.testdata.coils.forEach((avp) => {
                   let a = avp.address
                   if (avp.value != undefined) addRegisterValue(slaveid, a, ModbusRegisterType.Coils, avp.value)
-              })
+                })
             }
           }
-       
         }
         logValues()
       } catch (e: any) {
