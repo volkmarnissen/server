@@ -29,11 +29,10 @@
       "node","jest", "debug"
     ]
   },
+  "include": ["src/*"],
   "exclude":[
     "node_modules/**/*",
     "**/testHelpers/*",
     "dist/**/*",
-    "**/__tests__/**",
-    "jest.config.ts"
-  ],
+   ],
 }

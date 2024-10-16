@@ -2,6 +2,7 @@ import { Config } from '../src/config'
 import {
   ImodbusEntity,
   ImodbusSpecification,
+  Ispecification,
   ModbusRegisterType,
   VariableTargetParameters,
 } from '@modbus2mqtt/specification.shared'
@@ -21,6 +22,8 @@ import { Bus } from '../src/bus'
 import Debug from 'debug'
 import { ConfigSpecification, Logger } from '@modbus2mqtt/specification'
 import { expect, test, afterAll, beforeAll, jest, xtest } from '@jest/globals'
+import exp from 'constants'
+import { Islave } from '@modbus2mqtt/server.shared'
 const debug = Debug('mqttdiscover_test')
 enum FakeModes {
   Poll,
@@ -69,17 +72,78 @@ class FakeMqtt {
   public on(event: 'message', cb: () => {}) {}
 }
 
-Config['yamlDir'] = yamlDir
-ConfigSpecification.yamlDir = yamlDir
-Config.sslDir = yamlDir
-
-let readConfig: Config = new Config()
-readConfig.readYaml()
-new ConfigSpecification().readYaml()
 let oldLog: any
-beforeAll(() => {
+let slave: Islave
+let spec: ImodbusSpecification
+
+beforeAll((done) => {
   ModbusCache.prototype.submitGetHoldingRegisterRequest = submitGetHoldingRegisterRequest
   oldLog = Logger.prototype.log
+  Config['yamlDir'] = yamlDir
+  ConfigSpecification.yamlDir = yamlDir
+  Config.sslDir = yamlDir
+
+  let readConfig: Config = new Config()
+  readConfig.readYamlAsync().then(() => {
+    new ConfigSpecification().readYaml()
+    slave = Bus.getBus(0)!.getSlaveBySlaveId(2)!
+    spec = slave.specification as ImodbusSpecification
+    spec.entities.splice(0, 4)
+    let serialNumber: ImodbusEntity = {
+      id: 0,
+      mqttname: 'serialnumber',
+      variableConfiguration: {
+        targetParameter: VariableTargetParameters.deviceIdentifiers,
+      },
+      converter: { name: 'text', registerTypes: [] },
+      modbusValue: [],
+      mqttValue: '123456',
+      identified: 1,
+      converterParameters: { stringlength: 12 },
+      registerType: ModbusRegisterType.HoldingRegister,
+      readonly: false,
+      modbusAddress: 2,
+    }
+    let currentSolarPower: ImodbusEntity = {
+      id: 1,
+      mqttname: 'currentpower',
+      converter: { name: 'number', registerTypes: [] },
+      modbusValue: [],
+      mqttValue: '300',
+      identified: 1,
+      converterParameters: { uom: 'kW' },
+      registerType: ModbusRegisterType.HoldingRegister,
+      readonly: true,
+      modbusAddress: 2,
+    }
+    let selectTest: ImodbusEntity = {
+      id: selectTestId,
+      mqttname: 'selecttest',
+      modbusAddress: 1,
+      registerType: ModbusRegisterType.HoldingRegister,
+      readonly: true,
+      converter: { name: 'select', registerTypes: [] },
+      modbusValue: [],
+      mqttValue: '300',
+      identified: 1,
+      converterParameters: { optionModbusValues: [1, 2, 3] },
+    }
+    spec.manufacturer = 'Deye'
+    spec.model = 'SUN-10K-SG04LP3-EU'
+    spec.i18n[0].texts = [
+      { textId: 'name', text: 'Deye Inverter' },
+      { textId: 'e1', text: 'Current Power' },
+      { textId: 'e3', text: 'Select Test' },
+      { textId: 'e3o.1', text: 'Option 1' },
+      { textId: 'e3o.2', text: 'Option 2' },
+      { textId: 'e3o.3', text: 'Option 3' },
+    ]
+    spec.entities.push(serialNumber)
+    spec.entities.push(currentSolarPower)
+    spec.entities.push(selectTest)
+    done()
+  })
+
   Logger.prototype.log = jest.fn()
 })
 afterAll(() => {
@@ -88,8 +152,6 @@ afterAll(() => {
 const selectTestId = 3
 const numberTestId = 4
 var md: MqttDiscover | undefined
-let slave = Bus.getBus(0)!.getSlaveBySlaveId(2)!
-let spec = slave.specification as ImodbusSpecification
 let numberTest: ImodbusEntity = {
   id: numberTestId,
   mqttname: 'mqtt',
@@ -101,62 +163,6 @@ let numberTest: ImodbusEntity = {
   mqttValue: '300',
   identified: 1,
   converterParameters: { multiplier: 1, offset: 0, uom: 'kW' },
-}
-
-if (slave !== undefined && slave!.specificationid) {
-  spec.entities.splice(0, 4)
-  let serialNumber: ImodbusEntity = {
-    id: 0,
-    mqttname: 'serialnumber',
-    variableConfiguration: {
-      targetParameter: VariableTargetParameters.deviceIdentifiers,
-    },
-    converter: { name: 'text', registerTypes: [] },
-    modbusValue: [],
-    mqttValue: '123456',
-    identified: 1,
-    converterParameters: { stringlength: 12 },
-    registerType: ModbusRegisterType.HoldingRegister,
-    readonly: false,
-    modbusAddress: 2,
-  }
-  let currentSolarPower: ImodbusEntity = {
-    id: 1,
-    mqttname: 'currentpower',
-    converter: { name: 'number', registerTypes: [] },
-    modbusValue: [],
-    mqttValue: '300',
-    identified: 1,
-    converterParameters: { uom: 'kW' },
-    registerType: ModbusRegisterType.HoldingRegister,
-    readonly: true,
-    modbusAddress: 2,
-  }
-  let selectTest: ImodbusEntity = {
-    id: selectTestId,
-    mqttname: 'selecttest',
-    modbusAddress: 1,
-    registerType: ModbusRegisterType.HoldingRegister,
-    readonly: true,
-    converter: { name: 'select', registerTypes: [] },
-    modbusValue: [],
-    mqttValue: '300',
-    identified: 1,
-    converterParameters: { optionModbusValues: [1, 2, 3] },
-  }
-  spec.manufacturer = 'Deye'
-  spec.model = 'SUN-10K-SG04LP3-EU'
-  spec.i18n[0].texts = [
-    { textId: 'name', text: 'Deye Inverter' },
-    { textId: 'e1', text: 'Current Power' },
-    { textId: 'e3', text: 'Select Test' },
-    { textId: 'e3o.1', text: 'Option 1' },
-    { textId: 'e3o.2', text: 'Option 2' },
-    { textId: 'e3o.3', text: 'Option 3' },
-  ]
-  spec.entities.push(serialNumber)
-  spec.entities.push(currentSolarPower)
-  spec.entities.push(selectTest)
 }
 
 var tps: ItopicAndPayloads[] = []
@@ -266,6 +272,38 @@ test('onMqttConnect', (done) => {
     })
   })
 })
+
+test('selectConverter adds modbusValue to statePayload', () => {
+  let specEntity: ImodbusEntity = {
+    id: 1,
+    modbusValue: [3],
+    mqttValue: 'Some Text',
+    identified: 1,
+    mqttname: 'selectTest',
+    converter: {
+      name: 'select',
+      registerTypes: [],
+    },
+    readonly: false,
+    registerType: ModbusRegisterType.HoldingRegister,
+    modbusAddress: 44,
+    converterParameters: {
+      options: [{ key: 3, name: 'Some Text' }],
+    },
+  }
+  let spec: ImodbusSpecification = { entities: [specEntity] } as any as ImodbusSpecification
+  let payload = JSON.parse(MqttDiscover['generateStatePayload'](0, { slaveid: 0 }, spec))
+  expect(payload.modbusValues).toBeDefined()
+  expect(payload.modbusValues.selectTest).toBe(3)
+})
+test('onCommandTopic', () => {
+  Config.setFakeModbus(true)
+  Config['config'].mqttusehassio = false
+  md = new MqttDiscover({}, 'en')
+  let rc = md['onMqttCommandMessage']('m2m/set/0s1/e1/modbusValues', Buffer.from('[3]', 'utf8'))
+  expect(rc).toBe('Modbus [3]')
+})
+
 test('poll', (done) => {
   md = new MqttDiscover({}, 'en')
   let fake = new FakeMqtt(md, FakeModes.Poll)

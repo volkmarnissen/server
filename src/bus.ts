@@ -31,6 +31,7 @@ import {
   IRTUConnection,
   ITCPConnection,
   IidentificationSpecification,
+  PollModes,
 } from '@modbus2mqtt/server.shared'
 import { ConfigSpecification } from '@modbus2mqtt/specification'
 import { MqttDiscover } from './mqttdiscover'
@@ -611,6 +612,7 @@ export class Bus {
         mqttValue: ment.mqttValue,
         identified: ment.identified,
         commandTopic: ment.commandTopic,
+        commandTopicModbus: ment.commandTopicModbus,
       })
     }
     let configuredslave = this.properties.slaves.find((dev) => dev.specificationid === mspec.filename && dev.slaveid == slaveid)
@@ -618,6 +620,7 @@ export class Bus {
       filename: mspec.filename,
       stateTopic: mspec.stateTopic,
       statePayload: mspec.statePayload,
+      triggerPollTopic: mspec.triggerPollTopic,
       files: mspec.files,
       i18n: mspec.i18n,
       status: mspec.status!,
@@ -653,13 +656,14 @@ export class Bus {
     slaveid: number,
     specification: string | undefined,
     name: string | undefined,
-    polInterval: number | undefined
+    polInterval: number | undefined,
+    pollMode: PollModes
   ): Islave {
     if (slaveid < 0) throw new Error('Try to save invalid slave id ') // Make sure slaveid is unique
     let oldIdx = this.properties.slaves.findIndex((dev) => {
       return dev.slaveid === slaveid
     })
-    let slave = new Config().writeslave(this.properties.busId, slaveid, specification, name, polInterval)
+    let slave = new Config().writeslave(this.properties.busId, slaveid, specification, name, polInterval, pollMode)
 
     if (oldIdx >= 0) this.properties.slaves[oldIdx] = slave
     else this.properties.slaves.push(slave)

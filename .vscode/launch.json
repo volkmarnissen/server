@@ -3,9 +3,51 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Run Server",
+      "preLaunchTask": "npm: build.dev",
+      "timeout": 10000,
+      "program": "${workspaceFolder}/dist/modbus2mqtt.js",
+      "args": [  "-s", "../ssl", "-y" ,"../yaml-dir"],
+      "console": "integratedTerminal",
+      "env": {
+        "DEBUG": "httpserver,HttpServerBaseUrl",
+        "NODE_OPTIONS": "--experimental-vm-modules npx jest"
+      },
+      "request": "launch",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "sourceMaps": true,  
+      "type": "node"
+    },
+    {
+      "name": "Run Server TCP",
+      "preLaunchTask": "npm: build.dev",
+      "timeout": 10000,
+      "program": "${workspaceFolder}/dist/modbus2mqtt.js",
+      "args": [  "-s", "../ssl", "-y" ,"../yaml-dir", "--busid", "0"],
+      "console": "integratedTerminal",
+      "env": {
+        "DEBUG": "config",
+        "NODE_OPTIONS": "--experimental-vm-modules npx jest"
+      },
+      "request": "launch",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "../specification.shared/cjs/*.js": "${workspaceFolder}../specification.shared/src/*.ts",
+        "../server.shared/*/*": "${workspaceFolder}../server.shared/*/*",
+        "../specification/dist/*/*.js": "${workspaceFolder}../specification/src/*.ts",
+      },  
+      "type": "node"
+    },
+    
+    {
+      "name": "Attach to homeassistant(local)",
       "address": "localhost",
       "localRoot": "${workspaceFolder}/..",
-      "name": "Attach to homeassistant(local)",
       "port": 9229,
       "remoteRoot": "/usr/app/node_modules/@modbus2mqtt",
       "sourceMaps": true,
@@ -30,95 +72,11 @@
       "port": 9229,
       "address": "localhost",
     },
-    {
-      "command": "npm run server",
-      "name": "Run run dev server",
-      "request": "launch",
-      "type": "node-terminal",
-      "env": {
-        "DEBUG": "m2mgithub",
-        "MODBUS_NOPOLL": "true",
-      },
-      "sourceMapPathOverrides": {
-        "server/*/*": "${workspaceFolder}/*",
-        "specification.shared/*/*": "${workspaceFolder}../specification.shared/*/*",
-        "server.shared/*/*": "${workspaceFolder}../server.shared/*/*",
-        "specification/*/*": "${workspaceFolder}../specification/*/*",
-      },
-    },
-    {
-      "command": "npm run modbusanalysis",
-      "name": "Run run modbusanalysis",
-      "request": "launch",
-      "type": "node-terminal"
-    },
-    {
-      "command": "npm run server",
-      "name": "Run server",
-      "request": "launch",
-      "type": "node-terminal",
-      "env": {
-        "DEBUG": "httpserver",
-        "MODBUS_NOPOLL": "true",
-      },
-      "sourceMaps": true,
-      "sourceMapPathOverrides": {
-        "server/*/*": "${workspaceFolder}/*",
-        "specification.shared/*/*": "${workspaceFolder}/../specification.shared/*",
-        "server.shared/*/*": "${workspaceFolder}/../server.shared/*",
-        "specification/*/*": "${workspaceFolder}/../specification/src/*",
-      },
-    },
-    {
-      "command": "npm run serverTCP",
-      "name": "Run serverTCP",
-      "request": "launch",
-      "sourceMaps": true,
-      "type": "node-terminal",
-      "env": {
-        "DEBUG": "express:* modbuscache modbuscache.time",
-        "MODBUS2_NOPOLL": "",
-      }
-    },
-    {
-      "command": "npm run validate",
-      "name": "Run validate",
-      "request": "launch",
-      "sourceMaps": true,
-      "type": "node-terminal",
-      "env": {
-        "DEBUG": "m2mgithubvalidate",
-        "PR_NUMBER": "62",
-      }
-    },
-    {
-      "command": "npm run  ui",
-      "name": "Run ui",
-      "request": "launch",
-      "type": "node-terminal",
-      "env": {
-        "DEBUG": "express:* modbuscache modbuscache.time",
-        "MODBUS2_NOPOLL": "",
-      },
-    },
-    {
-      "name": "ng serve",
-      "type": "chrome",
-      "request": "launch",
-      "preLaunchTask": "npm: ng serve",
-      "postDebugTask": "npm: stop",
-      "url": "http://localhost:4200/"
-    },
-    {
-      "name": "ng test",
-      "type": "chrome",
-      "request": "launch",
-      "preLaunchTask": "npm: test",
-      "url": "http://localhost:9876/debug.html"
-    },
+
     {
       "type": "node",
       "name": "vscode-jest-tests.v2",
+      "sourceMaps": true,
       "request": "launch",
       "program": "${workspaceFolder}/node_modules/.bin/jest",
       "env": {
@@ -138,18 +96,6 @@
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
     },
-    {
-      "name": "Launch Chrome",
-      "type": "chrome",
-      "request": "launch",
-      "preLaunchTask": "start",
-      "postDebugTask": "stop",
-      "port": 9222,
-      "sourceMaps": true,
-      /*"diagnosticLogging": true,*/
-      "webRoot": "${workspaceRoot}/angular",
-      "url": "http://localhost:4200/"
-    }
 
   ]
 }

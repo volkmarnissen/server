@@ -16,54 +16,38 @@ const log = new Logger('modbus')
 export class Modbus {
   constructor() {}
 
-  writeEntityModbus(bus: Bus, slaveid: number, entity: Ientity, modbusValue: ReadRegisterResult) {
+  writeEntityModbus(bus: Bus, slaveid: number, entity: Ientity, modbusValue: ReadRegisterResult): Promise<void> {
     // this.modbusClient.setID(device.slaveid);
     if (entity.modbusAddress && entity.registerType) {
-      new ModbusCache('write', true)
-        .writeRegisters(
-          { busid: bus.getId(), slaveid: slaveid },
-          entity.modbusAddress,
-          M2mSpecification.getWriteFunctionCode(entity.registerType),
-          modbusValue
-        )
-        .then(() => {
-          // writeRegisters done
-        })
-        .catch((e: any) => {
-          log.log(LogLevelEnum.error, e.message)
-        })
+      return new ModbusCache('write', true).writeRegisters(
+        { busid: bus.getId(), slaveid: slaveid },
+        entity.modbusAddress,
+        M2mSpecification.getWriteFunctionCode(entity.registerType),
+        modbusValue
+      )
     }
+    throw new Error('No modbusaddress or registerType passed')
   }
 
-  writeEntityMqtt(bus: Bus, slaveid: number, spec: Ispecification, entityid: number, mqttValue: string): Promise<string> {
-    let rc = new Promise<string>((resolve, reject) => {
-      // this.modbusClient.setID(device.slaveid);
-      let entity = spec.entities.find((ent) => ent.id == entityid)
-      if (entity) {
-        let converter = ConverterMap.getConverter(entity)
-        if (entity.modbusAddress && entity.registerType && converter) {
-          let modbusValue = converter?.mqtt2modbus(spec, entityid, mqttValue)
-          if (modbusValue && modbusValue.data.length > 0) {
-            new ModbusCache('write', true)
-              .writeRegisters(
-                { busid: bus.getId(), slaveid: slaveid },
-                entity.modbusAddress,
-                M2mSpecification.getWriteFunctionCode(entity.registerType),
-                modbusValue
-              )
-              .then(() => {
-                resolve(mqttValue)
-              })
-              .catch((e: any) => {
-                log.log(LogLevelEnum.error, e.message)
-                reject(e.message)
-              })
-          } else reject('No modbus address or function code or converter not found for entity ' + entityid + ' ')
-        } else reject('No modbus address or function code for entity ' + entityid + ' ')
-      } else reject('Entity not found in Specification entityid: ' + entityid + JSON.stringify(spec))
-    })
-    return rc
+  writeEntityMqtt(bus: Bus, slaveid: number, spec: Ispecification, entityid: number, mqttValue: string): Promise<void> {
+    // this.modbusClient.setID(device.slaveid);
+    let entity = spec.entities.find((ent) => ent.id == entityid)
+    if (entity) {
+      let converter = ConverterMap.getConverter(entity)
+      if (entity.modbusAddress && entity.registerType && converter) {
+        let modbusValue = converter?.mqtt2modbus(spec, entityid, mqttValue)
+        if (modbusValue && modbusValue.data.length > 0) {
+          return new ModbusCache('write', true).writeRegisters(
+            { busid: bus.getId(), slaveid: slaveid },
+            entity.modbusAddress,
+            M2mSpecification.getWriteFunctionCode(entity.registerType),
+            modbusValue
+          )
+        } else throw new Error('No modbus address or function code or converter not found for entity ' + entityid + ' ')
+      } else throw new Error('No modbus address or function code for entity ' + entityid + ' ')
+    } else throw new Error('Entity not found in Specification entityid: ' + entityid + JSON.stringify(spec))
   }
+
   readEntityFromModbus(bus: Bus, slaveid: number, spec: Ispecification, entityId: number): Promise<ImodbusEntity> {
     return new Promise((resolve, reject) => {
       let entity = spec.entities.find((ent) => ent.id == entityId)

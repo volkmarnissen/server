@@ -4,14 +4,24 @@ import * as fs from 'fs'
 import { MqttDiscover } from './mqttdiscover'
 import * as path from 'path'
 import { join } from 'path'
+import stream from 'stream'
 import { Observable, Subject } from 'rxjs'
-import { BUS_TIMEOUT_DEFAULT, getBaseFilename } from '@modbus2mqtt/specification.shared'
+import { BUS_TIMEOUT_DEFAULT, getBaseFilename, IbaseSpecification } from '@modbus2mqtt/specification.shared'
 import { sign, verify } from 'jsonwebtoken'
 import * as bcrypt from 'bcryptjs'
 import * as http from 'http'
 import { ConfigSpecification, LogLevelEnum, Logger } from '@modbus2mqtt/specification'
 import { SerialPort } from 'serialport'
-import { ImqttClient, AuthenticationErrors, IBus, Iconfiguration, IModbusConnection, Islave } from '@modbus2mqtt/server.shared'
+import {
+  ImqttClient,
+  AuthenticationErrors,
+  IBus,
+  Iconfiguration,
+  IModbusConnection,
+  Islave,
+  PollModes,
+} from '@modbus2mqtt/server.shared'
+import AdmZip from 'adm-zip'
 
 const CONFIG_VERSION = '0.1'
 declare global {
@@ -23,7 +33,6 @@ declare global {
 }
 const DEFAULT_MQTT_CONNECT_TIMEOUT = 60 * 1000
 const HASSIO_TIMEOUT = 300
-
 export enum MqttValidationResult {
   OK = 0,
   tokenExpired = 1,
@@ -630,9 +639,9 @@ export class Config {
     }
     return addresses
   }
-  static mqttDiscoverInstance: MqttDiscover| undefined
+  static mqttDiscoverInstance: MqttDiscover | undefined
   static getMqttDiscover(): MqttDiscover {
-    if(!Config.mqttDiscoverInstance )
+    if (!Config.mqttDiscoverInstance)
       if (Config.config.mqttusehassio && this.mqttHassioLoginData)
         Config.mqttDiscoverInstance = new MqttDiscover(this.mqttHassioLoginData, Config.config.mqttdiscoverylanguage)
       else Config.mqttDiscoverInstance = new MqttDiscover(Config.config.mqttconnect, Config.config.mqttdiscoverylanguage)
@@ -705,13 +714,21 @@ export class Config {
     fs.writeFileSync(this.getSecretsPath(), s, { encoding: 'utf8' })
   }
 
-  writeslave(busid: number, slaveid: number, specification: string | undefined, name?: string, polInterval?: number): Islave {
+  writeslave(
+    busid: number,
+    slaveid: number,
+    specification: string | undefined,
+    name?: string,
+    polInterval?: number,
+    pollMode?: PollModes
+  ): Islave {
     // Make sure slaveid is unique
     let slave: Islave = {
       slaveid: slaveid,
       specificationid: specification,
       name: name,
       polInterval: polInterval,
+      pollMode: pollMode,
     }
     let oldFilePath = this.getslavePath(busid, slave)
     let filename = Config.getFileNameFromSlaveId(slave.slaveid)
@@ -736,7 +753,7 @@ export class Config {
       else {
         let spec = ConfigSpecification.getSpecificationByFilename(specification)
         this.triggerMqttPublishSlave(busid, slave)
-        slave.specification = spec
+        slave.specification = spec as any as IbaseSpecification
       }
     } else debug('No Specification found for slave: ' + filename + ' specification: ' + slave.specificationid)
     return slave
@@ -777,6 +794,21 @@ export class Config {
   }
   static getFileNameFromSlaveId(slaveid: number): string {
     return 's' + slaveid
+  }
+  static createZipFromLocal(_filename: string, r: stream.Writable): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      let archive = new AdmZip()
+      let dir = Config.getLocalDir()
+      let files: string[] = fs.readdirSync(Config.getLocalDir(), { recursive: true }) as string[]
+      files.forEach((file) => {
+        let p = join(dir, file)
+        if (fs.statSync(p).isFile() && file.indexOf('secrets.yaml') < 0) archive.addLocalFile(p, path.dirname(file))
+      })
+      r.write(archive.toBuffer())
+      r.end(() => {
+        resolve()
+      })
+    })
   }
 }
 export function getSpecificationImageOrDocumentUrl(rootUrl: string | undefined, specName: string, url: string): string {
