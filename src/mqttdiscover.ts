@@ -115,13 +115,15 @@ export class MqttDiscover {
   }
   static generateEntityCommandTopic(busid: number, slave: Islave, ent: Ientity): string {
     return (
-      Config.getConfiguration().mqttbasetopic + '/set/' + busid + 's' + Config.getFileNameFromSlaveId(slave.slaveid) + '/e' + ent.id
+      Config.getConfiguration().mqttbasetopic + '/set/' + busid + Config.getFileNameFromSlaveId(slave.slaveid) + '/e' + ent.id
     )
   }
   private getDevicesCommandTopic(): string {
-    return Config.getConfiguration().mqttbasetopic + '/set/+/#'
+    return this.getDevicesCommandTopicPrefix() + '+/#'
   }
-
+  private getDevicesCommandTopicPrefix(): string {
+    return Config.getConfiguration().mqttbasetopic + '/set/'
+  }
   private getSlavesConfigurationTopic(): string {
     return Config.getConfiguration().mqttdiscoveryprefix + '/+/+/+/config'
   }
@@ -214,10 +216,15 @@ export class MqttDiscover {
                   let nn = e.converterParameters as Inumber
                   if (!obj.unit_of_measurement && nn && nn.uom) obj.unit_of_measurement = nn.uom
                   if (nn && nn.device_class && nn.device_class.toLowerCase() != 'none') obj.device_class = nn.device_class
-                  if (e.converter.name === 'number' && nn.identification) {
+                  if (e.converter.name === 'number' ){
+                    if( nn.step )
+                        obj.step = nn.step
+                    if( nn.identification) {
                     if (nn.identification.min != undefined) obj.min = nn.identification.min
                     if (nn.identification.max != undefined) obj.max = nn.identification.max
                   }
+                  }
+                    
                   break
               }
               payloads.push({
@@ -309,7 +316,7 @@ export class MqttDiscover {
       if (undefined == busAndSlave.slave.specificationid) throw new Error('No specification Id for slave available')
       const spec = ConfigSpecification.getSpecificationByFilename(busAndSlave.slave.specificationid)
       let parts = topic.split('/')
-      if (spec && parts.length > 4) {
+      if (spec && parts.length >= 4) {
         const entity = spec.entities.find((ent) => {
           return 'e' + ent.id == parts[3]
         })
@@ -346,7 +353,8 @@ export class MqttDiscover {
       } catch (e: any) {
         log.log(LogLevelEnum.error, e.message)
       }
-    } else this.onMqttCommandMessage(topic, payload)
+    } else if( topic.startsWith( this.getDevicesCommandTopicPrefix()))
+        this.onMqttCommandMessage(topic, payload)
   }
   private containsTopic(tp: ItopicAndPayloads, tps: ItopicAndPayloads[]) {
     let t = tps.findIndex((t) => tp.topic === t.topic)
