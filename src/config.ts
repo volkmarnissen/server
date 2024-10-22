@@ -145,7 +145,6 @@ export class Config {
     },
     httpport: 3000,
     fakeModbus: false,
-    filelocation: '/data/local',
   }
 
   static yamlDir: string = ''
@@ -266,7 +265,7 @@ export class Config {
       Config.config.mqttconnect.clean = Config.config.mqttconnect.clean ? Config.config.mqttconnect.clean : true
       Config.config.httpport = Config.config.httpport ? Config.config.httpport : 3000
       Config.config.fakeModbus = Config.config.fakeModbus ? Config.config.fakeModbus : false
-      Config.config.filelocation = Config.config.filelocation ? Config.config.filelocation : '/data/local'
+      Config.config.filelocation = Config.config.filelocation ? Config.config.filelocation : Config.yamlDir
       Config.busses = Config.busses && Config.busses.length > 0 ? Config.busses : []
       Config.config.hassiotoken = process.env.HASSIO_TOKEN && process.env.HASSIO_TOKEN.length ? process.env.HASSIO_TOKEN : undefined
       Config.config.mqttusehassio =
