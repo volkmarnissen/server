@@ -104,7 +104,7 @@ export class HttpServer extends HttpServerBase {
         registered: config.mqttusehassio || (config.username != undefined && config.password != undefined),
         hassiotoken: config.mqttusehassio ? config.mqttusehassio : false,
         hasAuthToken: authHeader ? true : false,
-        authTokenExpired: authHeader != undefined && HttpServer.validateUserToken(req) == MqttValidationResult.tokenExpired,
+        authTokenExpired: authHeader != undefined && HttpServer.validateUserToken(req, undefined) == MqttValidationResult.tokenExpired,
         mqttConfigured: false,
         preSelectedBusId: Bus.getBusses().length == 1 ? Bus.getBusses()[0].getId() : undefined,
       }

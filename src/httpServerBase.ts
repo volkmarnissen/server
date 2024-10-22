@@ -60,17 +60,16 @@ export class HttpServerBase {
     }
     return undefined
   }
-  private static getAuthTokenFromUrl(url: string): string | undefined {
+  static getAuthTokenFromUrl(url: string): string | undefined {
     let parts = url.split('/')
     let apiIdx = parts.findIndex((part) => ['api', 'download'].includes(part))
-    if (apiIdx >= 1) {
+    if (apiIdx >= 2) {
       return parts[apiIdx - 1]
     }
 
     return undefined
   }
-  protected static validateUserToken(req: Request): MqttValidationResult {
-    let token = HttpServerBase.getAuthTokenFromHeader(req)
+  protected static validateUserToken(req: Request, token:string| undefined): MqttValidationResult {
     if (token == undefined) {
       token = HttpServerBase.getAuthTokenFromUrl(req.url)
       if (token == undefined) return MqttValidationResult.error
@@ -117,20 +116,23 @@ export class HttpServerBase {
   validate() {}
   authenticate(req: Request, res: http.ServerResponse, next: any) {
     //  req.header('')
-    var pwd = Config.getConfiguration().password
     // All api callsand a user registration when a user is already registered needs authorization
+    let token = HttpServerBase.getAuthTokenFromUrl(req.url)
+    if (token != undefined) 
+      req.url = req.url.replace(token + '/', '')
+
     if (
-      (req.url.indexOf('/api/') >= 0 || req.url.indexOf('/user/register') >= 0 || req.url.indexOf('download/') >= 0) &&
-      pwd &&
-      pwd.length
-    ) {
+      (req.url.indexOf('/api/') >= 0 || 
+       req.url.indexOf('/user/register') >= 0 || 
+       req.url.indexOf('/download/') >= 0) 
+     ) {
       let config = Config.getConfiguration()
       if (config.hassiotoken) {
         debug('Supervisor: validate hassio token')
         next()
         return
       } else
-        switch (HttpServerBase.validateUserToken(req)) {
+        switch (HttpServerBase.validateUserToken(req, token)) {
           case MqttValidationResult.OK:
             next()
             return
