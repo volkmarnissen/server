@@ -76,11 +76,20 @@ export class HttpServer extends HttpServerBase {
     this.modbusCacheAvailable = true
   }
   override initApp() {
-    let localdir = join(Config.getConfiguration().filelocation, 'local', filesUrlPrefix)
-    let publicdir = join(Config.getConfiguration().filelocation, 'public', filesUrlPrefix)
-
-    this.app.use('/' + filesUrlPrefix, express.static(localdir))
-    this.app.use('/' + filesUrlPrefix, express.static(publicdir))
+    let fileLocation = Config.getConfiguration().filelocation
+    if( fileLocation == undefined)
+      log.log(LogLevelEnum.error, "Config Filelocation is not defined")
+    else{
+      let localdir = join(fileLocation, 'local', filesUrlPrefix)
+      let publicdir = join(fileLocation, 'public', filesUrlPrefix)
+      this.app.get( /.*/, (req: Request, res: http.ServerResponse,next) => {
+        debug(req.url)
+        next()
+      } )
+      this.app.use('/' + filesUrlPrefix, express.static(localdir))
+      this.app.use('/' + filesUrlPrefix, express.static(publicdir))
+  
+    }
     //@ts-ignore
     // app.use(function (err:any, req:any, res:any, next:any) {
     //     res.status(409).json({status: err.status, message: err.message})
@@ -95,7 +104,7 @@ export class HttpServer extends HttpServerBase {
         registered: config.mqttusehassio || (config.username != undefined && config.password != undefined),
         hassiotoken: config.mqttusehassio ? config.mqttusehassio : false,
         hasAuthToken: authHeader ? true : false,
-        authTokenExpired: authHeader != undefined && HttpServer.validateUserToken(req) == MqttValidationResult.tokenExpired,
+        authTokenExpired: authHeader != undefined && HttpServer.validateUserToken(req, undefined) == MqttValidationResult.tokenExpired,
         mqttConfigured: false,
         preSelectedBusId: Bus.getBusses().length == 1 ? Bus.getBusses()[0].getId() : undefined,
       }

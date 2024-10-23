@@ -154,17 +154,19 @@ def git(basedir, componentName, command):
     print( out.decode("utf-8").rstrip() ,err.decode("utf-8").rstrip()) 
 
 def npmPack(basedir, addonDir, name):
-    print("npm pack", basedir)
-    tarsDir = os.path.join(addonDir, 'tars')
-    os.makedirs(tarsDir,exist_ok=True)
-    result = subprocess.Popen(['npm', 'pack', '--silent',
-            '--pack-destination', addonDir  ],
-		    cwd=os.path.join(basedir, name),
+    print("npm pack/tar "  + basedir + " " + addonDir + " " + name)
+    tarsDir = os.path.join(addonDir, 'tars' )
+    tarFile = os.path.join(tarsDir, name + ".tgz")
+    cmd = ['tar', '-czf', tarFile, '--exclude', 'node_modules', '--transform', 's/^' + name + '/package/' , name  ]
+    print( ' '.join(cmd) )
+    result = subprocess.Popen(cmd,
+		    cwd=os.path.join(basedir),
 		    stdout=subprocess.PIPE, 
             stderr=subprocess.PIPE) 
     out, err = result.communicate()
-    tarname=out.decode("utf-8").rstrip() 
-    return tarname
+    print(out.decode("utf-8").rstrip() )
+    print( err.decode("utf-8").rstrip() )
+    return tarFile
 def npmBuildServer(basedir):
     print("npm build.all server", basedir)
     result = subprocess.Popen(['npm', 'run', 'build.all' ],
@@ -226,16 +228,22 @@ def prepareDockerfile( basedir, serverVersion):
     tarsDir = os.path.join(addonDir, '@modbus2mqtt')
     shutil.rmtree(tarsDir,ignore_errors=True)
     os.makedirs(tarsDir,exist_ok=True)
+    npmTarInstalls =""
+    installNames = ""
     for componentInfo in componentInfos:
-        tarname = os.path.join('.', npmPack(basedir, addonDir, componentInfo.name ))
+        npmTarInstall = npmPack(basedir, addonDir, componentInfo.name )
+        if os.path.isfile(npmTarInstall):
+            installName = os.path.basename(npmTarInstall)
+            npmTarInstalls = npmTarInstalls + " ./tars/" + installName
+            installNames = installNames + " ./" + installName
+            print ("TI:" + npmTarInstall + " " + tarsDir)
+            extractTarfile( npmTarInstall, tarsDir)
+            os.rename( os.path.join(tarsDir, 'package'),os.path.join(tarsDir, componentInfo.name))
+    replaceStringInFile(inFile, outFile,[
+        StringReplacement(pattern='<version>', newValue=serverVersion),
+        StringReplacement(pattern='RUN npm install --omit-dev.*', newValue='COPY '+ npmTarInstalls + ' ./\nRUN npm install ' + installNames),
+        ])
 
-        npmTarInstall = npmTarInstall + ' ' + tarname
-        replaceStringInFile(inFile, outFile,[
-            StringReplacement(pattern='<version>', newValue=serverVersion),
-            StringReplacement(pattern='RUN npm install --omit-dev.*', newValue='COPY '+ npmTarInstall + ' ./\nRUN npm install ' + npmTarInstall),
-            ])
-        extractTarfile( os.path.join(addonDir, "modbus2mqtt-"+ componentInfo.name + "-" + componentInfo.pkgVersion + ".tgz" ), tarsDir)
-        os.rename( os.path.join(tarsDir, 'package'),os.path.join(tarsDir, componentInfo.name))
     return npmTarInstall
 
 def copyToHassio(addonDir,sshport, sshhost):

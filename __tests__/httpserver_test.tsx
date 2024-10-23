@@ -1,4 +1,5 @@
 import { expect, it, xit, xtest, test, jest, describe, beforeAll, afterAll } from '@jest/globals'
+import { parse, stringify } from 'yaml'
 import Debug from 'debug'
 import { HttpServer as HttpServer } from '../src/httpserver'
 import {
@@ -234,7 +235,10 @@ it('GET local files', (done) => {
     .get('/specifications/files/waterleveltransmitter/files.yaml')
     .expect(200)
     .then((response) => {
-      expect(response.text.startsWith('- url:')).toBeTruthy()
+    let o =  parse(response.text)
+      expect(o.files.length).toBeGreaterThan(0)
+      expect((o.files[0].url as string).startsWith("/")).toBeFalsy();
+      expect(o.files.length).toBeGreaterThan(0)
       expect(response.type).toBe('text/yaml')
       done()
     })

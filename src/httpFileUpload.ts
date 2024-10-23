@@ -4,6 +4,8 @@ import { Config, getSpecificationImageOrDocumentUrl } from './config'
 import { join } from 'path'
 import * as fs from 'fs'
 import { SpecificationFileUsage } from '@modbus2mqtt/specification.shared'
+import { Logger, LogLevelEnum } from '@modbus2mqtt/specification'
+const log = new Logger('httpFileUpload')
 
 type DestinationCallback = (error: Error | null, destination: string) => void
 type FileNameCallback = (error: Error | null, filename: string) => void
@@ -22,16 +24,21 @@ export function getFilenameForUpload(filename: string) {
 }
 export const fileStorage = multer.diskStorage({
   destination: (request: GetRequestWithUploadParameter, _file: Express.Multer.File, callback: DestinationCallback): void => {
-    let localdir = Config.getConfiguration().filelocation
+    let fileLocation = Config.getConfiguration().filelocation
+    if( fileLocation == undefined)
+    {
+      log.log(LogLevelEnum.error,"Config.fileLocation is not defined. NO file upload possible")
+    }
+    else
     if (request.query.specification !== null) {
       let dir = getSpecificationImageOrDocumentUrl(
-        join(Config.getConfiguration().filelocation, 'local'),
+        join(fileLocation, 'local'),
         getFilenameForUpload(request.query.specification!),
         ''
       )
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
       callback(null, dir)
-    } else callback(new Error('No parameter specification found'), localdir)
+    } else callback(new Error('No parameter specification found'), fileLocation)
   },
   filename: (_req: Request, file: Express.Multer.File, callback: FileNameCallback): void => {
     callback(null, file.originalname)

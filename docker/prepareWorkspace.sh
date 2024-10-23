@@ -40,3 +40,16 @@ else
   git config --global user.email info@carcam360.de
 fi
 
+cd ~/m2m/server.shared
+npm install ../specification.shared
+cd ~/m2m/specification
+npm install ../specification.shared
+cd ~/m2m/angular
+npm install ../specification.shared
+npm install ../server.shared
+cd ~/m2m/server
+npm install ../specification.shared
+npm install ../server.shared
+npm install ../angular
+npm install ../specification
+
