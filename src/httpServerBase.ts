@@ -53,7 +53,9 @@ export class HttpServerBase {
     res.end(message)
   }
   private static getAuthTokenFromHeader(req: Request): string | undefined {
-    let authHeader = req.header('Authorization')
+    let authHeader:string| undefined = undefined
+    if(req.header)
+      authHeader = req.header('Authorization')
     if (authHeader) {
       let tokenPos = authHeader!.indexOf(' ') + 1
       return authHeader.substring(tokenPos)
