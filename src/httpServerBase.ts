@@ -70,6 +70,7 @@ export class HttpServerBase {
     return undefined
   }
   protected static validateUserToken(req: Request, token:string| undefined): MqttValidationResult {
+   
     if (token == undefined) {
       token = HttpServerBase.getAuthTokenFromUrl(req.url)
       if (token == undefined) return MqttValidationResult.error
@@ -117,10 +118,12 @@ export class HttpServerBase {
   authenticate(req: Request, res: http.ServerResponse, next: any) {
     //  req.header('')
     // All api callsand a user registration when a user is already registered needs authorization
-    let token = HttpServerBase.getAuthTokenFromUrl(req.url)
+    let token = 
+    HttpServerBase.getAuthTokenFromUrl(req.url)
     if (token != undefined) 
       req.url = req.url.replace(token + '/', '')
-
+    else
+      token = HttpServerBase.getAuthTokenFromHeader(req)
     if (
       (req.url.indexOf('/api/') >= 0 || 
        req.url.indexOf('/user/register') >= 0 || 
@@ -132,7 +135,7 @@ export class HttpServerBase {
         next()
         return
       } else
-        switch (HttpServerBase.validateUserToken(req, token)) {
+        switch (Config.validateUserToken( token)) {
           case MqttValidationResult.OK:
             next()
             return

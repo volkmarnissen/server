@@ -452,9 +452,9 @@ export class MqttDiscover {
       this.client = connect(connectionData.mqttserverurl, opts as IClientOptions)
       this.client.on('error', error)
       this.client.on('connect', () => {
-        log.log(LogLevelEnum.notice, 'New MQTT Connection ')
+        debug( 'New MQTT Connection ')
         this.client!.subscribe('modbus2mqtt/will', () => {
-          log.log(LogLevelEnum.notice, 'MQTT Connection will be closed by Last will')
+          debug(LogLevelEnum.notice, 'MQTT Connection will be closed by Last will')
           //this.client!.end()
         })
         this.client!.subscribe(MqttDiscover.getTriggerPollTopicPrefix() + '/+', (topic, payload) => {})
@@ -492,7 +492,7 @@ export class MqttDiscover {
         this.connectMqtt(
           undefined,
           () => {
-            log.log(LogLevelEnum.notice, 'poll: MQTT client reconnected')
+            debug(LogLevelEnum.notice, 'poll: MQTT client reconnected')
             resolve(this.client!)
           },
           reject

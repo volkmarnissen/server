@@ -106,7 +106,9 @@ export class Config {
     })
     return rc
   }
-  static validateUserToken(token: string): MqttValidationResult {
+  static validateUserToken(token: string| undefined): MqttValidationResult {
+    if( token == undefined )
+      return MqttValidationResult.error
     try {
       let v: any = verify(token, Config.secret, { complete: true })
       v = verify(token, Config.secret, {
