@@ -120,6 +120,7 @@ export class HttpServerBase {
   authenticate(req: Request, res: http.ServerResponse, next: any) {
     //  req.header('')
     // All api callsand a user registration when a user is already registered needs authorization
+    let config = Config.getConfiguration()
     let token = 
     HttpServerBase.getAuthTokenFromUrl(req.url)
     if (token != undefined) 
@@ -133,10 +134,20 @@ export class HttpServerBase {
      ) {
       let config = Config.getConfiguration()
       if (config.hassiotoken) {
+        let address = (req.socket.address() as AddressInfo).address
+        if (!address || (address.indexOf('172.30.33.1') < 0 && address.indexOf('172.30.32.1') < 0)) {
+          log.log(LogLevelEnum.warn, 'Denied: IP Address is not allowed ' + address)
+          this.returnResult(req, res, HttpErrorsEnum.ErrForbidden, 'Unauthorized (See server log)')
+          return
+        }
         debug('Supervisor: validate hassio token')
         next()
         return
-      } else
+      } else {
+        if(!config.password || config.password.length ==0 && req.url.indexOf(apiUri.userRegister) >= 0 ){
+          next()
+          return
+        }
         switch (Config.validateUserToken( token)) {
           case MqttValidationResult.OK:
             next()
@@ -150,6 +161,7 @@ export class HttpServerBase {
             this.returnResult(req, res, HttpErrorsEnum.ErrForbidden, 'Unauthorized (See server log)')
             return
         }
+      }
       // Check addon access
     }
 
