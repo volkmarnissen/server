@@ -126,7 +126,7 @@ const vector: IServiceVector = {
 }
 export class ModbusServer {
   serverTCP: ServerTCP | undefined
-  async startServer(port: number): Promise<ServerTCP> {
+  startServerForTest(port: number){
     dimplexHolding.forEach((nv) => {
       values.holdingRegisters.push({
         slaveid: Dimplexslaveid,
@@ -134,6 +134,9 @@ export class ModbusServer {
         value: nv[1],
       })
     })
+  }
+
+  async startServer(port: number): Promise<ServerTCP> {
 
     let rc = new Promise<ServerTCP>((resolve) => {
       log.log(LogLevelEnum.notice, 'ModbusTCP listening on modbus://0.0.0.0:' + port)
@@ -159,6 +162,11 @@ export class ModbusServer {
         if (cb) cb()
       })
   }
+}
+export function clearRegisterValues(){
+  values.holdingRegisters = []
+  values.inputRegisters = [] 
+  values.coils = []
 }
 export function addRegisterValue(slaveid: number, address: number, fc: ModbusRegisterType, value: number): void {
   switch (fc) {
