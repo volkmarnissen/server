@@ -135,7 +135,7 @@ export class HttpServerBase {
       let config = Config.getConfiguration()
       if (config.hassiotoken) {
         let address = (req.socket.address() as AddressInfo).address
-        if (!address || ['172.30.33.1','172.30.32.1', '127.0.0.1'].includes(address)) {
+        if (!address || !['172.30.33.1','172.30.32.1', '127.0.0.1'].includes(address)) {
           log.log(LogLevelEnum.warn, 'Denied: IP Address is not allowed ' + address)
           this.returnResult(req, res, HttpErrorsEnum.ErrForbidden, 'Unauthorized (See server log)')
           return
