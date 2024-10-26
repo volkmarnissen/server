@@ -36,11 +36,24 @@
         "<node_internals>/**"
       ],
       "sourceMaps": true,
-      "sourceMapPathOverrides": {
-        "../specification.shared/cjs/*.js": "${workspaceFolder}../specification.shared/src/*.ts",
-        "../server.shared/*/*": "${workspaceFolder}../server.shared/*/*",
-        "../specification/dist/*/*.js": "${workspaceFolder}../specification/src/*.ts",
-      },  
+      "type": "node"
+    },
+    {
+      "name": "Run TestServer TCP",
+      "preLaunchTask": "npm: build.dev",
+      "timeout": 10000,
+      "program": "${workspaceFolder}/dist/modbus2mqtt.js",
+      "args": [  "-s", "${workspaceFolder}/e2e/temp/ssl", "-y" ,"${workspaceFolder}/e2e/temp/yaml-dir", "--busid", "${workspaceFolder}/e2e/temp/yaml-dir-tcp:0"],
+      "console": "integratedTerminal",
+      "env": {
+        "DEBUG": "config",
+        "NODE_OPTIONS": "--experimental-vm-modules npx jest"
+      },
+      "request": "launch",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "sourceMaps": true,
       "type": "node"
     },
     
