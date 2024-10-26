@@ -77,3 +77,20 @@ ExecStart=/usr/bin/env sh -c "|script|"
 [Install]
 WantedBy=multi-user.target
 EOF7'  | sed -e "s:|script|:${CWD}/modbus2mqtt-server.sh:g" | sed -e "s/|user|/${USER}/g"| sudo bash -c 'cat >/etc/systemd/system/modbus2mqtt-e2e.service'
+bash -c '
+cat <<EOF8
+[Unit]
+Description=Modbus <=> MQTT e2e test server
+After=network.target
+StartLimitIntervalSec=1
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/env sh -c "|script|" 
+[Install]
+WantedBy=multi-user.target
+EOF8'  | sed -e "s:|script|:${CWD}/modbus2mqtt-tcp-server.sh:g" | sudo bash -c 'cat >/etc/systemd/system/modbus2mqtt-tcp-server.service'
+
+sudo systemctl restart modbus2mqtt-tcp-server.service
+sudo systemctl restart modbus2mqtt-e2e.service
+

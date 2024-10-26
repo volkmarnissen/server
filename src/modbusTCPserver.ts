@@ -139,7 +139,6 @@ export class ModbusServer {
   async startServer(port: number): Promise<ServerTCP> {
 
     let rc = new Promise<ServerTCP>((resolve) => {
-      log.log(LogLevelEnum.notice, 'ModbusTCP listening on modbus://0.0.0.0:' + port)
       this.serverTCP = new ServerTCP(vector, {
         host: '0.0.0.0',
         port: port,
@@ -151,6 +150,7 @@ export class ModbusServer {
         console.error(err)
       })
       this.serverTCP.on('initialized', () => {
+        log.log(LogLevelEnum.notice, 'ModbusTCP listening on modbus://0.0.0.0:' + port)
         resolve(this.serverTCP!)
       })
     })

@@ -43,7 +43,7 @@
       "preLaunchTask": "npm: build.dev",
       "timeout": 10000,
       "program": "${workspaceFolder}/dist/modbus2mqtt.js",
-      "args": [  "-s", "${workspaceFolder}/../../ssl", "-y" ,"${workspaceFolder}/../../yaml-dir", "--busid", "../../yaml-dir-tcp:0"],
+      "args": [  "-s", "${workspaceFolder}/e2e/temp/ssl", "-y" ,"${workspaceFolder}/e2e/temp/yaml-dir", "--busid", "${workspaceFolder}/e2e/temp/yaml-dir-tcp:0"],
       "console": "integratedTerminal",
       "env": {
         "DEBUG": "config",

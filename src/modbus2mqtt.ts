@@ -10,7 +10,6 @@ import Debug from 'debug'
 import { MqttDiscover } from './mqttdiscover.js'
 import { ConfigSpecification } from '@modbus2mqtt/specification'
 import path from 'path'
-import { startModbusTCPserver } from './runModbusTCPserver'
 import { SpecificationStatus } from '@modbus2mqtt/specification.shared'
 import { join } from 'path'
 
@@ -45,7 +44,6 @@ export class Modbus2Mqtt {
     cli.usage('[--ssl <ssl-dir>][--yaml <yaml-dir>][ --port <TCP port>] --term <exit code for SIGTERM>')
     cli.option('-s, --ssl <ssl-dir>', 'set directory for certificates')
     cli.option('-y, --yaml <yaml-dir>', 'set directory for add on configuration')
-    cli.option('-b, --busid <yaml-dir>:<busid>', 'starts Modbus TCP server for the given yaml-dir and bus')
     cli.option('--term <exit code for SIGTERM>', 'sets exit code in case of SIGTERM')
     cli.parse(process.argv)
     let options = cli.opts()
@@ -62,18 +60,6 @@ export class Modbus2Mqtt {
       })
     if (options['ssl']) Config.sslDir = options['ssl']
     else Config.sslDir = '.'
-    if (options['busid']) 
-    {
-      let parts:string[] = options['busid'].split(":")
-      if( parts.length == 2 ){
-        startModbusTCPserver(parts[0], parseInt(parts[1])) 
-      }
-      else
-      {
-        log.log(LogLevelEnum.error,"Unable to start Modbus TCP server invalid argument: " +options['busid'] )
-      }
-       
-    }
       
     readConfig = new Config()
     readConfig.readYamlAsync

@@ -4,11 +4,13 @@ import { VERSION } from 'ts-node'
 import * as fs from 'fs'
 import { join } from 'path'
 import { parse } from 'yaml'
-import { IfileSpecification, M2mGitHub, Migrator } from '@modbus2mqtt/specification'
+import { ConfigSpecification, IfileSpecification, Logger, LogLevelEnum, M2mGitHub, Migrator } from '@modbus2mqtt/specification'
 import { ModbusRegisterType } from '@modbus2mqtt/specification.shared'
 import Debug from 'debug'
 import { IBus, IModbusConnection, ITCPConnection } from '@modbus2mqtt/server.shared'
+import { Config } from './config'
 const debug = Debug('modbusTCPserver')
+const log = new Logger('modbusTCPserver')
 
 export function startModbusTCPserver(yamlDir: string, busId: number) {
   debug('starting')
@@ -21,6 +23,10 @@ export function startModbusTCPserver(yamlDir: string, busId: number) {
     let directoryBus = join(yamlDir, 'local/busses/bus.' + busId)
     let directoryPublicSpecs = join(yamlDir, 'public/specifications')
     let directoryLocalSpecs = join(yamlDir, 'local/specifications')
+    if( !fs.existsSync(directoryBus )){
+      log.log(LogLevelEnum.error,"Unable to start TCP server: Bus directory not found " + directoryBus )
+      return
+    }
     console.log('read bus' + directoryBus)
     let files = fs.readdirSync(directoryBus)
     let port = 0
@@ -76,6 +82,29 @@ export function startModbusTCPserver(yamlDir: string, busId: number) {
         }
     })
     runModbusServer(port)
+  }).catch((e:any)=>{
+    log.log(LogLevelEnum.error,"Failed to init github: " + e.message)
   })
 
 }
+
+
+let cli = new Command()
+cli.version(VERSION)
+cli.usage('--yaml <yaml-dir> --port <TCP port> --busid <buis id number>')
+cli.option('-y, --yaml <yaml-dir>', 'set directory for add on configuration')
+cli.option('-b, --busid <busid>', 'starts Modbus TCP server for the given yaml-dir and bus')
+cli.parse(process.argv)
+let options = cli.opts()
+if (options['yaml']) {
+  Config.yamlDir = options['yaml']
+  ConfigSpecification.yamlDir = options['yaml']
+} else {
+  Config.yamlDir = '.'
+  ConfigSpecification.yamlDir = '.'
+}
+if (options['busid']) 
+    startModbusTCPserver(ConfigSpecification.yamlDir, parseInt(options['busid'])) 
+else
+    log.log(LogLevelEnum.error,"Unable to start Modbus TCP server invalid argument: " + options['busid'] )
+
