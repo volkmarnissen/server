@@ -12,7 +12,7 @@ import { Config } from './config'
 const debug = Debug('modbusTCPserver')
 const log = new Logger('modbusTCPserver')
 
-export function startModbusTCPserver(yamlDir: string, busId: number) {
+export function startModbusTCPserver(yamlDir: string, busId: number, port:number) {
   debug('starting')
   let gh = new M2mGitHub(
     null,
@@ -29,14 +29,12 @@ export function startModbusTCPserver(yamlDir: string, busId: number) {
     }
     console.log('read bus' + directoryBus)
     let files = fs.readdirSync(directoryBus)
-    let port = 0
     files.forEach((slaveFileName) => {
       if (slaveFileName == 'bus.yaml') {
         let content = fs.readFileSync(join(directoryBus, slaveFileName), {
           encoding: 'utf8',
         })
         let connection: IModbusConnection = parse(content.toString())
-        if ((connection as ITCPConnection).port) port = (connection as ITCPConnection).port
       }
   
       if (slaveFileName.startsWith('s'))
@@ -103,8 +101,12 @@ if (options['yaml']) {
   Config.yamlDir = '.'
   ConfigSpecification.yamlDir = '.'
 }
+let port = 502
+if (options['port']) {
+  port = parseInt(options['port'])
+}
 if (options['busid']) 
-    startModbusTCPserver(ConfigSpecification.yamlDir, parseInt(options['busid'])) 
+    startModbusTCPserver(ConfigSpecification.yamlDir, parseInt(options['busid']), port) 
 else
     log.log(LogLevelEnum.error,"Unable to start Modbus TCP server invalid argument: " + options['busid'] )
 
