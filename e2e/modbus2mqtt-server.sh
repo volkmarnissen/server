@@ -2,4 +2,4 @@
 BASEDIR=$(dirname "$0")
 # .../server/e2e
 cd $BASEDIR/..
-node dist/modbus2mqtt.js -y e2e/temp/yaml-dir -s e2e/temp/ssl --busid e2e/temp/yaml-dir-tcp:0
+node dist/modbus2mqtt.js -y e2e/temp/yaml-dir -s e2e/temp/ssl 

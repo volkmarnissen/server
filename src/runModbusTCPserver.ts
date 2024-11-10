@@ -11,8 +11,9 @@ import { IBus, IModbusConnection, ITCPConnection } from '@modbus2mqtt/server.sha
 import { Config } from './config'
 const debug = Debug('modbusTCPserver')
 const log = new Logger('modbusTCPserver')
+var port:number = 502
 
-export function startModbusTCPserver(yamlDir: string, busId: number, port:number) {
+export function startModbusTCPserver(yamlDir: string, busId: number) {
   debug('starting')
   let gh = new M2mGitHub(
     null,
@@ -34,7 +35,8 @@ export function startModbusTCPserver(yamlDir: string, busId: number, port:number
         let content = fs.readFileSync(join(directoryBus, slaveFileName), {
           encoding: 'utf8',
         })
-        let connection: IModbusConnection = parse(content.toString())
+        let connection: IModbusConnection = parse(content.toString());
+        port = (connection as ITCPConnection).port
       }
   
       if (slaveFileName.startsWith('s'))
@@ -89,7 +91,7 @@ export function startModbusTCPserver(yamlDir: string, busId: number, port:number
 
 let cli = new Command()
 cli.version(VERSION)
-cli.usage('--yaml <yaml-dir> --port <TCP port> --busid <buis id number>')
+cli.usage('--yaml <yaml-dir> --busid <buis id number>')
 cli.option('-y, --yaml <yaml-dir>', 'set directory for add on configuration')
 cli.option('-b, --busid <busid>', 'starts Modbus TCP server for the given yaml-dir and bus')
 cli.parse(process.argv)
@@ -101,12 +103,11 @@ if (options['yaml']) {
   Config.yamlDir = '.'
   ConfigSpecification.yamlDir = '.'
 }
-let port = 502
-if (options['port']) {
-  port = parseInt(options['port'])
+if (options['busid']){
+
+  startModbusTCPserver(ConfigSpecification.yamlDir, parseInt(options['busid'])) 
 }
-if (options['busid']) 
-    startModbusTCPserver(ConfigSpecification.yamlDir, parseInt(options['busid']), port) 
+   
 else
     log.log(LogLevelEnum.error,"Unable to start Modbus TCP server invalid argument: " + options['busid'] )
 

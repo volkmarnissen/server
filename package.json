@@ -30,6 +30,8 @@
     "build": "tsc && npx  @opengovsg/credits-generator",
     "build.docker": "docker buildx build --load --tag modbus2mqtt/server docker",
     "ng serve": "cd ../angular && ng serve --open",
+    "e2e:init": "rm -rf e2e/temp/yaml-dir",    
+    "e2e:reset": "npm run e2e:init && systemctl --user restart modbus2mqtt-e2e.service && timeout 22 bash -c 'until printf \"\" >>/dev/tcp/localhost/3000; do sleep 1; done'",
     "prettier": "prettier --write '**/*.{ts,js,css,html,tsx}'"
   },
   "dependencies": {
