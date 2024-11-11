@@ -53,6 +53,13 @@ export class Config {
   static mqttHassioLoginData: ImqttClient | undefined = undefined
   static login(name: string, password: string): Promise<string> {
     let rc = new Promise<string>((resolve, reject) => {
+      if(Config.config.noAuthentication)
+        {
+          log.log(LogLevelEnum.error, "Login called, but noAuthentication is configured")
+          reject(AuthenticationErrors.InvalidParameters)
+          return
+        }
+  
       if (Config.config && Config.config.username && Config.config.password) {
         // Login
         if (name === Config.config.username)
@@ -86,9 +93,14 @@ export class Config {
     })
     return rc
   }
-  static register(name: string, password: string): Promise<void> {
+  static register(name: string| undefined, password: string| undefined, noAuthentication: boolean): Promise<void> {
     let rc = new Promise<void>((resolve, reject) => {
-      if (Config.config) {
+      if( noAuthentication == true ){
+        Config.config.noAuthentication = true
+        new Config().writeConfiguration(Config.config)
+        resolve()
+      }
+      else if (Config.config && password) {
         // Login
         //No username and password configured.: Register login
         bcrypt
@@ -107,6 +119,8 @@ export class Config {
     return rc
   }
   static validateUserToken(token: string| undefined): MqttValidationResult {
+    if( this.config.noAuthentication)
+      return MqttValidationResult.OK
     if( token == undefined )
       return MqttValidationResult.error
     try {
@@ -147,6 +161,7 @@ export class Config {
     },
     httpport: 3000,
     fakeModbus: false,
+    noAuthentication:false
   }
 
   static yamlDir: string = ''
@@ -267,6 +282,7 @@ export class Config {
       Config.config.mqttconnect.clean = Config.config.mqttconnect.clean ? Config.config.mqttconnect.clean : true
       Config.config.httpport = Config.config.httpport ? Config.config.httpport : 3000
       Config.config.fakeModbus = Config.config.fakeModbus ? Config.config.fakeModbus : false
+      Config.config.noAuthentication = Config.config.noAuthentication ? Config.config.noAuthentication : false
       Config.config.filelocation = Config.config.filelocation ? Config.config.filelocation : Config.yamlDir
       Config.busses = Config.busses && Config.busses.length > 0 ? Config.busses : []
       Config.config.hassiotoken = process.env.HASSIO_TOKEN && process.env.HASSIO_TOKEN.length ? process.env.HASSIO_TOKEN : undefined

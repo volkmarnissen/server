@@ -16,25 +16,20 @@ beforeAll(() => {
     config.readYamlAsync().then(() => {
       let cfg = Config.getConfiguration()
       Config.tokenExpiryTime = 2000
+      cfg.noAuthentication = false
       expect((cfg as any).noentry).toBeUndefined()
       new Config().writeConfiguration(cfg)
-      Config.register('test', 'test123').then(() => {
+      Config.register('test', 'test123', false).then(() => {
         Config.login('test', 'test123').then((token) => {
-          expect(Config.validateUserToken(token)).toBe(MqttValidationResult.OK)
-          setTimeout(() => {
-            expect(Config.validateUserToken(token)).toBe(MqttValidationResult.tokenExpired)
-            Config.login('test', 'test124').catch((reason) => {
-              expect(reason).toBe(AuthenticationErrors.InvalidUserPasswordCombination)
-              resolve()
-            })
-          }, Config.tokenExpiryTime)
-        })
+          resolve()
+        }).catch(reject)
       })
     })
   })
 })
 afterAll(() => {
   let cfg = Config.getConfiguration()
+  cfg.noAuthentication = false
   new Config().writeConfiguration(cfg)
 })
 test('register/login/validate', (done) => {
@@ -44,7 +39,7 @@ test('register/login/validate', (done) => {
   Config.tokenExpiryTime = 2000
   expect((cfg as any).noentry).toBeUndefined()
   new Config().writeConfiguration(cfg)
-  Config.register('test', 'test123').then(() => {
+  Config.register('test', 'test123', false).then(() => {
     Config.login('test', 'test123').then((token) => {
       expect(Config.validateUserToken(token)).toBe(MqttValidationResult.OK)
       setTimeout(() => {
@@ -57,7 +52,16 @@ test('register/login/validate', (done) => {
     })
   })
 })
-
+test('register/login/validate no Authentication', (done) => {
+  const config = new Config()
+  let cfg = Config.getConfiguration()
+  expect((cfg as any).noentry).toBeUndefined()
+  new Config().writeConfiguration(cfg)
+  Config.register(undefined, undefined, true).then(() => {
+       expect(Config.validateUserToken(undefined)).toBe(MqttValidationResult.OK)
+       done()
+  })
+})
 it('getFileNameFromName remove non ascii characters', () => {
   const name = '/\\*& asdf+-_.'
   let fn = getFileNameFromName(name)

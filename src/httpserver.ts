@@ -103,12 +103,13 @@ export class HttpServer extends HttpServerBase {
       let a: IUserAuthenticationStatus = {
         registered: config.mqttusehassio || (config.username != undefined && config.password != undefined),
         hassiotoken: config.mqttusehassio ? config.mqttusehassio : false,
+        noAuthentication:config.noAuthentication ? config.noAuthentication : false,
         hasAuthToken: authHeader ? true : false,
         authTokenExpired: authHeader != undefined && HttpServer.validateUserToken(req, undefined) == MqttValidationResult.tokenExpired,
         mqttConfigured: false,
         preSelectedBusId: Bus.getBusses().length == 1 ? Bus.getBusses()[0].getId() : undefined,
       }
-      if (a.registered && (a.hassiotoken || a.hasAuthToken)) a.mqttConfigured = Config.isMqttConfigured(config.mqttconnect)
+      if (a.registered && (a.hassiotoken || a.hasAuthToken|| a.noAuthentication)) a.mqttConfigured = Config.isMqttConfigured(config.mqttconnect)
 
       this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(a))
       return
@@ -144,11 +145,11 @@ export class HttpServer extends HttpServerBase {
       }
     })
 
-    this.get(apiUri.userRegister, (req: GetRequestWithParameter, res: http.ServerResponse) => {
+    this.post(apiUri.userRegister, (req: Request, res: http.ServerResponse) => {
       debug('(/user/register')
       res.statusCode = 200
-      if (req.query.name && req.query.password) {
-        Config.register(req.query.name, req.query.password)
+      if (req.body.username && req.body.password) {
+        Config.register(req.body.username, req.body.password, req.body.noAuthentication)
           .then(() => {
             this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify({ result: 'OK' }))
           })

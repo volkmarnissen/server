@@ -119,8 +119,9 @@ export class HttpServerBase {
   validate() {}
   authenticate(req: Request, res: http.ServerResponse, next: any) {
     //  req.header('')
-    // All api callsand a user registration when a user is already registered needs authorization
-    let config = Config.getConfiguration()
+    // All api calls and a user registration when a user is already registered needs authorization
+    let config = 
+    Config.getConfiguration()
     let token = 
     HttpServerBase.getAuthTokenFromUrl(req.url)
     if (token != undefined) 

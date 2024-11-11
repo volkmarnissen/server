@@ -8,6 +8,7 @@ import {
   getSpecificationI18nName,
   IselectOption,
   ImodbusSpecification,
+  EnumStateClasses,
 } from '@modbus2mqtt/specification.shared'
 import { Ientity, ImodbusEntity, VariableTargetParameters, getSpecificationI18nEntityName } from '@modbus2mqtt/specification.shared'
 import { ClientSubscribeCallback, IClientOptions, IClientPublishOptions, MqttClient, connect } from 'mqtt'
@@ -216,6 +217,8 @@ export class MqttDiscover {
                   let nn = e.converterParameters as Inumber
                   if (!obj.unit_of_measurement && nn && nn.uom) obj.unit_of_measurement = nn.uom
                   if (nn && nn.device_class && nn.device_class.toLowerCase() != 'none') obj.device_class = nn.device_class
+                  if (nn && nn.state_class && nn.state_class ) 
+                    obj.state_class = MqttDiscover.getStateClass(nn.state_class)
                   if (e.converter.name === 'number' ){
                     if( nn.step )
                         obj.step = nn.step
@@ -239,6 +242,15 @@ export class MqttDiscover {
       log.log(LogLevelEnum.error, 'generateDiscoveryPayloads: specification or language is undefined')
     }
     return payloads
+  }
+  static getStateClass(state_class: EnumStateClasses): string {
+    switch( state_class){
+      case EnumStateClasses.measurement: return "measurement"
+      case EnumStateClasses.total: return "total"
+      case EnumStateClasses.total_increasing: return "total_increasing"
+      default: return ""
+    }
+    
   }
 
   private getIdsFromDiscoveryTopic(topic: string): IDiscoveryIds {
