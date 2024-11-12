@@ -3,10 +3,12 @@
 # 3000 modbus2mqtt
 # 3001 mqtt
 # 3002 Modbus Tcp
+# 3003 mqtt allow anonymous
 # 80 homeassistant supervisor
 BASEDIR=$(dirname "$0")
 # .../server/e2e
 cd $BASEDIR
+# Root part START
 sudo apt-get install -y nginx mosquitto mosquitto-clients
 sudo rm /etc/nginx/sites-enabled/default
 WWWROOT=temp/www-root
@@ -38,6 +40,11 @@ server {
 
 }
 EOF2'
+sudo systemctl daemon-reload
+sudo systemctl stop mosquitto.service
+sudo systemctl restart nginx.service
+# Root part END
+
 rm -rf temp/yaml-dir
 
 YAMLDIR=temp/yaml-dir-tcp
@@ -61,16 +68,22 @@ slaveid: 4
 specificationid: eastronsdm720-m
 EOF5
 
-sudo bash -c 'cat >/etc/mosquitto/conf.d/homeassistant.conf <<EOF6
+export CWD=`pwd`
+export MOSQUITTO_DIR=${CWD}/mosquitto
+mkdir -p ${MOSQUITTO_DIR}/log
+touch ${MOSQUITTO_DIR}/password.txt
+chmod 700  ${MOSQUITTO_DIR}/password.txt
+mosquitto_passwd -b ${MOSQUITTO_DIR}/password.txt homeassistant homeassistant
+
+bash -c 'cat >'${MOSQUITTO_DIR}'/homeassistant.conf <<EOF6
+per_listener_settings true
 listener 3001
 allow_anonymous false 
-password_file /etc/mosquitto/password.txt
+password_file '${MOSQUITTO_DIR}'/password.txt
+listener 3003
+allow_anonymous true
 EOF6'
-sudo chmod 700  /etc/mosquitto/password.txt
-sudo chown mosquitto /etc/mosquitto/password.txt
-sudo mosquitto_passwd -b /etc/mosquitto/password.txt homeassistant homeassistant
 
-export CWD=`pwd`
 bash -c '
 cat <<EOF7
 [Unit]
@@ -82,7 +95,7 @@ Type=simple
 ExecStart=/usr/bin/env sh -c "|script|" 
 [Install]
 WantedBy=multi-user.target
-EOF7' | bash -c 'cat >'$SERVICES'/modbus2mqtt-e2e.service'
+EOF7'  | sed -e "s:|script|:${CWD}/modbus2mqtt-server.sh:g"| bash -c 'cat >'$SERVICES'/modbus2mqtt-e2e.service'
 bash -c '
 cat <<EOF8
 [Unit]
@@ -94,16 +107,32 @@ Type=simple
 ExecStart=/usr/bin/env sh -c "|script|" 
 [Install]
 WantedBy=multi-user.target
-EOF8'  | bash -c 'cat >'$SERVICES'/modbus2mqtt-tcp-server.service'
+EOF8'  | sed -e "s:|script|:${CWD}/modbus2mqtt-tcp-server.sh:g" | bash -c 'cat >'$SERVICES'/modbus2mqtt-tcp-server.service'
 
-sudo systemctl daemon-reload
-sudo systemctl restart mosquitto.service
-sudo systemctl restart nginx.service
+bash -c '
+cat <<EOF9
+[Unit]
+Description=Mosquitto MQTT Broker
+Documentation=man:mosquitto.conf(5) man:mosquitto(8)
+After=network.target
+Wants=network.target
+
+[Service]
+Type=notify
+NotifyAccess=main
+ExecStart=/usr/sbin/mosquitto -c |mosquittodir|/homeassistant .conf
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+ExecStartPre=/bin/mkdir -m 740 -p |mosquittodir|/log/mosquitto
+[Install]
+EOF9' | sed -e "s:|mosquittodir|:${MOSQUITTO_DIR}:g" >$SERVICES'/mosquitto.service'
+
 systemctl --user daemon-reload
 systemctl --user restart modbus2mqtt-tcp-server.service
 systemctl --user restart modbus2mqtt-e2e.service
+systemctl --user restart mosquitto.service
 
 # sudo systemctl stop nginx.service
-# sudo systemctl stop mosquitto.service
-# sudo systemctl stop modbus2mqtt-tcp-server.service
-# sudo systemctl stop modbus2mqtt-e2e.service
+# systemctl --user status mosquitto.service
+# systemctl --user status modbus2mqtt-tcp-server.service
+# systemctl --user status modbus2mqtt-e2e.service

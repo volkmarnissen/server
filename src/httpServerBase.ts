@@ -48,9 +48,16 @@ export class HttpServerBase {
     if (code >= 299) {
       log.log(LogLevelEnum.error, '%s: Http Result: %d %s', req.url, code, message)
     } else debug(req.url + ' :' + HttpErrorsEnum[code])
-    if (object != undefined) debug('Info: ' + object)
-    res.statusCode = code
-    res.end(message)
+    if (object != undefined) 
+      debug('Info: ' + object)
+    try {
+      res.statusCode = code
+      res.end(message)  
+    }
+    catch(e:any){
+      log.log(LogLevelEnum.error, e.message )
+      JSON.stringify(e)
+    }
   }
   private static getAuthTokenFromHeader(req: Request): string | undefined {
     let authHeader:string| undefined = undefined

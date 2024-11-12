@@ -494,9 +494,7 @@ export class Config {
   static isMqttConfigured(mqttClient: ImqttClient): boolean {
     return (
       mqttClient != undefined &&
-      mqttClient.mqttserverurl != undefined &&
-      mqttClient.username != undefined &&
-      mqttClient.password != undefined
+      mqttClient.mqttserverurl != undefined 
     )
   }
   readYamlAsync(): Promise<void> {

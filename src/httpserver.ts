@@ -67,7 +67,12 @@ export class HttpServer extends HttpServerBase {
     super(angulardir)
   }
   override returnResult(req: Request, res: http.ServerResponse, code: HttpErrorsEnum, message: string, object: any = undefined) {
-    res.setHeader('Content-Type', ' application/json')
+    if( ! res.headersSent)
+    try{
+      res.setHeader('Content-Type', ' application/json')
+    }catch(e){
+      log.log(LogLevelEnum.error, JSON.stringify(e))
+    }
     super.returnResult(req, res, code, message, object)
   }
 
@@ -101,7 +106,7 @@ export class HttpServer extends HttpServerBase {
       let config = Config.getConfiguration()
       let authHeader = req.header('Authorization')
       let a: IUserAuthenticationStatus = {
-        registered: config.mqttusehassio || (config.username != undefined && config.password != undefined),
+        registered: config.mqttusehassio || config.noAuthentication || (config.username != undefined && config.password != undefined),
         hassiotoken: config.mqttusehassio ? config.mqttusehassio : false,
         noAuthentication:config.noAuthentication ? config.noAuthentication : false,
         hasAuthToken: authHeader ? true : false,
@@ -109,7 +114,8 @@ export class HttpServer extends HttpServerBase {
         mqttConfigured: false,
         preSelectedBusId: Bus.getBusses().length == 1 ? Bus.getBusses()[0].getId() : undefined,
       }
-      if (a.registered && (a.hassiotoken || a.hasAuthToken|| a.noAuthentication)) a.mqttConfigured = Config.isMqttConfigured(config.mqttconnect)
+      if (a.registered && (a.hassiotoken || a.hasAuthToken|| a.noAuthentication)) 
+        a.mqttConfigured = Config.isMqttConfigured(config.mqttconnect)
 
       this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(a))
       return
@@ -148,7 +154,7 @@ export class HttpServer extends HttpServerBase {
     this.post(apiUri.userRegister, (req: Request, res: http.ServerResponse) => {
       debug('(/user/register')
       res.statusCode = 200
-      if (req.body.username && req.body.password) {
+      if ((req.body.username && req.body.password)|| req.body.noAuthentication) {
         Config.register(req.body.username, req.body.password, req.body.noAuthentication)
           .then(() => {
             this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify({ result: 'OK' }))
