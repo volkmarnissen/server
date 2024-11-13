@@ -35,7 +35,7 @@ export class HttpServerBase {
     this.app = require('express')()
   }
   private statics = new Map<string, string>()
-  private ingressUrl: string = 'test'
+  private ingressUrl: string = '/'
   returnResult(
     req: Request,
     res: http.ServerResponse,
@@ -145,7 +145,8 @@ export class HttpServerBase {
         let address = (req.socket.address() as AddressInfo).address
         if (!address || (address.indexOf('172.30.33') < 0 && 
                          address.indexOf('172.30.32') < 0 && 
-                         address.indexOf('127.0.0.1') < 0 )) {
+                         address.indexOf('127.0.0.1') < 0 &&
+                         address.indexOf('::1') < 0 )) {
           log.log(LogLevelEnum.warn, 'Denied: IP Address is not allowed ' + address)
           this.returnResult(req, res, HttpErrorsEnum.ErrForbidden, 'Unauthorized (See server log)')
           return
@@ -189,12 +190,12 @@ export class HttpServerBase {
           (info) => {
             //this.ingressUrl = join("/hassio/ingress/", info.data.slug);
             this.ingressUrl = info.data.ingress_entry
-            log.log(LogLevelEnum.notice, 'Hassio authentication successful')
+            log.log(LogLevelEnum.notice, 'Hassio authentication successful url:' + this.ingressUrl)
             this.initBase()
             resolve()
           },
           (e) => {
-            log.log(LogLevelEnum.warn, 'Hassio authentication failed' + e.message)
+            log.log(LogLevelEnum.warn, 'Hassio authentication failed ' + e.message)
             this.initBase()
             resolve()
           }
@@ -205,13 +206,16 @@ export class HttpServerBase {
       }
     })
   }
-  private setIngressUrl(req: Request) {
+  private compareIngressUrl(req: Request ) {
     let h = req.header('X-Ingress-Path')
-    this.ingressUrl = h ? h : '/'
+    if( !h || h != this.ingressUrl )
+    {
+      log.log(LogLevelEnum.error,"No or invalid X-Ingress-Path in header expected: " + this.ingressUrl + "got: " + h )
+    }
   }
 
   private sendIndexFile(req: Request, res: express.Response) {
-    this.setIngressUrl(req)
+    this.compareIngressUrl(req)
     let dir = this.getDirectoryForLanguage(req)
     let file = join(this.angulardir, dir, 'index.html')
     let content = fs.readFileSync(file).toString()

@@ -362,14 +362,20 @@ export class Config {
     })
       .then((res) => {
         clearTimeout(timer)
-        if (res) {
+        if (res ) 
           res.json().then((obj) => {
             if (obj)
               if (obj.data) next(obj)
-              else if (obj.result == 'error') reject(new Error('HASSIO: ' + obj.message))
-              else reject(new Error('Not found'))
+              else 
+                if (obj.result == 'error') 
+                  reject(new Error('HASSIO: ' + obj.message))
+                else 
+                  reject(new Error('get' + url + ' expected data root object: ' + JSON.stringify(obj)))
+          }).catch((reason)=>{
+            let msg = 'supervisor call '+ url + ' failed ' + JSON.stringify(reason) + ' ' + res.headers.get('content-type') 
+            log.log(LogLevelEnum.error, msg)
+            reject(new Error(msg))
           })
-        }
       })
       .catch((reason) => {
         clearTimeout(timer)
@@ -500,6 +506,7 @@ export class Config {
   readYamlAsync(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       try {
+        debugger;
         if (!Config.yamlDir || Config.yamlDir.length == 0) {
           log.log(LogLevelEnum.error, 'Yamldir not defined in command line')
         }
@@ -540,9 +547,10 @@ export class Config {
               }
               if (!skipLine) src = src.concat(line, '\n')
             })
-            Config.config = parse(src)
-            if (Config.yamlDir.length) Config.config.filelocation = Config.yamlDir
           }
+          Config.config = parse(src)
+          if (Config.yamlDir.length) Config.config.filelocation = Config.yamlDir
+
         }
         Config.busses = []
         let busDir = Config.yamlDir + '/local/busses'
@@ -616,7 +624,7 @@ export class Config {
         }
 
         debug('config: busses.length: ' + Config.busses.length)
-        if (!Config.isMqttConfigured(Config.config.mqttconnect)) {
+        if ( !Config.config || !Config.config.mqttconnect || !Config.isMqttConfigured(Config.config.mqttconnect)) {
           this.getMqttConnectOptions()
             .then((mqttLoginData) => {
               Config.mqttHassioLoginData = mqttLoginData
