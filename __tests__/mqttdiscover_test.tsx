@@ -342,3 +342,18 @@ test('poll', (done) => {
     })
   })
 })
+test('onMessage DiscoveryTopic from other app', () => {
+  md = new MqttDiscover({}, 'en')
+  md['onMqttMessage'](Config.getConfiguration().mqttdiscoveryprefix + '/number/some/some/config', Buffer.allocUnsafe(2))
+  expect(md['mqttDiscoveryTopics'].size).toBe(0)
+})
+test('onMessage DiscoveryTopic from this app', () => {
+  md = new MqttDiscover({}, 'en')
+  md['onMqttMessage'](Config.getConfiguration().mqttdiscoveryprefix + '/number/0s3/e4/config', Buffer.allocUnsafe(2))
+  expect(md['mqttDiscoveryTopics'].size).toBe(1)
+})
+test('onMessage TriggerPollTopic from this app', () => {
+  md = new MqttDiscover({}, 'en')
+  md['onMqttMessage'](MqttDiscover['getTriggerPollTopicPrefix']()  + '/0s3', Buffer.from(" "))
+  expect(md['triggers'].find(k =>k == '0s3')).not.toBeNull()
+})

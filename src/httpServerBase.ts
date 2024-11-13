@@ -48,21 +48,18 @@ export class HttpServerBase {
     if (code >= 299) {
       log.log(LogLevelEnum.error, '%s: Http Result: %d %s', req.url, code, message)
     } else debug(req.url + ' :' + HttpErrorsEnum[code])
-    if (object != undefined) 
-      debug('Info: ' + object)
+    if (object != undefined) debug('Info: ' + object)
     try {
       res.statusCode = code
-      res.end(message)  
-    }
-    catch(e:any){
-      log.log(LogLevelEnum.error, e.message )
+      res.end(message)
+    } catch (e: any) {
+      log.log(LogLevelEnum.error, e.message)
       JSON.stringify(e)
     }
   }
   private static getAuthTokenFromHeader(req: Request): string | undefined {
-    let authHeader:string| undefined = undefined
-    if(req.header)
-      authHeader = req.header('Authorization')
+    let authHeader: string | undefined = undefined
+    if (req.header) authHeader = req.header('Authorization')
     if (authHeader) {
       let tokenPos = authHeader!.indexOf(' ') + 1
       return authHeader.substring(tokenPos)
@@ -78,8 +75,7 @@ export class HttpServerBase {
 
     return undefined
   }
-  protected static validateUserToken(req: Request, token:string| undefined): MqttValidationResult {
-   
+  protected static validateUserToken(req: Request, token: string | undefined): MqttValidationResult {
     if (token == undefined) {
       token = HttpServerBase.getAuthTokenFromUrl(req.url)
       if (token == undefined) return MqttValidationResult.error
@@ -127,26 +123,21 @@ export class HttpServerBase {
   authenticate(req: Request, res: http.ServerResponse, next: any) {
     //  req.header('')
     // All api calls and a user registration when a user is already registered needs authorization
-    let config = 
-    Config.getConfiguration()
-    let token = 
-    HttpServerBase.getAuthTokenFromUrl(req.url)
-    if (token != undefined) 
-      req.url = req.url.replace(token + '/', '')
-    else
-      token = HttpServerBase.getAuthTokenFromHeader(req)
-    if (
-      (req.url.indexOf('/api/') >= 0 || 
-       req.url.indexOf('/user/register') >= 0 || 
-       req.url.indexOf('/download/') >= 0) 
-     ) {
+    let config = Config.getConfiguration()
+    let token = HttpServerBase.getAuthTokenFromUrl(req.url)
+    if (token != undefined) req.url = req.url.replace(token + '/', '')
+    else token = HttpServerBase.getAuthTokenFromHeader(req)
+    if (req.url.indexOf('/api/') >= 0 || req.url.indexOf('/user/register') >= 0 || req.url.indexOf('/download/') >= 0) {
       let config = Config.getConfiguration()
       if (config.hassiotoken) {
         let address = (req.socket.address() as AddressInfo).address
-        if (!address || (address.indexOf('172.30.33') < 0 && 
-                         address.indexOf('172.30.32') < 0 && 
-                         address.indexOf('127.0.0.1') < 0 &&
-                         address.indexOf('::1') < 0 )) {
+        if (
+          !address ||
+          (address.indexOf('172.30.33') < 0 &&
+            address.indexOf('172.30.32') < 0 &&
+            address.indexOf('127.0.0.1') < 0 &&
+            address.indexOf('::1') < 0)
+        ) {
           log.log(LogLevelEnum.warn, 'Denied: IP Address is not allowed ' + address)
           this.returnResult(req, res, HttpErrorsEnum.ErrForbidden, 'Unauthorized (See server log)')
           return
@@ -155,11 +146,11 @@ export class HttpServerBase {
         next()
         return
       } else {
-        if(!config.password || config.password.length ==0 && req.url.indexOf(apiUri.userRegister) >= 0 ){
+        if (!config.password || (config.password.length == 0 && req.url.indexOf(apiUri.userRegister) >= 0)) {
           next()
           return
         }
-        switch (Config.validateUserToken( token)) {
+        switch (Config.validateUserToken(token)) {
           case MqttValidationResult.OK:
             next()
             return
@@ -206,11 +197,10 @@ export class HttpServerBase {
       }
     })
   }
-  private compareIngressUrl(req: Request ) {
+  private compareIngressUrl(req: Request) {
     let h = req.header('X-Ingress-Path')
-    if( !h || h != this.ingressUrl )
-    {
-      log.log(LogLevelEnum.error,"No or invalid X-Ingress-Path in header expected: " + this.ingressUrl + "got: " + h )
+    if (h && h != this.ingressUrl) {
+      log.log(LogLevelEnum.error, 'Invalid X-Ingress-Path in header expected: ' + this.ingressUrl + 'got: ' + h)
     }
   }
 

@@ -197,7 +197,7 @@ it('GET / (root)', (done) => {
     .get('/index.html')
     .expect(200)
     .then((response) => {
-      expect(response.text.indexOf('base href="/"')).toBeGreaterThanOrEqual(0)
+      expect(response.text.indexOf('href="/test/"')).toBeGreaterThanOrEqual(0)
       done()
     })
     .catch((e) => {
@@ -235,9 +235,9 @@ it('GET local files', (done) => {
     .get('/specifications/files/waterleveltransmitter/files.yaml')
     .expect(200)
     .then((response) => {
-    let o =  parse(response.text)
+      let o = parse(response.text)
       expect(o.files.length).toBeGreaterThan(0)
-      expect((o.files[0].url as string).startsWith("/")).toBeFalsy();
+      expect((o.files[0].url as string).startsWith('/')).toBeFalsy()
       expect(o.files.length).toBeGreaterThan(0)
       expect(response.type).toBe('text/yaml')
       done()

@@ -60,7 +60,7 @@ export class Modbus2Mqtt {
       })
     if (options['ssl']) Config.sslDir = options['ssl']
     else Config.sslDir = '.'
-      
+
     readConfig = new Config()
     readConfig.readYamlAsync
       .bind(readConfig)()

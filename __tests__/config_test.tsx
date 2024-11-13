@@ -20,9 +20,11 @@ beforeAll(() => {
       expect((cfg as any).noentry).toBeUndefined()
       new Config().writeConfiguration(cfg)
       Config.register('test', 'test123', false).then(() => {
-        Config.login('test', 'test123').then((token) => {
-          resolve()
-        }).catch(reject)
+        Config.login('test', 'test123')
+          .then((token) => {
+            resolve()
+          })
+          .catch(reject)
       })
     })
   })
@@ -58,8 +60,8 @@ test('register/login/validate no Authentication', (done) => {
   expect((cfg as any).noentry).toBeUndefined()
   new Config().writeConfiguration(cfg)
   Config.register(undefined, undefined, true).then(() => {
-       expect(Config.validateUserToken(undefined)).toBe(MqttValidationResult.OK)
-       done()
+    expect(Config.validateUserToken(undefined)).toBe(MqttValidationResult.OK)
+    done()
   })
 })
 it('getFileNameFromName remove non ascii characters', () => {
