@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 # ports: localhost:
-# 3000 modbus2mqtt
+# 3005 modbus2mqtt
 # 3001 mqtt
 # 3002 Modbus Tcp
 # 3003 mqtt allow anonymous
@@ -14,9 +14,27 @@ then
   systemctl --user stop mosquitto.service
   exit 1
 fi
+
+
 export BASEDIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 export SERVERDIR=$(dirname "$BASEDIR")
-echo XXX $SERVERDIR
+YAMLDIR=${BASEDIR}/temp/yaml-dir-tcp
+BUSSES=$YAMLDIR/local/busses/bus.0
+#clear /init yamldirs
+rm -rf ${BASEDIR}/temp/yaml-dir ${BASEDIR}/temp/yaml-dir-addon 
+mkdir -p ${BASEDIR}/temp/yaml-dir/local
+echo 'httpport: 3005' >${BASEDIR}/temp/yaml-dir/local/modbus2mqtt.yaml
+mkdir -p ${BASEDIR}/temp/yaml-dir-addon/local
+echo 'httpport: 3004' >${BASEDIR}/temp/yaml-dir-addon/local/modbus2mqtt.yaml
+# reset: init yaml-dir and restart modbus2mqtt services
+if [ "$1" == "reset" ]
+then
+  #daemon reload is not required: No changes to service
+  systemctl --user restart modbus2mqtt-e2e.service
+  systemctl --user restart modbus2mqtt-addon.service
+  exit 0
+fi
+
 # .../server/e2e
 
 # Root part START
@@ -81,7 +99,7 @@ server {
      root |wwwroot|;
      index info.json;
   }
-  location /hardware/info {
+  location /addons/hardware/info {
      root |wwwroot|;
      index hardware.json;
   }
@@ -99,17 +117,10 @@ sudo systemctl stop mosquitto.service
 sudo systemctl restart nginx.service
 # Root part END
 
-rm -rf temp/yaml-dir temp/yaml-dir-tcp temp/yaml-dir-addon
-
-YAMLDIR=${BASEDIR}/temp/yaml-dir-tcp
-BUSSES=$YAMLDIR/local/busses/bus.0
-mkdir -p $BUSSES
-mkdir -p ${BASEDIR}/temp/yaml-dir
-mkdir -p ${BASEDIR}/temp/yaml-dir-addon/local
-echo 'httpport: 3004' >${BASEDIR}/temp/yaml-dir-addon/local/modbus2mqtt.yaml
 export SERVICES=~/.config/systemd/user/
 mkdir -p $SERVICES
 mkdir -p ${BASEDIR}/temp/ssl
+mkdir -p $BUSSES
 cat >$BUSSES/bus.yaml <<EOF3
 host: localhost
 port: 3002
@@ -148,8 +159,7 @@ After=network.target
 StartLimitIntervalSec=1
 [Service]
 Type=simple
-WorkingDirectory=|cwd|
-ExecStart="|node| ./dist/runModbusTCPserver.js -y e2e/temp/yaml-dir-tcp  --busid 0" 
+ExecStart=|node| |cwd|/dist/runModbusTCPserver.js -y |cwd|/e2e/temp/yaml-dir-tcp  --busid 0 
 [Install]
 WantedBy=multi-user.target
 EOF7' | sed -e "s:|cwd|:${SERVERDIR}:g" | sed -e "s:|node|:"`which node`":g" | bash -c 'cat >'$SERVICES'modbus2mqtt-tcp-server.service'
@@ -178,7 +188,7 @@ StartLimitIntervalSec=1
 Type=simple
 WorkingDirectory=|cwd|
 Environment="HASSIO_TOKEN=abcd1234"
-ExecStart=|node| inspect dist/modbus2mqtt.js -y e2e/temp/yaml-dir-addon -s e2e/temp/ssl 
+ExecStart=|node| dist/modbus2mqtt.js -y e2e/temp/yaml-dir-addon -s e2e/temp/ssl 
 [Install]
 WantedBy=multi-user.target
 EOF10'  | sed -e "s:|cwd|:${SERVERDIR}:g" | sed -e "s:|node|:"`which node`":g" | bash -c 'cat >'$SERVICES'/modbus2mqtt-addon.service'
@@ -210,6 +220,7 @@ systemctl --user restart modbus2mqtt-addon.service
 systemctl --user restart mosquitto.service
 
 # sudo systemctl stop nginx.service
+# systemctl --user status modbus2mqtt-tcp-server.service
 # systemctl --user status mosquitto.service
 # systemctl --user status modbus2mqtt-tcp-server.service
 # systemctl --user status modbus2mqtt-e2e.service

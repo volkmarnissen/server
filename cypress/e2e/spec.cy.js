@@ -1,5 +1,5 @@
 let prefix =""
-let defaultm2mPort = 3000
+let defaultm2mPort = 3005
 let mqttAuthorizedPort = 3001
 let mqttUnAuthorizedPort = 3003
 
@@ -60,10 +60,10 @@ describe('End to End Tests', () => {
     runRegister(false, defaultm2mPort)
     runConfig(false)
   })
-  it('register->mqtt hassio addon', () => {
+  it('mqtt hassio addon', () => {
     cy.exec('npm run e2e:reset')
     prefix= 'modbus2mqtt'
-    runRegister(false, 80 )
+    cy.visit('http://localhost:80/' + prefix )
     runBusses()
   })
   
