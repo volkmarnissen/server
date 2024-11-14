@@ -215,6 +215,11 @@ systemctl --user restart mosquitto.service
 sleep 3
 echo =======basedir ======================
 ls $BASEDIR
+echo =======serverdir ======================
+ls $SERVERDIR
+echo =======serverdir/dist ======================
+ls $SERVERDIR/dist
+
 sudo systemctl status nginx.service
 systemctl --user status modbus2mqtt-tcp-server.service
 systemctl --user status mosquitto.service

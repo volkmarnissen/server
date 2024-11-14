@@ -26,7 +26,7 @@ jobs:
         id: check_localdev
         uses: andstor/file-existence-action@v2
         with:
-          files: './e2e/localdev.sh, dist/runModbusTCPserver.js'
+          files: './e2e/localdev.sh'
       - name: Install local services for e2e Tests
         if: steps.check_localdev.outputs.files_exists == 'true'
         run: ./e2e/localdev.sh
