@@ -209,14 +209,17 @@ ExecStartPre=/bin/mkdir -m 740 -p |mosquittodir|/log/mosquitto
 [Install]
 EOF9' | sed -e "s:|mosquittodir|:${MOSQUITTO_DIR}:g" >$SERVICES'/mosquitto.service'
 
+
 systemctl --user daemon-reload
 systemctl --user restart modbus2mqtt-tcp-server.service
 systemctl --user restart modbus2mqtt-e2e.service
 systemctl --user restart modbus2mqtt-addon.service
 systemctl --user restart mosquitto.service
 
-# sudo systemctl stop nginx.service
-# systemctl --user status modbus2mqtt-tcp-server.service
-# systemctl --user status mosquitto.service
-# systemctl --user status modbus2mqtt-tcp-server.service
-# systemctl --user status modbus2mqtt-e2e.service
+sleep 3
+
+sudo systemctl status nginx.service
+systemctl --user status modbus2mqtt-tcp-server.service
+systemctl --user status mosquitto.service
+systemctl --user status modbus2mqtt-tcp-server.service
+systemctl --user status modbus2mqtt-e2e.service
