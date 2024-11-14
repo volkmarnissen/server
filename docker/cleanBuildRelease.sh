@@ -1,7 +1,7 @@
 NAME=$1
 # terminate on error
 set -e 
-if [ "$#" -ne 2 ] || ! [ -d "$1" ];
+if [ "$#" -lt 2 ] || ! [ -d "$1" ];
 then
  echo "$#"
  echo 'usage $0 <folder> <release-tag>'
