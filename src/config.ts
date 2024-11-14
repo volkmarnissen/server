@@ -543,7 +543,14 @@ export class Config {
             })
           }
           Config.config = parse(src)
-          if (Config.yamlDir.length) Config.config.filelocation = Config.yamlDir
+          if (Config.yamlDir.length  == 0) 
+            log.log(LogLevelEnum.error, "yamlDir not set")
+          else if(Config.config )
+            Config.config.filelocation = Config.yamlDir
+          else {
+            log.log(LogLevelEnum.error, "config file not parsed \"" + src + "\"")
+          }
+            
         }
         Config.busses = []
         let busDir = Config.yamlDir + '/local/busses'
