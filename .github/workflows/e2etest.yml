@@ -20,6 +20,8 @@ jobs:
           node-version: 20.x
       - name: Install modules
         run: npm install .
+      - name: build modbus2mqtt server
+        run:npx tsc
       - name: Run tests
         run: npm test
       - name: 'Check localdev existance'
