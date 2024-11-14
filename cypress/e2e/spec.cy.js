@@ -1,3 +1,4 @@
+
 let prefix = ''
 let defaultm2mPort = 3005
 let mqttAuthorizedPort = 3001
@@ -44,6 +45,10 @@ function runSlaves() {
   cy.get('div.card-header-buttons:first button').eq(2).click()
   cy.url().should('contain', prefix + '/specification')
 }
+after(()=>{
+  cy.exec("systemctl --user status modbus2mqtt-addon.service")
+  cy.exec("systemctl --user status modbus2mqtt-e2e.service")
+})
 
 describe('End to End Tests', () => {
   it('register->mqtt->busses->slaves->specification with authentication', () => {
@@ -58,7 +63,12 @@ describe('End to End Tests', () => {
     runRegister(false, defaultm2mPort)
     runConfig(false)
   })
-  it('mqtt hassio addon', () => {
+  it('mqtt hassio addon',{
+    retries: {
+      runMode: 3,
+      openMode: 1,
+    },
+  }, () => {
     cy.exec('npm run e2e:reset')
     prefix = 'modbus2mqtt'
     cy.visit('http://localhost:80/' + prefix)

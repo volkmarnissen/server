@@ -41,7 +41,7 @@ fi
 sudo apt-get install -y nginx mosquitto mosquitto-clients >/dev/null 2>&1
 sudo rm /etc/nginx/sites-enabled/default >/dev/null 2>&1
 WWWROOT=/usr/share/nginx/temp/www-root
-sudo mkdir -p $WWWROOT/services/mqtt $WWWROOT/addons/self/info $WWWROOT/addons/hardware/info
+mkdir -p $WWWROOT/services/mqtt $WWWROOT/addons/self/info $WWWROOT/hardware/info
 
 echo configure nginx 
 sudo bash -c 'cat >'$WWWROOT'/services/mqtt/mqtt.json <<EOF
@@ -70,7 +70,7 @@ sudo bash -c 'cat >'$WWWROOT'/addons/self/info/info.json <<EOF
 }
 EOF'
 
-sudo bash -c 'cat >'$WWWROOT'/addons/hardware/info/hardware.json <<EOF
+sudo bash -c 'cat >'$WWWROOT'/hardware/info/hardware.json <<EOF
 {
   "data":{
    "devices": [
