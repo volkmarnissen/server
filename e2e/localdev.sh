@@ -38,8 +38,8 @@ fi
 # .../server/e2e
 
 # Root part START
-sudo apt-get install -y nginx mosquitto mosquitto-clients
-sudo rm /etc/nginx/sites-enabled/default
+sudo apt-get install -y nginx mosquitto mosquitto-clients >/dev/null 2>&1
+sudo rm /etc/nginx/sites-enabled/default >/dev/null 2>&1
 WWWROOT=/usr/share/nginx/temp/www-root
 sudo mkdir -p $WWWROOT/services/mqtt $WWWROOT/addons/self/info $WWWROOT/addons/hardware/info
 
@@ -146,7 +146,6 @@ listener 3003
 allow_anonymous true
 EOF6'
 
-echo DDD $SERVERDIR
 bash -c '
 cat <<EOF7
 [Unit]
@@ -189,8 +188,6 @@ ExecStart=|node| dist/modbus2mqtt.js -y e2e/temp/yaml-dir-addon -s e2e/temp/ssl
 WantedBy=multi-user.target
 EOF10'  | sed -e "s:|cwd|:${SERVERDIR}:g" | sed -e "s:|node|:"`which node`":g" | bash -c 'cat >'$SERVICES'/modbus2mqtt-addon.service'
 
-
-
 bash -c '
 cat <<EOF9
 [Unit]
@@ -209,7 +206,6 @@ ExecStartPre=/bin/mkdir -m 740 -p |mosquittodir|/log/mosquitto
 [Install]
 EOF9' | sed -e "s:|mosquittodir|:${MOSQUITTO_DIR}:g" >$SERVICES'/mosquitto.service'
 
-
 systemctl --user daemon-reload
 systemctl --user restart modbus2mqtt-tcp-server.service
 systemctl --user restart modbus2mqtt-e2e.service
@@ -217,7 +213,8 @@ systemctl --user restart modbus2mqtt-addon.service
 systemctl --user restart mosquitto.service
 
 sleep 3
-
+echo =======basedir ======================
+ls $BASEDIR
 sudo systemctl status nginx.service
 systemctl --user status modbus2mqtt-tcp-server.service
 systemctl --user status mosquitto.service
