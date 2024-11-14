@@ -567,7 +567,8 @@ export class MqttDiscover {
       if (!cv) {
         let msg = 'No converter found for bus: ' + busid + ' slave: ' + slave.slaveid + ' entity id: ' + entity.id
         log.log(LogLevelEnum.error, msg)
-      } else if (e.mqttname && e.mqttValue && !e.variableConfiguration) {
+      } else if (e.mqttname && e.mqttValue && e.mqttValue && e.modbusValue.length > 0 && !e.variableConfiguration) {
+        // e.modbusValue.length == 0 > no data available
         o[e.mqttname] = e.mqttValue
         if (cv.publishModbusValues()) {
           if (o.modbusValues == undefined) o.modbusValues = {}

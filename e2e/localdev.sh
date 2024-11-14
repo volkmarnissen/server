@@ -25,7 +25,7 @@ rm -rf ${BASEDIR}/temp/yaml-dir ${BASEDIR}/temp/yaml-dir-addon
 mkdir -p ${BASEDIR}/temp/yaml-dir/local
 echo 'httpport: 3005' >${BASEDIR}/temp/yaml-dir/local/modbus2mqtt.yaml
 mkdir -p ${BASEDIR}/temp/yaml-dir-addon/local
-echo 'httpport: 3004' >${BASEDIR}/temp/yaml-dir-addon/local/modbus2mqtt.yaml
+(echo "httpport: 3004" &&  echo "supervisor_host: localhost" )>${BASEDIR}/temp/yaml-dir-addon/local/modbus2mqtt.yaml
 # reset: init yaml-dir and restart modbus2mqtt services
 if [ "$1" == "reset" ]
 then
@@ -83,10 +83,6 @@ sudo bash -c 'cat >'$WWWROOT'/addons/hardware/info/hardware.json <<EOF
 }
 EOF'
 
-if ! grep supervisor /etc/hosts >/dev/null
-then
-  sudo echo "127.0.0.1 supervisor" >>/etc/hosts
-fi
 bash -c ' cat <<EOF2
 server {
   listen 80;

@@ -177,7 +177,7 @@ export class HttpServerBase {
     return new Promise<void>((resolve, reject) => {
       try {
         Config.executeHassioGetRequest<{ data: IAddonInfo }>(
-          'http://supervisor/addons/self/info',
+          'http://'+ Config.getConfiguration().supervisor_host + '/addons/self/info',
           (info) => {
             //this.ingressUrl = join("/hassio/ingress/", info.data.slug);
             this.ingressUrl = info.data.ingress_entry

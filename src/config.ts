@@ -286,6 +286,7 @@ export class Config {
         Config.config.mqttusehassio && Config.config.hassiotoken
           ? Config.config.mqttusehassio
           : Config.config.hassiotoken != undefined && Config.config.hassiotoken.length > 0
+      Config.config.supervisor_host = Config.config.supervisor_host?Config.config.supervisor_host:'supervisor'
     } else {
       log.log(LogLevelEnum.notice, 'No config file found ')
       Config.config = structuredClone(Config.newConfig)
@@ -381,7 +382,7 @@ export class Config {
   }
   listDevicesHassio(next: (devices: string[]) => void, reject: (error: any) => void): void {
     Config.executeHassioGetRequest<string[]>(
-      'http://supervisor/hardware/info',
+      'http://'+ Config.getConfiguration().supervisor_host + '/hardware/info',
       (dev) => {
         next(this.grepDevices(dev))
       },
