@@ -1,30 +1,19 @@
-<<<<<<< HEAD
 name: Run E2E tests
-=======
-name:  Run E2E tests
->>>>>>> 4534f69 (Create e2etest.yml)
 
 on:
   workflow_dispatch:
   pull_request:
-<<<<<<< HEAD
     types: [opened, reopened, edited]
-=======
-    types: [opened, reopened,edited]
->>>>>>> 4534f69 (Create e2etest.yml)
   workflow_call:
 permissions:
   contents: write
 jobs:
   test:
     runs-on: ubuntu-latest
-<<<<<<< HEAD
     environment: release
     name: 'Test E2E'
-=======
     environment: release  
     name: "Test E2E"
->>>>>>> 4534f69 (Create e2etest.yml)
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node.js
@@ -33,7 +22,6 @@ jobs:
           node-version: 20.x
       - name: Install modules
         run: npm install .
-<<<<<<< HEAD
       - name: build modbus2mqtt server
         run: npx tsc
       - name: Run tests
@@ -49,19 +37,3 @@ jobs:
       - name: Cypress run
         if: steps.check_localdev.outputs.files_exists == 'true'
         uses: cypress-io/github-action@v6
-=======
-      - name: Run tests
-        run: npm test      
-      - name: "Check localdev existance"
-        id: check_localdev
-        uses: andstor/file-existence-action@v2
-        with:
-          files: "./e2e/localdev.sh"
-      - name: Install local services for e2e Tests
-        if: steps.check_localdev.outputs.files_exists == 'true'
-        run: ./e2e/localdev.sh
-      - name: Cypress run
-        if: steps.check_localdev.outputs.files_exists == 'true'
-        uses: cypress-io/github-action@v6
-      
->>>>>>> 4534f69 (Create e2etest.yml)
