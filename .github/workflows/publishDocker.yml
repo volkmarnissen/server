@@ -41,14 +41,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - uses: tyriis/docker-image-tag-exists@v2.1.0
-        id: docker-image-exists
-        with:
-          registry: dockerhub
-          repository: modbus2mqtt-amd64
-          tag: ${{env.TAG_NAME}}          
       - name: Publish
-        if: steps.docker-image-exists.outputs.tag == 'found'
         uses: home-assistant/builder@master
         with:
           args: |
