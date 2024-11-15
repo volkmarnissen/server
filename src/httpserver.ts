@@ -67,7 +67,12 @@ export class HttpServer extends HttpServerBase {
     super(angulardir)
   }
   override returnResult(req: Request, res: http.ServerResponse, code: HttpErrorsEnum, message: string, object: any = undefined) {
-    res.setHeader('Content-Type', ' application/json')
+    if (!res.headersSent)
+      try {
+        res.setHeader('Content-Type', ' application/json')
+      } catch (e) {
+        log.log(LogLevelEnum.error, JSON.stringify(e))
+      }
     super.returnResult(req, res, code, message, object)
   }
 
@@ -77,18 +82,16 @@ export class HttpServer extends HttpServerBase {
   }
   override initApp() {
     let fileLocation = Config.getConfiguration().filelocation
-    if( fileLocation == undefined)
-      log.log(LogLevelEnum.error, "Config Filelocation is not defined")
-    else{
+    if (fileLocation == undefined) log.log(LogLevelEnum.error, 'Config Filelocation is not defined')
+    else {
       let localdir = join(fileLocation, 'local', filesUrlPrefix)
       let publicdir = join(fileLocation, 'public', filesUrlPrefix)
-      this.app.get( /.*/, (req: Request, res: http.ServerResponse,next) => {
+      this.app.get(/.*/, (req: Request, res: http.ServerResponse, next) => {
         debug(req.url)
         next()
-      } )
+      })
       this.app.use('/' + filesUrlPrefix, express.static(localdir))
       this.app.use('/' + filesUrlPrefix, express.static(publicdir))
-  
     }
     //@ts-ignore
     // app.use(function (err:any, req:any, res:any, next:any) {
@@ -101,14 +104,18 @@ export class HttpServer extends HttpServerBase {
       let config = Config.getConfiguration()
       let authHeader = req.header('Authorization')
       let a: IUserAuthenticationStatus = {
-        registered: config.mqttusehassio || (config.username != undefined && config.password != undefined),
+        registered:
+          config.mqttusehassio || config.noAuthentication || (config.username != undefined && config.password != undefined),
         hassiotoken: config.mqttusehassio ? config.mqttusehassio : false,
+        noAuthentication: config.noAuthentication ? config.noAuthentication : false,
         hasAuthToken: authHeader ? true : false,
-        authTokenExpired: authHeader != undefined && HttpServer.validateUserToken(req, undefined) == MqttValidationResult.tokenExpired,
+        authTokenExpired:
+          authHeader != undefined && HttpServer.validateUserToken(req, undefined) == MqttValidationResult.tokenExpired,
         mqttConfigured: false,
         preSelectedBusId: Bus.getBusses().length == 1 ? Bus.getBusses()[0].getId() : undefined,
       }
-      if (a.registered && (a.hassiotoken || a.hasAuthToken)) a.mqttConfigured = Config.isMqttConfigured(config.mqttconnect)
+      if (a.registered && (a.hassiotoken || a.hasAuthToken || a.noAuthentication))
+        a.mqttConfigured = Config.isMqttConfigured(config.mqttconnect)
 
       this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(a))
       return
@@ -144,11 +151,11 @@ export class HttpServer extends HttpServerBase {
       }
     })
 
-    this.get(apiUri.userRegister, (req: GetRequestWithParameter, res: http.ServerResponse) => {
+    this.post(apiUri.userRegister, (req: Request, res: http.ServerResponse) => {
       debug('(/user/register')
       res.statusCode = 200
-      if (req.query.name && req.query.password) {
-        Config.register(req.query.name, req.query.password)
+      if ((req.body.username && req.body.password) || req.body.noAuthentication) {
+        Config.register(req.body.username, req.body.password, req.body.noAuthentication)
           .then(() => {
             this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify({ result: 'OK' }))
           })
@@ -653,8 +660,8 @@ export class HttpServer extends HttpServerBase {
           try {
             let zipfilename = join(f.destination, f.filename)
             let errors = ConfigSpecification.importSpecificationZip(zipfilename)
-            fs.rmdirSync(path.dirname(zipfilename), {recursive:true})
-   
+            fs.rmdirSync(path.dirname(zipfilename), { recursive: true })
+
             if (errors.errors.length > 0)
               this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, 'Import failed: ' + errors.errors, errors)
             else this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(errors))

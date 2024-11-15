@@ -24,3 +24,4 @@ secretsfile: secrets.txt
 mqttusehassiotoken: false
 githubPersonalToken: "!secret githubPersonalToken"
 mqttusehassio: false
+noAuthentication: false

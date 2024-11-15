@@ -25,12 +25,9 @@ export function getFilenameForUpload(filename: string) {
 export const fileStorage = multer.diskStorage({
   destination: (request: GetRequestWithUploadParameter, _file: Express.Multer.File, callback: DestinationCallback): void => {
     let fileLocation = Config.getConfiguration().filelocation
-    if( fileLocation == undefined)
-    {
-      log.log(LogLevelEnum.error,"Config.fileLocation is not defined. NO file upload possible")
-    }
-    else
-    if (request.query.specification !== null) {
+    if (fileLocation == undefined) {
+      log.log(LogLevelEnum.error, 'Config.fileLocation is not defined. NO file upload possible')
+    } else if (request.query.specification !== null) {
       let dir = getSpecificationImageOrDocumentUrl(
         join(fileLocation, 'local'),
         getFilenameForUpload(request.query.specification!),

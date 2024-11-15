@@ -8,6 +8,7 @@ import {
   getSpecificationI18nName,
   IselectOption,
   ImodbusSpecification,
+  EnumStateClasses,
 } from '@modbus2mqtt/specification.shared'
 import { Ientity, ImodbusEntity, VariableTargetParameters, getSpecificationI18nEntityName } from '@modbus2mqtt/specification.shared'
 import { ClientSubscribeCallback, IClientOptions, IClientPublishOptions, MqttClient, connect } from 'mqtt'
@@ -114,9 +115,7 @@ export class MqttDiscover {
     )
   }
   static generateEntityCommandTopic(busid: number, slave: Islave, ent: Ientity): string {
-    return (
-      Config.getConfiguration().mqttbasetopic + '/set/' + busid + Config.getFileNameFromSlaveId(slave.slaveid) + '/e' + ent.id
-    )
+    return Config.getConfiguration().mqttbasetopic + '/set/' + busid + Config.getFileNameFromSlaveId(slave.slaveid) + '/e' + ent.id
   }
   private getDevicesCommandTopic(): string {
     return this.getDevicesCommandTopicPrefix() + '+/#'
@@ -216,15 +215,15 @@ export class MqttDiscover {
                   let nn = e.converterParameters as Inumber
                   if (!obj.unit_of_measurement && nn && nn.uom) obj.unit_of_measurement = nn.uom
                   if (nn && nn.device_class && nn.device_class.toLowerCase() != 'none') obj.device_class = nn.device_class
-                  if (e.converter.name === 'number' ){
-                    if( nn.step )
-                        obj.step = nn.step
-                    if( nn.identification) {
-                    if (nn.identification.min != undefined) obj.min = nn.identification.min
-                    if (nn.identification.max != undefined) obj.max = nn.identification.max
+                  if (nn && nn.state_class && nn.state_class) obj.state_class = MqttDiscover.getStateClass(nn.state_class)
+                  if (e.converter.name === 'number') {
+                    if (nn.step) obj.step = nn.step
+                    if (nn.identification) {
+                      if (nn.identification.min != undefined) obj.min = nn.identification.min
+                      if (nn.identification.max != undefined) obj.max = nn.identification.max
+                    }
                   }
-                  }
-                    
+
                   break
               }
               payloads.push({
@@ -240,51 +239,67 @@ export class MqttDiscover {
     }
     return payloads
   }
+  static getStateClass(state_class: EnumStateClasses): string {
+    switch (state_class) {
+      case EnumStateClasses.measurement:
+        return 'measurement'
+      case EnumStateClasses.total:
+        return 'total'
+      case EnumStateClasses.total_increasing:
+        return 'total_increasing'
+      default:
+        return ''
+    }
+  }
 
-  private getIdsFromDiscoveryTopic(topic: string): IDiscoveryIds {
+  private getIdsFromDiscoveryTopic(topic: string): IDiscoveryIds | undefined {
     let pathes = topic.split('/')
+
+    if (pathes[2].match(/^[0-9]*s[0-9]*$/g) == null || pathes[3].match(/^e[0-9]*$/g) == null) return undefined
     return {
       busSlave: pathes[2],
       entityid: parseInt(pathes[3].substring(1)),
     }
   }
   private onMqttDiscoverMessage(topic: string, payload: Buffer) {
-    let ids: IDiscoveryIds = this.getIdsFromDiscoveryTopic(topic)
-    let tp: Map<number, ItopicAndPayloads[]> | undefined = this.mqttDiscoveryTopics.get(ids.busSlave)
-    if (tp == undefined) {
-      tp = new Map<number, ItopicAndPayloads[]>()
-      this.mqttDiscoveryTopics.set(ids.busSlave, tp)
-    }
-    if (payload.length == 0) {
-      // delete payload
-      if (tp != undefined) {
-        let tpx = tp.get(ids.entityid)
-        if (tpx) {
-          let idx = tpx.findIndex((i) => i.topic == topic)
-          if (idx >= 0) {
-            tpx.splice(idx, 1)
-            debug('deleteMessage ' + topic)
-          }
-
-          if (tpx.length == 0) tp.delete(ids.entityid)
-        }
-        if (tp.size == 0) this.mqttDiscoveryTopics.delete(ids.busSlave)
-      }
-    } else {
-      // add payload
+    let ids: IDiscoveryIds | undefined = this.getIdsFromDiscoveryTopic(topic)
+    if (ids) {
+      let tp: Map<number, ItopicAndPayloads[]> | undefined = this.mqttDiscoveryTopics.get(ids.busSlave)
       if (tp == undefined) {
-        let tpn = new Map<number, ItopicAndPayloads[]>()
-        tpn.set(ids.entityid, [{ topic: topic, payload: payload.toString() }])
-        this.mqttDiscoveryTopics.set(ids.busSlave, tpn)
-        tp = tpn
+        tp = new Map<number, ItopicAndPayloads[]>()
+        this.mqttDiscoveryTopics.set(ids.busSlave, tp)
       }
-      let tpy = this.mqttDiscoveryTopics.get(ids.busSlave)!.get(ids.entityid)!
-      if (!tpy) tp.set(ids.entityid, [])
-      tpy = this.mqttDiscoveryTopics.get(ids.busSlave)!.get(ids.entityid)!
-      if (!this.containsTopic({ topic: topic, payload: payload.toString() }, tpy)) {
-        tpy.push({ topic: topic, payload: payload.toString() })
-        debug('addMessage:' + topic)
-      } else this.updatePayload(topic, payload.toString(), tpy)
+      if (payload.length == 0) {
+        // delete payload
+        if (tp != undefined) {
+          let tpx = tp.get(ids.entityid)
+          if (tpx) {
+            let idx = tpx.findIndex((i) => i.topic == topic)
+            if (idx >= 0) {
+              tpx.splice(idx, 1)
+              debug('deleteMessage ' + topic)
+            }
+
+            if (tpx.length == 0) tp.delete(ids.entityid)
+          }
+          if (tp.size == 0) this.mqttDiscoveryTopics.delete(ids.busSlave)
+        }
+      } else {
+        // add payload
+        if (tp == undefined) {
+          let tpn = new Map<number, ItopicAndPayloads[]>()
+          tpn.set(ids.entityid, [{ topic: topic, payload: payload.toString() }])
+          this.mqttDiscoveryTopics.set(ids.busSlave, tpn)
+          tp = tpn
+        }
+        let tpy = this.mqttDiscoveryTopics.get(ids.busSlave)!.get(ids.entityid)!
+        if (!tpy) tp.set(ids.entityid, [])
+        tpy = this.mqttDiscoveryTopics.get(ids.busSlave)!.get(ids.entityid)!
+        if (!this.containsTopic({ topic: topic, payload: payload.toString() }, tpy)) {
+          tpy.push({ topic: topic, payload: payload.toString() })
+          debug('addMessage:' + topic)
+        } else this.updatePayload(topic, payload.toString(), tpy)
+      }
     }
   }
   private static getBusAndSlaveFromTopic(topic: string): { bus: Bus; slave: Islave } {
@@ -353,8 +368,7 @@ export class MqttDiscover {
       } catch (e: any) {
         log.log(LogLevelEnum.error, e.message)
       }
-    } else if( topic.startsWith( this.getDevicesCommandTopicPrefix()))
-        this.onMqttCommandMessage(topic, payload)
+    } else if (topic.startsWith(this.getDevicesCommandTopicPrefix())) this.onMqttCommandMessage(topic, payload)
   }
   private containsTopic(tp: ItopicAndPayloads, tps: ItopicAndPayloads[]) {
     let t = tps.findIndex((t) => tp.topic === t.topic)
@@ -398,15 +412,17 @@ export class MqttDiscover {
         let discoveryPayloads = this.generateDiscoveryPayloads(bus.getId(), slave, spec)
         for (let tp of discoveryPayloads) {
           let ids = this.getIdsFromDiscoveryTopic(tp.topic)
-          let tpFound = this.mqttDiscoveryTopics.get(ids.busSlave)?.get(ids.entityid)
-          if (!tpFound || !this.containsTopic(tp, tpFound))
-            mqttClient.publish(tp.topic, tp.payload, retain) // async, no callback !!!
-          else {
-            debug('topic not changed for ' + tp.topic)
-            let tpx = tpFound.find((t) => t.topic == tp.topic)
-            if (!tpx || tp.payload != tpx.payload) {
-              debug('payload changed for ' + tp.topic)
+          if (ids) {
+            let tpFound = this.mqttDiscoveryTopics.get(ids.busSlave)?.get(ids.entityid)
+            if (!tpFound || !this.containsTopic(tp, tpFound))
               mqttClient.publish(tp.topic, tp.payload, retain) // async, no callback !!!
+            else {
+              debug('topic not changed for ' + tp.topic)
+              let tpx = tpFound.find((t) => t.topic == tp.topic)
+              if (!tpx || tp.payload != tpx.payload) {
+                debug('payload changed for ' + tp.topic)
+                mqttClient.publish(tp.topic, tp.payload, retain) // async, no callback !!!
+              }
             }
           }
 
@@ -460,7 +476,7 @@ export class MqttDiscover {
       this.client = connect(connectionData.mqttserverurl, opts as IClientOptions)
       this.client.on('error', error)
       this.client.on('connect', () => {
-        debug( 'New MQTT Connection ')
+        debug('New MQTT Connection ')
         this.client!.subscribe('modbus2mqtt/will', () => {
           debug(LogLevelEnum.notice, 'MQTT Connection will be closed by Last will')
           //this.client!.end()
@@ -551,7 +567,8 @@ export class MqttDiscover {
       if (!cv) {
         let msg = 'No converter found for bus: ' + busid + ' slave: ' + slave.slaveid + ' entity id: ' + entity.id
         log.log(LogLevelEnum.error, msg)
-      } else if (e.mqttname && e.mqttValue && !e.variableConfiguration) {
+      } else if (e.mqttname && e.mqttValue && e.mqttValue && e.modbusValue.length > 0 && !e.variableConfiguration) {
+        // e.modbusValue.length == 0 > no data available
         o[e.mqttname] = e.mqttValue
         if (cv.publishModbusValues()) {
           if (o.modbusValues == undefined) o.modbusValues = {}

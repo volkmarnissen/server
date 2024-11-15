@@ -53,6 +53,12 @@ export class Config {
   static mqttHassioLoginData: ImqttClient | undefined = undefined
   static login(name: string, password: string): Promise<string> {
     let rc = new Promise<string>((resolve, reject) => {
+      if (Config.config.noAuthentication) {
+        log.log(LogLevelEnum.error, 'Login called, but noAuthentication is configured')
+        reject(AuthenticationErrors.InvalidParameters)
+        return
+      }
+
       if (Config.config && Config.config.username && Config.config.password) {
         // Login
         if (name === Config.config.username)
@@ -86,9 +92,13 @@ export class Config {
     })
     return rc
   }
-  static register(name: string, password: string): Promise<void> {
+  static register(name: string | undefined, password: string | undefined, noAuthentication: boolean): Promise<void> {
     let rc = new Promise<void>((resolve, reject) => {
-      if (Config.config) {
+      if (noAuthentication == true) {
+        Config.config.noAuthentication = true
+        new Config().writeConfiguration(Config.config)
+        resolve()
+      } else if (Config.config && password) {
         // Login
         //No username and password configured.: Register login
         bcrypt
@@ -106,9 +116,9 @@ export class Config {
     })
     return rc
   }
-  static validateUserToken(token: string| undefined): MqttValidationResult {
-    if( token == undefined )
-      return MqttValidationResult.error
+  static validateUserToken(token: string | undefined): MqttValidationResult {
+    if (this.config.noAuthentication) return MqttValidationResult.OK
+    if (token == undefined) return MqttValidationResult.error
     try {
       let v: any = verify(token, Config.secret, { complete: true })
       v = verify(token, Config.secret, {
@@ -147,6 +157,7 @@ export class Config {
     },
     httpport: 3000,
     fakeModbus: false,
+    noAuthentication: false,
   }
 
   static yamlDir: string = ''
@@ -267,6 +278,7 @@ export class Config {
       Config.config.mqttconnect.clean = Config.config.mqttconnect.clean ? Config.config.mqttconnect.clean : true
       Config.config.httpport = Config.config.httpport ? Config.config.httpport : 3000
       Config.config.fakeModbus = Config.config.fakeModbus ? Config.config.fakeModbus : false
+      Config.config.noAuthentication = Config.config.noAuthentication ? Config.config.noAuthentication : false
       Config.config.filelocation = Config.config.filelocation ? Config.config.filelocation : Config.yamlDir
       Config.busses = Config.busses && Config.busses.length > 0 ? Config.busses : []
       Config.config.hassiotoken = process.env.HASSIO_TOKEN && process.env.HASSIO_TOKEN.length ? process.env.HASSIO_TOKEN : undefined
@@ -274,6 +286,7 @@ export class Config {
         Config.config.mqttusehassio && Config.config.hassiotoken
           ? Config.config.mqttusehassio
           : Config.config.hassiotoken != undefined && Config.config.hassiotoken.length > 0
+      Config.config.supervisor_host = Config.config.supervisor_host?Config.config.supervisor_host:'supervisor'
     } else {
       log.log(LogLevelEnum.notice, 'No config file found ')
       Config.config = structuredClone(Config.newConfig)
@@ -346,14 +359,20 @@ export class Config {
     })
       .then((res) => {
         clearTimeout(timer)
-        if (res) {
-          res.json().then((obj) => {
-            if (obj)
-              if (obj.data) next(obj)
-              else if (obj.result == 'error') reject(new Error('HASSIO: ' + obj.message))
-              else reject(new Error('Not found'))
-          })
-        }
+        if (res)
+          res
+            .json()
+            .then((obj) => {
+              if (obj)
+                if (obj.data) next(obj)
+                else if (obj.result == 'error') reject(new Error('HASSIO: ' + obj.message))
+                else reject(new Error('get' + url + ' expected data root object: ' + JSON.stringify(obj)))
+            })
+            .catch((reason) => {
+              let msg = 'supervisor call ' + url + ' failed ' + JSON.stringify(reason) + ' ' + res.headers.get('content-type')
+              log.log(LogLevelEnum.error, msg)
+              reject(new Error(msg))
+            })
       })
       .catch((reason) => {
         clearTimeout(timer)
@@ -363,7 +382,7 @@ export class Config {
   }
   listDevicesHassio(next: (devices: string[]) => void, reject: (error: any) => void): void {
     Config.executeHassioGetRequest<string[]>(
-      'http://supervisor/hardware/info',
+      'http://'+ Config.getConfiguration().supervisor_host + '/hardware/info',
       (dev) => {
         next(this.grepDevices(dev))
       },
@@ -476,16 +495,12 @@ export class Config {
     })
   }
   static isMqttConfigured(mqttClient: ImqttClient): boolean {
-    return (
-      mqttClient != undefined &&
-      mqttClient.mqttserverurl != undefined &&
-      mqttClient.username != undefined &&
-      mqttClient.password != undefined
-    )
+    return mqttClient != undefined && mqttClient.mqttserverurl != undefined
   }
   readYamlAsync(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       try {
+        debugger
         if (!Config.yamlDir || Config.yamlDir.length == 0) {
           log.log(LogLevelEnum.error, 'Yamldir not defined in command line')
         }
@@ -526,9 +541,16 @@ export class Config {
               }
               if (!skipLine) src = src.concat(line, '\n')
             })
-            Config.config = parse(src)
-            if (Config.yamlDir.length) Config.config.filelocation = Config.yamlDir
           }
+          Config.config = parse(src)
+          if (Config.yamlDir.length  == 0) 
+            log.log(LogLevelEnum.error, "yamlDir not set")
+          else if(Config.config )
+            Config.config.filelocation = Config.yamlDir
+          else {
+            log.log(LogLevelEnum.error, "config file not parsed \"" + src + "\"")
+          }
+            
         }
         Config.busses = []
         let busDir = Config.yamlDir + '/local/busses'
@@ -602,7 +624,7 @@ export class Config {
         }
 
         debug('config: busses.length: ' + Config.busses.length)
-        if (!Config.isMqttConfigured(Config.config.mqttconnect)) {
+        if (!Config.config || !Config.config.mqttconnect || !Config.isMqttConfigured(Config.config.mqttconnect)) {
           this.getMqttConnectOptions()
             .then((mqttLoginData) => {
               Config.mqttHassioLoginData = mqttLoginData
