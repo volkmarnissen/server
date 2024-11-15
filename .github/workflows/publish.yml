@@ -3,6 +3,7 @@ on:
   push:
     tags:
       - "v*"
+  workflow_call:
 jobs:
   release:
     name: "Publish to NPM and release in github"
