@@ -44,7 +44,7 @@ jobs:
       - uses: tyriis/docker-image-tag-exists@v2.1.0
         id: docker-image-exists
         with:
-          registry: docker.io
+          registry: dockerhub
           repository: modbus2mqtt-amd64
           tag: ${{env.TAG_NAME}}          
       - name: Publish
