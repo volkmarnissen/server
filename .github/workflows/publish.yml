@@ -13,6 +13,7 @@ jobs:
     secrets:
       NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
   releaseDocker:
+    needs: release
     name: "Publish to Docker and Addon"
     uses: modbus2mqtt/server/.github/workflows/publishDocker.yml@main
     permissions:
