@@ -6,6 +6,13 @@
 # 3003 mqtt allow anonymous
 # 3004 modbus2mqtt Home Assistant Addon
 # 80 homeassistant supervisor
+function services(){
+    echo modbus2mqtt-tcp-server.service 3002
+    echo mosquitto.service 3001
+    echo mosquitto.service 3003
+    echo modbus2mqtt-e2e.service 3005
+    echo modbus2mqtt-addon.service 3004
+}
 if [ "$1" == "stop" ]
 then
   systemctl --user stop modbus2mqtt-tcp-server.service
@@ -32,6 +39,21 @@ then
   #daemon reload is not required: No changes to service
   systemctl --user restart modbus2mqtt-e2e.service
   systemctl --user restart modbus2mqtt-addon.service
+  services | while read service port
+  do
+    if ! systemctl --user is-active --quiet mosquitto.service
+    then
+      echo $service is not active!!!
+      exit 1
+    fi
+  done
+  services | timeout 22 bash -c 'while read service port
+  do
+      until printf \"\" >>/dev/tcp/localhost/$port; 
+      do sleep 1; 
+      done 2>/dev/null
+      echo $port is available
+  done'
   exit 0
 fi
 
@@ -207,6 +229,7 @@ ExecStartPre=/bin/mkdir -m 740 -p |mosquittodir|/log/mosquitto
 EOF9' | sed -e "s:|mosquittodir|:${MOSQUITTO_DIR}:g" >$SERVICES'/mosquitto.service'
 
 systemctl --user daemon-reload
+sleep 1
 systemctl --user restart modbus2mqtt-tcp-server.service
 systemctl --user restart modbus2mqtt-e2e.service
 systemctl --user restart modbus2mqtt-addon.service
@@ -223,5 +246,5 @@ ls $SERVERDIR/dist
 sudo systemctl status nginx.service
 systemctl --user status modbus2mqtt-tcp-server.service
 systemctl --user status mosquitto.service
-systemctl --user status modbus2mqtt-tcp-server.service
+systemctl --user status modbus2mqtt-addon.service
 systemctl --user status modbus2mqtt-e2e.service
