@@ -6,6 +6,8 @@
 # 3003 mqtt allow anonymous
 # 3004 modbus2mqtt Home Assistant Addon
 # 80 homeassistant supervisor
+
+export SERVICES=~/.config/systemd/user/
 function services(){
     echo modbus2mqtt-tcp-server.service 3002
     echo mosquitto.service 3001
@@ -19,6 +21,8 @@ function checkServices(){
   do
     if ! systemctl --user is-active --quiet $service
     then
+      systemctl --user status $service >/dev/stdout
+      cat $SERVICES/$service
       echo $service is not active!!!
       exit 1
     fi
@@ -142,7 +146,6 @@ sudo systemctl stop mosquitto.service
 sudo systemctl restart nginx.service
 # Root part END
 
-export SERVICES=~/.config/systemd/user/
 mkdir -p $SERVICES
 mkdir -p ${BASEDIR}/temp/ssl
 mkdir -p $BUSSES
