@@ -6,6 +6,7 @@
 # 3003 mqtt allow anonymous
 # 3004 modbus2mqtt Home Assistant Addon
 # 80 homeassistant supervisor
+set -e
 
 export SERVICES=~/.config/systemd/user/
 function services(){
@@ -21,7 +22,7 @@ function checkServices(){
   do
     if ! systemctl --user is-active --quiet $service
     then
-      systemctl --user status $service >/dev/stdout
+      systemctl --user status $service 
       cat $SERVICES/$service
       echo $service is not active!!!
       exit 1
@@ -48,7 +49,6 @@ then
   exit 1
 fi
 
-
 export BASEDIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 export SERVERDIR=$(dirname "$BASEDIR")
 YAMLDIR=${BASEDIR}/temp/yaml-dir-tcp
@@ -71,8 +71,11 @@ fi
 # .../server/e2e
 
 # Root part START
+set +e
 sudo apt-get install -y nginx mosquitto mosquitto-clients >/dev/null 2>&1
 sudo rm /etc/nginx/sites-enabled/default >/dev/null 2>&1
+set -e
+
 WWWROOT=/usr/share/nginx/temp/www-root
 mkdir -p $WWWROOT/services/mqtt $WWWROOT/addons/self/info $WWWROOT/hardware/info
 
