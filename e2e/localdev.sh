@@ -193,7 +193,8 @@ ExecStart=|node| |cwd|/dist/runModbusTCPserver.js -y |cwd|/e2e/temp/yaml-dir-tcp
 [Install]
 WantedBy=multi-user.target
 EOF7' | sed -e "s:|cwd|:${SERVERDIR}:g" | sed -e "s:|node|:"`which node`":g" | bash -c 'cat >'$SERVICES'modbus2mqtt-tcp-server.service'
-
+echo SERVERDIR:
+ls ${SERVERDIR}
 bash -c '
 cat <<EOF8
 [Unit]
