@@ -14,14 +14,16 @@ function services(){
     echo modbus2mqtt-addon.service 3004
 }
 function checkServices(){
+  sleep 2
   services | while read service port
   do
-    if ! systemctl --user is-active --quiet mosquitto.service
+    if ! systemctl --user is-active --quiet $service
     then
       echo $service is not active!!!
       exit 1
     fi
   done
+  sleep 2
   services | timeout 22 bash -c 'while read service port
   do
       until printf \"\" >>/dev/tcp/localhost/$port; 
