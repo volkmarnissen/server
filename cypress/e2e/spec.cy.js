@@ -45,10 +45,7 @@ function runSlaves() {
   cy.get('div.card-header-buttons:first button').eq(2).click()
   cy.url().should('contain', prefix + '/specification')
 }
-after(()=>{
-  cy.exec("systemctl --user status modbus2mqtt-addon.service")
-  cy.exec("systemctl --user status modbus2mqtt-e2e.service")
-})
+
 
 describe('End to End Tests', () => {
   it('register->mqtt->busses->slaves->specification with authentication', () => {
