@@ -13,6 +13,26 @@ function services(){
     echo modbus2mqtt-e2e.service 3005
     echo modbus2mqtt-addon.service 3004
 }
+function checkServices(){
+  services | while read service port
+  do
+    if ! systemctl --user is-active --quiet mosquitto.service
+    then
+      echo $service is not active!!!
+      exit 1
+    fi
+  done
+  services | timeout 22 bash -c 'while read service port
+  do
+      until printf \"\" >>/dev/tcp/localhost/$port; 
+      do sleep 1; 
+      done 2>/dev/null
+      echo $port is available
+  done'
+  echo Success
+  exit 0
+
+}
 if [ "$1" == "stop" ]
 then
   systemctl --user stop modbus2mqtt-tcp-server.service
@@ -39,22 +59,7 @@ then
   #daemon reload is not required: No changes to service
   systemctl --user restart modbus2mqtt-e2e.service
   systemctl --user restart modbus2mqtt-addon.service
-  services | while read service port
-  do
-    if ! systemctl --user is-active --quiet mosquitto.service
-    then
-      echo $service is not active!!!
-      exit 1
-    fi
-  done
-  services | timeout 22 bash -c 'while read service port
-  do
-      until printf \"\" >>/dev/tcp/localhost/$port; 
-      do sleep 1; 
-      done 2>/dev/null
-      echo $port is available
-  done'
-  exit 0
+  checkServices
 fi
 
 # .../server/e2e
@@ -190,7 +195,7 @@ StartLimitIntervalSec=1
 [Service]
 Type=simple
 WorkingDirectory=|cwd|
-ExecStart=|node| dist/modbus2mqtt.js -y e2e/temp/yaml-dir -s e2e/temp/ssl 
+ExecStart=|node| --inspect-brk dist/modbus2mqtt.js -y e2e/temp/yaml-dir -s e2e/temp/ssl 
 [Install]
 WantedBy=multi-user.target
 EOF8'  | sed -e "s:|cwd|:"${SERVERDIR}":g" | sed -e "s:|node|:"`which node`":g" | bash -c 'cat >'$SERVICES'modbus2mqtt-e2e.service'
@@ -234,17 +239,5 @@ systemctl --user restart modbus2mqtt-tcp-server.service
 systemctl --user restart modbus2mqtt-e2e.service
 systemctl --user restart modbus2mqtt-addon.service
 systemctl --user restart mosquitto.service
+checkServices
 
-sleep 3
-echo =======basedir ======================
-ls $BASEDIR
-echo =======serverdir ======================
-ls $SERVERDIR
-echo =======serverdir/dist ======================
-ls $SERVERDIR/dist
-
-sudo systemctl status nginx.service
-systemctl --user status modbus2mqtt-tcp-server.service
-systemctl --user status mosquitto.service
-systemctl --user status modbus2mqtt-addon.service
-systemctl --user status modbus2mqtt-e2e.service
