@@ -40,7 +40,13 @@ function checkServices(){
       until printf \"\" >>/dev/tcp/localhost/'$port'; 
       do sleep 1; 
       done 2>/dev/null'
-    echo $service  is available at $port
+    if [ $? -eq 0 ] 
+    then
+      echo $service  is available at $port $?
+    else
+      systemctl --user status $service
+      journalctl --user -u $service -b --no-pager
+    fi
   done
   echo Success
   exit 0
