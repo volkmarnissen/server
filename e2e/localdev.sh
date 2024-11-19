@@ -33,13 +33,15 @@ function checkServices(){
     fi
   done
   sleep 2
-  services | timeout 22 bash -c 'while read service port
+  echo check services
+  services| while read service port log
   do
-      until printf \"\" >>/dev/tcp/localhost/$port; 
+    timeout 12 bash -c '
+      until printf \"\" >>/dev/tcp/localhost/'$port'; 
       do sleep 1; 
-      done 2>/dev/null
-      echo $port is available
-  done'
+      done 2>/dev/null'
+    echo $service  is available at $port
+  done
   echo Success
   exit 0
 
@@ -60,7 +62,7 @@ BUSSES=$YAMLDIR/local/busses/bus.0
 #clear /init yamldirs
 rm -rf ${BASEDIR}/temp/yaml-dir ${BASEDIR}/temp/yaml-dir-addon 
 mkdir -p ${BASEDIR}/temp/yaml-dir/local
-mkdir -p ${BASEDIR}/e2e/temp/log
+mkdir -p ${BASEDIR}/temp/log
 echo 'httpport: 3005' >${BASEDIR}/temp/yaml-dir/local/modbus2mqtt.yaml
 mkdir -p ${BASEDIR}/temp/yaml-dir-addon/local
 (echo "httpport: 3004" &&  echo "supervisor_host: localhost" )>${BASEDIR}/temp/yaml-dir-addon/local/modbus2mqtt.yaml
@@ -207,7 +209,7 @@ After=network.target
 StartLimitIntervalSec=1
 [Service]
 Type=simple
-ExecStart=|node| |cwd|/dist/modbus2mqtt.js -y |cwd|/e2e/temp/yaml-dir -s |cwd|/e2e/temp/ssl  >|cwd|/e2e/temp/log/modbus2mqtt-e2e.service.log
+ExecStart=|node| |cwd|/dist/modbus2mqtt.js -y |cwd|/e2e/temp/yaml-dir -s |cwd|/e2e/temp/ssl 
 
 [Install]
 WantedBy=multi-user.target
