@@ -205,12 +205,13 @@ After=network.target
 StartLimitIntervalSec=1
 [Service]
 Type=simple
-WorkingDirectory=|cwd|
 ExecStart=|node| |cwd|/dist/modbus2mqtt.js -y |cwd|/e2e/temp/yaml-dir -s |cwd|/e2e/temp/ssl 
 [Install]
 WantedBy=multi-user.target
 EOF8'  | sed -e "s:|cwd|:"${SERVERDIR}":g" | sed -e "s:|node|:"`which node`":g" | bash -c 'cat >'$SERVICES'modbus2mqtt-e2e.service'
-
+echo ==========
+cat '$SERVICES'modbus2mqtt-e2e.service'
+echo ==========
 bash -c '
 cat <<EOF10
 [Unit]
@@ -219,7 +220,6 @@ After=network.target
 StartLimitIntervalSec=1
 [Service]
 Type=simple
-WorkingDirectory=|cwd|
 Environment="HASSIO_TOKEN=abcd1234"
 ExecStart=|node| dist/modbus2mqtt.js -y e2e/temp/yaml-dir-addon -s e2e/temp/ssl 
 [Install]

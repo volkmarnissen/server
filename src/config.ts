@@ -318,7 +318,6 @@ export class Config {
   listDevicesUdev(next: (devices: string[]) => void, reject: (error: any) => void): void {
     SerialPort.list()
       .then((portInfo) => {
-        log.log(LogLevelEnum.notice, JSON.stringify(portInfo))
         let devices: string[] = []
         portInfo.forEach((port) => {
           devices.push(port.path)
