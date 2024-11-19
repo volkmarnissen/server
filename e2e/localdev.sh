@@ -210,7 +210,7 @@ ExecStart=|node| |cwd|/dist/modbus2mqtt.js -y |cwd|/e2e/temp/yaml-dir -s |cwd|/e
 WantedBy=multi-user.target
 EOF8'  | sed -e "s:|cwd|:"${SERVERDIR}":g" | sed -e "s:|node|:"`which node`":g" | bash -c 'cat >'$SERVICES'modbus2mqtt-e2e.service'
 echo ==========
-cat '$SERVICES'modbus2mqtt-e2e.service'
+cat $SERVICES'modbus2mqtt-e2e.service'
 echo ==========
 bash -c '
 cat <<EOF10
