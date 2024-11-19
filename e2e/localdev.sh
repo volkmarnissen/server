@@ -23,6 +23,7 @@ function checkServices(){
     if ! systemctl --user is-active --quiet $service
     then
       systemctl --user status $service 
+      journalctl -u $service -b --no-pager
       cat $SERVICES/$service
       echo $service is not active!!!
       exit 1
