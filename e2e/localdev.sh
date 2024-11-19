@@ -13,29 +13,41 @@ function services(){
     echo modbus2mqtt-tcp-server.service 3002
     echo mosquitto.service 3001
     echo mosquitto.service 3003
-    echo modbus2mqtt-e2e.service 3005
+    echo modbus2mqtt-e2e.service 3005  modbus2mqtt-e2e.service.log
     echo modbus2mqtt-addon.service 3004
 }
 function checkServices(){
   sleep 2
-  services | while read service port
+  services | while read service port log
   do
     if ! systemctl --user is-active --quiet $service
     then
-      systemctl --user status $service 
+      journalctl --user -u $service -b --no-pager
+      if [ "$log" != "" ]
+      then
+        cat $log
+      fi
       cat $SERVICES/$service
       echo $service is not active!!!
       exit 1
     fi
   done
   sleep 2
-  services | timeout 22 bash -c 'while read service port
+  echo check services
+  services| while read service port log
   do
-      until printf \"\" >>/dev/tcp/localhost/$port; 
+    timeout 12 bash -c '
+      until printf \"\" >>/dev/tcp/localhost/'$port'; 
       do sleep 1; 
-      done 2>/dev/null
-      echo $port is available
-  done'
+      done 2>/dev/null'
+    if [ $? -eq 0 ] 
+    then
+      echo $service  is available at $port $?
+    else
+      systemctl --user status $service
+      journalctl --user -u $service -b --no-pager
+    fi
+  done
   echo Success
   exit 0
 
@@ -56,6 +68,7 @@ BUSSES=$YAMLDIR/local/busses/bus.0
 #clear /init yamldirs
 rm -rf ${BASEDIR}/temp/yaml-dir ${BASEDIR}/temp/yaml-dir-addon 
 mkdir -p ${BASEDIR}/temp/yaml-dir/local
+mkdir -p ${BASEDIR}/temp/log
 echo 'httpport: 3005' >${BASEDIR}/temp/yaml-dir/local/modbus2mqtt.yaml
 mkdir -p ${BASEDIR}/temp/yaml-dir-addon/local
 (echo "httpport: 3004" &&  echo "supervisor_host: localhost" )>${BASEDIR}/temp/yaml-dir-addon/local/modbus2mqtt.yaml
@@ -194,7 +207,6 @@ ExecStart=|node| |cwd|/dist/runModbusTCPserver.js -y |cwd|/e2e/temp/yaml-dir-tcp
 WantedBy=multi-user.target
 EOF7' | sed -e "s:|cwd|:${SERVERDIR}:g" | sed -e "s:|node|:"`which node`":g" | bash -c 'cat >'$SERVICES'modbus2mqtt-tcp-server.service'
 echo SERVERDIR: $SERVERDIR
-ls /home/runner/work/server/server/dist/modbus2mqtt.js
 bash -c '
 cat <<EOF8
 [Unit]
@@ -204,6 +216,7 @@ StartLimitIntervalSec=1
 [Service]
 Type=simple
 ExecStart=|node| |cwd|/dist/modbus2mqtt.js -y |cwd|/e2e/temp/yaml-dir -s |cwd|/e2e/temp/ssl 
+
 [Install]
 WantedBy=multi-user.target
 EOF8'  | sed -e "s:|cwd|:"${SERVERDIR}":g" | sed -e "s:|node|:"`which node`":g" | bash -c 'cat >'$SERVICES'modbus2mqtt-e2e.service'
@@ -219,7 +232,7 @@ StartLimitIntervalSec=1
 [Service]
 Type=simple
 Environment="HASSIO_TOKEN=abcd1234"
-ExecStart=|node| dist/modbus2mqtt.js -y e2e/temp/yaml-dir-addon -s e2e/temp/ssl 
+ExecStart=|node| |cwd|/dist/modbus2mqtt.js -y |cwd|/e2e/temp/yaml-dir-addon -s |cwd|/e2e/temp/ssl 
 [Install]
 WantedBy=multi-user.target
 EOF10'  | sed -e "s:|cwd|:${SERVERDIR}:g" | sed -e "s:|node|:"`which node`":g" | bash -c 'cat >'$SERVICES'/modbus2mqtt-addon.service'
