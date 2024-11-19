@@ -205,7 +205,6 @@ After=network.target
 StartLimitIntervalSec=1
 [Service]
 Type=simple
-WorkingDirectory=|cwd|
 ExecStart=|node| |cwd|/dist/modbus2mqtt.js -y |cwd|/e2e/temp/yaml-dir -s |cwd|/e2e/temp/ssl 
 [Install]
 WantedBy=multi-user.target
@@ -219,7 +218,6 @@ After=network.target
 StartLimitIntervalSec=1
 [Service]
 Type=simple
-WorkingDirectory=|cwd|
 Environment="HASSIO_TOKEN=abcd1234"
 ExecStart=|node| dist/modbus2mqtt.js -y e2e/temp/yaml-dir-addon -s e2e/temp/ssl 
 [Install]
