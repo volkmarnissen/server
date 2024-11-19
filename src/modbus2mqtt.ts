@@ -72,21 +72,24 @@ export class Modbus2Mqtt {
         )
         debug(Config.getConfiguration().mqttconnect.mqttserverurl)
         let angulardir:undefined | string =  undefined
-        try{
-          angulardir = require.resolve('@modbus2mqtt/angular')
-          angulardir = dirname(angulardir)
-        }
-        catch(e){
+
           // hard coded workaround
-          let nodePackageRoot = dirname(dirname(argv[1]))
-          angulardir = join(nodePackageRoot,"node_modules/@modbus2mqtt/angular")
-        }
-        
-        angulardir = join(angulardir,"dist/browser")
-        if(!fs.existsSync(angulardir)){
+          // let angulardir = require.resolve('@modbus2mqtt/angular')
+          // Did not work in github workflow for testing
+          let dir = dirname(argv[1])
+          while(dir.length >0 && (!angulardir || !fs.existsSync(angulardir)))
+          {
+            angulardir = join(dir, "angular/dist/browser")
+            if(!fs.existsSync( angulardir) )
+              angulardir = join(dir, "node_modules/@modbus2mqtt/angular/dist/browser") 
+            dir = dirname(dir )
+          }
+        if(! angulardir || !fs.existsSync(angulardir)){
           log.log(LogLevelEnum.error, "Unable to find angular start file " + angulardir)
           process.exit(2)
         }
+        else
+          log.log(LogLevelEnum.notice, "angulardir is " + angulardir)
         let angulardirLang = path.parse(angulardir).dir
         debug('http root : ' + angulardir)
         let gh = new M2mGitHub(
