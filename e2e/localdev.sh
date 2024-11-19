@@ -23,7 +23,7 @@ function checkServices(){
     if ! systemctl --user is-active --quiet $service
     then
       journalctl --user -u $service -b --no-pager
-      if[ "$log" != "" ]
+      if [ "$log" != "" ]
       then
         cat $log
       fi
@@ -199,7 +199,6 @@ ExecStart=|node| |cwd|/dist/runModbusTCPserver.js -y |cwd|/e2e/temp/yaml-dir-tcp
 WantedBy=multi-user.target
 EOF7' | sed -e "s:|cwd|:${SERVERDIR}:g" | sed -e "s:|node|:"`which node`":g" | bash -c 'cat >'$SERVICES'modbus2mqtt-tcp-server.service'
 echo SERVERDIR: $SERVERDIR
-ls /home/runner/work/server/server/dist/modbus2mqtt.js
 bash -c '
 cat <<EOF8
 [Unit]
@@ -225,7 +224,7 @@ StartLimitIntervalSec=1
 [Service]
 Type=simple
 Environment="HASSIO_TOKEN=abcd1234"
-ExecStart=|node| dist/modbus2mqtt.js -y e2e/temp/yaml-dir-addon -s e2e/temp/ssl 
+ExecStart=|node| |cwd|/dist/modbus2mqtt.js -y |cwd|/e2e/temp/yaml-dir-addon -s |cwd|/e2e/temp/ssl 
 [Install]
 WantedBy=multi-user.target
 EOF10'  | sed -e "s:|cwd|:${SERVERDIR}:g" | sed -e "s:|node|:"`which node`":g" | bash -c 'cat >'$SERVICES'/modbus2mqtt-addon.service'
