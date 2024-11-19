@@ -9,9 +9,10 @@ import * as os from 'os'
 import Debug from 'debug'
 import { MqttDiscover } from './mqttdiscover.js'
 import { ConfigSpecification } from '@modbus2mqtt/specification'
-import path from 'path'
+import path, { dirname, join } from 'path'
 import { SpecificationStatus } from '@modbus2mqtt/specification.shared'
-import { join } from 'path'
+import * as fs from 'fs'
+const { argv } = require('node:process');
 
 const debug = Debug('modbus2mqtt')
 const debugAction = Debug('actions')
@@ -70,9 +71,23 @@ export class Modbus2Mqtt {
           Config.getConfiguration().githubPersonalToken
         )
         debug(Config.getConfiguration().mqttconnect.mqttserverurl)
-        let angulardir = require.resolve('@modbus2mqtt/angular')
+        let angulardir:undefined | string =  undefined
+        try{
+          angulardir = require.resolve('@modbus2mqtt/angular')
+          angulardir = dirname(angulardir)
+        }
+        catch(e){
+          // hard coded workaround
+          let nodePackageRoot = dirname(dirname(argv[1]))
+          angulardir = join(nodePackageRoot,"node_modules/@modbus2mqtt/angular")
+        }
+        
+        angulardir = join(angulardir,"dist/browser")
+        if(!fs.existsSync(angulardir)){
+          log.log(LogLevelEnum.error, "Unable to find angular start file " + angulardir)
+          process.exit(2)
+        }
         let angulardirLang = path.parse(angulardir).dir
-        angulardir = path.parse(angulardirLang).dir
         debug('http root : ' + angulardir)
         let gh = new M2mGitHub(
           Config.getConfiguration().githubPersonalToken ? Config.getConfiguration().githubPersonalToken! : null,
