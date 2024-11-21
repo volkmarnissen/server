@@ -209,6 +209,7 @@ export class MqttDiscover {
                         if (!o) log.log(LogLevelEnum.warn, 'generateDiscoveryPayloads: option with no text for ' + e.id)
                       })
                   }
+                  obj.device_class = 'enum'
                   if (e.converter.name === 'binary' && ns.device_class) obj.device_class = ns.device_class
                   break
                 case 'Inumber':
@@ -567,9 +568,10 @@ export class MqttDiscover {
       if (!cv) {
         let msg = 'No converter found for bus: ' + busid + ' slave: ' + slave.slaveid + ' entity id: ' + entity.id
         log.log(LogLevelEnum.error, msg)
-      } else if (e.mqttname && e.mqttValue && e.mqttValue && e.modbusValue.length > 0 && !e.variableConfiguration) {
-        // e.modbusValue.length == 0 > no data available
-        o[e.mqttname] = e.mqttValue
+      } else if (e.mqttname && e.mqttValue && !e.variableConfiguration) {
+        o[e.mqttname] = null // no data available
+        if(e.modbusValue.length > 0 )
+          o[e.mqttname] = e.mqttValue
         if (cv.publishModbusValues()) {
           if (o.modbusValues == undefined) o.modbusValues = {}
           o.modbusValues[e.mqttname] = e.modbusValue[0]
