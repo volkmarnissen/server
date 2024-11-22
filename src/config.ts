@@ -670,8 +670,8 @@ export class Config {
     return Config.mqttDiscoverInstance
   }
 
-  triggerMqttPublishSlave(busid: number, slave: Islave) {
-    Config.getMqttDiscover().triggerPoll(busid, slave)
+  private triggerMqttPublishSlave(busid: number, slave: Islave) {
+    Config.getMqttDiscover().triggerPoll(busid, slave,true)
   }
 
   deleteSlave(busid: number, slaveid: number) {
@@ -774,9 +774,9 @@ export class Config {
       if (specification == '_new') new ConfigSpecification().deleteNewSpecificationFiles()
       else {
         let spec = ConfigSpecification.getSpecificationByFilename(specification)
-        this.triggerMqttPublishSlave(busid, slave)
         slave.specification = spec as any as IbaseSpecification
       }
+      this.triggerMqttPublishSlave(busid, slave)
     } else debug('No Specification found for slave: ' + filename + ' specification: ' + slave.specificationid)
     return slave
   }

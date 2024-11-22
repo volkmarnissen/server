@@ -516,20 +516,20 @@ export class HttpServer extends HttpServerBase {
       debug('POST /specification: ' + req.query.busid + '/' + req.query.slaveid)
       let rd = new ConfigSpecification()
       let msg = this.checkBusidSlaveidParameter(req)
-      let bus: Bus | undefined
-      let slave: Islave | undefined
-      let busId: number | undefined
       if (msg !== '') {
         this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "{message: '" + msg + "'}")
         return
       }
+      let bus:Bus| undefined = Bus.getBus(Number.parseInt(req.query.busid))
+      let slave: Islave | undefined = bus? bus.getSlaveBySlaveId(Number.parseInt(req.query.slaveid)):undefined
+
       let originalFilename: string | null = req.query.originalFilename ? req.query.originalFilename : null
       var rc = rd.writeSpecification(
         req.body,
         (filename: string) => {
-          if (busId != undefined && bus != undefined && slave != undefined) {
+          if ( bus != undefined && slave != undefined) {
             slave.specificationid = filename
-            new Config().writeslave(busId, slave.slaveid, slave.specificationid, slave.name)
+            new Config().writeslave(bus.getId(), slave.slaveid, slave.specificationid, slave.name)
           }
         },
         originalFilename

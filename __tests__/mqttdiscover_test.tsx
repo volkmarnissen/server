@@ -75,6 +75,35 @@ class FakeMqtt {
 let oldLog: any
 let slave: Islave
 let spec: ImodbusSpecification
+const selectTestId = 3
+const numberTestId = 4
+const selectTestWritableId = 5
+
+let selectTest: ImodbusEntity = {
+  id: selectTestWritableId,
+  mqttname: 'selecttestWr',
+  modbusAddress: 7,
+  registerType: ModbusRegisterType.HoldingRegister,
+  readonly: true,
+  converter: { name: 'select', registerTypes: [] },
+  modbusValue: [],
+  mqttValue: '300',
+  identified: 1,
+  converterParameters: { optionModbusValues: [1, 2, 3] },
+}
+
+let selectTestWritable: ImodbusEntity = {
+  id: selectTestId,
+  mqttname: 'selecttest',
+  modbusAddress: 1,
+  registerType: ModbusRegisterType.HoldingRegister,
+  readonly: false,
+  converter: { name: 'select', registerTypes: [] },
+  modbusValue: [],
+  mqttValue: '300',
+  identified: 1,
+  converterParameters: { optionModbusValues: [1, 2, 3] },
+}
 
 beforeAll((done) => {
   ModbusCache.prototype.submitGetHoldingRegisterRequest = submitGetHoldingRegisterRequest
@@ -116,18 +145,7 @@ beforeAll((done) => {
       readonly: true,
       modbusAddress: 2,
     }
-    let selectTest: ImodbusEntity = {
-      id: selectTestId,
-      mqttname: 'selecttest',
-      modbusAddress: 1,
-      registerType: ModbusRegisterType.HoldingRegister,
-      readonly: true,
-      converter: { name: 'select', registerTypes: [] },
-      modbusValue: [],
-      mqttValue: '300',
-      identified: 1,
-      converterParameters: { optionModbusValues: [1, 2, 3] },
-    }
+
     spec.manufacturer = 'Deye'
     spec.model = 'SUN-10K-SG04LP3-EU'
     spec.i18n[0].texts = [
@@ -137,6 +155,10 @@ beforeAll((done) => {
       { textId: 'e3o.1', text: 'Option 1' },
       { textId: 'e3o.2', text: 'Option 2' },
       { textId: 'e3o.3', text: 'Option 3' },
+      { textId: 'e5', text: 'Select Test' },
+      { textId: 'e5o.1', text: 'Option 1' },
+      { textId: 'e5o.2', text: 'Option 2' },
+      { textId: 'e5o.3', text: 'Option 3' },
     ]
     spec.entities.push(serialNumber)
     spec.entities.push(currentSolarPower)
@@ -149,8 +171,6 @@ beforeAll((done) => {
 afterAll(() => {
   Logger.prototype.log = oldLog
 })
-const selectTestId = 3
-const numberTestId = 4
 var md: MqttDiscover | undefined
 let numberTest: ImodbusEntity = {
   id: numberTestId,
@@ -179,22 +199,30 @@ test('Discover', (done) => {
   Config['config'].mqttusehassio = false
   new Config().getMqttConnectOptions().then((options) => {
     let md = new MqttDiscover(options, 'en')
-    let payloads: { topic: string; payload: string }[] = md['generateDiscoveryPayloads'](0, slave, spec)
-    expect(payloads.length).toBe(2)
+    let s = structuredClone(spec)
+    s.entities.push(selectTestWritable)
+
+    let payloads: { topic: string; payload: string }[] = md['generateDiscoveryPayloads'](0, slave, s)
+    expect(payloads.length).toBe(3)
     let payloadCurrentPower = JSON.parse(payloads[0].payload)
-    let payloadSelectTestPower = JSON.parse(payloads[1].payload)
+    let payloadSelectTestPower = JSON.parse(payloads[1].payload)    
     expect(payloadCurrentPower.name).toBe('Current Power')
     expect(payloadCurrentPower.unit_of_measurement).toBe('kW')
     expect(payloadSelectTestPower.device.name).toBe('Deye Inverter')
     expect(payloadSelectTestPower.name).toBe('Select Test')
-    expect(payloadSelectTestPower.options[0]).toBe('Option 1')
-
+    console.log(payloads[1].payload )
+    expect(payloadSelectTestPower.options).not.toBeDefined()
+    expect(payloads[1].topic.indexOf("/sensor/")).toBeGreaterThan(0)
+    let payloadSelectTestWritable = JSON.parse(payloads[2].payload)    
+    expect(payloads[2].topic.indexOf("/select/")).toBeGreaterThan(0)
+    expect(payloadSelectTestWritable.device_class).toBe("enum")
+    expect(payloadSelectTestWritable.options).toBeDefined()
+    expect(payloadSelectTestWritable.options.length).toBeGreaterThan(0)
+    expect(payloadSelectTestWritable.command_topic).toBeDefined()
     let pl = JSON.parse(payloads[0].payload)
     //expect(pl.unit_of_measurement).toBe("kW");
     expect(pl.device.manufacturer).toBe(spec.manufacturer)
     expect(pl.device.model).toBe(spec.model)
-    pl = JSON.parse(payloads[1].payload)
-    expect(pl.options.length).toBe(3)
     done()
   })
 })
@@ -355,5 +383,5 @@ test('onMessage DiscoveryTopic from this app', () => {
 test('onMessage TriggerPollTopic from this app', () => {
   md = new MqttDiscover({}, 'en')
   md['onMqttMessage'](MqttDiscover['getTriggerPollTopicPrefix']()  + '/0s3', Buffer.from(" "))
-  expect(md['triggers'].find(k =>k == '0s3')).not.toBeNull()
+  expect(md['triggers'].find(k =>k.name == '0s3')).not.toBeNull()
 })
