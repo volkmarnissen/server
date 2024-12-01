@@ -7,7 +7,7 @@ import { ModbusServer, XYslaveid } from './../src/modbusTCPserver'
 import { IdentifiedStates } from '@modbus2mqtt/specification.shared'
 import { ConfigSpecification, IReadRegisterResultOrError, LogLevelEnum } from '@modbus2mqtt/specification'
 import { singleMutex } from './configsbase'
-import { PollModes } from '@modbus2mqtt/server.shared'
+import { Iconfiguration, PollModes } from '@modbus2mqtt/server.shared'
 
 const debug = Debug('bustest')
 const testPort = 8888
@@ -32,7 +32,7 @@ it('read slaves/delete slave/addSlave/read slave', () => {
     let slaves = bus.getSlaves()
     let oldLength = slaves.length
     expect(bus.getSlaves().find((s) => s.slaveid == 10)).not.toBeDefined()
-    bus.writeSlave(10, undefined, undefined, undefined, PollModes.intervall)
+    bus.writeSlave({slaveid: 10})
     slaves = bus.getSlaves()
     expect(slaves.length).toBeGreaterThan(oldLength)
     let b2 = Bus.getBus(0)
@@ -135,8 +135,8 @@ function testWrite(
   })
 }
 it('Bus getSpecsForDevice', (done) => {
-  prepareIdentification()
-  Config['config'].fakeModbus = true
+  prepareIdentification();
+  (Config['config'] as Iconfiguration).fakeModbus = true
   if (Config.getConfiguration().fakeModbus) debug(LogLevelEnum.notice, 'Fakemodbus')
   Bus.getBus(0)!
     .getAvailableSpecs(1, false)

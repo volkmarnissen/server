@@ -1,2 +1,3 @@
 slaveid: 2
 specificationid: waterleveltransmitter
+evalTimeout: true

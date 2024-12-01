@@ -1,7 +1,7 @@
 import Debug from 'debug'
 import { Observable, Subject, first } from 'rxjs'
 import {
-  ImodbusEntityIdentification,
+  ImodbusEntity,
   ImodbusSpecification,
   ModbusRegisterType,
   SpecificationStatus,
@@ -469,8 +469,12 @@ export class Bus {
       Bus.getBusses().forEach((bus) => {
         bus.getSlaves().forEach((slave) => {
           debug('updateAllSpecificationsModbusAddresses slaveid: ' + slave.slaveid)
+          if(specificationid == null )
+            slave.specificationid = undefined 
+          else
+            slave.specificationid = specificationid
           if (slave.specificationid == specificationid)
-            cfg.writeslave(bus.getId(), slave.slaveid, specificationid == null ? undefined : specificationid, slave.name)
+            cfg.writeslave(bus.getId(), slave)
         })
       })
     }
@@ -525,7 +529,6 @@ export class Bus {
         let cfg = new ConfigSpecification()
         cfg.filterAllSpecifications((spec) => {
           let mspec = M2mSpecification.fileToModbusSpecification(spec, modbusData)
-          MqttDiscover.addTopicAndPayloads(mspec, this.getId(), this.getSlaveBySlaveId(slaveid)!)
           debug('getAvailableSpecs')
           if (mspec) {
             // list only identified public specs, but all local specs
@@ -604,23 +607,13 @@ export class Bus {
 
   private convert2ImodbusSpecification(slaveid: number, mspec: ImodbusSpecification): IidentificationSpecification {
     // for each spec
-    let entityIdentifications: ImodbusEntityIdentification[] = []
+    let entityIdentifications: ImodbusEntity[] = []
     for (let ment of mspec.entities) {
-      entityIdentifications.push({
-        id: ment.id,
-        modbusValue: ment.modbusValue,
-        mqttValue: ment.mqttValue,
-        identified: ment.identified,
-        commandTopic: ment.commandTopic,
-        commandTopicModbus: ment.commandTopicModbus,
-      })
+      entityIdentifications.push(ment)
     }
     let configuredslave = this.properties.slaves.find((dev) => dev.specificationid === mspec.filename && dev.slaveid == slaveid)
     return {
       filename: mspec.filename,
-      stateTopic: mspec.stateTopic,
-      statePayload: mspec.statePayload,
-      triggerPollTopic: mspec.triggerPollTopic,
       files: mspec.files,
       i18n: mspec.i18n,
       status: mspec.status!,
@@ -631,15 +624,16 @@ export class Bus {
   }
   private convert2ImodbusSpecificationFromSpec(slaveid: number, spec: IfileSpecification): IidentificationSpecification {
     // for each spec
-    let entityIdentifications: ImodbusEntityIdentification[] = []
+    let entityIdentifications: ImodbusEntity[] = []
+
     for (let ent of spec.entities) {
-      entityIdentifications.push({
-        id: ent.id,
-        modbusValue: [],
-        mqttValue: '',
-        identified: IdentifiedStates.notIdentified,
-      })
+      let em:ImodbusEntity = structuredClone(ent as any)
+      em.modbusValue=  []
+      em.mqttValue = ''
+      em.identified= IdentifiedStates.notIdentified
+      entityIdentifications.push( structuredClone(ent as any))
     }
+
     let configuredslave = this.properties.slaves.find((dev) => dev.specificationid === spec.filename && dev.slaveid == slaveid)
     return {
       filename: spec.filename,
@@ -653,17 +647,13 @@ export class Bus {
   }
 
   writeSlave(
-    slaveid: number,
-    specification: string | undefined,
-    name: string | undefined,
-    polInterval: number | undefined,
-    pollMode: PollModes
+    slave: Islave
   ): Islave {
-    if (slaveid < 0) throw new Error('Try to save invalid slave id ') // Make sure slaveid is unique
+    if (slave.slaveid < 0) throw new Error('Try to save invalid slave id ') // Make sure slaveid is unique
     let oldIdx = this.properties.slaves.findIndex((dev) => {
-      return dev.slaveid === slaveid
+      return dev.slaveid === slave.slaveid
     })
-    let slave = new Config().writeslave(this.properties.busId, slaveid, specification, name, polInterval, pollMode)
+    new Config().writeslave(this.properties.busId, slave)
 
     if (oldIdx >= 0) this.properties.slaves[oldIdx] = slave
     else this.properties.slaves.push(slave)

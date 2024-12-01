@@ -567,23 +567,28 @@ export class Config {
                 var src: string = fs.readFileSync(busYaml, {
                   encoding: 'utf8',
                 })
-                connectionData = parse(src)
-                Config.busses.push({
-                  busId: busid,
-                  connectionData: connectionData,
-                  slaves: [],
-                })
-                oneBusFound = true
-                let devFiles: string[] = fs.readdirSync(Config.yamlDir + '/local/busses/' + de.name)
-                devFiles.forEach(function (file: string) {
-                  if (file.endsWith('.yaml') && file !== 'bus.yaml') {
-                    var src: string = fs.readFileSync(Config.yamlDir + '/local/busses/' + de.name + '/' + file, {
-                      encoding: 'utf8',
-                    })
-                    var o: Islave = parse(src)
-                    Config.busses[Config.busses.length - 1].slaves.push(o)
-                  }
-                })
+                try{
+                  connectionData = parse(src)
+                  Config.busses.push({
+                    busId: busid,
+                    connectionData: connectionData,
+                    slaves: [],
+                  })
+                  oneBusFound = true
+                  let devFiles: string[] = fs.readdirSync(Config.yamlDir + '/local/busses/' + de.name)
+                  devFiles.forEach(function (file: string) {
+                    if (file.endsWith('.yaml') && file !== 'bus.yaml') {
+                      var src: string = fs.readFileSync(Config.yamlDir + '/local/busses/' + de.name + '/' + file, {
+                        encoding: 'utf8',
+                      })
+                      var o: Islave = parse(src)
+                      Config.busses[Config.busses.length - 1].slaves.push(o)
+                    }
+                  })
+  
+                }catch(e:any){
+                  log.log(LogLevelEnum.error, "Unable to parse bus os slave file: " + busYaml + "error:" + e.message)
+                }
               }
             }
           })
@@ -738,20 +743,9 @@ export class Config {
 
   writeslave(
     busid: number,
-    slaveid: number,
-    specification: string | undefined,
-    name?: string,
-    polInterval?: number,
-    pollMode?: PollModes
+    slave: Islave,
   ): Islave {
     // Make sure slaveid is unique
-    let slave: Islave = {
-      slaveid: slaveid,
-      specificationid: specification,
-      name: name,
-      polInterval: polInterval,
-      pollMode: pollMode,
-    }
     let oldFilePath = this.getslavePath(busid, slave)
     let filename = Config.getFileNameFromSlaveId(slave.slaveid)
     let newFilePath = this.getslavePath(busid, slave)
@@ -763,17 +757,25 @@ export class Config {
         debug('Unable to create directory ' + dir + ' + e')
         throw e
       }
-    let s = stringify(slave)
+    let o = structuredClone(slave)  
+    for (var prop in o) {
+      if (Object.prototype.hasOwnProperty.call(o, prop)) {
+          let deletables:string[]= ["specification","durationOfLongestModbusCall","triggerPollTopic"]
+          if( deletables.includes(prop))
+            delete (o as any)[prop]
+      }
+  }
+    let s = stringify(o)
     fs.writeFileSync(newFilePath, s, { encoding: 'utf8' })
     if (oldFilePath !== newFilePath && fs.existsSync(oldFilePath))
       fs.unlink(oldFilePath, (err: any) => {
         debug('writeslave: Unable to delete ' + oldFilePath + ' ' + err)
       })
 
-    if (specification) {
-      if (specification == '_new') new ConfigSpecification().deleteNewSpecificationFiles()
+    if (slave.specificationid) {
+      if (slave.specificationid == '_new') new ConfigSpecification().deleteNewSpecificationFiles()
       else {
-        let spec = ConfigSpecification.getSpecificationByFilename(specification)
+        let spec = ConfigSpecification.getSpecificationByFilename(slave.specificationid)
         slave.specification = spec as any as IbaseSpecification
       }
       this.triggerMqttPublishSlave(busid, slave)

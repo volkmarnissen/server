@@ -313,7 +313,6 @@ export class HttpServer extends HttpServerBase {
         log.log(LogLevelEnum.error, 'http: get /specification ' + e.message)
         this.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, JSON.stringify('read specification ' + e.message))
       }).subscribe((result) => {
-        MqttDiscover.addTopicAndPayloads(result, bus.getId(), bus.getSlaveBySlaveId(slaveid)!)
         this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(result))
       })
     })
@@ -529,7 +528,7 @@ export class HttpServer extends HttpServerBase {
         (filename: string) => {
           if ( bus != undefined && slave != undefined) {
             slave.specificationid = filename
-            new Config().writeslave(bus.getId(), slave.slaveid, slave.specificationid, slave.name)
+            new Config().writeslave(bus.getId(), slave)
           }
         },
         originalFilename
@@ -592,13 +591,7 @@ export class HttpServer extends HttpServerBase {
       res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, x-access-token')
       res.setHeader('Access-Control-Allow-Credentials', 'true')
       res.setHeader('Content-Type', 'application/json')
-      let rc: Islave = bus.writeSlave(
-        req.body.slaveid,
-        req.body.specificationid,
-        req.body.name,
-        req.body.polInterval,
-        req.body.pollMode
-      )
+      let rc: Islave = bus.writeSlave(req.body)
       this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(rc))
     })
     this.post(apiUri.addFilesUrl, (req: GetRequestWithUploadParameter, res: http.ServerResponse) => {
@@ -702,13 +695,10 @@ export class HttpServer extends HttpServerBase {
         bus.getSlaves().forEach((slave) => {
           if (slave.specificationid == req.query.spec) {
             delete slave.specificationid
+            if(slave.pollMode == undefined ) 
+              slave.pollMode= PollModes.intervall 
             bus.writeSlave(
-              slave.slaveid,
-              undefined,
-              slave.name,
-              slave.polInterval,
-              slave.pollMode == undefined ? PollModes.intervall : slave.pollMode
-            )
+              slave)
           }
         })
       })

@@ -223,7 +223,8 @@ describe('Modbus read', () => {
     if (entText.converterParameters) (entText.converterParameters as Itext).identification = 'ABCD'
     dev!.slaveid = 2
     spec.entities = [entText]
-    mr.readEntityFromModbus(Bus.getBus(1)!, 2, spec, 2).then((arg0: ImodbusEntity) => {
+    let mb = new Modbus()
+    mb.readEntityFromModbus(Bus.getBus(1)!, 2, spec, 2).then((arg0: ImodbusEntity) => {
       expect(arg0!.identified).toBe(IdentifiedStates.identified)
       done()
     }) // unidenfified

@@ -261,6 +261,7 @@ export class HttpServerBase {
     this.app.use(bodyparser.json())
     this.app.use(bodyparser.urlencoded({ extended: true }))
     this.app.use(express.json())
+    this.app.use(this.processStaticAngularFiles.bind(this))
     //@ts-ignore
     this.app.use(function (_undefined: any, res: http.ServerResponse, next: any) {
       //            res.setHeader('charset', 'utf-8')
@@ -275,7 +276,6 @@ export class HttpServerBase {
     })
     // angular files have full path including language e.G. /en-US/polyfill.js
     this.app.use(this.authenticate.bind(this))
-    this.app.use(this.processStaticAngularFiles.bind(this))
     this.app.use(express.static(this.angulardir))
     this.app.get('/', (req: Request, res: express.Response, next: NextFunction) => {
       res.redirect('index.html')

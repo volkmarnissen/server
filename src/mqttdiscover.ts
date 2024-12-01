@@ -558,19 +558,7 @@ export class MqttDiscover {
       })
     })
   }
-  static addTopicAndPayloads(spec: ImodbusSpecification, busid: number, slave: Islave): void {
-    let hasWritableEntities = spec.entities.find((e) => !e.readonly)
-    spec.entities.forEach((ent) => {
-      if (!ent.readonly) ent.commandTopic = MqttDiscover.generateEntityCommandTopic(busid, slave, ent)
-      let cv = ConverterMap.getConverter(ent)
-      if (cv && cv.publishModbusValues()) {
-        ent.commandTopicModbus = ent.commandTopic + '/' + modbusValues
-      }
-    })
-    spec.stateTopic = MqttDiscover.generateStateTopic(busid, slave)
-    spec.statePayload = MqttDiscover.generateStatePayload(busid, slave, spec)
-    spec.triggerPollTopic = MqttDiscover.generateTriggerPollTopic(busid, slave)
-  }
+
   static generateStatePayload(busid: number, slave: Islave, spec: ImodbusSpecification): string {
     let o: any = {}
     for (let e of spec.entities) {
