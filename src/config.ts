@@ -20,6 +20,7 @@ import {
   IModbusConnection,
   Islave,
   PollModes,
+  Slave,
 } from '@modbus2mqtt/server.shared'
 import AdmZip from 'adm-zip'
 
@@ -576,6 +577,7 @@ export class Config {
                   })
                   oneBusFound = true
                   let devFiles: string[] = fs.readdirSync(Config.yamlDir + '/local/busses/' + de.name)
+                  let md = Config.getMqttDiscover()
                   devFiles.forEach(function (file: string) {
                     if (file.endsWith('.yaml') && file !== 'bus.yaml') {
                       var src: string = fs.readFileSync(Config.yamlDir + '/local/busses/' + de.name + '/' + file, {
@@ -583,6 +585,7 @@ export class Config {
                       })
                       var o: Islave = parse(src)
                       Config.busses[Config.busses.length - 1].slaves.push(o)
+                      md.subscribeSlave(busid, o)
                     }
                   })
   
@@ -676,7 +679,7 @@ export class Config {
   }
 
   private triggerMqttPublishSlave(busid: number, slave: Islave) {
-    Config.getMqttDiscover().triggerPoll(busid, slave,true)
+    Config.getMqttDiscover().triggerPoll(new Slave(busid, slave, Config.config.mqttbasetopic),true)
   }
 
   deleteSlave(busid: number, slaveid: number) {
@@ -693,11 +696,11 @@ export class Config {
             fs.unlink(this.getslavePath(busid, dev), (err) => {
               if (err) debug(err)
             })
-          bus.slaves.splice(idx, 1)
-          let mqd = Config.getMqttDiscover()
-          mqd.deleteSlave(bus.busId, slaveid)
-          debug('DELETE /slave finished ' + slaveid + ' number of slaves: ' + bus.slaves.length)
-          return
+            let mqd = Config.getMqttDiscover()
+            mqd.deleteSlave(new Slave(bus.busId, dev, Config.config.mqttbasetopic))
+            bus.slaves.splice(idx, 1)
+            debug('DELETE /slave finished ' + slaveid + ' number of slaves: ' + bus.slaves.length)
+            return
         }
       }
       if (!found) debug('slave not found for deletion ' + slaveid)
@@ -778,6 +781,7 @@ export class Config {
         let spec = ConfigSpecification.getSpecificationByFilename(slave.specificationid)
         slave.specification = spec as any as IbaseSpecification
       }
+      Config.getMqttDiscover().subscribeSlave(busid,slave)
       this.triggerMqttPublishSlave(busid, slave)
     } else debug('No Specification found for slave: ' + filename + ' specification: ' + slave.specificationid)
     return slave

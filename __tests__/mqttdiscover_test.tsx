@@ -21,9 +21,9 @@ import { yamlDir } from './configsbase'
 import { Bus } from '../src/bus'
 import Debug from 'debug'
 import { ConfigSpecification, Logger } from '@modbus2mqtt/specification'
-import { expect, test, afterAll, beforeAll, jest, xtest } from '@jest/globals'
+import { expect, test, afterAll, beforeAll, jest, xtest, beforeEach } from '@jest/globals'
 import exp from 'constants'
-import { Islave } from '@modbus2mqtt/server.shared'
+import { Islave, Slave } from '@modbus2mqtt/server.shared'
 const debug = Debug('mqttdiscover_test')
 enum FakeModes {
   Poll,
@@ -105,19 +105,31 @@ let selectTestWritable: ImodbusEntity = {
   converterParameters: { optionModbusValues: [1, 2, 3] },
 }
 
-beforeAll((done) => {
+beforeEach((done) => {
   ModbusCache.prototype.submitGetHoldingRegisterRequest = submitGetHoldingRegisterRequest
   oldLog = Logger.prototype.log
   Config['yamlDir'] = yamlDir
+  Config['config']= { } as any
   ConfigSpecification.yamlDir = yamlDir
   Config.sslDir = yamlDir
+  let md = Config.getMqttDiscover()
+  let fake = new FakeMqtt(md, FakeModes.Poll)
+  md['client'] = fake as any as MqttClient
+  md['connectMqtt'] = function (undefined, onConnected: () => void, error: (e: any) => void) {
+    onConnected()
+  }
 
   let readConfig: Config = new Config()
   readConfig.readYamlAsync().then(() => {
     new ConfigSpecification().readYaml()
-    slave = Bus.getBus(0)!.getSlaveBySlaveId(2)!
-    spec = slave.specification as ImodbusSpecification
-    spec.entities.splice(0, 4)
+    let bus = Bus.getBus(0)
+    spec = {} as ImodbusSpecification
+    slave = {
+      specificationid: "deye",
+      slaveid: 2,
+      polInterval: 100
+    }
+
     let serialNumber: ImodbusEntity = {
       id: 0,
       mqttname: 'serialnumber',
@@ -145,9 +157,10 @@ beforeAll((done) => {
       readonly: true,
       modbusAddress: 2,
     }
-
+    spec.filename="deye"
     spec.manufacturer = 'Deye'
     spec.model = 'SUN-10K-SG04LP3-EU'
+    spec.i18n =[{lang:"en", texts: []} ]
     spec.i18n[0].texts = [
       { textId: 'name', text: 'Deye Inverter' },
       { textId: 'e1', text: 'Current Power' },
@@ -160,9 +173,13 @@ beforeAll((done) => {
       { textId: 'e5o.2', text: 'Option 2' },
       { textId: 'e5o.3', text: 'Option 3' },
     ]
+    spec.entities = []
     spec.entities.push(serialNumber)
     spec.entities.push(currentSolarPower)
     spec.entities.push(selectTest)
+    slave.specification = spec
+    bus!.writeSlave(slave)
+
     done()
   })
 
@@ -199,10 +216,11 @@ test('Discover', (done) => {
   Config['config'].mqttusehassio = false
   new Config().getMqttConnectOptions().then((options) => {
     let md = new MqttDiscover(options, 'en')
+  
     let s = structuredClone(spec)
     s.entities.push(selectTestWritable)
 
-    let payloads: { topic: string; payload: string }[] = md['generateDiscoveryPayloads'](0, slave, s)
+    let payloads: { topic: string; payload: string }[] = md['generateDiscoveryPayloads'](new Slave(0, slave, Config.getConfiguration().mqttbasetopic), s)
     expect(payloads.length).toBe(3)
     let payloadCurrentPower = JSON.parse(payloads[0].payload)
     let payloadSelectTestPower = JSON.parse(payloads[1].payload)    
@@ -275,23 +293,23 @@ test('onMqttConnect', (done) => {
         _callback?: ClientSubscribeCallback | undefined
       ) => c
     )
-    tps = md['generateDiscoveryPayloads'](0, slave, spec)
+    tps = md['generateDiscoveryPayloads'](new Slave(0, slave, Config.getConfiguration().mqttbasetopic), spec)
     jest.spyOn(c, 'subscribe').mockImplementation(mockSubscribe)
     jest.spyOn(c, 'publish').mockImplementation(mockPublish)
     jest.spyOn(c, 'on').mockImplementation(spyMqttOnMessage)
     jest.spyOn(c, 'unsubscribe').mockImplementation(mockMqttUnsubscribe)
 
-    md['publishDiscoveryForSlave'](Bus.getBus(0)!, slave, spec).then(() => {
+    md['publishDiscoveryForSlave'](new Slave(0, slave, Config.getConfiguration().mqttbasetopic), spec).then(() => {
       expect(c.publish).toHaveBeenCalledTimes(2)
       spec.entities.push(numberTest)
-      md!['publishDiscoveryForSlave'](Bus.getBus(0)!, slave, spec).then(() => {
+      md!['publishDiscoveryForSlave'](new Slave(0, slave, Config.getConfiguration().mqttbasetopic), spec).then(() => {
         expect(c.publish).toHaveBeenCalledTimes(5)
-        tps = md!['generateDiscoveryPayloads'](0, slave, spec)
+        tps = md!['generateDiscoveryPayloads'](new Slave(0, slave, Config.getConfiguration().mqttbasetopic), spec)
         spec.entities.splice(-1)
-        md!['publishDiscoveryForSlave'](Bus.getBus(0)!, slave, spec).then(() => {
+        md!['publishDiscoveryForSlave'](new Slave(0, slave, Config.getConfiguration().mqttbasetopic), spec).then(() => {
           expect(c.publish).toHaveBeenCalledTimes(7)
-          tps = md!['generateDiscoveryPayloads'](0, slave, spec)
-          md!['publishDiscoveryForSlave'](Bus.getBus(0)!, slave, spec).then(() => {
+          tps = md!['generateDiscoveryPayloads'](new Slave(0, slave, Config.getConfiguration().mqttbasetopic), spec)
+          md!['publishDiscoveryForSlave'](new Slave(0, slave, Config.getConfiguration().mqttbasetopic), spec).then(() => {
             expect(c.publish).toHaveBeenCalledTimes(9)
             done()
           })
@@ -320,7 +338,9 @@ test('selectConverter adds modbusValue to statePayload', () => {
     },
   }
   let spec: ImodbusSpecification = { entities: [specEntity] } as any as ImodbusSpecification
-  let payload = JSON.parse(MqttDiscover['generateStatePayload'](0, { slaveid: 0 }, spec))
+  let sl = new Slave(0,{ slaveid: 0 }, Config.getConfiguration().mqttbasetopic)
+  sl.getStatePayload(spec.entities)
+  let payload = JSON.parse(sl.getStatePayload(spec.entities))
   expect(payload.modbusValues).toBeDefined()
   expect(payload.modbusValues.selectTest).toBe(3)
 })
@@ -348,40 +368,58 @@ test('poll', (done) => {
     // second call should do nothing, because interval is too short
     md!['client'] = fake as any as MqttClient
     fake.isAsExcpected = true
-    let m = new Map<number, ItopicAndPayloads[]>()
-    m.set(1, [topic4Deletion])
-
-    md!['mqttDiscoveryTopics'].set('1s0', m)
+    let m = new Map<number, ItopicAndPayloads>()
+    m.set(1, topic4Deletion)
+    let sl = new Slave(1,{slaveid: 0}, Config.getConfiguration().mqttbasetopic)
+    md!['subscribedSlaves'].push({slave: sl,discoveryTopicAndPayload:m })
     md!['poll']().then(() => {
       expect(fake.isAsExcpected).toBeTruthy()
       let c = md!['pollCounts'].values().next()
-      md!['pollCounts'].set('0s1', 10000)
+      md!['pollCounts'].set(new Slave(0, {slaveid: 1}, Config.getConfiguration().mqttbasetopic).getKey(), 10000)
       expect(c.value).toBeGreaterThan(1)
-      //call discovery explictely
+      //call discovery explicitely
       // Expectation: It should not publish anything, because this has happened already
       let bus = Bus.getBus(0)
       fake.isAsExcpected = false
       fake.fakeMode = FakeModes.Discovery
       let slave = bus?.getSlaveBySlaveId(1)
       md!['poll']().then(() => {
-        expect(md!['mqttDiscoveryTopics'].get('1s0') == undefined).toBeTruthy()
+          let ss = md!['subscribedSlaves'].find( s=>Slave.compareSlaves(s.slave, sl)==0)
+          expect(ss?.discoveryTopicAndPayload.size).toBe(0)
         done()
       })
     })
   })
 })
+function getTopicCount(md:MqttDiscover):number{
+  let sum = 0
+  let ss = md!['subscribedSlaves'].forEach( sl=>{
+     sum += sl.discoveryTopicAndPayload.size
+  } )
+  return sum
+}
 test('onMessage DiscoveryTopic from other app', () => {
   md = new MqttDiscover({}, 'en')
+  let oldSum = getTopicCount(md)
   md['onMqttMessage'](Config.getConfiguration().mqttdiscoveryprefix + '/number/some/some/config', Buffer.allocUnsafe(2))
-  expect(md['mqttDiscoveryTopics'].size).toBe(0)
+  let newSum = getTopicCount(md)
+  expect(oldSum).toBe(newSum)
 })
 test('onMessage DiscoveryTopic from this app', () => {
-  md = new MqttDiscover({}, 'en')
-  md['onMqttMessage'](Config.getConfiguration().mqttdiscoveryprefix + '/number/0s3/e4/config', Buffer.allocUnsafe(2))
-  expect(md['mqttDiscoveryTopics'].size).toBe(1)
+  let md = Config.getMqttDiscover()
+  let fake = new FakeMqtt(md, FakeModes.Poll)
+  md['client'] = fake as any as MqttClient
+  md['connectMqtt'] = function (undefined, onConnected: () => void, error: (e: any) => void) {
+    onConnected()
+  }
+  let oldSum = getTopicCount(md)
+  md['onMqttMessage'](Config.getConfiguration().mqttdiscoveryprefix + '/number/0s2/e1/config', Buffer.allocUnsafe(2))
+  let newSum = getTopicCount(md)
+  expect(newSum).toBeGreaterThan(oldSum)
 })
 test('onMessage TriggerPollTopic from this app', () => {
   md = new MqttDiscover({}, 'en')
-  md['onMqttMessage'](MqttDiscover['getTriggerPollTopicPrefix']()  + '/0s3', Buffer.from(" "))
-  expect(md['triggers'].find(k =>k.name == '0s3')).not.toBeNull()
+  let sl = new Slave(0, {slaveid: 3}, Config.getConfiguration().mqttbasetopic)
+  md['onMqttMessage'](sl.getTriggerPollTopic(), Buffer.from(" "))
+  expect(md['triggers'].find(k =>Slave.compareSlaves(k.slave , sl)==0)).not.toBeNull()
 })
