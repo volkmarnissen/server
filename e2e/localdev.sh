@@ -144,7 +144,7 @@ server {
      root |wwwroot|;
      index info.json;
   }
-  location /addons/hardware/info {
+  location /hardware/info {
      root |wwwroot|;
      index hardware.json;
   }

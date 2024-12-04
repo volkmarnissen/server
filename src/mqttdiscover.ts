@@ -463,19 +463,10 @@ export class MqttDiscover {
       if (opts.key == undefined) delete opts.key
       if (opts.cert == undefined) delete opts.cert
       // Close client when connection ends
-      opts.will = {
-        topic: 'modbus2mqtt/will',
-        payload: Buffer.from('Goodbye!'),
-        qos: 1,
-      }
       this.client = connect(connectionData.mqttserverurl, opts as IClientOptions)
       this.client.on('error', error)
       this.client.on('connect', () => {
         debug('New MQTT Connection ')
-        this.client!.subscribe('modbus2mqtt/will', () => {
-          debug(LogLevelEnum.notice, 'MQTT Connection will be closed by Last will')
-          //this.client!.end()
-        })   
         onConnected()
       })
     } else {
@@ -670,9 +661,14 @@ export class MqttDiscover {
 
   subscribeSlave(busid:number, slave: Islave){
     let ss = new Slave(busid, slave,Config.getConfiguration().mqttbasetopic)
+    
     if( ! this.subscribedSlaves.find( s=> s.slave.getBaseTopic() == ss.getBaseTopic()) ){
       this.subscribedSlaves.push({slave: ss,discoveryTopicAndPayload:new Map<number,ItopicAndPayloads>()})
-      this.client!.subscribe( ss.getBaseTopic() + "/#")
+      this.getMqttClient().then(mqttClient=>{
+        mqttClient!.subscribe( ss.getBaseTopic() + "/#", { qos: slave.qos as any},(err) => {
+          if (err) log.log(LogLevelEnum.error, 'subscribeSlave: MQTT subscribe error: ', err.message)
+        })
+      })
     }
   }
 
