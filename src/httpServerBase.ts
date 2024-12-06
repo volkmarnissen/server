@@ -128,8 +128,8 @@ export class HttpServerBase {
     if (token != undefined) req.url = req.url.replace(token + '/', '')
     else token = HttpServerBase.getAuthTokenFromHeader(req)
     if (req.url.indexOf('/api/') >= 0 || req.url.indexOf('/user/register') >= 0 || req.url.indexOf('/download/') >= 0) {
-      let config = Config.getConfiguration()
-      if (config.hassiotoken) {
+      let authStatus = Config.getAuthStatus()
+      if (authStatus.hassiotoken) {
         let address = (req.socket.address() as AddressInfo).address
         if (
           !address ||
@@ -177,7 +177,7 @@ export class HttpServerBase {
     return new Promise<void>((resolve, reject) => {
       try {
         Config.executeHassioGetRequest<{ data: IAddonInfo }>(
-          'http://'+ Config.getConfiguration().supervisor_host + '/addons/self/info',
+          '/addons/self/info',
           (info) => {
             //this.ingressUrl = join("/hassio/ingress/", info.data.slug);
             this.ingressUrl = info.data.ingress_entry

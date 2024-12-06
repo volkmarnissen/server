@@ -1,11 +1,6 @@
 import Debug from 'debug'
 import { Observable, Subject, first } from 'rxjs'
-import {
-  ImodbusEntity,
-  ImodbusSpecification,
-  ModbusRegisterType,
-  SpecificationStatus,
-} from '@modbus2mqtt/specification.shared'
+import { ImodbusEntity, ImodbusSpecification, ModbusRegisterType, SpecificationStatus } from '@modbus2mqtt/specification.shared'
 import { IdentifiedStates } from '@modbus2mqtt/specification.shared'
 import { Mutex } from 'async-mutex'
 import { ImodbusAddress, ModbusCache } from './modbuscache'
@@ -469,12 +464,9 @@ export class Bus {
       Bus.getBusses().forEach((bus) => {
         bus.getSlaves().forEach((slave) => {
           debug('updateAllSpecificationsModbusAddresses slaveid: ' + slave.slaveid)
-          if(specificationid == null )
-            slave.specificationid = undefined 
-          else
-            slave.specificationid = specificationid
-          if (slave.specificationid == specificationid)
-            cfg.writeslave(bus.getId(), slave)
+          if (specificationid == null) slave.specificationid = undefined
+          else slave.specificationid = specificationid
+          if (slave.specificationid == specificationid) cfg.writeslave(bus.getId(), slave)
         })
       })
     }
@@ -627,11 +619,11 @@ export class Bus {
     let entityIdentifications: ImodbusEntity[] = []
 
     for (let ent of spec.entities) {
-      let em:ImodbusEntity = structuredClone(ent as any)
-      em.modbusValue=  []
+      let em: ImodbusEntity = structuredClone(ent as any)
+      em.modbusValue = []
       em.mqttValue = ''
-      em.identified= IdentifiedStates.notIdentified
-      entityIdentifications.push( structuredClone(ent as any))
+      em.identified = IdentifiedStates.notIdentified
+      entityIdentifications.push(structuredClone(ent as any))
     }
 
     let configuredslave = this.properties.slaves.find((dev) => dev.specificationid === spec.filename && dev.slaveid == slaveid)
@@ -646,9 +638,7 @@ export class Bus {
     }
   }
 
-  writeSlave(
-    slave: Islave
-  ): Islave {
+  writeSlave(slave: Islave): Islave {
     if (slave.slaveid < 0) throw new Error('Try to save invalid slave id ') // Make sure slaveid is unique
     let oldIdx = this.properties.slaves.findIndex((dev) => {
       return dev.slaveid === slave.slaveid

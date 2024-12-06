@@ -1,0 +1,64 @@
+filename: deye
+manufacturer: Deye
+model: SUN-10K-SG04LP3-EU
+i18n:
+  - lang: en
+    texts:
+      - textId: name
+        text: Deye Inverter
+      - textId: e1
+        text: Current Power
+      - textId: e3
+        text: Select Test
+      - textId: e3o.1
+        text: Option 1
+      - textId: e3o.2
+        text: Option 2
+      - textId: e3o.3
+        text: Option 3
+      - textId: e5
+        text: Select Test
+      - textId: e5o.1
+        text: Option 1
+      - textId: e5o.2
+        text: Option 2
+      - textId: e5o.3
+        text: Option 3
+entities:
+  - id: 0
+    mqttname: serialnumber
+    variableConfiguration:
+      targetParameter: 1
+    converter:
+      name: text
+      registerTypes: []
+    converterParameters:
+      stringlength: 12
+    registerType: 3
+    readonly: false
+    modbusAddress: 2
+  - id: 1
+    mqttname: currentpower
+    converter:
+      name: number
+      registerTypes: []
+    converterParameters:
+      uom: kW
+    registerType: 3
+    readonly: true
+    modbusAddress: 2
+  - id: 5
+    mqttname: selecttestWr
+    modbusAddress: 7
+    registerType: 3
+    readonly: true
+    converter:
+      name: select
+      registerTypes: []
+    converterParameters:
+      optionModbusValues:
+        - 1
+        - 2
+        - 3
+version: "0.3"
+testdata: {}

@@ -12,6 +12,7 @@ import {
   FileLocation,
 } from '@modbus2mqtt/specification.shared'
 import { Config } from '../src/config'
+import { FakeMqtt, FakeModes } from './configsbase'
 import supertest from 'supertest'
 import * as fs from 'fs'
 import { ImodbusSpecification, SpecificationFileUsage, getSpecificationI18nName } from '@modbus2mqtt/specification.shared'
@@ -41,6 +42,8 @@ import { ConfigSpecification } from '@modbus2mqtt/specification'
 import { Mutex } from 'async-mutex'
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU'
 import { join } from 'path'
+import { MqttDiscover } from '../src/mqttdiscover'
+import { MqttClient } from 'mqtt'
 let mockReject = false
 let debug = Debug('testhttpserver')
 Debug.debug('testhttpserver')
@@ -187,7 +190,7 @@ it('GET /specsForSlave', (done) => {
         (specs: IidentificationSpecification) => specs.filename == 'waterleveltransmitter'
       )
       expect(spec).not.toBeNull()
-    //  expect(spec.stateTopic).not.toBeNull()
+      //  expect(spec.stateTopic).not.toBeNull()
       done()
     })
 })
@@ -435,8 +438,13 @@ describe('http POST', () => {
 
   test('POST /specification: add new Specification rename device.specification', (done) => {
     mWaterlevel.runExclusive(() => {
-      jest.mock('../src/mqttdiscover')
-
+      let md = MqttDiscover['instance'] = new MqttDiscover({}, 'en')
+      Config['listeners'] = []
+      let fake = new FakeMqtt(md, FakeModes.Poll)
+      md['client'] = fake as any as MqttClient
+      md['connectMqtt'] = function (undefined, onConnected: () => void, error: (e: any) => void) {
+        onConnected()
+      }
       let spec1: ImodbusSpecification = Object.assign(spec)
       let lspec = yamlDir + '/local/specifications/'
       fs.copyFileSync(lspec + 'waterleveltransmitter.yaml', lspec + 'waterleveltransmitter.bck', undefined)
@@ -488,7 +496,8 @@ describe('http POST', () => {
     })
   })
   test('POST /modbus/entity: update ModbusCache data', (done) => {
-    //@ts-ignore
+    mWaterlevel.runExclusive(() => {
+      //@ts-ignore
     supertest(httpServer.app)
       .post('/api/modbus/entity?busid=0&slaveid=1&entityid=1')
       .send(spec2)
@@ -505,6 +514,7 @@ describe('http POST', () => {
       .catch((e) => {
         throw new Error('Exception caught ' + e)
       })
+    })
   })
 
   test('POST /modbus/bus: update bus', (done) => {

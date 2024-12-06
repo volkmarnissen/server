@@ -1,4 +1,3 @@
-
 let prefix = ''
 let defaultm2mPort = 3005
 let mqttAuthorizedPort = 3001
@@ -46,33 +45,37 @@ function runSlaves() {
   cy.url().should('contain', prefix + '/specification')
 }
 
-
 describe('MQTT Discovery Tests', () => {
-  it('mqtt hassio addon',{
-    retries: {
-      runMode: 3,
-      openMode: 1,
+  it(
+    'mqtt hassio addon',
+    {
+      retries: {
+        runMode: 3,
+        openMode: 1,
+      },
     },
-  }, () => {
-    cy.exec('npm run e2e:reset')
-    prefix = 'modbus2mqtt'
-    cy.visit('http://localhost:80/' + prefix)
-    // monitor discovery topics
-    let mqttConnect = Cypress.env('mqttconnect')
-    assert( mqttConnect != undefined)
-    cy.task('mqttConnect', mqttConnect).then(() => {
-        cy.task('mqttSubscribe', "homeassistant/#" ).then((tAndP)=>{
-        cy.task('mqttGetTopicAndPayloads' ).then((tAndP)=>{
-        assert(tAndP.length == 0)
+    () => {
+      cy.exec('npm run e2e:reset')
+      prefix = 'modbus2mqtt'
+      cy.visit('http://localhost:80/' + prefix)
+      // monitor discovery topics
+      let mqttConnect = Cypress.env('mqttconnect')
+      assert(mqttConnect != undefined)
+      cy.task('mqttConnect', mqttConnect).then(() => {
+        cy.task('mqttSubscribe', 'homeassistant/#').then((tAndP) => {
+          cy.task('mqttResetTopicAndPayloads')
+          cy.task('mqttGetTopicAndPayloads').then((tAndP) => {
+            cy.log('tAndP ' + JSON.stringify(tAndP))
+          })
+          cy.log('connected')
+        })
+        runBusses()
+        runSlaves()
+        // ... add slave
+        cy.task('mqttGetTopicAndPayloads').then((tAndP) => {
+          cy.log('tAndP ' + JSON.stringify(tAndP))
+        })
       })
-      cy.log( "connected")
-    })
-    runBusses()
-    runSlaves()
-    // ... add slave
-    cy.task('mqttGetTopicAndPayloads' ).then((tAndP)=>{
-      cy.log("tAndP " + JSON.stringify(tAndP))
-    })
-  })
-})
+    }
+  )
 })

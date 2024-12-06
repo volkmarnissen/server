@@ -76,6 +76,8 @@ mkdir -p ${BASEDIR}/temp/yaml-dir-addon/local
 if [ "$1" == "reset" ]
 then
   #daemon reload is not required: No changes to service
+  systemctl --user restart mosquitto.service
+  
   systemctl --user restart modbus2mqtt-e2e.service
   systemctl --user restart modbus2mqtt-addon.service
   checkServices
@@ -96,12 +98,10 @@ echo configure nginx
 sudo bash -c 'cat >'$WWWROOT'/services/mqtt/mqtt.json <<EOF
 {
   "data":{
-    "mqttconnect": {
       "host" : "localhost",
       "port" : 3001,
       "username" : "homeassistant",
       "password" : "homeassistant"
-    }
   }
 }
 EOF'
@@ -232,6 +232,7 @@ StartLimitIntervalSec=1
 [Service]
 Type=simple
 Environment="HASSIO_TOKEN=abcd1234"
+Environment="DEBUG=config.addon"
 ExecStart=|node| |cwd|/dist/modbus2mqtt.js -y |cwd|/e2e/temp/yaml-dir-addon -s |cwd|/e2e/temp/ssl 
 [Install]
 WantedBy=multi-user.target

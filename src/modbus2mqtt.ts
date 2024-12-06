@@ -12,7 +12,11 @@ import { ConfigSpecification } from '@modbus2mqtt/specification'
 import path, { dirname, join } from 'path'
 import { SpecificationStatus } from '@modbus2mqtt/specification.shared'
 import * as fs from 'fs'
-const { argv } = require('node:process');
+const { argv } = require('node:process')
+
+process.on('unhandledRejection', (reason, p) => {
+  log.log(LogLevelEnum.error, 'Unhandled Rejection at: Promise', p, 'reason:', JSON.stringify(reason))
+})
 
 const debug = Debug('modbus2mqtt')
 const debugAction = Debug('actions')
@@ -71,25 +75,21 @@ export class Modbus2Mqtt {
           Config.getConfiguration().githubPersonalToken
         )
         debug(Config.getConfiguration().mqttconnect.mqttserverurl)
-        let angulardir:undefined | string =  undefined
+        let angulardir: undefined | string = undefined
 
-          // hard coded workaround
-          // let angulardir = require.resolve('@modbus2mqtt/angular')
-          // Did not work in github workflow for testing
-          let dir = dirname(argv[1])
-          while(dir.length >0 && (!angulardir || !fs.existsSync(angulardir)))
-          {
-            angulardir = join(dir, "angular/dist/browser")
-            if(!fs.existsSync( angulardir) )
-              angulardir = join(dir, "node_modules/@modbus2mqtt/angular/dist/browser") 
-            dir = dirname(dir )
-          }
-        if(! angulardir || !fs.existsSync(angulardir)){
-          log.log(LogLevelEnum.error, "Unable to find angular start file " + angulardir)
-          process.exit(2)
+        // hard coded workaround
+        // let angulardir = require.resolve('@modbus2mqtt/angular')
+        // Did not work in github workflow for testing
+        let dir = dirname(argv[1])
+        while (dir.length > 0 && (!angulardir || !fs.existsSync(angulardir))) {
+          angulardir = join(dir, 'angular/dist/browser')
+          if (!fs.existsSync(angulardir)) angulardir = join(dir, 'node_modules/@modbus2mqtt/angular/dist/browser')
+          dir = dirname(dir)
         }
-        else
-          log.log(LogLevelEnum.notice, "angulardir is " + angulardir)
+        if (!angulardir || !fs.existsSync(angulardir)) {
+          log.log(LogLevelEnum.error, 'Unable to find angular start file ' + angulardir)
+          process.exit(2)
+        } else log.log(LogLevelEnum.notice, 'angulardir is ' + angulardir)
         let angulardirLang = path.parse(angulardir).dir
         debug('http root : ' + angulardir)
         let gh = new M2mGitHub(
@@ -121,7 +121,7 @@ export class Modbus2Mqtt {
             new ConfigSpecification().deleteNewSpecificationFiles()
             Bus.getAllAvailableModusData()
             if (process.env.MODBUS_NOPOLL == undefined) {
-              let md = Config.getMqttDiscover()
+              let md = MqttDiscover.getInstance()
               md.startPolling()
             } else {
               log.log(LogLevelEnum.notice, 'Poll disabled by environment variable MODBUS_POLL')

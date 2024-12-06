@@ -1,7 +1,6 @@
 import Debug from 'debug'
 import { parse, stringify } from 'yaml'
 import * as fs from 'fs'
-import { MqttDiscover } from './mqttdiscover'
 import * as path from 'path'
 import { join } from 'path'
 import stream from 'stream'
@@ -21,8 +20,11 @@ import {
   Islave,
   PollModes,
   Slave,
+  IUserAuthenticationStatus,
 } from '@modbus2mqtt/server.shared'
 import AdmZip from 'adm-zip'
+import { Bus } from './bus'
+import { MqttDiscover } from './mqttdiscover'
 
 const CONFIG_VERSION = '0.1'
 declare global {
@@ -39,6 +41,12 @@ export enum MqttValidationResult {
   tokenExpired = 1,
   error = 2,
 }
+export enum ConfigListenerEvent {
+  addSlave,
+  deleteSlave,
+  updateSlave,
+  deleteBus,
+}
 const log = new Logger('config')
 const secretsLength = 256
 const debug = Debug('config')
@@ -50,6 +58,22 @@ export const filesUrlPrefix = 'specifications/files'
 //const baseTopic = 'modbus2mqtt';
 //const baseTopicHomeAssistant = 'homeassistant';
 export class Config {
+  private static listeners: { event: ConfigListenerEvent; listener: ((arg: Slave) => void) | ((arg: number) => void) }[] = []
+  static addListener(event: ConfigListenerEvent, listener: ((arg: Slave) => void) | ((arg: number) => void)) {
+    Config.listeners.push({ event: event, listener: listener })
+  }
+  private static emitSlaveEvent(event: ConfigListenerEvent, arg: Slave) {
+    let rc = MqttDiscover.addSpecificationToSlave(arg)
+    Config.listeners.forEach((eventListener) => {
+      if (eventListener.event == event) (eventListener.listener as (arg: Slave) => void)(rc)
+    })
+  }
+  private static emitBusEvent(event: ConfigListenerEvent, arg: number) {
+    Config.listeners.forEach((eventListener) => {
+      if (eventListener.event == event) (eventListener.listener as (arg: number) => void)(arg)
+    })
+  }
+
   static tokenExpiryTime: number = defaultTokenExpiryTime
   static mqttHassioLoginData: ImqttClient | undefined = undefined
   static login(name: string, password: string): Promise<string> {
@@ -146,7 +170,6 @@ export class Config {
   private static config: Iconfiguration
   private static secret: string
   private static specificationsChanged = new Subject<string>()
-  private static bussesChanged = new Subject<void>()
   private static busses: IBus[]
   private static newConfig: Iconfiguration = {
     version: CONFIG_VERSION,
@@ -170,9 +193,7 @@ export class Config {
   static getSpecificationsChangedObservable(): Observable<string> {
     return Config.specificationsChanged
   }
-  static getBussesChangedObservable(): Observable<void> {
-    return Config.bussesChanged
-  }
+
   static getSecret(pathStr: string): string {
     let result = ''
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
@@ -211,7 +232,6 @@ export class Config {
     }
     let src = stringify(connection)
     fs.writeFileSync(join(busDir, 'bus.yaml'), src, { encoding: 'utf8' })
-    Config.bussesChanged.next()
     return Config.busses[busArrayIndex]
   }
   static updateBusProperties(bus: IBus, connection: IModbusConnection): IBus {
@@ -223,18 +243,15 @@ export class Config {
     }
     let src = stringify(connection)
     fs.writeFileSync(join(busDir, 'bus.yaml'), src, { encoding: 'utf8' })
-    Config.bussesChanged.next()
     return bus
   }
   static deleteBusProperties(busid: number) {
     let idx = Config.busses.findIndex((b) => b.busId == busid)
     if (idx >= 0) {
+      Config.emitBusEvent(ConfigListenerEvent.deleteBus, busid)
       let busDir = Config.yamlDir + '/local/busses/bus.' + busid
       Config.busses.splice(idx, 1)
       fs.rmSync(busDir, { recursive: true })
-      let mqd = this.getMqttDiscover()
-      mqd.deleteBus(busid)
-      Config.bussesChanged.next()
     }
   }
 
@@ -282,12 +299,12 @@ export class Config {
       Config.config.noAuthentication = Config.config.noAuthentication ? Config.config.noAuthentication : false
       Config.config.filelocation = Config.config.filelocation ? Config.config.filelocation : Config.yamlDir
       Config.busses = Config.busses && Config.busses.length > 0 ? Config.busses : []
-      Config.config.hassiotoken = process.env.HASSIO_TOKEN && process.env.HASSIO_TOKEN.length ? process.env.HASSIO_TOKEN : undefined
+      process.env.HASSIO_TOKEN && process.env.HASSIO_TOKEN.length ? process.env.HASSIO_TOKEN : undefined
       Config.config.mqttusehassio =
-        Config.config.mqttusehassio && Config.config.hassiotoken
+        Config.config.mqttusehassio && process.env.HASSIO_TOKEN && process.env.HASSIO_TOKEN.length
           ? Config.config.mqttusehassio
-          : Config.config.hassiotoken != undefined && Config.config.hassiotoken.length > 0
-      Config.config.supervisor_host = Config.config.supervisor_host?Config.config.supervisor_host:'supervisor'
+          : process.env.HASSIO_TOKEN != undefined && process.env.HASSIO_TOKEN.length > 0
+      Config.config.supervisor_host = Config.config.supervisor_host ? Config.config.supervisor_host : 'supervisor'
     } else {
       log.log(LogLevelEnum.notice, 'No config file found ')
       Config.config = structuredClone(Config.newConfig)
@@ -295,7 +312,18 @@ export class Config {
     }
     return structuredClone(Config.config)
   }
-
+  static getAuthStatus(): IUserAuthenticationStatus {
+    return {
+      registered:
+        Config.config.mqttusehassio ||
+        Config.config.noAuthentication ||
+        (Config.config.username != undefined && Config.config.password != undefined),
+      hassiotoken: Config.config.mqttusehassio ? Config.config.mqttusehassio : false,
+      noAuthentication: Config.config.noAuthentication ? Config.config.noAuthentication : false,
+      mqttConfigured: false,
+      preSelectedBusId: Bus.getBusses().length == 1 ? Bus.getBusses()[0].getId() : undefined,
+    }
+  }
   async readGetResponse(res: http.IncomingMessage): Promise<any> {
     return new Promise<any>((resolve, reject) => {
       let lbuffers: Uint8Array[] = []
@@ -316,7 +344,7 @@ export class Config {
       })
     })
   }
-  listDevicesUdev(next: (devices: string[]) => void, reject: (error: any) => void): void {
+  private static listDevicesUdev(next: (devices: string[]) => void, reject: (error: any) => void): void {
     SerialPort.list()
       .then((portInfo) => {
         let devices: string[] = []
@@ -330,9 +358,9 @@ export class Config {
       })
   }
 
-  listDevices(next: (devices: string[]) => void, reject: (error: any) => void): void {
+  static listDevices(next: (devices: string[]) => void, reject: (error: any) => void): void {
     try {
-      this.listDevicesHassio(next, (_e) => {
+      Config.listDevicesHassio(next, (_e) => {
         this.listDevicesUdev(next, reject)
       })
     } catch (e) {
@@ -344,52 +372,57 @@ export class Config {
     }
   }
   static executeHassioGetRequest<T>(url: string, next: (_dev: T) => void, reject: (error: any) => void): void {
-    let hassiotoken: string | undefined = Config.getConfiguration().hassiotoken
+    // This method can be called before configuration. It can't use config.hassio
+    let hassiotoken: string | undefined = process.env.HASSIO_TOKEN
     if (!hassiotoken || hassiotoken.length == 0) throw new Error('ENV: HASSIO_TOKEN not defined')
 
     const timer = setTimeout(() => {
+      clearTimeout(timer)
       reject(new Error('TIMEOUT(' + HASSIO_TIMEOUT + 'ms)'))
     }, HASSIO_TIMEOUT /* ms */)
-
-    fetch(url, {
-      headers: {
-        authorization: 'Bearer ' + hassiotoken,
-        accept: 'application/json',
-      },
-    })
-      .then((res) => {
-        clearTimeout(timer)
-        if (res)
-          res
-            .json()
-            .then((obj) => {
-              if (obj)
-                if (obj.data) next(obj)
-                else if (obj.result == 'error') reject(new Error('HASSIO: ' + obj.message))
-                else reject(new Error('get' + url + ' expected data root object: ' + JSON.stringify(obj)))
-            })
-            .catch((reason) => {
-              let msg = 'supervisor call ' + url + ' failed ' + JSON.stringify(reason) + ' ' + res.headers.get('content-type')
-              log.log(LogLevelEnum.error, msg)
-              reject(new Error(msg))
-            })
+    try {
+      fetch('http://' + Config.getConfiguration().supervisor_host + url, {
+        headers: {
+          authorization: 'Bearer ' + hassiotoken,
+          accept: 'application/json',
+        },
       })
-      .catch((reason) => {
-        clearTimeout(timer)
-        log.log(LogLevelEnum.error, JSON.stringify(reason))
-        reject(reason)
-      })
+        .then((res) => {
+          clearTimeout(timer)
+          if (res)
+            res
+              .json()
+              .then((obj) => {
+                if (obj)
+                  if (obj.data) next(obj)
+                  else if (obj.result == 'error') reject(new Error('HASSIO: ' + obj.message))
+                  else reject(new Error('get' + url + ' expected data root object: ' + JSON.stringify(obj)))
+              })
+              .catch((reason) => {
+                let msg = 'supervisor call ' + url + ' failed ' + JSON.stringify(reason) + ' ' + res.headers.get('content-type')
+                log.log(LogLevelEnum.error, msg)
+                reject(new Error(msg))
+              })
+        })
+        .catch((reason) => {
+          clearTimeout(timer)
+          log.log(LogLevelEnum.error, JSON.stringify(reason))
+          reject(reason)
+        })
+    } catch (e: any) {
+      log.log(LogLevelEnum.error, e.message)
+    }
   }
-  listDevicesHassio(next: (devices: string[]) => void, reject: (error: any) => void): void {
+  private static listDevicesHassio(next: (devices: string[]) => void, reject: (error: any) => void): void {
     Config.executeHassioGetRequest<string[]>(
-      'http://'+ Config.getConfiguration().supervisor_host + '/hardware/info',
+      '/hardware/info',
       (dev) => {
-        next(this.grepDevices(dev))
+        next(Config.grepDevices(dev))
       },
       reject
     )
   }
-  private grepDevices(bodyObject: any): string[] {
+  private static grepDevices(bodyObject: any): string[] {
     var devices: any[] = bodyObject.data.devices
     var rc: string[] = []
     devices.forEach((device) => {
@@ -444,7 +477,7 @@ export class Config {
     return new Promise<ImqttClient>((resolve, reject) => {
       try {
         Config.executeHassioGetRequest<{ data: ImqttClient }>(
-          'http://supervisor/services/mqtt',
+          '/services/mqtt',
           (mqtt) => {
             let config = Config.getConfiguration()
             config.mqttconnect = mqtt.data
@@ -543,98 +576,17 @@ export class Config {
             })
           }
           Config.config = parse(src)
-          if (Config.yamlDir.length  == 0) 
-            log.log(LogLevelEnum.error, "yamlDir not set")
-          else if(Config.config )
-            Config.config.filelocation = Config.yamlDir
+          if (Config.yamlDir.length == 0) log.log(LogLevelEnum.error, 'yamlDir not set')
+          else if (Config.config) Config.config.filelocation = Config.yamlDir
           else {
-            log.log(LogLevelEnum.error, "config file not parsed \"" + src + "\"")
+            log.log(LogLevelEnum.error, 'config file not parsed "' + src + '"')
           }
-            
         }
-        Config.busses = []
-        let busDir = Config.yamlDir + '/local/busses'
-        let oneBusFound = false
-        if (fs.existsSync(busDir)) {
-          let busDirs: fs.Dirent[] = fs.readdirSync(busDir, {
-            withFileTypes: true,
-          })
-          busDirs.forEach((de) => {
-            if (de.isDirectory() && de.name.startsWith('bus.')) {
-              let busid = Number.parseInt(de.name.substring(4))
-              let busYaml = join(de.path, de.name, 'bus.yaml')
-              let connectionData: IModbusConnection
-              if (fs.existsSync(busYaml)) {
-                var src: string = fs.readFileSync(busYaml, {
-                  encoding: 'utf8',
-                })
-                try{
-                  connectionData = parse(src)
-                  Config.busses.push({
-                    busId: busid,
-                    connectionData: connectionData,
-                    slaves: [],
-                  })
-                  oneBusFound = true
-                  let devFiles: string[] = fs.readdirSync(Config.yamlDir + '/local/busses/' + de.name)
-                  let md = Config.getMqttDiscover()
-                  devFiles.forEach(function (file: string) {
-                    if (file.endsWith('.yaml') && file !== 'bus.yaml') {
-                      var src: string = fs.readFileSync(Config.yamlDir + '/local/busses/' + de.name + '/' + file, {
-                        encoding: 'utf8',
-                      })
-                      var o: Islave = parse(src)
-                      Config.busses[Config.busses.length - 1].slaves.push(o)
-                      md.subscribeSlave(busid, o)
-                    }
-                  })
-  
-                }catch(e:any){
-                  log.log(LogLevelEnum.error, "Unable to parse bus os slave file: " + busYaml + "error:" + e.message)
-                }
-              }
-            }
-          })
-        }
-        if (!oneBusFound) {
-          this.listDevices(
-            (devices) => {
-              if (devices && devices.length) {
-                let usb = devices.find((dev) => dev.toLocaleLowerCase().indexOf('usb') >= 0)
-                if (usb)
-                  Config.addBusProperties({
-                    serialport: usb,
-                    timeout: BUS_TIMEOUT_DEFAULT,
-                    baudrate: 9600,
-                  })
-                else
-                  Config.addBusProperties({
-                    serialport: devices[0],
-                    timeout: BUS_TIMEOUT_DEFAULT,
-                    baudrate: 9600,
-                  })
-              } else
-                Config.addBusProperties({
-                  serialport: '/dev/ttyACM0',
-                  timeout: BUS_TIMEOUT_DEFAULT,
-                  baudrate: 9600,
-                })
-            },
-            () => {
-              Config.addBusProperties({
-                serialport: '/dev/ttyACM0',
-                timeout: BUS_TIMEOUT_DEFAULT,
-                baudrate: 9600,
-              })
-            }
-          )
-        }
-
-        debug('config: busses.length: ' + Config.busses.length)
         if (!Config.config || !Config.config.mqttconnect || !Config.isMqttConfigured(Config.config.mqttconnect)) {
           this.getMqttConnectOptions()
             .then((mqttLoginData) => {
               Config.mqttHassioLoginData = mqttLoginData
+
               resolve()
             })
             .catch((reason) => {
@@ -643,7 +595,10 @@ export class Config {
               // This should not stop the application
               resolve()
             })
-        } else resolve()
+        } else {
+          Config.readBusses()
+          resolve()
+        }
       } catch (error: any) {
         log.log(LogLevelEnum.error, 'readyaml failed: ' + error.message)
         throw error
@@ -669,18 +624,6 @@ export class Config {
     }
     return addresses
   }
-  static mqttDiscoverInstance: MqttDiscover | undefined
-  static getMqttDiscover(): MqttDiscover {
-    if (!Config.mqttDiscoverInstance)
-      if (Config.config.mqttusehassio && this.mqttHassioLoginData)
-        Config.mqttDiscoverInstance = new MqttDiscover(this.mqttHassioLoginData, Config.config.mqttdiscoverylanguage)
-      else Config.mqttDiscoverInstance = new MqttDiscover(Config.config.mqttconnect, Config.config.mqttdiscoverylanguage)
-    return Config.mqttDiscoverInstance
-  }
-
-  private triggerMqttPublishSlave(busid: number, slave: Islave) {
-    Config.getMqttDiscover().triggerPoll(new Slave(busid, slave, Config.config.mqttbasetopic),true)
-  }
 
   deleteSlave(busid: number, slaveid: number) {
     let bus = Config.busses.find((bus) => bus.busId == busid)
@@ -696,11 +639,10 @@ export class Config {
             fs.unlink(this.getslavePath(busid, dev), (err) => {
               if (err) debug(err)
             })
-            let mqd = Config.getMqttDiscover()
-            mqd.deleteSlave(new Slave(bus.busId, dev, Config.config.mqttbasetopic))
-            bus.slaves.splice(idx, 1)
-            debug('DELETE /slave finished ' + slaveid + ' number of slaves: ' + bus.slaves.length)
-            return
+          Config.emitSlaveEvent(ConfigListenerEvent.deleteSlave, new Slave(busid, dev, Config.config.mqttbasetopic))
+          bus.slaves.splice(idx, 1)
+          debug('DELETE /slave finished ' + slaveid + ' number of slaves: ' + bus.slaves.length)
+          return
         }
       }
       if (!found) debug('slave not found for deletion ' + slaveid)
@@ -743,11 +685,87 @@ export class Config {
     s = stringify(secrets)
     fs.writeFileSync(this.getSecretsPath(), s, { encoding: 'utf8' })
   }
+  private static readBusses() {
+    Config.busses = []
+    let busDir = Config.yamlDir + '/local/busses'
+    let oneBusFound = false
+    if (fs.existsSync(busDir)) {
+      let busDirs: fs.Dirent[] = fs.readdirSync(busDir, {
+        withFileTypes: true,
+      })
+      busDirs.forEach((de) => {
+        if (de.isDirectory() && de.name.startsWith('bus.')) {
+          let busid = Number.parseInt(de.name.substring(4))
+          let busYaml = join(de.path, de.name, 'bus.yaml')
+          let connectionData: IModbusConnection
+          if (fs.existsSync(busYaml)) {
+            var src: string = fs.readFileSync(busYaml, {
+              encoding: 'utf8',
+            })
+            try {
+              connectionData = parse(src)
+              Config.busses.push({
+                busId: busid,
+                connectionData: connectionData,
+                slaves: [],
+              })
+              oneBusFound = true
+              let devFiles: string[] = fs.readdirSync(Config.yamlDir + '/local/busses/' + de.name)
 
-  writeslave(
-    busid: number,
-    slave: Islave,
-  ): Islave {
+              devFiles.forEach(function (file: string) {
+                if (file.endsWith('.yaml') && file !== 'bus.yaml') {
+                  var src: string = fs.readFileSync(Config.yamlDir + '/local/busses/' + de.name + '/' + file, {
+                    encoding: 'utf8',
+                  })
+                  var o: Islave = parse(src)
+                  Config.busses[Config.busses.length - 1].slaves.push(o)
+                  Config.emitSlaveEvent(ConfigListenerEvent.addSlave, new Slave(busid, o, Config.config.mqttbasetopic))
+                }
+              })
+            } catch (e: any) {
+              log.log(LogLevelEnum.error, 'Unable to parse bus os slave file: ' + busYaml + 'error:' + e.message)
+            }
+          }
+        }
+      })
+    }
+    if (!oneBusFound) {
+      this.listDevices(
+        (devices) => {
+          if (devices && devices.length) {
+            let usb = devices.find((dev) => dev.toLocaleLowerCase().indexOf('usb') >= 0)
+            if (usb)
+              Config.addBusProperties({
+                serialport: usb,
+                timeout: BUS_TIMEOUT_DEFAULT,
+                baudrate: 9600,
+              })
+            else
+              Config.addBusProperties({
+                serialport: devices[0],
+                timeout: BUS_TIMEOUT_DEFAULT,
+                baudrate: 9600,
+              })
+          } else
+            Config.addBusProperties({
+              serialport: '/dev/ttyACM0',
+              timeout: BUS_TIMEOUT_DEFAULT,
+              baudrate: 9600,
+            })
+        },
+        () => {
+          Config.addBusProperties({
+            serialport: '/dev/ttyACM0',
+            timeout: BUS_TIMEOUT_DEFAULT,
+            baudrate: 9600,
+          })
+        }
+      )
+    }
+
+    debug('config: busses.length: ' + Config.busses.length)
+  }
+  writeslave(busid: number, slave: Islave): Islave {
     // Make sure slaveid is unique
     let oldFilePath = this.getslavePath(busid, slave)
     let filename = Config.getFileNameFromSlaveId(slave.slaveid)
@@ -760,14 +778,13 @@ export class Config {
         debug('Unable to create directory ' + dir + ' + e')
         throw e
       }
-    let o = structuredClone(slave)  
+    let o = structuredClone(slave)
     for (var prop in o) {
       if (Object.prototype.hasOwnProperty.call(o, prop)) {
-          let deletables:string[]= ["specification","durationOfLongestModbusCall","triggerPollTopic"]
-          if( deletables.includes(prop))
-            delete (o as any)[prop]
+        let deletables: string[] = ['specification', 'durationOfLongestModbusCall', 'triggerPollTopic']
+        if (deletables.includes(prop)) delete (o as any)[prop]
       }
-  }
+    }
     let s = stringify(o)
     fs.writeFileSync(newFilePath, s, { encoding: 'utf8' })
     if (oldFilePath !== newFilePath && fs.existsSync(oldFilePath))
@@ -781,8 +798,7 @@ export class Config {
         let spec = ConfigSpecification.getSpecificationByFilename(slave.specificationid)
         slave.specification = spec as any as IbaseSpecification
       }
-      Config.getMqttDiscover().subscribeSlave(busid,slave)
-      this.triggerMqttPublishSlave(busid, slave)
+      Config.emitSlaveEvent(ConfigListenerEvent.updateSlave, new Slave(busid, slave, Config.config.mqttbasetopic))
     } else debug('No Specification found for slave: ' + filename + ' specification: ' + slave.specificationid)
     return slave
   }

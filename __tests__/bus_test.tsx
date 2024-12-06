@@ -21,7 +21,7 @@ beforeAll(() => {
 
   Config['yamlDir'] = yamlDir
   new ConfigSpecification().readYaml()
-  new Config().readYamlAsync()
+  return new Config().readYamlAsync()
 })
 
 it('read slaves/delete slave/addSlave/read slave', () => {
@@ -32,7 +32,7 @@ it('read slaves/delete slave/addSlave/read slave', () => {
     let slaves = bus.getSlaves()
     let oldLength = slaves.length
     expect(bus.getSlaves().find((s) => s.slaveid == 10)).not.toBeDefined()
-    bus.writeSlave({slaveid: 10})
+    bus.writeSlave({ slaveid: 10 })
     slaves = bus.getSlaves()
     expect(slaves.length).toBeGreaterThan(oldLength)
     let b2 = Bus.getBus(0)
@@ -135,8 +135,8 @@ function testWrite(
   })
 }
 it('Bus getSpecsForDevice', (done) => {
-  prepareIdentification();
-  (Config['config'] as Iconfiguration).fakeModbus = true
+  prepareIdentification()
+  ;(Config['config'] as Iconfiguration).fakeModbus = true
   if (Config.getConfiguration().fakeModbus) debug(LogLevelEnum.notice, 'Fakemodbus')
   Bus.getBus(0)!
     .getAvailableSpecs(1, false)

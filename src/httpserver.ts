@@ -103,17 +103,11 @@ export class HttpServer extends HttpServerBase {
       req.acceptsLanguages()
       let config = Config.getConfiguration()
       let authHeader = req.header('Authorization')
-      let a: IUserAuthenticationStatus = {
-        registered:
-          config.mqttusehassio || config.noAuthentication || (config.username != undefined && config.password != undefined),
-        hassiotoken: config.mqttusehassio ? config.mqttusehassio : false,
-        noAuthentication: config.noAuthentication ? config.noAuthentication : false,
-        hasAuthToken: authHeader ? true : false,
-        authTokenExpired:
-          authHeader != undefined && HttpServer.validateUserToken(req, undefined) == MqttValidationResult.tokenExpired,
-        mqttConfigured: false,
-        preSelectedBusId: Bus.getBusses().length == 1 ? Bus.getBusses()[0].getId() : undefined,
-      }
+      let a: IUserAuthenticationStatus = Config.getAuthStatus()
+      ;(a.hasAuthToken = authHeader ? true : false),
+        (a.authTokenExpired =
+          authHeader != undefined && HttpServer.validateUserToken(req, undefined) == MqttValidationResult.tokenExpired)
+
       if (a.registered && (a.hassiotoken || a.hasAuthToken || a.noAuthentication))
         a.mqttConfigured = Config.isMqttConfigured(config.mqttconnect)
 
@@ -415,7 +409,7 @@ export class HttpServer extends HttpServerBase {
           this.validateMqttConnectionResult(req, res, false, 'No parameters configured')
           return
         }
-        let mqttdiscover = Config.getMqttDiscover()
+        let mqttdiscover = MqttDiscover.getInstance()
         let client = req.body.mqttconnect.mqttserverurl ? req.body.mqttconnect : undefined
 
         mqttdiscover.validateConnection(client, (valid, message) => {
@@ -499,7 +493,7 @@ export class HttpServer extends HttpServerBase {
     this.get(apiUri.serialDevices, (req: GetRequestWithParameter, res: http.ServerResponse) => {
       debug(req.url)
 
-      new Config().listDevices(
+      Config.listDevices(
         (devices) => {
           this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(devices))
         },
@@ -519,14 +513,14 @@ export class HttpServer extends HttpServerBase {
         this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "{message: '" + msg + "'}")
         return
       }
-      let bus:Bus| undefined = Bus.getBus(Number.parseInt(req.query.busid))
-      let slave: Islave | undefined = bus? bus.getSlaveBySlaveId(Number.parseInt(req.query.slaveid)):undefined
+      let bus: Bus | undefined = Bus.getBus(Number.parseInt(req.query.busid))
+      let slave: Islave | undefined = bus ? bus.getSlaveBySlaveId(Number.parseInt(req.query.slaveid)) : undefined
 
       let originalFilename: string | null = req.query.originalFilename ? req.query.originalFilename : null
       var rc = rd.writeSpecification(
         req.body,
         (filename: string) => {
-          if ( bus != undefined && slave != undefined) {
+          if (bus != undefined && slave != undefined) {
             slave.specificationid = filename
             new Config().writeslave(bus.getId(), slave)
           }
@@ -695,10 +689,8 @@ export class HttpServer extends HttpServerBase {
         bus.getSlaves().forEach((slave) => {
           if (slave.specificationid == req.query.spec) {
             delete slave.specificationid
-            if(slave.pollMode == undefined ) 
-              slave.pollMode= PollModes.intervall 
-            bus.writeSlave(
-              slave)
+            if (slave.pollMode == undefined) slave.pollMode = PollModes.intervall
+            bus.writeSlave(slave)
           }
         })
       })
