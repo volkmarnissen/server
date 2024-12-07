@@ -10,12 +10,14 @@ import { ConfigSpecification, IReadRegisterResultOrError, ImodbusValues, Logger 
 import { ModbusRegisterType } from '@modbus2mqtt/specification.shared'
 import { expect, describe, jest, beforeAll, test, afterAll } from '@jest/globals'
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU'
+import { ConfigBus } from '../src/configbus'
 const debug = Debug('modbuscachetest')
 let mockMutex = new Mutex()
 Config['yamlDir'] = yamlDir
 Config.sslDir = yamlDir
 
 new Config().readYaml()
+ConfigBus.readBusses()
 new ConfigSpecification().readYaml()
 let mockedConnectRTU = jest.fn() as jest.MockedFunction<typeof ModbusRTU.prototype.connectRTUBuffered>
 

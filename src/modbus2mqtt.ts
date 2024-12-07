@@ -12,6 +12,7 @@ import { ConfigSpecification } from '@modbus2mqtt/specification'
 import path, { dirname, join } from 'path'
 import { SpecificationStatus } from '@modbus2mqtt/specification.shared'
 import * as fs from 'fs'
+import { ConfigBus } from './configbus'
 const { argv } = require('node:process')
 
 process.on('unhandledRejection', (reason, p) => {
@@ -101,6 +102,7 @@ export class Modbus2Mqtt {
         debugAction('readBussesFromConfig starts')
         gh.init()
           .then(() => {
+            ConfigBus.readBusses()
             this.pollTasks()
             debugAction('readBussesFromConfig done')
             debug('Inititialize busses done')

@@ -11,7 +11,7 @@ import {
   M2mSpecification,
   emptyModbusValues,
 } from '@modbus2mqtt/specification'
-import { Config } from './config'
+import { ConfigBus } from './configbus'
 import { Modbus } from './modbus'
 import * as fs from 'fs'
 import { submitGetHoldingRegisterRequest } from './submitRequestMock'
@@ -30,6 +30,7 @@ import {
 } from '@modbus2mqtt/server.shared'
 import { ConfigSpecification } from '@modbus2mqtt/specification'
 import { MqttDiscover } from './mqttdiscover'
+import { Config } from './config'
 const debug = Debug('bus')
 const debugMutex = Debug('bus.mutex')
 const log = new Logger('bus')
@@ -42,7 +43,7 @@ export class Bus {
   private static busses: Bus[] | undefined = undefined
   private static allSpecificationsModbusAddresses: Set<ImodbusAddress> | undefined = undefined
   static readBussesFromConfig(): void {
-    let ibs = Config.getBussesProperties()
+    let ibs = ConfigBus.getBussesProperties()
     if (!Bus.busses) Bus.busses = []
     ibs.forEach((ib) => {
       let bus = Bus.busses!.find((bus) => bus.getId() == ib.busId)
@@ -69,7 +70,7 @@ export class Bus {
   }
   static addBus(connection: IModbusConnection): Bus {
     debug('addBus()')
-    let busP = Config.addBusProperties(connection)
+    let busP = ConfigBus.addBusProperties(connection)
     let b = Bus.getBusses().find((b) => b.getId() == busP.busId)
     if (b) throw new Error('Unable to add Bus it exists')
     else {
@@ -99,7 +100,7 @@ export class Bus {
   updateBus(connection: IModbusConnection): Bus {
     debug('updateBus()')
     if (this.connectionChanged(connection)) {
-      let busP = Config.updateBusProperties(this.properties, connection)
+      let busP = ConfigBus.updateBusProperties(this.properties, connection)
       let b = Bus.getBusses().find((b) => b.getId() == busP.busId)
       if (b) {
         b.properties = busP
@@ -116,7 +117,7 @@ export class Bus {
     let idx = Bus.getBusses().findIndex((b) => b.properties.busId == busid)
     if (idx >= 0) {
       Bus.getBusses().splice(idx, 1)
-      Config.deleteBusProperties(busid)
+      ConfigBus.deleteBusProperties(busid)
     }
   }
   static getBus(busid: number): Bus | undefined {
@@ -439,7 +440,7 @@ export class Bus {
   }
 
   deleteSlave(slaveid: number) {
-    new Config().deleteSlave(this.properties.busId, slaveid)
+    ConfigBus.deleteSlave(this.properties.busId, slaveid)
     if (this.slaves) this.slaves!.delete(slaveid)
   }
   static getModbusAddressesForSpec(spec: IfileSpecification, addresses: Set<ImodbusAddress>): void {
@@ -466,7 +467,7 @@ export class Bus {
           debug('updateAllSpecificationsModbusAddresses slaveid: ' + slave.slaveid)
           if (specificationid == null) slave.specificationid = undefined
           else slave.specificationid = specificationid
-          if (slave.specificationid == specificationid) cfg.writeslave(bus.getId(), slave)
+          if (slave.specificationid == specificationid) ConfigBus.writeslave(bus.getId(), slave)
         })
       })
     }
@@ -483,7 +484,7 @@ export class Bus {
     debug('getAllModbusAddresses')
     if (!Bus.allSpecificationsModbusAddresses) {
       Bus.updateAllSpecificationsModbusAddresses(null)
-      Config.getSpecificationsChangedObservable().subscribe(Bus.updateAllSpecificationsModbusAddresses)
+     // Config.getSpecificationsChangedObservable().subscribe(Bus.updateAllSpecificationsModbusAddresses)
     }
     return Bus.allSpecificationsModbusAddresses!
   }
@@ -643,7 +644,7 @@ export class Bus {
     let oldIdx = this.properties.slaves.findIndex((dev) => {
       return dev.slaveid === slave.slaveid
     })
-    new Config().writeslave(this.properties.busId, slave)
+    ConfigBus.writeslave(this.properties.busId, slave)
 
     if (oldIdx >= 0) this.properties.slaves[oldIdx] = slave
     else this.properties.slaves.push(slave)

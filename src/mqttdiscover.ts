@@ -15,16 +15,16 @@ import { Ientity, ImodbusEntity, VariableTargetParameters, getSpecificationI18nE
 import { ClientSubscribeCallback, IClientOptions, IClientPublishOptions, MqttClient, connect } from 'mqtt'
 import { Modbus } from './modbus'
 import { Bus } from './bus'
+import {ConfigBus} from './configbus'
 import Debug from 'debug'
 import { LogLevelEnum, Logger } from '@modbus2mqtt/specification'
 import { ImqttClient, Islave, PollModes, Slave } from '@modbus2mqtt/server.shared'
 import { Mutex } from 'async-mutex'
-
+import { rejects } from 'assert'
 const debug = Debug('mqttdiscover')
 const debugAction = Debug('actions')
 const log = new Logger('mqttdiscover')
 const defaultPollCount = 50 // 5 seconds
-Debug.debug('mqttdiscover')
 export interface ItopicAndPayloads {
   topic: string
   payload: string
@@ -96,10 +96,10 @@ export class MqttDiscover {
     const reg = new FinalizationRegistry(this.onDestroy.bind(this))
     this.isSubscribed = false
     reg.register(this, 0)
-    Config.addListener(ConfigListenerEvent.addSlave, this.onAddSlave.bind(this))
-    Config.addListener(ConfigListenerEvent.deleteSlave, this.onDeleteSlave.bind(this))
-    Config.addListener(ConfigListenerEvent.updateSlave, this.onUpdateSlave.bind(this))
-    Config.addListener(ConfigListenerEvent.deleteBus, this.onDeleteBus.bind(this))
+    ConfigBus.addListener(ConfigListenerEvent.addSlave, this.onAddSlave.bind(this))
+    ConfigBus.addListener(ConfigListenerEvent.deleteSlave, this.onDeleteSlave.bind(this))
+    ConfigBus.addListener(ConfigListenerEvent.updateSlave, this.onUpdateSlave.bind(this))
+    ConfigBus.addListener(ConfigListenerEvent.deleteBus, this.onDeleteBus.bind(this))
   }
   // bus/slave name:entity id:payload
 
@@ -338,7 +338,7 @@ export class MqttDiscover {
     }
     return 'unknown issue'
   }
-  private sendCommandModbus(slave: Slave, entity: Ientity, modbus: boolean, payload: string): Promise<void> | undefined {
+  private sendCommandModbus(slave: Slave, entity: Ientity, modbus: boolean, payload: string): Promise<void> {
     if (entity && slave) {
       const cnv = ConverterMap.getConverter(entity)
       if (cnv) {
@@ -356,62 +356,68 @@ export class MqttDiscover {
         }
       } // for Testing
     }
-    return undefined
+    return new Promise<void>((resolve)=>{resolve()})
   }
-  private onMqttMessage(topic: string, payload: Buffer) {
-    let s = this.subscribedSlaves.find((s) => topic.startsWith(s.getBaseTopic()!))
-    if (s) {
-      if (s.getTriggerPollTopic() == topic) this.readModbusAndPublishState(s)
+  // returns a promise for testing
+  private onMqttMessage(topic: string, payload: Buffer):Promise<void> {
+    if( topic ){
+      let s = this.subscribedSlaves.find((s) => topic.startsWith(s.getBaseTopic()!))
       if (s) {
-        let entity = s.getEntityFromCommandTopic(topic)
-        if (entity) {
-          let promise = this.sendCommandModbus(s, entity, topic.endsWith('/setModbus/'), payload.toString())
-          if (promise)
-            promise
-              .then(() => {
-                debug('Command sent to Modbus')
-              })
-              .catch((e) => {
-                log.log(LogLevelEnum.error, e.message)
-              })
+        if (s.getTriggerPollTopic() == topic) return this.readModbusAndPublishState(s)
+        else {
+          let entity = s.getEntityFromCommandTopic(topic)
+          if (entity) 
+            return new Promise<void>((resolve, reject)=>{
+              this.sendCommandModbus(s, entity, topic.endsWith('/setModbus/'), payload.toString()).then(()=>{
+                this.readModbusAndPublishState(s).then(resolve).catch(reject)              
+              }).catch(reject)
+          })
+          }
         }
-      }
     }
+    return new Promise<void>((resolve)=>{resolve()})
   }
   private containsTopic(tp: ItopicAndPayloads, tps: ItopicAndPayloads[]) {
     let t = tps.findIndex((t) => tp.topic === t.topic)
     return -1 != t
   }
 
-  private publishDiscoveryEntities(slave: Slave, deleteAllEntities: boolean = false) {
-    this.getMqttClient().then((mqttClient) => {
-      let subscribedSlave = this.subscribedSlaves.find((s) => Slave.compareSlaves(s, slave))
-      let newSpec = slave.getSpecification()
-      let oldSpec = subscribedSlave ? subscribedSlave?.getSpecification() : undefined
-      if (oldSpec && oldSpec.entities && this.client) {
-        oldSpec.entities.forEach((oldEnt) => {
-          let newEnt = oldSpec?.entities.find((newE) => newE.id == oldEnt.id)
-          let newTopic = newEnt?this.generateEntityConfigurationTopic(slave, newEnt):undefined
-          let oldTopic = oldEnt ? this.generateEntityConfigurationTopic(slave, oldEnt) : undefined
-          if (oldTopic)
-            if (!newSpec || deleteAllEntities || !newEnt || newTopic != oldTopic) {
-              if (oldEnt) debug('delete entity ' + slave.getBusId() + 's' + slave.getSlaveId() + '/e' + oldEnt.id)
-              else debug('delete Bus/slave ')
-              this.client!.publish(oldTopic, Buffer.alloc(0), retain) // delete entity
-            }
-        })
-        // Insert new/changed topics
-        if (!deleteAllEntities && newSpec && newSpec.entities && this.client) {
-          newSpec.entities.forEach((newEnt) => {
-            let oldEnt = oldSpec.entities.find((oldEnt) => oldEnt.id == newEnt.id  )
-            this.generateDiscoveryPayloads(slave, newSpec as ImodbusSpecification).forEach(tp=>{
-              this.client!.publish(tp.topic, tp.payload, retain) // write entity
+  private publishDiscoveryEntities(slave: Slave, deleteAllEntities: boolean = false):Promise<void> {
+    return new Promise<void>((resolve, reject)=>{
+      this.getMqttClient().then((mqttClient) => {
+        try{
+          let subscribedSlave = this.subscribedSlaves.find((s) => Slave.compareSlaves(s, slave))
+          let newSpec = slave.getSpecification()
+          let oldSpec = subscribedSlave ? subscribedSlave?.getSpecification() : undefined
+          if (oldSpec && oldSpec.entities && this.client) {
+            oldSpec.entities.forEach((oldEnt) => {
+              let newEnt = oldSpec?.entities.find((newE) => newE.id == oldEnt.id)
+              let newTopic = newEnt?this.generateEntityConfigurationTopic(slave, newEnt):undefined
+              let oldTopic = oldEnt ? this.generateEntityConfigurationTopic(slave, oldEnt) : undefined
+              if (oldTopic)
+                if (!newSpec || deleteAllEntities || !newEnt || newTopic != oldTopic) {
+                  if (oldEnt) debug('delete entity ' + slave.getBusId() + 's' + slave.getSlaveId() + '/e' + oldEnt.id)
+                  else debug('delete Bus/slave ')
+                  this.client!.publish(oldTopic, Buffer.alloc(0), retain) // delete entity
+                }
             })
-
-            })
+          }
+          // Insert new/changed topics
+          if (!deleteAllEntities && newSpec && newSpec.entities && this.client) {
+              newSpec.entities.forEach((newEnt) => {
+                this.generateDiscoveryPayloads(slave, newSpec as ImodbusSpecification).forEach(tp=>{
+                  this.client!.publish(tp.topic, tp.payload, retain) // write entity
+                })
+                })
+          }
+          resolve()      
         }
-    }
-  })
+        catch(e){
+          reject(e)
+        }
+
+        }).catch(reject)
+    })
   }
 
   private error(msg: any): void {
@@ -499,46 +505,45 @@ export class MqttDiscover {
     return new Promise<void>((resolve, reject) => {
       let busId = slave.getBusId()
       let bus: Bus | undefined = busId != undefined ? Bus.getBus(busId) : undefined
-      let specification = slave.getSpecification()
-      if (bus && specification)
-        Modbus.getModbusSpecification('poll', bus, slave.getSlaveId(), specification.filename, (e) => {
-          log.log(LogLevelEnum.error, 'reading spec failed' + e.message)
-          reject(e)
-        }).subscribe((spec) => {
-          let idx = this.triggers.findIndex((k) => Slave.compareSlaves(k.slave, slave))
-          this.publishDiscoveryEntities(slave) // no wait
-          this.publishState(slave, spec)
-          resolve()
-        })
+      if (bus )
+        this.publishDiscoveryEntities(slave).then(()=>{
+          this.readModbusAndPublishState(slave).then(()=>{
+            resolve()
+          }).catch(reject)
+          
+      }).catch(reject) // no wait        
     })
   }
-  onDeleteBus(busid: number) {
-    let slaves = new Set<number>()
+  onDeleteBus(busid: number): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      let slaves = new Set<number>()
     let deletions: number[] = []
     this.subscribedSlaves.forEach((ss, idx, object) => {
       let sbusId = ss.getBusId()
       if (sbusId == busid) {
-        this.publishDiscoveryEntities(ss,true)
+        this.publishDiscoveryEntities(ss,true).then(()=>{
+          object.splice(idx, 1)
+          resolve()
+      }).catch(reject) // no wait
         object.splice(idx, 1)
       }
     })
+  })
   }
 
   private readModbusAndPublishState(slave: Slave): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
+    return new Promise<void>((resolve, reject)=>{
       let bus = Bus.getBus(slave.getBusId())
       if (bus)
         Modbus.getModbusSpecification('poll', bus, slave.getSlaveId(), slave.getSpecificationId(), (e) => {
           log.log(LogLevelEnum.error, 'reading spec failed' + e.message)
-          reject(e)
+          //Ignore this error continue with next
         }).subscribe((spec) => {
-          let idx = this.triggers.findIndex((k) => Slave.compareSlaves(k.slave, slave))
-          this.publishState(slave, spec)
-          resolve()
+          this.publishState(slave, spec).then(resolve).catch(reject)
         })
     })
   }
-  private publishState(slave: Slave, spec: ImodbusSpecification | undefined): Promise<void> {
+  private publishState(slave: Slave, spec: ImodbusSpecification ): Promise<void> {
     return new Promise<void>((resolve) => {
       let topic = slave.getStateTopic()
       let bus = Bus.getBus(slave.getBusId())
@@ -546,11 +551,13 @@ export class MqttDiscover {
         try {
           this.client!.publish(topic, slave.getStatePayload(spec.entities), { qos: slave.getQos() as any })
           this.client!.publish(slave.getAvailabilityTopic(), 'online', { qos: slave.getQos() as any })
+          resolve();
         } catch (e) {
           try {
             this.client!.publish(slave.getAvailabilityTopic(), 'offline', { qos: slave.getQos() as any })
           } catch (e) {
             // ignore the error
+            debug("Error")
           }
         }
       } else {
@@ -603,7 +610,6 @@ export class MqttDiscover {
       if (needPolls.length > 0)
         this.getMqttClient()
           .then((mqttClient) => {
-            this.subscribeDiscovery()
             needPolls.forEach((bs) => {
               // Trigger state only if it's configured to do so
               let spMode = bs.slave.getPollMode()
@@ -645,42 +651,22 @@ export class MqttDiscover {
     })
   }
 
-  triggerPoll(slave: Slave, force: boolean = false) {
-    if (slave) {
-      this.triggers.push({ slave: slave, force: force })
-    }
-  }
-  private subscribeDiscovery() {
-    if (this.isSubscribed) return
-    this.isSubscribed = true
-    if (this.client == undefined) {
-      log.log(LogLevelEnum.error, 'subscribeDiscovery: MQTT not connected (internal Error)')
-      return
-    } else if (this.client.disconnected) {
-      log.log(LogLevelEnum.error, 'subscribeDiscovery: MQTT disconnected')
-      return
-    }
-    this.client.subscribe(this.getSlavesConfigurationTopic(), { qos: 1 }, (err) => {
-      if (err) log.log(LogLevelEnum.error, 'updatPublishSlave: MQTT subscribe error: ', err.message)
+
+  onAddSlave(slave: Slave):Promise<void> {
+    return new Promise<void>((resolve, reject)=>{
+      if (!this.subscribedSlaves.find((s) => s.getBaseTopic() == slave.getBaseTopic())) {
+        this.subscribedSlaves.push(slave )
+        this.getMqttClient()
+          .then((mqttClient) => {
+            this.onUpdateSlave(slave).then(()=>{
+              mqttClient!.subscribe(slave.getBaseTopic() + '/#', { qos: slave.getQos() as any }, (err) => {
+                if (err) log.log(LogLevelEnum.error, 'subscribeSlave: MQTT subscribe error: ', err.message)
+              })
+              resolve()
+            }).catch(reject)
+          }).catch(reject)
+      }  
     })
-
-    this.client.on('message', this.onMqttMessage.bind(this))
-  }
-
-  onAddSlave(slave: Slave) {
-    if (!this.subscribedSlaves.find((s) => s.getBaseTopic() == slave.getBaseTopic())) {
-      this.subscribedSlaves.push(slave )
-      this.getMqttClient()
-        .then((mqttClient) => {
-          this.onUpdateSlave(slave)
-          mqttClient!.subscribe(slave.getBaseTopic() + '/#', { qos: slave.getQos() as any }, (err) => {
-            if (err) log.log(LogLevelEnum.error, 'subscribeSlave: MQTT subscribe error: ', err.message)
-          })
-        })
-        .catch((e) => {
-          log.log(LogLevelEnum.error, e.message)
-        })
-    }
   }
 
   onDeleteSlave(slave: Slave) {

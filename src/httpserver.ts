@@ -29,6 +29,7 @@ import { ConfigSpecification } from '@modbus2mqtt/specification'
 import { HttpServerBase } from './httpServerBase'
 import { MqttDiscover } from './mqttdiscover'
 import { Writable } from 'stream'
+import { ConfigBus } from './configbus'
 const debug = Debug('httpserver')
 const log = new Logger('httpserver')
 // import cors from 'cors';
@@ -493,7 +494,7 @@ export class HttpServer extends HttpServerBase {
     this.get(apiUri.serialDevices, (req: GetRequestWithParameter, res: http.ServerResponse) => {
       debug(req.url)
 
-      Config.listDevices(
+      ConfigBus.listDevices(
         (devices) => {
           this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(devices))
         },
@@ -522,7 +523,7 @@ export class HttpServer extends HttpServerBase {
         (filename: string) => {
           if (bus != undefined && slave != undefined) {
             slave.specificationid = filename
-            new Config().writeslave(bus.getId(), slave)
+            ConfigBus.writeslave(bus.getId(), slave)
           }
         },
         originalFilename

@@ -44,9 +44,9 @@ import { ReadRegisterResult } from 'modbus-serial/ModbusRTU'
 import { join } from 'path'
 import { MqttDiscover } from '../src/mqttdiscover'
 import { MqttClient } from 'mqtt'
+import { ConfigBus } from '../src/configbus'
 let mockReject = false
 let debug = Debug('testhttpserver')
-Debug.debug('testhttpserver')
 const mqttService = {
   host: 'core-mosquitto',
   port: 1883,
@@ -133,6 +133,7 @@ beforeAll(() => {
     Config['yamlDir'] = yamlDir
     let cfg = new Config()
     cfg.readYamlAsync().then(() => {
+      ConfigBus.readBusses()
       ;(Config as any)['fakeModbusCache'] = true
       jest.mock('../src/modbus')
       ModbusCache.prototype.submitGetHoldingRegisterRequest = submitGetHoldingRegisterRequest
@@ -437,9 +438,8 @@ describe('http POST', () => {
   })
 
   test('POST /specification: add new Specification rename device.specification', (done) => {
-    mWaterlevel.runExclusive(() => {
       let md = MqttDiscover['instance'] = new MqttDiscover({}, 'en')
-      Config['listeners'] = []
+      ConfigBus['listeners'] = []
       let fake = new FakeMqtt(md, FakeModes.Poll)
       md['client'] = fake as any as MqttClient
       md['connectMqtt'] = function (undefined, onConnected: () => void, error: (e: any) => void) {
@@ -493,10 +493,8 @@ describe('http POST', () => {
           fs.copyFileSync(lspec + 'waterleveltransmitter.bck', filename)
           fs.unlinkSync(lspec + 'waterleveltransmitter.bck')
         })
-    })
   })
   test('POST /modbus/entity: update ModbusCache data', (done) => {
-    mWaterlevel.runExclusive(() => {
       //@ts-ignore
     supertest(httpServer.app)
       .post('/api/modbus/entity?busid=0&slaveid=1&entityid=1')
@@ -514,13 +512,12 @@ describe('http POST', () => {
       .catch((e) => {
         throw new Error('Exception caught ' + e)
       })
-    })
   })
 
   test('POST /modbus/bus: update bus', (done) => {
     let conn = structuredClone(Bus.getBus(0)!.properties.connectionData)
     conn.timeout = 500
-    Config.updateBusProperties(Bus.getBus(0)!.properties!, conn)
+    ConfigBus.updateBusProperties(Bus.getBus(0)!.properties!, conn)
     //@ts-ignore
     supertest(httpServer.app)
       .post('/api/bus?busid=0')
@@ -529,7 +526,7 @@ describe('http POST', () => {
       .then((_response) => {
         expect(Bus.getBus(0)!.properties.connectionData.timeout).toBe(500)
         conn.timeout = 100
-        Config.updateBusProperties(Bus.getBus(0)!.properties!, conn)
+        ConfigBus.updateBusProperties(Bus.getBus(0)!.properties!, conn)
         expect(Bus.getBus(0)!.properties.connectionData.timeout).toBe(100)
         done()
       })

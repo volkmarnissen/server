@@ -8,11 +8,12 @@ import { ConfigSpecification } from '@modbus2mqtt/specification'
 import { join } from 'path'
 import { Readable } from 'stream'
 import AdmZip from 'adm-zip'
+import { ConfigBus } from '../src/configbus'
 
 const yamlDir = '__tests__/yaml-dir'
 ConfigSpecification.yamlDir = yamlDir
 new ConfigSpecification().readYaml()
-Config.sslDir = yamlDir
+Config['sslDir'] = yamlDir
 
 var httpServer: HttpServer
 
@@ -22,6 +23,7 @@ beforeAll(() => {
     Config['yamlDir'] = yamlDir
     let cfg = new Config()
     cfg.readYamlAsync().then(() => {
+      ConfigBus.readBusses()
       HttpServer.prototype.authenticate = (req, res, next) => {
         next()
       }

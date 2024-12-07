@@ -8,12 +8,13 @@ import { IdentifiedStates } from '@modbus2mqtt/specification.shared'
 import { ConfigSpecification, IReadRegisterResultOrError, LogLevelEnum } from '@modbus2mqtt/specification'
 import { singleMutex } from './configsbase'
 import { Iconfiguration, PollModes } from '@modbus2mqtt/server.shared'
+import { ConfigBus } from '../src/configbus'
 
 const debug = Debug('bustest')
 const testPort = 8888
 Config['yamlDir'] = yamlDir
 ConfigSpecification.yamlDir = yamlDir
-Config.sslDir = yamlDir
+Config['sslDir'] = yamlDir
 
 beforeAll(() => {
   jest.restoreAllMocks()
@@ -21,7 +22,12 @@ beforeAll(() => {
 
   Config['yamlDir'] = yamlDir
   new ConfigSpecification().readYaml()
-  return new Config().readYamlAsync()
+  return new Promise<void>((resolve, reject)=>{
+    new Config().readYamlAsync().then(()=>{
+      ConfigBus.readBusses()
+      resolve()
+    }).catch( reject)
+  })
 })
 
 it('read slaves/delete slave/addSlave/read slave', () => {

@@ -8,7 +8,7 @@ import AdmZip from 'adm-zip'
 import Debug from 'debug'
 import exp from 'constants'
 Config['yamlDir'] = yamlDir
-Config.sslDir = yamlDir
+Config['sslDir'] = yamlDir
 let debug = Debug('config_test')
 beforeAll(() => {
   return new Promise<void>((resolve, reject) => {
