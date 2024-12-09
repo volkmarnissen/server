@@ -22,11 +22,14 @@ beforeAll(() => {
 
   Config['yamlDir'] = yamlDir
   new ConfigSpecification().readYaml()
-  return new Promise<void>((resolve, reject)=>{
-    new Config().readYamlAsync().then(()=>{
-      ConfigBus.readBusses()
-      resolve()
-    }).catch( reject)
+  return new Promise<void>((resolve, reject) => {
+    new Config()
+      .readYamlAsync()
+      .then(() => {
+        ConfigBus.readBusses()
+        resolve()
+      })
+      .catch(reject)
   })
 })
 

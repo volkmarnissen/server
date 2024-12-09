@@ -484,7 +484,7 @@ export class Bus {
     debug('getAllModbusAddresses')
     if (!Bus.allSpecificationsModbusAddresses) {
       Bus.updateAllSpecificationsModbusAddresses(null)
-     // Config.getSpecificationsChangedObservable().subscribe(Bus.updateAllSpecificationsModbusAddresses)
+      // Config.getSpecificationsChangedObservable().subscribe(Bus.updateAllSpecificationsModbusAddresses)
     }
     return Bus.allSpecificationsModbusAddresses!
   }

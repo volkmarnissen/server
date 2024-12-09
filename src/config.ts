@@ -58,7 +58,6 @@ export const filesUrlPrefix = 'specifications/files'
 //const baseTopic = 'modbus2mqtt';
 //const baseTopicHomeAssistant = 'homeassistant';
 export class Config {
-
   static tokenExpiryTime: number = defaultTokenExpiryTime
   static mqttHassioLoginData: ImqttClient | undefined = undefined
   static login(name: string, password: string): Promise<string> {

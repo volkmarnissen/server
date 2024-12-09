@@ -438,64 +438,64 @@ describe('http POST', () => {
   })
 
   test('POST /specification: add new Specification rename device.specification', (done) => {
-      let md = MqttDiscover['instance'] = new MqttDiscover({}, 'en')
-      ConfigBus['listeners'] = []
-      let fake = new FakeMqtt(md, FakeModes.Poll)
-      md['client'] = fake as any as MqttClient
-      md['connectMqtt'] = function (undefined, onConnected: () => void, error: (e: any) => void) {
-        onConnected()
-      }
-      let spec1: ImodbusSpecification = Object.assign(spec)
-      let lspec = yamlDir + '/local/specifications/'
-      fs.copyFileSync(lspec + 'waterleveltransmitter.yaml', lspec + 'waterleveltransmitter.bck', undefined)
+    let md = (MqttDiscover['instance'] = new MqttDiscover({}, 'en'))
+    ConfigBus['listeners'] = []
+    let fake = new FakeMqtt(md, FakeModes.Poll)
+    md['client'] = fake as any as MqttClient
+    md['connectMqtt'] = function (undefined, onConnected: () => void, error: (e: any) => void) {
+      onConnected()
+    }
+    let spec1: ImodbusSpecification = Object.assign(spec)
+    let lspec = yamlDir + '/local/specifications/'
+    fs.copyFileSync(lspec + 'waterleveltransmitter.yaml', lspec + 'waterleveltransmitter.bck', undefined)
 
-      let filename = yamlDir + '/local/specifications/waterleveltransmitter.yaml'
-      fs.unlinkSync(ConfigSpecification['getSpecificationPath'](spec1))
-      let url = apiUri.specfication + '?busid=0&slaveid=2&originalFilename=waterleveltransmitter'
+    let filename = yamlDir + '/local/specifications/waterleveltransmitter.yaml'
+    fs.unlinkSync(ConfigSpecification['getSpecificationPath'](spec1))
+    let url = apiUri.specfication + '?busid=0&slaveid=2&originalFilename=waterleveltransmitter'
 
-      //@ts-ignore
-      supertest(httpServer.app)
-        .post(url)
-        .accept('application/json')
-        .send(spec1)
-        .expect(HttpErrorsEnum.OkCreated)
-        .catch((e) => {
-          log.log(LogLevelEnum.error, JSON.stringify(e))
-          expect(1).toBeFalsy()
-        })
-        .then((_response) => {
-          // expect((response as any as Response).status).toBe(HttpErrorsEnum.ErrBadRequest)
-          let testdata: ImodbusValues = {
-            holdingRegisters: new Map<number, IReadRegisterResultOrError>(),
-            analogInputs: new Map<number, IReadRegisterResultOrError>(),
-            coils: new Map<number, IReadRegisterResultOrError>(),
-          }
-          testdata.holdingRegisters.set(100, { error: new Error('failed!!!') })
-          Bus.getBus(0)!['setModbusAddressesForSlave'](2, testdata)
-          supertest(httpServer.app)
-            .post(url)
-            .accept('application/json')
-            .send(spec1)
-            .expect(HttpErrorsEnum.OkCreated)
-            .then((response) => {
-              var found = ConfigSpecification.getSpecificationByFilename(spec1.filename)!
-              let newFilename = ConfigSpecification['getSpecificationPath'](response.body)
-              expect(fs.existsSync(newFilename)).toBeTruthy()
-              expect(getSpecificationI18nName(found!, 'en')).toBe('Water Level Transmitter')
-              expect(response)
-              done()
-            })
-            .catch((_e) => {
-              log.log(LogLevelEnum.error, _e)
-            })
-        })
-        .finally(() => {
-          fs.copyFileSync(lspec + 'waterleveltransmitter.bck', filename)
-          fs.unlinkSync(lspec + 'waterleveltransmitter.bck')
-        })
+    //@ts-ignore
+    supertest(httpServer.app)
+      .post(url)
+      .accept('application/json')
+      .send(spec1)
+      .expect(HttpErrorsEnum.OkCreated)
+      .catch((e) => {
+        log.log(LogLevelEnum.error, JSON.stringify(e))
+        expect(1).toBeFalsy()
+      })
+      .then((_response) => {
+        // expect((response as any as Response).status).toBe(HttpErrorsEnum.ErrBadRequest)
+        let testdata: ImodbusValues = {
+          holdingRegisters: new Map<number, IReadRegisterResultOrError>(),
+          analogInputs: new Map<number, IReadRegisterResultOrError>(),
+          coils: new Map<number, IReadRegisterResultOrError>(),
+        }
+        testdata.holdingRegisters.set(100, { error: new Error('failed!!!') })
+        Bus.getBus(0)!['setModbusAddressesForSlave'](2, testdata)
+        supertest(httpServer.app)
+          .post(url)
+          .accept('application/json')
+          .send(spec1)
+          .expect(HttpErrorsEnum.OkCreated)
+          .then((response) => {
+            var found = ConfigSpecification.getSpecificationByFilename(spec1.filename)!
+            let newFilename = ConfigSpecification['getSpecificationPath'](response.body)
+            expect(fs.existsSync(newFilename)).toBeTruthy()
+            expect(getSpecificationI18nName(found!, 'en')).toBe('Water Level Transmitter')
+            expect(response)
+            done()
+          })
+          .catch((_e) => {
+            log.log(LogLevelEnum.error, _e)
+          })
+      })
+      .finally(() => {
+        fs.copyFileSync(lspec + 'waterleveltransmitter.bck', filename)
+        fs.unlinkSync(lspec + 'waterleveltransmitter.bck')
+      })
   })
   test('POST /modbus/entity: update ModbusCache data', (done) => {
-      //@ts-ignore
+    //@ts-ignore
     supertest(httpServer.app)
       .post('/api/modbus/entity?busid=0&slaveid=1&entityid=1')
       .send(spec2)

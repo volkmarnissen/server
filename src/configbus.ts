@@ -1,41 +1,41 @@
-import { IBus, IModbusConnection, Islave, Slave } from "@modbus2mqtt/server.shared"
-import { ConfigSpecification, Logger, LogLevelEnum } from "@modbus2mqtt/specification"
-import { BUS_TIMEOUT_DEFAULT, IbaseSpecification } from "@modbus2mqtt/specification.shared"
+import { IBus, IModbusConnection, Islave, Slave } from '@modbus2mqtt/server.shared'
+import { ConfigSpecification, Logger, LogLevelEnum } from '@modbus2mqtt/specification'
+import { BUS_TIMEOUT_DEFAULT, IbaseSpecification } from '@modbus2mqtt/specification.shared'
 import { parse, stringify } from 'yaml'
 import * as fs from 'fs'
 import * as path from 'path'
 
 import Debug from 'debug'
-import { join } from "path"
-import { Config, ConfigListenerEvent } from "./config"
-import { MqttDiscover } from "./mqttdiscover"
-import { SerialPort } from "serialport/dist/serialport"
+import { join } from 'path'
+import { Config, ConfigListenerEvent } from './config'
+import { MqttDiscover } from './mqttdiscover'
+import { SerialPort } from 'serialport/dist/serialport'
 const log = new Logger('config')
 const debug = Debug('configbus')
 
-export class ConfigBus{
-    private static busses: IBus[]
-    private static listeners: { event: ConfigListenerEvent; listener: ((arg: Slave) => void) | ((arg: number) => void) }[] = []
-    static addListener(event: ConfigListenerEvent, listener: ((arg: Slave) => void) | ((arg: number) => void)) {
-      ConfigBus.listeners.push({ event: event, listener: listener })
-    }
-    private static emitSlaveEvent(event: ConfigListenerEvent, arg: Slave) {
-      let rc = MqttDiscover.addSpecificationToSlave(arg)
-      ConfigBus.listeners.forEach((eventListener) => {
-        if (eventListener.event == event) (eventListener.listener as (arg: Slave) => void)(rc)
-      })
-    }
-    private static emitBusEvent(event: ConfigListenerEvent, arg: number) {
-      ConfigBus.listeners.forEach((eventListener) => {
-        if (eventListener.event == event) (eventListener.listener as (arg: number) => void)(arg)
-      })
-    }
-  
-    static getBussesProperties(): IBus[] {
-        return ConfigBus.busses
-      }
-    
-static readBusses() {
+export class ConfigBus {
+  private static busses: IBus[]
+  private static listeners: { event: ConfigListenerEvent; listener: ((arg: Slave) => void) | ((arg: number) => void) }[] = []
+  static addListener(event: ConfigListenerEvent, listener: ((arg: Slave) => void) | ((arg: number) => void)) {
+    ConfigBus.listeners.push({ event: event, listener: listener })
+  }
+  private static emitSlaveEvent(event: ConfigListenerEvent, arg: Slave) {
+    let rc = MqttDiscover.addSpecificationToSlave(arg)
+    ConfigBus.listeners.forEach((eventListener) => {
+      if (eventListener.event == event) (eventListener.listener as (arg: Slave) => void)(rc)
+    })
+  }
+  private static emitBusEvent(event: ConfigListenerEvent, arg: number) {
+    ConfigBus.listeners.forEach((eventListener) => {
+      if (eventListener.event == event) (eventListener.listener as (arg: number) => void)(arg)
+    })
+  }
+
+  static getBussesProperties(): IBus[] {
+    return ConfigBus.busses
+  }
+
+  static readBusses() {
     ConfigBus.busses = []
     let busDir = Config.yamlDir + '/local/busses'
     let oneBusFound = false
@@ -69,7 +69,10 @@ static readBusses() {
                   })
                   var o: Islave = parse(src)
                   ConfigBus.busses[ConfigBus.busses.length - 1].slaves.push(o)
-                  ConfigBus.emitSlaveEvent(ConfigListenerEvent.addSlave, new Slave(busid, o, Config.getConfiguration().mqttbasetopic))
+                  ConfigBus.emitSlaveEvent(
+                    ConfigListenerEvent.addSlave,
+                    new Slave(busid, o, Config.getConfiguration().mqttbasetopic)
+                  )
                 }
               })
             } catch (e: any) {
@@ -116,12 +119,11 @@ static readBusses() {
     debug('config: busses.length: ' + ConfigBus.busses.length)
   }
 
-  getInstance():ConfigBus{
+  getInstance(): ConfigBus {
     ConfigBus.busses = ConfigBus.busses && ConfigBus.busses.length > 0 ? ConfigBus.busses : []
     return new ConfigBus()
   }
-  
-    
+
   static addBusProperties(connection: IModbusConnection): IBus {
     let maxBusId = -1
     ConfigBus.busses.forEach((b) => {
@@ -164,7 +166,7 @@ static readBusses() {
     }
   }
 
-  static async  filterAllslaves<T>(busid: number, specFunction: <T>(slave: Islave) => Set<T> | any): Promise<Set<T>> {
+  static async filterAllslaves<T>(busid: number, specFunction: <T>(slave: Islave) => Set<T> | any): Promise<Set<T>> {
     let addresses = new Set<T>()
     for (let slave of ConfigBus.busses[busid].slaves) {
       for (let addr of specFunction(slave)) addresses.add(addr)
@@ -233,8 +235,6 @@ static readBusses() {
     return rc
   }
 
-
-
   static deleteSlave(busid: number, slaveid: number) {
     let bus = ConfigBus.busses.find((bus) => bus.busId == busid)
     if (bus != undefined) {
@@ -299,7 +299,7 @@ static readBusses() {
       reject
     )
   }
-  
+
   static listDevices(next: (devices: string[]) => void, reject: (error: any) => void): void {
     try {
       ConfigBus.listDevicesHassio(next, (_e) => {
@@ -313,5 +313,4 @@ static readBusses() {
       }
     }
   }
-
 }

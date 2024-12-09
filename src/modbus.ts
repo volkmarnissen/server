@@ -18,14 +18,12 @@ export class Modbus {
 
   writeEntityModbus(bus: Bus, slaveid: number, entity: Ientity, modbusValue: ReadRegisterResult): Promise<void> {
     // this.modbusClient.setID(device.slaveid);
-    if(Config.getConfiguration().fakeModbus)
-    {
-      return new Promise<void>((resolve)=>{
-        debug( "Fake ModbusWrite")
+    if (Config.getConfiguration().fakeModbus) {
+      return new Promise<void>((resolve) => {
+        debug('Fake ModbusWrite')
         resolve()
       })
-    }
-    else if (entity.modbusAddress && entity.registerType) {
+    } else if (entity.modbusAddress && entity.registerType) {
       return new ModbusCache('write', true).writeRegisters(
         { busid: bus.getId(), slaveid: slaveid },
         entity.modbusAddress,
@@ -39,14 +37,12 @@ export class Modbus {
   writeEntityMqtt(bus: Bus, slaveid: number, spec: Ispecification, entityid: number, mqttValue: string): Promise<void> {
     // this.modbusClient.setID(device.slaveid);
     let entity = spec.entities.find((ent) => ent.id == entityid)
-    if(Config.getConfiguration().fakeModbus)
-      {
-        return new Promise<void>((resolve)=>{
-          debug( "Fake ModbusWrite")
-          resolve()
-        })
-      }
-    else if (entity) {
+    if (Config.getConfiguration().fakeModbus) {
+      return new Promise<void>((resolve) => {
+        debug('Fake ModbusWrite')
+        resolve()
+      })
+    } else if (entity) {
       let converter = ConverterMap.getConverter(entity)
       if (entity.modbusAddress && entity.registerType && converter) {
         let modbusValue = converter?.mqtt2modbus(spec, entityid, mqttValue)

@@ -1,4 +1,3 @@
-specificationid: waterleveltransmitter
+specificationid: deye
 slaveid: 2
 polInterval: 100
-evalTimeout: true

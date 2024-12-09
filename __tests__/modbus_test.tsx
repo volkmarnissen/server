@@ -122,7 +122,7 @@ function prepareIdentification() {
     prepared = true
     readConfig = new Config()
     readConfig.readYaml()
-    ConfigBus.readBusses();
+    ConfigBus.readBusses()
     new ConfigSpecification().readYaml()
     dev = ConfigBus.getSlave(0, 1)!
   }
