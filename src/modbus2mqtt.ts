@@ -113,23 +113,24 @@ export class Modbus2Mqtt {
               },
               30 * 1000 * 60
             )
+            httpServer.init().then(() => {
+              httpServer.app.listen(Config.getConfiguration().httpport, () => {
+                log.log(LogLevelEnum.notice, `modbus2mqtt listening on  ${os.hostname()}: ${Config.getConfiguration().httpport}`)
+                new ConfigSpecification().deleteNewSpecificationFiles()
+                Bus.getAllAvailableModusData()
+                if (process.env.MODBUS_NOPOLL == undefined) {
+                  let md = MqttDiscover.getInstance()
+                  md.startPolling()
+                } else {
+                  log.log(LogLevelEnum.notice, 'Poll disabled by environment variable MODBUS_POLL')
+                }
+              })
+            })
+    
           })
           .catch((e) => {
             log.log(LogLevelEnum.error, 'Start polling Contributions: ' + e.message)
           })
-        httpServer.init().then(() => {
-          httpServer.app.listen(Config.getConfiguration().httpport, () => {
-            log.log(LogLevelEnum.notice, `modbus2mqtt listening on  ${os.hostname()}: ${Config.getConfiguration().httpport}`)
-            new ConfigSpecification().deleteNewSpecificationFiles()
-            Bus.getAllAvailableModusData()
-            if (process.env.MODBUS_NOPOLL == undefined) {
-              let md = MqttDiscover.getInstance()
-              md.startPolling()
-            } else {
-              log.log(LogLevelEnum.notice, 'Poll disabled by environment variable MODBUS_POLL')
-            }
-          })
-        })
       })
   }
 }

@@ -133,9 +133,6 @@ export class MqttDiscover {
       '/config'
     )
   }
-  private getSlavesConfigurationTopic(): string {
-    return Config.getConfiguration().mqttdiscoveryprefix + '/+/+/+/config'
-  }
   private generateDiscoveryPayloads(slave: Slave, spec: ImodbusSpecification): ItopicAndPayloads[] {
     let payloads: { topic: string; payload: string }[] = []
     // instantiate the converters
