@@ -20,7 +20,7 @@ class MqttHelper {
   }
 
   onMessage(topic, payload) {
-    console.log('onMessage')
+    console.log('onMessage' + topic )
     if (this.tAndP) this.tAndP.push({ topic: topic, payload: payload.toString() })
     else console.log('tAndP is undefined')
   }

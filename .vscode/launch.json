@@ -21,6 +21,25 @@
       "type": "node"
     },
     {
+      "name": "Run Addon Service Server",
+      "preLaunchTask": "npm: serviceInstance",
+      "timeout": 10000,
+      "program": "${workspaceFolder}/dist/modbus2mqtt.js",
+      "args": [  "-y", "~/m2m/server/e2e/temp/yaml-dir-addon", "-s" ,"~/m2m/server/e2e/temp/ssl"],
+      "console": "integratedTerminal",
+      "env": {
+        "HASSIO_TOKEN": "abcd1234",
+        "DEBUG": "httpserver,HttpServerBaseUrl",
+        "NODE_OPTIONS": "--experimental-vm-modules npx jest"
+      },
+      "request": "launch",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "sourceMaps": true,  
+      "type": "node"
+    },
+    {
       "name": "Run Server TCP",
       "preLaunchTask": "npm: build.dev",
       "timeout": 10000,

@@ -595,9 +595,10 @@ export class HttpServer extends HttpServerBase {
           if (req.body) {
             // req.body.documents
             let config = new ConfigSpecification()
-            let files = config.appendSpecificationUrl(req.query.specification!, req.body)
-            if (files) this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(files))
-            else this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, ' specification not found')
+            config.appendSpecificationUrls(req.query.specification!, [req.body]).then(files=>{
+              if (files) this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(files))
+                else this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, ' specification not found')    
+            })
           } else {
             this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, ' specification not found')
           }
@@ -625,13 +626,13 @@ export class HttpServer extends HttpServerBase {
           debug('Files uploaded')
           if (req.files) {
             // req.body.documents
-            let config = new ConfigSpecification()
-            let files: IimageAndDocumentUrl[] | undefined
-            ;(req.files as Express.Multer.File[])!.forEach((f) => {
-              files = config.appendSpecificationFile(req.query.specification!, f.originalname, req.query.usage!)
-            })
-            if (files) this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(files))
-            else this.returnResult(req, res, HttpErrorsEnum.OkNoContent, ' specification not found or no files passed')
+            let config = new ConfigSpecification();
+            let f:string[] = [];
+            (req.files as Express.Multer.File[])!.forEach((f0:any) => {f.push(f0.originalname)});
+            config.appendSpecificationFiles(req.query.specification!, f, req.query.usage!).then(files=>{
+                if (files) this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(files))
+                  else this.returnResult(req, res, HttpErrorsEnum.OkNoContent, ' specification not found or no files passed')      
+              })
           } else {
             this.returnResult(req, res, HttpErrorsEnum.OkNoContent, ' specification not found or no files passed')
           }

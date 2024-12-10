@@ -62,7 +62,7 @@ export class Bus {
     }
   }
   static getBusses(): Bus[] {
-    if (!Bus.busses) {
+    if (!Bus.busses|| Bus.busses.length != ConfigBus.getBussesProperties().length) {
       Bus.readBussesFromConfig()
     }
     //debug("getBusses Number of busses:" + Bus.busses!.length)
@@ -72,12 +72,7 @@ export class Bus {
     debug('addBus()')
     let busP = ConfigBus.addBusProperties(connection)
     let b = Bus.getBusses().find((b) => b.getId() == busP.busId)
-    if (b) throw new Error('Unable to add Bus it exists')
-    else {
-      b = new Bus(busP)
-      Bus.getBusses().push(b)
-    }
-    return b
+    return b!
   }
   private connectionChanged(connection: IModbusConnection): boolean {
     let rtu = this.properties.connectionData as IRTUConnection

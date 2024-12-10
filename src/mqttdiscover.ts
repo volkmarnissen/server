@@ -608,9 +608,10 @@ export class MqttDiscover {
             if (slave.specification) {
               needPolls.push({ slave: s, pollMode: trigger == undefined ? PollModes.intervall : PollModes.trigger })
             } else {
-              log.log(
-                LogLevelEnum.error,
-                'No specification found for slave ' + s.getSlaveId() + ' specid: ' + s.getSpecificationId()
+              if( slave.specificationid )
+                log.log(
+                  LogLevelEnum.error,
+                    'No specification found for slave ' + s.getSlaveId() + ' specid: ' + s.getSpecificationId()
               )
             }
           }

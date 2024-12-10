@@ -3,66 +3,101 @@ let defaultm2mPort = 3005
 let mqttAuthorizedPort = 3001
 let mqttUnAuthorizedPort = 3003
 
-function runBusses() {
+function runBusses(willLog) {
+  let logSetting = { log: willLog }
+  cy.log("Configure Bus")
   cy.url().should('contain', prefix + '/busses')
-  cy.get('[role="tab"] ').eq(1).click()
-  cy.get('[formcontrolname="host"]').type('localhost', { force: true })
-  cy.get('[formcontrolname="port"]').type('{backspace}{backspace}{backspace}3002', { force: true })
-  cy.get('[formcontrolname="timeout"]').eq(0).type('{backspace}{backspace}{backspace}500', { force: true })
-  cy.get('[formcontrolname="host"]').trigger('change')
-  cy.get('div.card-header-buttons button:first').click()
+  cy.get('[role="tab"] ',logSetting).eq(1,logSetting).click(logSetting)
+  cy.get('[formcontrolname="host"]',logSetting).type(backspaces(10) + 'localhost', { force: true, log:willLog })
+  cy.get('[formcontrolname="port"]',logSetting).type(backspaces(10) +'3002', { force: true, log:willLog })
+  cy.get('[formcontrolname="timeout"]',logSetting).eq(0, logSetting).type(backspaces(10) +'500', { force: true, log:willLog })
+  cy.get('[formcontrolname="host"]',logSetting).trigger('change', logSetting)
+  cy.get('div.card-header-buttons button:first',logSetting).eq(0).click(logSetting)
   // List slaves second header button on first card
-  cy.get('div.card-header-buttons:first button').eq(1).click()
+  cy.get('div.card-header-buttons:first button').eq(1, logSetting).click(logSetting)
 }
 
-function runSlaves() {
+function runSlaves(willLog) {
+  let logSetting = { log: willLog }
+  cy.log("Create Slave")
   cy.url().should('contain', prefix + '/slaves')
-  cy.get('[formcontrolname="slaveId"]').type('3{enter}', { force: true })
+  cy.get('[formcontrolname="slaveId"]',logSetting).type('3{enter}', { force: true, log:willLog })
   // Show specification third header button on first card
-  cy.get('div.card-header-buttons:first button').eq(2).click()
+  cy.get('div.card-header-buttons:first button',logSetting).eq(2,logSetting).click(logSetting)
   cy.url().should('contain', prefix + '/specification')
 }
-function setUrls(){
-  cy.get('app-upload-files:first mat-expansion-panel-header').eq(0).click()
-  cy.get('app-upload-files:first input[type!="file"]').eq(0).focus().type('http://localhost/test.pdf{enter}', { force: true })
-  cy.get('app-upload-files:first button mat-icon:contains("add")').eq(0).click({ force: true })
-
-  cy.get('app-upload-files:first mat-expansion-panel-header').eq(1).click()
-  cy.get('app-upload-files:first input[type!="file"]').eq(1).focus().type('http://localhost/test.png{enter}', { force: true })
-  cy.get('app-upload-files:first button mat-icon:contains("add")').eq(1).click({ force: true })
-}
-function addEntity(){
-  cy.get('app-entity:first mat-expansion-panel-header').eq(0).click()
-  cy.get('app-entity:first [formcontrolname="name"]').type('the entity{enter}', { force: true })
-  cy.get('app-entity:first [formcontrolname="modbusAddress"]').type('{backspace}1{enter}', { force: true })
-  cy.get('app-entity:first mat-select[formControlName="converter"]').click().get('mat-option').contains('number').click();
-  cy.get('app-entity:first mat-expansion-panel-header').eq(1).click()
-  cy.get('app-entity:first [formcontrolname="min"]').type('0', { force: true })
-  cy.get('app-entity:first [formcontrolname="max"]').type('100', { force: true })
-  cy.get('app-entity:first mat-select[formControlName="registerType"]').click().get('mat-option').contains('Holding').click();
-  cy.get('app-entity mat-card mat-card-header button:has(mat-icon:contains("add_circle"))').click({ force: true })
-  //body > app-root > app-specification > div.flexrowsWrapWhenSmall > div > div > app-entity > mat-card > mat-card-header > div > mat-card-title > div > div
-  cy.get('div.saveCancel:first button').eq(0).should("not.is.disabled")
-
-  cy.get('div.saveCancel:first button').eq(0).trigger("click").trigger("click")
+function setUrls(willLog){
+  let logSetting = { log: willLog }
+  cy.log("Set Upload files URLs")
+  cy.get('app-upload-files:first mat-expansion-panel-header',logSetting).eq(1,logSetting).click(logSetting)
+  cy.get('app-upload-files:first input[type!="file"]',logSetting).eq(1,logSetting).focus(logSetting).type('http://localhost/test.png', { force: true, log:willLog })
+  cy.get('app-upload-files:first button mat-icon:contains("add")',logSetting).eq(1,logSetting).click({ force: true, log:willLog })
   
+  cy.get('app-upload-files:first mat-expansion-panel-header',logSetting).eq(0,logSetting).click(logSetting)
+  cy.get('app-upload-files:first input[type!="file"]',logSetting).eq(0,logSetting).focus(logSetting).type('http://localhost/test.pdf', { force: true, log:willLog })
+  cy.get('app-upload-files:first button mat-icon:contains("add")',logSetting).eq(0,logSetting).click({ force: true, log:willLog  }).wait(1000)
+
 }
-function addSlave() {
+function addEntity(entitynum, modbusAddress, willLog){
+  let logSetting = { log: willLog }
+  cy.log("Add entity " + entitynum)
+  cy.get('app-entity:last mat-expansion-panel-header[aria-expanded=false]',logSetting).then((elements=>{
+    if( elements.length >=1 ){
+      elements[0].click(logSetting)
+    }
+    if( elements.length >=2 ){
+      elements[1].click(logSetting)
+    }
+  }))
+
+//  cy.get('app-entity:last mat-expansion-panel-header',logSetting).eq(0,logSetting).click(logSetting)
+  cy.get('app-entity:last [formcontrolname="name"]',logSetting).type('the entity'+ entitynum + '{enter}', { force: true, log:willLog })
+  cy.get('app-entity:last [formcontrolname="modbusAddress"]',logSetting).type('{backspace}' + modbusAddress+ '{enter}', { force: true, log:willLog })
+  cy.get('app-entity:last mat-select[formControlName="converter"]',logSetting).click().get('mat-option').contains('number').click(logSetting);
+  
+
+  cy.get('app-entity:last [formcontrolname="min"]',logSetting).type('0', { force: true, log:willLog })
+  cy.get('app-entity:last [formcontrolname="max"]',logSetting).type('1000', { force: true, log:willLog })
+  cy.get('app-entity:last mat-select[formControlName="registerType"]',logSetting).click().get('mat-option').contains('Holding').click(logSetting);
+  cy.get('app-entity:last mat-card mat-card-header button:has(mat-icon:contains("add_circle"))',logSetting).last().click({ force: true, log:willLog })
+}
+function saveSpecification(willLog){
+  let logSetting = { log: willLog }
+  cy.log("Save Specification ")
+    cy.get('div.saveCancel:first button', logSetting).eq(0, logSetting).should("not.is.disabled")
+    cy.get('div.saveCancel:first button',logSetting).eq(0,logSetting).trigger("click",logSetting)
+    cy.get('div.saveCancel:first button', logSetting).eq(0, logSetting).should("is.disabled")
+    cy.get('div.saveCancel:first button', logSetting).eq(1, logSetting).trigger("click",logSetting)  
+    cy.url().should('contain', prefix + '/slaves')
+  }
+function addSlave(willLog) {
+  let logSetting = { log: willLog }
+  cy.log("Add Slave ")
   cy.url().should('contain', prefix + '/slaves')
-  cy.get('[formcontrolname="slaveId"]').type('10{enter}', { force: true })
+  cy.get('[formcontrolname="detectSpec"]', logSetting).click( logSetting)
+  cy.get('[formcontrolname="slaveId"]', logSetting).type('10{enter}', { force: true, log:willLog })
   // Show specification third header button on first card
-  cy.get('[formcontrolname="detectSpec"]').click()
-  cy.get('div.card-header-buttons:first button:contains("add_box")').eq(0).click()
+  cy.get('div.card-header-buttons:first button:contains("add_box")', logSetting).eq(0, logSetting).click( logSetting)
   cy.url().should('contain', prefix + '/specification')
 }
-function validateMqtt(){
+function validateMqtt(willLog){
+  let logSetting = { log: willLog }
   return new Promise((resolve)=>{
-    cy.task('mqttResetTopicAndPayloads').then(()=>{
-      cy.task('mqttGetTopicAndPayloads').then((tAndP) => {
+    cy.log("Validate MQTT")
+    cy.task('mqttResetTopicAndPayloads', logSetting).then(()=>{
+      cy.task('mqttGetTopicAndPayloads', logSetting).then((tAndP) => {
         cy.log('tAndP ' + JSON.stringify(tAndP))
       })})
   })
 }
+function backspaces(num){
+  let rc = ""
+  for(let a=0; a < num; a++)
+    rc = rc + "{backspace}"
+  return rc
+} 
+
+
 describe('MQTT Discovery Tests', () => {
   it(
     'mqtt hassio addon',
@@ -73,27 +108,36 @@ describe('MQTT Discovery Tests', () => {
       },
     },
     () => {
-      cy.exec('npm run e2e:reset')
+      let willLog= true
+      let logSetting = { log: willLog }
+      cy.exec('npm run e2e:reset', logSetting)
       prefix = 'modbus2mqtt'
-      cy.visit('http://localhost:80/' + prefix)
+      cy.visit('http://localhost:80/' + prefix, logSetting)
       // monitor discovery topics
       let mqttConnect = Cypress.env('mqttconnect')
       assert(mqttConnect != undefined)
-      cy.task('mqttConnect', mqttConnect).then(() => {
-        cy.task('mqttSubscribe', 'homeassistant/#').then((tAndP) => {
-          cy.log('connected')
-          runBusses()
-          addSlave()
-          cy.get('#specForm [formcontrolname="name"]').type('the spec{enter}', { force: true })
+      cy.log("MQTT connect")
+      cy.task('mqttConnect', mqttConnect, logSetting).then(() => {
+        cy.task('mqttSubscribe', 'homeassistant/#', logSetting).then((tAndP) => {
+          cy.task("mqttResetTopicAndPayloads").then(() => {
+          runBusses(true)
+          addSlave(true)
+          cy.log("Configure Specification name")
+          cy.get('#specForm [formcontrolname="name"]', {log:false}).type(backspaces(10) + 'the spec{enter}', { force: true, log: willLog })
 
-          setUrls()
-          addEntity()
+          setUrls(true)
+          addEntity(1,1,false )
+          addEntity(2,3,false )
+          Cypress.config('defaultCommandTimeout', 20000 )
+          saveSpecification(false)
+          
+          cy.task('mqttGetTopicAndPayloads').then((tAndP) => {
+            cy.log('tAndP ' + JSON.stringify(tAndP, null, 4))
+          })
+          })
+          cy.readFile('e2e/temp/yaml-dir-addon/local/specifications/files/thespec/files.yaml').should("exist")
         
-//          cy.task('mqttGetTopicAndPayloads').then((tAndP) => {
-//            cy.log('tAndP ' + JSON.stringify(tAndP))
-//          })
-      })
     })
-    }
-  )
+    })
+})
 })
