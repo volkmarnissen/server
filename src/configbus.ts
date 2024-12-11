@@ -22,7 +22,9 @@ export class ConfigBus {
   private static emitSlaveEvent(event: ConfigListenerEvent, arg: Slave) {
     let rc = MqttDiscover.addSpecificationToSlave(arg)
     ConfigBus.listeners.forEach((eventListener) => {
-      if (eventListener.event == event) (eventListener.listener as (arg: Slave) => void)(rc)
+      if (eventListener.event == event) (eventListener.listener as (arg: Slave) => Promise<void>)(rc).then(()=>{
+        debug("Event listener executed")
+      }).catch(e=>{ log.log(LogLevelEnum.error, "Unable to call event listener: " + e.message)})
     })
   }
   private static emitBusEvent(event: ConfigListenerEvent, arg: number) {
@@ -68,11 +70,14 @@ export class ConfigBus {
                     encoding: 'utf8',
                   })
                   var o: Islave = parse(src)
-                  ConfigBus.busses[ConfigBus.busses.length - 1].slaves.push(o)
-                  ConfigBus.emitSlaveEvent(
-                    ConfigListenerEvent.addSlave,
-                    new Slave(busid, o, Config.getConfiguration().mqttbasetopic)
-                  )
+                  if(o.specificationid && o.specificationid.length){
+                    ConfigBus.busses[ConfigBus.busses.length - 1].slaves.push(o)
+                    ConfigBus.emitSlaveEvent(
+                      ConfigListenerEvent.addSlave,
+                      new Slave(busid, o, Config.getConfiguration().mqttbasetopic)
+                    )
+        
+                  }
                 }
               })
             } catch (e: any) {

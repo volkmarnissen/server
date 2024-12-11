@@ -10,7 +10,7 @@
       "args": [  "-s", "../ssl", "-y" ,"../yaml-dir"],
       "console": "integratedTerminal",
       "env": {
-        "DEBUG": "httpserver,HttpServerBaseUrl",
+        "DEBUG": "httpserver,HttpServerBaseUrl,mqttclient",
         "NODE_OPTIONS": "--experimental-vm-modules npx jest"
       },
       "request": "launch",

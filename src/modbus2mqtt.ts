@@ -102,6 +102,7 @@ export class Modbus2Mqtt {
         debugAction('readBussesFromConfig starts')
         gh.init()
           .then(() => {
+            let md = MqttDiscover.getInstance()
             ConfigBus.readBusses()
             this.pollTasks()
             debugAction('readBussesFromConfig done')
@@ -119,7 +120,6 @@ export class Modbus2Mqtt {
                 new ConfigSpecification().deleteNewSpecificationFiles()
                 Bus.getAllAvailableModusData()
                 if (process.env.MODBUS_NOPOLL == undefined) {
-                  let md = MqttDiscover.getInstance()
                   md.startPolling()
                 } else {
                   log.log(LogLevelEnum.notice, 'Poll disabled by environment variable MODBUS_POLL')
