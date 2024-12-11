@@ -29,6 +29,7 @@ import { ConfigSpecification } from '@modbus2mqtt/specification'
 import { HttpServerBase } from './httpServerBase'
 import { MqttDiscover } from './mqttdiscover'
 import { Writable } from 'stream'
+import { ConfigBus } from './configbus'
 const debug = Debug('httpserver')
 const log = new Logger('httpserver')
 // import cors from 'cors';
@@ -103,17 +104,11 @@ export class HttpServer extends HttpServerBase {
       req.acceptsLanguages()
       let config = Config.getConfiguration()
       let authHeader = req.header('Authorization')
-      let a: IUserAuthenticationStatus = {
-        registered:
-          config.mqttusehassio || config.noAuthentication || (config.username != undefined && config.password != undefined),
-        hassiotoken: config.mqttusehassio ? config.mqttusehassio : false,
-        noAuthentication: config.noAuthentication ? config.noAuthentication : false,
-        hasAuthToken: authHeader ? true : false,
-        authTokenExpired:
-          authHeader != undefined && HttpServer.validateUserToken(req, undefined) == MqttValidationResult.tokenExpired,
-        mqttConfigured: false,
-        preSelectedBusId: Bus.getBusses().length == 1 ? Bus.getBusses()[0].getId() : undefined,
-      }
+      let a: IUserAuthenticationStatus = Config.getAuthStatus()
+      ;(a.hasAuthToken = authHeader ? true : false),
+        (a.authTokenExpired =
+          authHeader != undefined && HttpServer.validateUserToken(req, undefined) == MqttValidationResult.tokenExpired)
+
       if (a.registered && (a.hassiotoken || a.hasAuthToken || a.noAuthentication))
         a.mqttConfigured = Config.isMqttConfigured(config.mqttconnect)
 
@@ -313,7 +308,6 @@ export class HttpServer extends HttpServerBase {
         log.log(LogLevelEnum.error, 'http: get /specification ' + e.message)
         this.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, JSON.stringify('read specification ' + e.message))
       }).subscribe((result) => {
-        MqttDiscover.addTopicAndPayloads(result, bus.getId(), bus.getSlaveBySlaveId(slaveid)!)
         this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(result))
       })
     })
@@ -416,7 +410,7 @@ export class HttpServer extends HttpServerBase {
           this.validateMqttConnectionResult(req, res, false, 'No parameters configured')
           return
         }
-        let mqttdiscover = Config.getMqttDiscover()
+        let mqttdiscover = MqttDiscover.getInstance()
         let client = req.body.mqttconnect.mqttserverurl ? req.body.mqttconnect : undefined
 
         mqttdiscover.validateConnection(client, (valid, message) => {
@@ -500,7 +494,7 @@ export class HttpServer extends HttpServerBase {
     this.get(apiUri.serialDevices, (req: GetRequestWithParameter, res: http.ServerResponse) => {
       debug(req.url)
 
-      new Config().listDevices(
+      ConfigBus.listDevices(
         (devices) => {
           this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(devices))
         },
@@ -520,16 +514,16 @@ export class HttpServer extends HttpServerBase {
         this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, "{message: '" + msg + "'}")
         return
       }
-      let bus:Bus| undefined = Bus.getBus(Number.parseInt(req.query.busid))
-      let slave: Islave | undefined = bus? bus.getSlaveBySlaveId(Number.parseInt(req.query.slaveid)):undefined
+      let bus: Bus | undefined = Bus.getBus(Number.parseInt(req.query.busid))
+      let slave: Islave | undefined = bus ? bus.getSlaveBySlaveId(Number.parseInt(req.query.slaveid)) : undefined
 
       let originalFilename: string | null = req.query.originalFilename ? req.query.originalFilename : null
       var rc = rd.writeSpecification(
         req.body,
         (filename: string) => {
-          if ( bus != undefined && slave != undefined) {
+          if (bus != undefined && slave != undefined) {
             slave.specificationid = filename
-            new Config().writeslave(bus.getId(), slave.slaveid, slave.specificationid, slave.name)
+            ConfigBus.writeslave(bus.getId(), slave)
           }
         },
         originalFilename
@@ -592,13 +586,7 @@ export class HttpServer extends HttpServerBase {
       res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, x-access-token')
       res.setHeader('Access-Control-Allow-Credentials', 'true')
       res.setHeader('Content-Type', 'application/json')
-      let rc: Islave = bus.writeSlave(
-        req.body.slaveid,
-        req.body.specificationid,
-        req.body.name,
-        req.body.polInterval,
-        req.body.pollMode
-      )
+      let rc: Islave = bus.writeSlave(req.body)
       this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(rc))
     })
     this.post(apiUri.addFilesUrl, (req: GetRequestWithUploadParameter, res: http.ServerResponse) => {
@@ -607,9 +595,10 @@ export class HttpServer extends HttpServerBase {
           if (req.body) {
             // req.body.documents
             let config = new ConfigSpecification()
-            let files = config.appendSpecificationUrl(req.query.specification!, req.body)
-            if (files) this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(files))
-            else this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, ' specification not found')
+            config.appendSpecificationUrls(req.query.specification!, [req.body]).then(files=>{
+              if (files) this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(files))
+                else this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, ' specification not found')    
+            })
           } else {
             this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, ' specification not found')
           }
@@ -637,13 +626,13 @@ export class HttpServer extends HttpServerBase {
           debug('Files uploaded')
           if (req.files) {
             // req.body.documents
-            let config = new ConfigSpecification()
-            let files: IimageAndDocumentUrl[] | undefined
-            ;(req.files as Express.Multer.File[])!.forEach((f) => {
-              files = config.appendSpecificationFile(req.query.specification!, f.originalname, req.query.usage!)
-            })
-            if (files) this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(files))
-            else this.returnResult(req, res, HttpErrorsEnum.OkNoContent, ' specification not found or no files passed')
+            let config = new ConfigSpecification();
+            let f:string[] = [];
+            (req.files as Express.Multer.File[])!.forEach((f0:any) => {f.push(f0.originalname)});
+            config.appendSpecificationFiles(req.query.specification!, f, req.query.usage!).then(files=>{
+                if (files) this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(files))
+                  else this.returnResult(req, res, HttpErrorsEnum.OkNoContent, ' specification not found or no files passed')      
+              })
           } else {
             this.returnResult(req, res, HttpErrorsEnum.OkNoContent, ' specification not found or no files passed')
           }
@@ -702,13 +691,8 @@ export class HttpServer extends HttpServerBase {
         bus.getSlaves().forEach((slave) => {
           if (slave.specificationid == req.query.spec) {
             delete slave.specificationid
-            bus.writeSlave(
-              slave.slaveid,
-              undefined,
-              slave.name,
-              slave.polInterval,
-              slave.pollMode == undefined ? PollModes.intervall : slave.pollMode
-            )
+            if (slave.pollMode == undefined) slave.pollMode = PollModes.intervall
+            bus.writeSlave(slave)
           }
         })
       })

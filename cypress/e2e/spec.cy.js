@@ -1,4 +1,3 @@
-
 let prefix = ''
 let defaultm2mPort = 3005
 let mqttAuthorizedPort = 3001
@@ -46,39 +45,50 @@ function runSlaves() {
   cy.url().should('contain', prefix + '/specification')
 }
 
-
 describe('End to End Tests', () => {
-  it('register->mqtt->busses->slaves->specification with authentication',{
-    retries: {
-      runMode: 3,
-      openMode: 1,
-    },
-  }, () => {
-    cy.exec('npm run e2e:reset')
-    runRegister(true, defaultm2mPort)
-    runConfig(true)
-    runBusses()
-    runSlaves()
-  })
-  it('register->mqtt with no authentication',{
+  it(
+    'register->mqtt->busses->slaves->specification with authentication',
+    {
       retries: {
         runMode: 3,
         openMode: 1,
       },
-    }, () => {
-    cy.exec('npm run e2e:reset')
-    runRegister(false, defaultm2mPort)
-    runConfig(false)
-  })
-  it('mqtt hassio addon',{
-    retries: {
-      runMode: 3,
-      openMode: 1,
     },
-  }, () => {
-    cy.exec('npm run e2e:reset')
-    prefix = 'modbus2mqtt'
-    cy.visit('http://localhost:80/' + prefix)
-    runBusses()
-  })
+    () => {
+      cy.exec('npm run e2e:reset')
+      runRegister(true, defaultm2mPort)
+      runConfig(true)
+      runBusses()
+      runSlaves()
+    }
+  )
+  it(
+    'register->mqtt with no authentication',
+    {
+      retries: {
+        runMode: 3,
+        openMode: 1,
+      },
+    },
+    () => {
+      cy.exec('npm run e2e:reset')
+      runRegister(false, defaultm2mPort)
+      runConfig(false)
+    }
+  )
+  it(
+    'mqtt hassio addon',
+    {
+      retries: {
+        runMode: 3,
+        openMode: 1,
+      },
+    },
+    () => {
+      cy.exec('npm run e2e:reset')
+      prefix = 'modbus2mqtt'
+      cy.visit('http://localhost:80/' + prefix)
+      runBusses()
+    }
+  )
 })

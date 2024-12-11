@@ -20,6 +20,7 @@ import { Islave } from '@modbus2mqtt/server.shared'
 import { ConfigSpecification, IfileSpecification, emptyModbusValues } from '@modbus2mqtt/specification'
 import { expect, xit, it, describe, beforeEach, jest, beforeAll } from '@jest/globals'
 import Debug from 'debug'
+import { ConfigBus } from '../src/configbus'
 Config['yamlDir'] = yamlDir
 Config.sslDir = yamlDir
 ConfigSpecification.yamlDir = yamlDir
@@ -121,8 +122,9 @@ function prepareIdentification() {
     prepared = true
     readConfig = new Config()
     readConfig.readYaml()
+    ConfigBus.readBusses()
     new ConfigSpecification().readYaml()
-    dev = Config.getSlave(0, 1)!
+    dev = ConfigBus.getSlave(0, 1)!
   }
 }
 
@@ -130,8 +132,9 @@ describe('Modbus read', () => {
   it('Modbus read', (done) => {
     let readConfig: Config = new Config()
     readConfig.readYaml()
+    ConfigBus.readBusses()
     new ConfigSpecification().readYaml()
-    let dev = Config.getSlave(0, 1)!
+    let dev = ConfigBus.getSlave(0, 1)!
     expect(dev).toBeDefined
     Modbus.getModbusSpecification('test', Bus.getBus(0)!, 1, dev!.specificationid!, (_e) => {
       expect(false).toBeTruthy()
@@ -223,7 +226,8 @@ describe('Modbus read', () => {
     if (entText.converterParameters) (entText.converterParameters as Itext).identification = 'ABCD'
     dev!.slaveid = 2
     spec.entities = [entText]
-    mr.readEntityFromModbus(Bus.getBus(1)!, 2, spec, 2).then((arg0: ImodbusEntity) => {
+    let mb = new Modbus()
+    mb.readEntityFromModbus(Bus.getBus(1)!, 2, spec, 2).then((arg0: ImodbusEntity) => {
       expect(arg0!.identified).toBe(IdentifiedStates.identified)
       done()
     }) // unidenfified
@@ -334,7 +338,7 @@ it('Modbus writeEntityMqtt', (done) => {
   let readConfig: Config = new Config()
   readConfig.readYaml()
   new ConfigSpecification().readYaml()
-  let dev = Config.getSlave(0, 1)!
+  let dev = ConfigBus.getSlave(0, 1)!
   expect(dev).toBeDefined
 
   new Modbus()

@@ -1,11 +1,6 @@
 import Debug from 'debug'
 import { Observable, Subject, first } from 'rxjs'
-import {
-  ImodbusEntityIdentification,
-  ImodbusSpecification,
-  ModbusRegisterType,
-  SpecificationStatus,
-} from '@modbus2mqtt/specification.shared'
+import { ImodbusEntity, ImodbusSpecification, ModbusRegisterType, SpecificationStatus } from '@modbus2mqtt/specification.shared'
 import { IdentifiedStates } from '@modbus2mqtt/specification.shared'
 import { Mutex } from 'async-mutex'
 import { ImodbusAddress, ModbusCache } from './modbuscache'
@@ -16,7 +11,7 @@ import {
   M2mSpecification,
   emptyModbusValues,
 } from '@modbus2mqtt/specification'
-import { Config } from './config'
+import { ConfigBus } from './configbus'
 import { Modbus } from './modbus'
 import * as fs from 'fs'
 import { submitGetHoldingRegisterRequest } from './submitRequestMock'
@@ -35,6 +30,7 @@ import {
 } from '@modbus2mqtt/server.shared'
 import { ConfigSpecification } from '@modbus2mqtt/specification'
 import { MqttDiscover } from './mqttdiscover'
+import { Config } from './config'
 const debug = Debug('bus')
 const debugMutex = Debug('bus.mutex')
 const log = new Logger('bus')
@@ -47,7 +43,7 @@ export class Bus {
   private static busses: Bus[] | undefined = undefined
   private static allSpecificationsModbusAddresses: Set<ImodbusAddress> | undefined = undefined
   static readBussesFromConfig(): void {
-    let ibs = Config.getBussesProperties()
+    let ibs = ConfigBus.getBussesProperties()
     if (!Bus.busses) Bus.busses = []
     ibs.forEach((ib) => {
       let bus = Bus.busses!.find((bus) => bus.getId() == ib.busId)
@@ -66,7 +62,7 @@ export class Bus {
     }
   }
   static getBusses(): Bus[] {
-    if (!Bus.busses) {
+    if (!Bus.busses|| Bus.busses.length != ConfigBus.getBussesProperties().length) {
       Bus.readBussesFromConfig()
     }
     //debug("getBusses Number of busses:" + Bus.busses!.length)
@@ -74,14 +70,9 @@ export class Bus {
   }
   static addBus(connection: IModbusConnection): Bus {
     debug('addBus()')
-    let busP = Config.addBusProperties(connection)
+    let busP = ConfigBus.addBusProperties(connection)
     let b = Bus.getBusses().find((b) => b.getId() == busP.busId)
-    if (b) throw new Error('Unable to add Bus it exists')
-    else {
-      b = new Bus(busP)
-      Bus.getBusses().push(b)
-    }
-    return b
+    return b!
   }
   private connectionChanged(connection: IModbusConnection): boolean {
     let rtu = this.properties.connectionData as IRTUConnection
@@ -104,7 +95,7 @@ export class Bus {
   updateBus(connection: IModbusConnection): Bus {
     debug('updateBus()')
     if (this.connectionChanged(connection)) {
-      let busP = Config.updateBusProperties(this.properties, connection)
+      let busP = ConfigBus.updateBusProperties(this.properties, connection)
       let b = Bus.getBusses().find((b) => b.getId() == busP.busId)
       if (b) {
         b.properties = busP
@@ -121,7 +112,7 @@ export class Bus {
     let idx = Bus.getBusses().findIndex((b) => b.properties.busId == busid)
     if (idx >= 0) {
       Bus.getBusses().splice(idx, 1)
-      Config.deleteBusProperties(busid)
+      ConfigBus.deleteBusProperties(busid)
     }
   }
   static getBus(busid: number): Bus | undefined {
@@ -444,7 +435,7 @@ export class Bus {
   }
 
   deleteSlave(slaveid: number) {
-    new Config().deleteSlave(this.properties.busId, slaveid)
+    ConfigBus.deleteSlave(this.properties.busId, slaveid)
     if (this.slaves) this.slaves!.delete(slaveid)
   }
   static getModbusAddressesForSpec(spec: IfileSpecification, addresses: Set<ImodbusAddress>): void {
@@ -469,8 +460,9 @@ export class Bus {
       Bus.getBusses().forEach((bus) => {
         bus.getSlaves().forEach((slave) => {
           debug('updateAllSpecificationsModbusAddresses slaveid: ' + slave.slaveid)
-          if (slave.specificationid == specificationid)
-            cfg.writeslave(bus.getId(), slave.slaveid, specificationid == null ? undefined : specificationid, slave.name)
+          if (specificationid == null) slave.specificationid = undefined
+          else slave.specificationid = specificationid
+          if (slave.specificationid == specificationid) ConfigBus.writeslave(bus.getId(), slave)
         })
       })
     }
@@ -487,7 +479,7 @@ export class Bus {
     debug('getAllModbusAddresses')
     if (!Bus.allSpecificationsModbusAddresses) {
       Bus.updateAllSpecificationsModbusAddresses(null)
-      Config.getSpecificationsChangedObservable().subscribe(Bus.updateAllSpecificationsModbusAddresses)
+      // Config.getSpecificationsChangedObservable().subscribe(Bus.updateAllSpecificationsModbusAddresses)
     }
     return Bus.allSpecificationsModbusAddresses!
   }
@@ -525,7 +517,6 @@ export class Bus {
         let cfg = new ConfigSpecification()
         cfg.filterAllSpecifications((spec) => {
           let mspec = M2mSpecification.fileToModbusSpecification(spec, modbusData)
-          MqttDiscover.addTopicAndPayloads(mspec, this.getId(), this.getSlaveBySlaveId(slaveid)!)
           debug('getAvailableSpecs')
           if (mspec) {
             // list only identified public specs, but all local specs
@@ -604,23 +595,13 @@ export class Bus {
 
   private convert2ImodbusSpecification(slaveid: number, mspec: ImodbusSpecification): IidentificationSpecification {
     // for each spec
-    let entityIdentifications: ImodbusEntityIdentification[] = []
+    let entityIdentifications: ImodbusEntity[] = []
     for (let ment of mspec.entities) {
-      entityIdentifications.push({
-        id: ment.id,
-        modbusValue: ment.modbusValue,
-        mqttValue: ment.mqttValue,
-        identified: ment.identified,
-        commandTopic: ment.commandTopic,
-        commandTopicModbus: ment.commandTopicModbus,
-      })
+      entityIdentifications.push(ment)
     }
     let configuredslave = this.properties.slaves.find((dev) => dev.specificationid === mspec.filename && dev.slaveid == slaveid)
     return {
       filename: mspec.filename,
-      stateTopic: mspec.stateTopic,
-      statePayload: mspec.statePayload,
-      triggerPollTopic: mspec.triggerPollTopic,
       files: mspec.files,
       i18n: mspec.i18n,
       status: mspec.status!,
@@ -631,15 +612,16 @@ export class Bus {
   }
   private convert2ImodbusSpecificationFromSpec(slaveid: number, spec: IfileSpecification): IidentificationSpecification {
     // for each spec
-    let entityIdentifications: ImodbusEntityIdentification[] = []
+    let entityIdentifications: ImodbusEntity[] = []
+
     for (let ent of spec.entities) {
-      entityIdentifications.push({
-        id: ent.id,
-        modbusValue: [],
-        mqttValue: '',
-        identified: IdentifiedStates.notIdentified,
-      })
+      let em: ImodbusEntity = structuredClone(ent as any)
+      em.modbusValue = []
+      em.mqttValue = ''
+      em.identified = IdentifiedStates.notIdentified
+      entityIdentifications.push(structuredClone(ent as any))
     }
+
     let configuredslave = this.properties.slaves.find((dev) => dev.specificationid === spec.filename && dev.slaveid == slaveid)
     return {
       filename: spec.filename,
@@ -652,18 +634,12 @@ export class Bus {
     }
   }
 
-  writeSlave(
-    slaveid: number,
-    specification: string | undefined,
-    name: string | undefined,
-    polInterval: number | undefined,
-    pollMode: PollModes
-  ): Islave {
-    if (slaveid < 0) throw new Error('Try to save invalid slave id ') // Make sure slaveid is unique
+  writeSlave(slave: Islave): Islave {
+    if (slave.slaveid < 0) throw new Error('Try to save invalid slave id ') // Make sure slaveid is unique
     let oldIdx = this.properties.slaves.findIndex((dev) => {
-      return dev.slaveid === slaveid
+      return dev.slaveid === slave.slaveid
     })
-    let slave = new Config().writeslave(this.properties.busId, slaveid, specification, name, polInterval, pollMode)
+    ConfigBus.writeslave(this.properties.busId, slave)
 
     if (oldIdx >= 0) this.properties.slaves[oldIdx] = slave
     else this.properties.slaves.push(slave)

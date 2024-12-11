@@ -25,3 +25,4 @@ mqttusehassiotoken: false
 githubPersonalToken: "!secret githubPersonalToken"
 mqttusehassio: false
 noAuthentication: false
+supervisor_host: supervisor

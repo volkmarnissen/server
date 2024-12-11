@@ -8,7 +8,7 @@ import AdmZip from 'adm-zip'
 import Debug from 'debug'
 import exp from 'constants'
 Config['yamlDir'] = yamlDir
-Config.sslDir = yamlDir
+Config['sslDir'] = yamlDir
 let debug = Debug('config_test')
 beforeAll(() => {
   return new Promise<void>((resolve, reject) => {
@@ -121,7 +121,7 @@ it('getMqttConnectOptions: read connection from hassio', (done) => {
   let cfg = new Config()
   Config['config'].mqttusehassio = true
   cfg.getMqttConnectOptions().then((_mqttData) => {
-    expect(_mqttData.host).toBe(mqttService.host)
+    expect(_mqttData.mqttserverurl).toBe('mqtt://core-mosquitto:1883')
     expect(_mqttData.username).toBe(mqttService.username)
     expect(_mqttData.host).toBe(mqttService.host)
     mockReject = true

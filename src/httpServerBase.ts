@@ -128,8 +128,8 @@ export class HttpServerBase {
     if (token != undefined) req.url = req.url.replace(token + '/', '')
     else token = HttpServerBase.getAuthTokenFromHeader(req)
     if (req.url.indexOf('/api/') >= 0 || req.url.indexOf('/user/register') >= 0 || req.url.indexOf('/download/') >= 0) {
-      let config = Config.getConfiguration()
-      if (config.hassiotoken) {
+      let authStatus = Config.getAuthStatus()
+      if (authStatus.hassiotoken) {
         let address = (req.socket.address() as AddressInfo).address
         if (
           !address ||
@@ -177,7 +177,7 @@ export class HttpServerBase {
     return new Promise<void>((resolve, reject) => {
       try {
         Config.executeHassioGetRequest<{ data: IAddonInfo }>(
-          'http://'+ Config.getConfiguration().supervisor_host + '/addons/self/info',
+          '/addons/self/info',
           (info) => {
             //this.ingressUrl = join("/hassio/ingress/", info.data.slug);
             this.ingressUrl = info.data.ingress_entry
@@ -261,6 +261,7 @@ export class HttpServerBase {
     this.app.use(bodyparser.json())
     this.app.use(bodyparser.urlencoded({ extended: true }))
     this.app.use(express.json())
+    this.app.use(this.processStaticAngularFiles.bind(this))
     //@ts-ignore
     this.app.use(function (_undefined: any, res: http.ServerResponse, next: any) {
       //            res.setHeader('charset', 'utf-8')
@@ -275,7 +276,6 @@ export class HttpServerBase {
     })
     // angular files have full path including language e.G. /en-US/polyfill.js
     this.app.use(this.authenticate.bind(this))
-    this.app.use(this.processStaticAngularFiles.bind(this))
     this.app.use(express.static(this.angulardir))
     this.app.get('/', (req: Request, res: express.Response, next: NextFunction) => {
       res.redirect('index.html')

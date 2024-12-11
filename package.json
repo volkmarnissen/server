@@ -1,6 +1,6 @@
 {
   "name": "@modbus2mqtt/server",
-  "version": "0.16.14",
+  "version": "0.16.15",
   "sshserver": "homeassistant@homeassistant.lan",
   "homepage": "https://github.com/modbus2mqtt/server/README.md",
   "description": "server for modbus2mqtt for REST API of configuration and publishing modbus values to mqtt",
@@ -31,14 +31,16 @@
     "build.docker": "docker buildx build --load --tag modbus2mqtt/server docker",
     "ng serve": "cd ../angular && ng serve --open",
     "e2e:reset": "./e2e/localdev.sh reset",
+    "e2e:server.debug": "npm run build.dev && touch 'e2e/temp/addon.debug'",
+    "e2e:end.debug": "rm 'e2e/temp/addon.debug'",
     "prettier": "prettier --write '**/*.{ts,js,css,html,tsx}'"
   },
   "dependencies": {
     "@google-cloud/translate": "^8.3.0",
-    "@modbus2mqtt/angular": "^0.12.11",
-    "@modbus2mqtt/server.shared": "^0.13.7",
-    "@modbus2mqtt/specification": "^0.15.21",
-    "@modbus2mqtt/specification.shared": "^0.10.6",
+    "@modbus2mqtt/angular": "^0.12.12",
+    "@modbus2mqtt/server.shared": "^0.13.8",
+    "@modbus2mqtt/specification": "^0.15.22",
+    "@modbus2mqtt/specification.shared": "^0.10.7",
     "@octokit/rest": "^20.1.1",
     "adm-zip": "^0.5.16",
     "assert": "^2.1.0",
@@ -104,7 +106,7 @@
     "ts-node": "^10.9.2",
     "tslib": "^2.6.3",
     "tsx": "^4.16.5",
-    "typescript": "^5.5.4",
+    "typescript": "*",
     "typescript-map": "^0.1.0"
   }
 }

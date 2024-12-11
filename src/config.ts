@@ -1,7 +1,6 @@
 import Debug from 'debug'
 import { parse, stringify } from 'yaml'
 import * as fs from 'fs'
-import { MqttDiscover } from './mqttdiscover'
 import * as path from 'path'
 import { join } from 'path'
 import stream from 'stream'
@@ -20,8 +19,12 @@ import {
   IModbusConnection,
   Islave,
   PollModes,
+  Slave,
+  IUserAuthenticationStatus,
 } from '@modbus2mqtt/server.shared'
 import AdmZip from 'adm-zip'
+import { Bus } from './bus'
+import { MqttDiscover } from './mqttdiscover'
 
 const CONFIG_VERSION = '0.1'
 declare global {
@@ -37,6 +40,12 @@ export enum MqttValidationResult {
   OK = 0,
   tokenExpired = 1,
   error = 2,
+}
+export enum ConfigListenerEvent {
+  addSlave,
+  deleteSlave,
+  updateSlave,
+  deleteBus,
 }
 const log = new Logger('config')
 const secretsLength = 256
@@ -145,8 +154,6 @@ export class Config {
   private static config: Iconfiguration
   private static secret: string
   private static specificationsChanged = new Subject<string>()
-  private static bussesChanged = new Subject<void>()
-  private static busses: IBus[]
   private static newConfig: Iconfiguration = {
     version: CONFIG_VERSION,
     mqttbasetopic: 'modbus2mqtt',
@@ -163,15 +170,6 @@ export class Config {
   static yamlDir: string = ''
   static sslDir: string = ''
 
-  static getBussesProperties(): IBus[] {
-    return Config.busses
-  }
-  static getSpecificationsChangedObservable(): Observable<string> {
-    return Config.specificationsChanged
-  }
-  static getBussesChangedObservable(): Observable<void> {
-    return Config.bussesChanged
-  }
   static getSecret(pathStr: string): string {
     let result = ''
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
@@ -191,52 +189,6 @@ export class Config {
 
     return result
   }
-  static addBusProperties(connection: IModbusConnection): IBus {
-    let maxBusId = -1
-    Config.busses.forEach((b) => {
-      if (b.busId > maxBusId) maxBusId = b.busId
-    })
-    maxBusId++
-    let busArrayIndex =
-      Config.busses.push({
-        busId: maxBusId,
-        connectionData: connection,
-        slaves: [],
-      }) - 1
-    let busDir = Config.yamlDir + '/local/busses/bus.' + maxBusId
-    if (!fs.existsSync(busDir)) {
-      fs.mkdirSync(busDir, { recursive: true })
-      debug('creating slaves path: ' + busDir)
-    }
-    let src = stringify(connection)
-    fs.writeFileSync(join(busDir, 'bus.yaml'), src, { encoding: 'utf8' })
-    Config.bussesChanged.next()
-    return Config.busses[busArrayIndex]
-  }
-  static updateBusProperties(bus: IBus, connection: IModbusConnection): IBus {
-    bus.connectionData = connection
-    let busDir = Config.yamlDir + '/local/busses/bus.' + bus.busId
-    if (!fs.existsSync(busDir)) {
-      fs.mkdirSync(busDir, { recursive: true })
-      debug('creating slaves path: ' + busDir)
-    }
-    let src = stringify(connection)
-    fs.writeFileSync(join(busDir, 'bus.yaml'), src, { encoding: 'utf8' })
-    Config.bussesChanged.next()
-    return bus
-  }
-  static deleteBusProperties(busid: number) {
-    let idx = Config.busses.findIndex((b) => b.busId == busid)
-    if (idx >= 0) {
-      let busDir = Config.yamlDir + '/local/busses/bus.' + busid
-      Config.busses.splice(idx, 1)
-      fs.rmSync(busDir, { recursive: true })
-      let mqd = this.getMqttDiscover()
-      mqd.deleteBus(busid)
-      Config.bussesChanged.next()
-    }
-  }
-
   static getConfiguration(): Iconfiguration {
     if (Config.secret == undefined) {
       var secretsfile = Config.sslDir.length > 0 ? join(Config.sslDir, 'secrets.txt') : 'secrets.txt'
@@ -280,21 +232,30 @@ export class Config {
       Config.config.fakeModbus = Config.config.fakeModbus ? Config.config.fakeModbus : false
       Config.config.noAuthentication = Config.config.noAuthentication ? Config.config.noAuthentication : false
       Config.config.filelocation = Config.config.filelocation ? Config.config.filelocation : Config.yamlDir
-      Config.busses = Config.busses && Config.busses.length > 0 ? Config.busses : []
-      Config.config.hassiotoken = process.env.HASSIO_TOKEN && process.env.HASSIO_TOKEN.length ? process.env.HASSIO_TOKEN : undefined
+      process.env.HASSIO_TOKEN && process.env.HASSIO_TOKEN.length ? process.env.HASSIO_TOKEN : undefined
       Config.config.mqttusehassio =
-        Config.config.mqttusehassio && Config.config.hassiotoken
+        Config.config.mqttusehassio && process.env.HASSIO_TOKEN && process.env.HASSIO_TOKEN.length
           ? Config.config.mqttusehassio
-          : Config.config.hassiotoken != undefined && Config.config.hassiotoken.length > 0
-      Config.config.supervisor_host = Config.config.supervisor_host?Config.config.supervisor_host:'supervisor'
+          : process.env.HASSIO_TOKEN != undefined && process.env.HASSIO_TOKEN.length > 0
+      Config.config.supervisor_host = Config.config.supervisor_host ? Config.config.supervisor_host : 'supervisor'
     } else {
       log.log(LogLevelEnum.notice, 'No config file found ')
       Config.config = structuredClone(Config.newConfig)
-      Config.busses = []
     }
     return structuredClone(Config.config)
   }
-
+  static getAuthStatus(): IUserAuthenticationStatus {
+    return {
+      registered:
+        Config.config.mqttusehassio ||
+        Config.config.noAuthentication ||
+        (Config.config.username != undefined && Config.config.password != undefined),
+      hassiotoken: Config.config.mqttusehassio ? Config.config.mqttusehassio : false,
+      noAuthentication: Config.config.noAuthentication ? Config.config.noAuthentication : false,
+      mqttConfigured: false,
+      preSelectedBusId: Bus.getBusses().length == 1 ? Bus.getBusses()[0].getId() : undefined,
+    }
+  }
   async readGetResponse(res: http.IncomingMessage): Promise<any> {
     return new Promise<any>((resolve, reject) => {
       let lbuffers: Uint8Array[] = []
@@ -315,93 +276,49 @@ export class Config {
       })
     })
   }
-  listDevicesUdev(next: (devices: string[]) => void, reject: (error: any) => void): void {
-    SerialPort.list()
-      .then((portInfo) => {
-        let devices: string[] = []
-        portInfo.forEach((port) => {
-          devices.push(port.path)
-        })
-        next(devices)
-      })
-      .catch((error) => {
-        reject(error)
-      })
-  }
-
-  listDevices(next: (devices: string[]) => void, reject: (error: any) => void): void {
-    try {
-      this.listDevicesHassio(next, (_e) => {
-        this.listDevicesUdev(next, reject)
-      })
-    } catch (e) {
-      try {
-        this.listDevicesUdev(next, reject)
-      } catch (e) {
-        next([])
-      }
-    }
-  }
   static executeHassioGetRequest<T>(url: string, next: (_dev: T) => void, reject: (error: any) => void): void {
-    let hassiotoken: string | undefined = Config.getConfiguration().hassiotoken
+    // This method can be called before configuration. It can't use config.hassio
+    let hassiotoken: string | undefined = process.env.HASSIO_TOKEN
     if (!hassiotoken || hassiotoken.length == 0) throw new Error('ENV: HASSIO_TOKEN not defined')
 
     const timer = setTimeout(() => {
+      clearTimeout(timer)
       reject(new Error('TIMEOUT(' + HASSIO_TIMEOUT + 'ms)'))
     }, HASSIO_TIMEOUT /* ms */)
+    try {
+      fetch('http://' + Config.getConfiguration().supervisor_host + url, {
+        headers: {
+          authorization: 'Bearer ' + hassiotoken,
+          accept: 'application/json',
+        },
+      })
+        .then((res) => {
+          clearTimeout(timer)
+          if (res)
+            res
+              .json()
+              .then((obj) => {
+                if (obj)
+                  if (obj.data) next(obj)
+                  else if (obj.result == 'error') reject(new Error('HASSIO: ' + obj.message))
+                  else reject(new Error('get' + url + ' expected data root object: ' + JSON.stringify(obj)))
+              })
+              .catch((reason) => {
+                let msg = 'supervisor call ' + url + ' failed ' + JSON.stringify(reason) + ' ' + res.headers.get('content-type')
+                log.log(LogLevelEnum.error, msg)
+                reject(new Error(msg))
+              })
+        })
+        .catch((reason) => {
+          clearTimeout(timer)
+          log.log(LogLevelEnum.error, JSON.stringify(reason))
+          reject(reason)
+        })
+    } catch (e: any) {
+      log.log(LogLevelEnum.error, e.message)
+    }
+  }
 
-    fetch(url, {
-      headers: {
-        authorization: 'Bearer ' + hassiotoken,
-        accept: 'application/json',
-      },
-    })
-      .then((res) => {
-        clearTimeout(timer)
-        if (res)
-          res
-            .json()
-            .then((obj) => {
-              if (obj)
-                if (obj.data) next(obj)
-                else if (obj.result == 'error') reject(new Error('HASSIO: ' + obj.message))
-                else reject(new Error('get' + url + ' expected data root object: ' + JSON.stringify(obj)))
-            })
-            .catch((reason) => {
-              let msg = 'supervisor call ' + url + ' failed ' + JSON.stringify(reason) + ' ' + res.headers.get('content-type')
-              log.log(LogLevelEnum.error, msg)
-              reject(new Error(msg))
-            })
-      })
-      .catch((reason) => {
-        clearTimeout(timer)
-        log.log(LogLevelEnum.error, JSON.stringify(reason))
-        reject(reason)
-      })
-  }
-  listDevicesHassio(next: (devices: string[]) => void, reject: (error: any) => void): void {
-    Config.executeHassioGetRequest<string[]>(
-      'http://'+ Config.getConfiguration().supervisor_host + '/hardware/info',
-      (dev) => {
-        next(this.grepDevices(dev))
-      },
-      reject
-    )
-  }
-  private grepDevices(bodyObject: any): string[] {
-    var devices: any[] = bodyObject.data.devices
-    var rc: string[] = []
-    devices.forEach((device) => {
-      if (device.subsystem === 'tty')
-        try {
-          fs.accessSync(device.dev_path, fs.constants.R_OK)
-          rc.push(device.dev_path)
-        } catch (error) {
-          log.log(LogLevelEnum.error, 'Permission denied for read serial device %s', device.dev_path)
-        }
-    })
-    return rc
-  }
   validateHassioToken(hassiotoken: string, next: () => void, reject: () => void): void {
     if (!hassiotoken || hassiotoken.length == 0) throw new Error('ENV: HASSIO_TOKEN not defined')
 
@@ -443,7 +360,7 @@ export class Config {
     return new Promise<ImqttClient>((resolve, reject) => {
       try {
         Config.executeHassioGetRequest<{ data: ImqttClient }>(
-          'http://supervisor/services/mqtt',
+          '/services/mqtt',
           (mqtt) => {
             let config = Config.getConfiguration()
             config.mqttconnect = mqtt.data
@@ -506,7 +423,6 @@ export class Config {
         if (!fs.existsSync(Config.yamlDir)) {
           log.log(LogLevelEnum.notice, 'configuration directory  not found ' + process.cwd() + '/' + Config.yamlDir)
           Config.config = structuredClone(Config.newConfig)
-          Config.busses = []
           resolve()
         }
         debug('yamlDir: ' + Config.yamlDir + ' ' + process.argv.length)
@@ -542,91 +458,17 @@ export class Config {
             })
           }
           Config.config = parse(src)
-          if (Config.yamlDir.length  == 0) 
-            log.log(LogLevelEnum.error, "yamlDir not set")
-          else if(Config.config )
-            Config.config.filelocation = Config.yamlDir
+          if (Config.yamlDir.length == 0) log.log(LogLevelEnum.error, 'yamlDir not set')
+          else if (Config.config) Config.config.filelocation = Config.yamlDir
           else {
-            log.log(LogLevelEnum.error, "config file not parsed \"" + src + "\"")
+            log.log(LogLevelEnum.error, 'config file not parsed "' + src + '"')
           }
-            
         }
-        Config.busses = []
-        let busDir = Config.yamlDir + '/local/busses'
-        let oneBusFound = false
-        if (fs.existsSync(busDir)) {
-          let busDirs: fs.Dirent[] = fs.readdirSync(busDir, {
-            withFileTypes: true,
-          })
-          busDirs.forEach((de) => {
-            if (de.isDirectory() && de.name.startsWith('bus.')) {
-              let busid = Number.parseInt(de.name.substring(4))
-              let busYaml = join(de.path, de.name, 'bus.yaml')
-              let connectionData: IModbusConnection
-              if (fs.existsSync(busYaml)) {
-                var src: string = fs.readFileSync(busYaml, {
-                  encoding: 'utf8',
-                })
-                connectionData = parse(src)
-                Config.busses.push({
-                  busId: busid,
-                  connectionData: connectionData,
-                  slaves: [],
-                })
-                oneBusFound = true
-                let devFiles: string[] = fs.readdirSync(Config.yamlDir + '/local/busses/' + de.name)
-                devFiles.forEach(function (file: string) {
-                  if (file.endsWith('.yaml') && file !== 'bus.yaml') {
-                    var src: string = fs.readFileSync(Config.yamlDir + '/local/busses/' + de.name + '/' + file, {
-                      encoding: 'utf8',
-                    })
-                    var o: Islave = parse(src)
-                    Config.busses[Config.busses.length - 1].slaves.push(o)
-                  }
-                })
-              }
-            }
-          })
-        }
-        if (!oneBusFound) {
-          this.listDevices(
-            (devices) => {
-              if (devices && devices.length) {
-                let usb = devices.find((dev) => dev.toLocaleLowerCase().indexOf('usb') >= 0)
-                if (usb)
-                  Config.addBusProperties({
-                    serialport: usb,
-                    timeout: BUS_TIMEOUT_DEFAULT,
-                    baudrate: 9600,
-                  })
-                else
-                  Config.addBusProperties({
-                    serialport: devices[0],
-                    timeout: BUS_TIMEOUT_DEFAULT,
-                    baudrate: 9600,
-                  })
-              } else
-                Config.addBusProperties({
-                  serialport: '/dev/ttyACM0',
-                  timeout: BUS_TIMEOUT_DEFAULT,
-                  baudrate: 9600,
-                })
-            },
-            () => {
-              Config.addBusProperties({
-                serialport: '/dev/ttyACM0',
-                timeout: BUS_TIMEOUT_DEFAULT,
-                baudrate: 9600,
-              })
-            }
-          )
-        }
-
-        debug('config: busses.length: ' + Config.busses.length)
         if (!Config.config || !Config.config.mqttconnect || !Config.isMqttConfigured(Config.config.mqttconnect)) {
           this.getMqttConnectOptions()
             .then((mqttLoginData) => {
               Config.mqttHassioLoginData = mqttLoginData
+
               resolve()
             })
             .catch((reason) => {
@@ -635,7 +477,9 @@ export class Config {
               // This should not stop the application
               resolve()
             })
-        } else resolve()
+        } else {
+          resolve()
+        }
       } catch (error: any) {
         log.log(LogLevelEnum.error, 'readyaml failed: ' + error.message)
         throw error
@@ -654,55 +498,6 @@ export class Config {
       })
   }
 
-  async filterAllslaves<T>(busid: number, specFunction: <T>(slave: Islave) => Set<T> | any): Promise<Set<T>> {
-    let addresses = new Set<T>()
-    for (let slave of Config.busses[busid].slaves) {
-      for (let addr of specFunction(slave)) addresses.add(addr)
-    }
-    return addresses
-  }
-  static mqttDiscoverInstance: MqttDiscover | undefined
-  static getMqttDiscover(): MqttDiscover {
-    if (!Config.mqttDiscoverInstance)
-      if (Config.config.mqttusehassio && this.mqttHassioLoginData)
-        Config.mqttDiscoverInstance = new MqttDiscover(this.mqttHassioLoginData, Config.config.mqttdiscoverylanguage)
-      else Config.mqttDiscoverInstance = new MqttDiscover(Config.config.mqttconnect, Config.config.mqttdiscoverylanguage)
-    return Config.mqttDiscoverInstance
-  }
-
-  private triggerMqttPublishSlave(busid: number, slave: Islave) {
-    Config.getMqttDiscover().triggerPoll(busid, slave,true)
-  }
-
-  deleteSlave(busid: number, slaveid: number) {
-    let bus = Config.busses.find((bus) => bus.busId == busid)
-    if (bus != undefined) {
-      debug('DELETE /slave slaveid' + busid + '/' + slaveid + ' number of slaves: ' + bus.slaves.length)
-      let found = false
-      for (let idx = 0; idx < bus.slaves.length; idx++) {
-        let dev = bus.slaves[idx]
-
-        if (dev.slaveid === slaveid) {
-          found = true
-          if (fs.existsSync(this.getslavePath(busid, dev)))
-            fs.unlink(this.getslavePath(busid, dev), (err) => {
-              if (err) debug(err)
-            })
-          bus.slaves.splice(idx, 1)
-          let mqd = Config.getMqttDiscover()
-          mqd.deleteSlave(bus.busId, slaveid)
-          debug('DELETE /slave finished ' + slaveid + ' number of slaves: ' + bus.slaves.length)
-          return
-        }
-      }
-      if (!found) debug('slave not found for deletion ' + slaveid)
-    } else {
-      let msg = 'Unable to delete slave. Check server log for details'
-      log.log(LogLevelEnum.error, msg + ' busid ' + busid + ' not found')
-
-      throw new Error(msg)
-    }
-  }
   writeConfiguration(config: Iconfiguration) {
     let cpConfig = structuredClone(config)
     Config.config = config
@@ -735,82 +530,12 @@ export class Config {
     s = stringify(secrets)
     fs.writeFileSync(this.getSecretsPath(), s, { encoding: 'utf8' })
   }
-
-  writeslave(
-    busid: number,
-    slaveid: number,
-    specification: string | undefined,
-    name?: string,
-    polInterval?: number,
-    pollMode?: PollModes
-  ): Islave {
-    // Make sure slaveid is unique
-    let slave: Islave = {
-      slaveid: slaveid,
-      specificationid: specification,
-      name: name,
-      polInterval: polInterval,
-      pollMode: pollMode,
-    }
-    let oldFilePath = this.getslavePath(busid, slave)
-    let filename = Config.getFileNameFromSlaveId(slave.slaveid)
-    let newFilePath = this.getslavePath(busid, slave)
-    let dir = path.dirname(newFilePath)
-    if (!fs.existsSync(dir))
-      try {
-        fs.mkdirSync(dir, { recursive: true })
-      } catch (e) {
-        debug('Unable to create directory ' + dir + ' + e')
-        throw e
-      }
-    let s = stringify(slave)
-    fs.writeFileSync(newFilePath, s, { encoding: 'utf8' })
-    if (oldFilePath !== newFilePath && fs.existsSync(oldFilePath))
-      fs.unlink(oldFilePath, (err: any) => {
-        debug('writeslave: Unable to delete ' + oldFilePath + ' ' + err)
-      })
-
-    if (specification) {
-      if (specification == '_new') new ConfigSpecification().deleteNewSpecificationFiles()
-      else {
-        let spec = ConfigSpecification.getSpecificationByFilename(specification)
-        slave.specification = spec as any as IbaseSpecification
-      }
-      this.triggerMqttPublishSlave(busid, slave)
-    } else debug('No Specification found for slave: ' + filename + ' specification: ' + slave.specificationid)
-    return slave
-  }
-  getslavePath(busid: number, slave: Islave): string {
-    return Config.yamlDir + '/local/busses/bus.' + busid + '/s' + slave.slaveid + '.yaml'
-  }
   static getConfigPath() {
     return Config.yamlDir + '/local/modbus2mqtt.yaml'
   }
   getSecretsPath() {
     return Config.yamlDir + '/local/secrets.yaml'
   }
-
-  static getSlave(busid: number, slaveid: number): Islave | undefined {
-    if (Config.busses.length <= busid) {
-      debug('Config.getslave: unknown bus')
-      return undefined
-    }
-    let rc = Config.busses[busid].slaves.find((dev) => {
-      return dev.slaveid === slaveid
-    })
-    if (!rc) debug('slaves.length: ' + Config.busses[busid].slaves.length)
-    for (let dev of Config.busses[busid].slaves) {
-      debug(dev.name)
-    }
-    return rc
-  }
-  static getslaveBySlaveId(busid: number, slaveId: number) {
-    let rc = Config.busses[busid].slaves.find((dev) => {
-      return dev.slaveid === slaveId
-    })
-    return rc
-  }
-
   static setFakeModbus(newMode: boolean) {
     Config.config.fakeModbus = newMode
   }
