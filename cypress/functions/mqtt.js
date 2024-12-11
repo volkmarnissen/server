@@ -16,13 +16,14 @@ class MqttHelper {
   tAndP
   constructor() {
     this.tAndP = []
-    console.log('constructore')
   }
 
-  onMessage(topic, payload) {
-    console.log('onMessage' + topic )
-    if (this.tAndP) this.tAndP.push({ topic: topic, payload: payload.toString() })
-    else console.log('tAndP is undefined')
+  onMessage(topic, payload, packet) {
+    if (this.tAndP && ! this.tAndP.find(tp=>tp.messageId == packet.messageId )) 
+    {
+      console.log('onMessage id:' + packet.messageId + " topic:" + topic + " payload: " + payload.toString())
+      this.tAndP.push({ topic: topic, payload: payload.toString(), messageId: packet.messageId })
+    }
   }
 
   connect(connectionData) {
@@ -39,17 +40,14 @@ class MqttHelper {
     this.client.publish(topic, payload, { qos: 1 })
   }
   subscribe(topic) {
-    console.log('subscribe')
     this.client.subscribe(topic, { qos: 1 })
   }
   getTopicAndPayloads() {
-    console.log('getTopicsAndPayload: ' + this.tAndP.length)
     return new Promise((resolve) => {
       resolve(this.tAndP)
     })
   }
   resetTopicAndPayloads() {
-    console.log('reset')
     if (this.tAndP == undefined) console.log('resetTopicAndPayloads this.tAndP is undefined')
     this.tAndP = []
   }

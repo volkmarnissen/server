@@ -9,16 +9,27 @@
 set -e
 
 export SERVICES=~/.config/systemd/user/
-function services(){
+function basicServices(){
     echo modbus2mqtt-tcp-server.service 3002
     echo mosquitto.service 3001
     echo mosquitto.service 3003
+}
+
+function services(){
+    basicServices
     echo modbus2mqtt-e2e.service 3005  modbus2mqtt-e2e.service.log
     echo modbus2mqtt-addon.service 3004
 }
 function checkServices(){
   sleep 2
-  services | while read service port log
+  {
+    if [ "$1" != "" ] 
+    then
+      basicServices
+    else
+      services
+    fi
+  } | while read service port log
   do
     if ! systemctl --user is-active --quiet $service
     then
@@ -76,15 +87,26 @@ mkdir -p ${BASEDIR}/temp/yaml-dir-addon/local
 if [ "$1" == "reset" ]
 then
   #daemon reload is not required: No changes to service
-  systemctl --user restart mosquitto.service
-  
-  systemctl --user restart modbus2mqtt-e2e.service
-  systemctl --user restart modbus2mqtt-addon.service
-  checkServices
+  if [ -f "e2e/temp/addon.debug" ]
+  then
+    systemctl --user start modbus2mqtt-tcp-server.service
+    systemctl --user restart mosquitto.service  
+    #debugging: No start of service. The servers will run in the IDE
+    systemctl --user stop modbus2mqtt-e2e.service
+    systemctl --user stop modbus2mqtt-addon.service
+    exit 0
+  else
+    systemctl --user start modbus2mqtt-tcp-server.service
+    systemctl --user restart mosquitto.service  
+    systemctl --user restart modbus2mqtt-e2e.service
+    systemctl --user restart modbus2mqtt-addon.service
+    checkServices
+  fi 
 fi
 
 # .../server/e2e
-
+if [ "$1" == "root" ]
+then
 # Root part START
 set +e
 sudo apt-get install -y nginx mosquitto mosquitto-clients >/dev/null 2>&1
@@ -160,6 +182,8 @@ EOF2' | sed -e "s:|wwwroot|:${WWWROOT}:g" | sudo sh -c "cat >/etc/nginx/conf.d/m
 sudo systemctl daemon-reload
 sudo systemctl stop mosquitto.service
 sudo systemctl restart nginx.service
+exit 0
+fi 
 # Root part END
 
 mkdir -p $SERVICES
@@ -261,6 +285,6 @@ sleep 1
 systemctl --user restart modbus2mqtt-tcp-server.service
 systemctl --user restart modbus2mqtt-e2e.service
 systemctl --user restart modbus2mqtt-addon.service
-systemctl --user restart mosquitto.service
+systemctl --user start mosquitto.service
 checkServices
 

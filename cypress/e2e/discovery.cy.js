@@ -23,6 +23,7 @@ function runSlaves(willLog) {
   cy.url().should('contain', prefix + '/slaves')
   cy.get('[formcontrolname="slaveId"]',logSetting).type('3{enter}', { force: true, log:willLog })
   // Show specification third header button on first card
+
   cy.get('div.card-header-buttons:first button',logSetting).eq(2,logSetting).click(logSetting)
   cy.url().should('contain', prefix + '/specification')
 }
@@ -53,9 +54,9 @@ function addEntity(entitynum, modbusAddress, willLog){
 //  cy.get('app-entity:last mat-expansion-panel-header',logSetting).eq(0,logSetting).click(logSetting)
   cy.get('app-entity:last [formcontrolname="name"]',logSetting).type('the entity'+ entitynum + '{enter}', { force: true, log:willLog })
   cy.get('app-entity:last [formcontrolname="modbusAddress"]',logSetting).type('{backspace}' + modbusAddress+ '{enter}', { force: true, log:willLog })
-  cy.get('app-entity:last mat-select[formControlName="converter"]',logSetting).click().get('mat-option').contains('number').click(logSetting);
+  cy.get('app-entity:last mat-select[formControlName="converter"]',logSetting).click(logSetting).get('mat-option').contains('number').click(logSetting);
+  cy.get('app-entity:last [formControlName="readonly"]',logSetting).click(logSetting)
   
-
   cy.get('app-entity:last [formcontrolname="min"]',logSetting).type('0', { force: true, log:willLog })
   cy.get('app-entity:last [formcontrolname="max"]',logSetting).type('1000', { force: true, log:willLog })
   cy.get('app-entity:last mat-select[formControlName="registerType"]',logSetting).click().get('mat-option').contains('Holding').click(logSetting);
@@ -76,8 +77,19 @@ function addSlave(willLog) {
   cy.url().should('contain', prefix + '/slaves')
   cy.get('[formcontrolname="detectSpec"]', logSetting).click( logSetting)
   cy.get('[formcontrolname="slaveId"]', logSetting).type('10{enter}', { force: true, log:willLog })
+  cy.get('app-select-slave:first mat-expansion-panel-header[aria-expanded=false]',logSetting).then((elements=>{
+    if( elements.length >=1 ){
+      elements[0].click(logSetting)
+    }
+    if( elements.length >=2 ){
+      elements[1].click(logSetting)
+    }
+  }))    
+
+  cy.get('app-select-slave:first mat-select[formControlName="pollMode"]',logSetting).click().get('mat-option').contains('No polling').click(logSetting)
   // Show specification third header button on first card
   cy.get('div.card-header-buttons:first button:contains("add_box")', logSetting).eq(0, logSetting).click( logSetting)
+
   cy.url().should('contain', prefix + '/specification')
 }
 function validateMqtt(willLog){
@@ -108,6 +120,7 @@ describe('MQTT Discovery Tests', () => {
       },
     },
     () => {
+      Cypress.config('defaultCommandTimeout', 20000 )
       let willLog= true
       let logSetting = { log: willLog }
       cy.exec('npm run e2e:reset', logSetting)
@@ -118,8 +131,8 @@ describe('MQTT Discovery Tests', () => {
       assert(mqttConnect != undefined)
       cy.log("MQTT connect")
       cy.task('mqttConnect', mqttConnect, logSetting).then(() => {
-        cy.task('mqttSubscribe', 'homeassistant/#', logSetting).then((tAndP) => {
-          cy.task("mqttResetTopicAndPayloads").then(() => {
+        cy.task('mqttSubscribe', '#', logSetting).then((tAndP) => {
+          cy.task("mqttResetTopicAndPayloads")
           runBusses(true)
           addSlave(true)
           cy.log("Configure Specification name")
@@ -128,12 +141,14 @@ describe('MQTT Discovery Tests', () => {
           setUrls(true)
           addEntity(1,1,false )
           addEntity(2,3,false )
-          Cypress.config('defaultCommandTimeout', 20000 )
           saveSpecification(false)
           
           cy.task('mqttGetTopicAndPayloads').then((tAndP) => {
+            //expect(tAndP.length).to.eq(2)
+            expect( tAndP.findIndex(tp=>tp.payload == "online")).not.to.eq(-1)
+            expect( tAndP.findIndex(tp=>tp.topic.endsWith("/state/"))).not.to.eq(-1)
+            expect( tAndP.filter(tp=>tp.topic.startsWith("homeassistant/")).length).to.eq(2)
             cy.log('tAndP ' + JSON.stringify(tAndP, null, 4))
-          })
           })
           cy.readFile('e2e/temp/yaml-dir-addon/local/specifications/files/thespec/files.yaml').should("exist")
         

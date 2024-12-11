@@ -20,6 +20,8 @@ import Debug from 'debug'
 import { LogLevelEnum, Logger } from '@modbus2mqtt/specification'
 import { ImqttClient, Islave, PollModes, Slave } from '@modbus2mqtt/server.shared'
 import { Mutex } from 'async-mutex'
+import { QoS } from 'mqtt-packet';
+
 import { rejects } from 'assert'
 const debug = Debug('mqttdiscover')
 const debugAction = Debug('actions')
@@ -390,7 +392,7 @@ export class MqttDiscover {
       this.getMqttClient()
         .then((mqttClient) => {
           try {
-            let subscribedSlave = this.subscribedSlaves.find((s) => Slave.compareSlaves(s, slave))
+            let subscribedSlave = this.subscribedSlaves.find((s) => 0 == Slave.compareSlaves(s, slave))
             let newSpec = slave.getSpecification()
             let oldSpec = subscribedSlave ? subscribedSlave?.getSpecification() : undefined
             if (oldSpec && oldSpec.entities && this.client) {
@@ -408,11 +410,9 @@ export class MqttDiscover {
             }
             // Insert new/changed topics
             if (!deleteAllEntities && newSpec && newSpec.entities && this.client) {
-              newSpec.entities.forEach((newEnt) => {
                 this.generateDiscoveryPayloads(slave, newSpec as ImodbusSpecification).forEach((tp) => {
                   this.client!.publish(tp.topic, tp.payload, retain) // write entity
                 })
-              })
             }
             resolve()
           } catch (e) {
@@ -553,18 +553,27 @@ export class MqttDiscover {
         })
     })
   }
+  private generateQos(slave: Slave, spec: ImodbusSpecification):QoS| undefined{
+      if( slave.getQos() == undefined )
+        if( spec.entities.find(e=>e.readonly == false)!= undefined )
+          return 1
+        else  
+          return 0
+      
+      return slave.getQos() as QoS| undefined
+  }
   private publishState(slave: Slave, spec: ImodbusSpecification): Promise<void> {
     return new Promise<void>((resolve) => {
       let topic = slave.getStateTopic()
       let bus = Bus.getBus(slave.getBusId())
       if (this.client && bus && spec) {
         try {
-          this.client!.publish(topic, slave.getStatePayload(spec.entities), { qos: slave.getQos() as any })
-          this.client!.publish(slave.getAvailabilityTopic(), 'online', { qos: slave.getQos() as any })
+          this.client!.publish(topic, slave.getStatePayload(spec.entities), { qos: this.generateQos(slave,spec) })
+          this.client!.publish(slave.getAvailabilityTopic(), 'online', { qos: this.generateQos(slave,spec) })
           resolve()
         } catch (e) {
           try {
-            this.client!.publish(slave.getAvailabilityTopic(), 'offline', { qos: slave.getQos() as any })
+            this.client!.publish(slave.getAvailabilityTopic(), 'offline', { qos: this.generateQos(slave,spec) })
           } catch (e) {
             // ignore the error
             debug('Error')
@@ -596,7 +605,7 @@ export class MqttDiscover {
         bus.getSlaves().forEach((slave) => {
           let sl = new Slave(bus.getId(), slave, Config.getConfiguration().mqttbasetopic)
           let pc: number | undefined = this.pollCounts.get(sl.getKey())
-          let trigger = this.triggers.find((k) => Slave.compareSlaves(k.slave, sl))
+          let trigger = this.triggers.find((k) => 0 == Slave.compareSlaves(k.slave, sl))
 
           if (pc == undefined || pc > (slave.polInterval != undefined ? slave.polInterval / 100 : defaultPollCount)) pc = 0
           if (pc == 0 || trigger != undefined) {
@@ -624,7 +633,7 @@ export class MqttDiscover {
             needPolls.forEach((bs) => {
               // Trigger state only if it's configured to do so
               let spMode = bs.slave.getPollMode()
-              let idx = this.triggers.findIndex((k) => Slave.compareSlaves(k.slave, bs.slave))
+              let idx = this.triggers.findIndex((k) => 0 == Slave.compareSlaves(k.slave, bs.slave))
               if (
                 spMode == undefined ||
                 [PollModes.intervall, PollModes.intervallAndTrigger].includes(spMode) ||

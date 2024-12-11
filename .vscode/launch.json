@@ -22,7 +22,8 @@
     },
     {
       "name": "Run Addon Service Server",
-      "preLaunchTask": "npm: serviceInstance",
+      "preLaunchTask": "npm: e2e:server.debug",
+      "postDebugTask": "npm: e2e:end.debug",
       "timeout": 10000,
       "program": "${workspaceFolder}/dist/modbus2mqtt.js",
       "args": [  "-y", "~/m2m/server/e2e/temp/yaml-dir-addon", "-s" ,"~/m2m/server/e2e/temp/ssl"],
