@@ -1,4 +1,4 @@
-name:  Run unit tests
+name:  Run Update Release Description
 
 on:
   workflow_call:
