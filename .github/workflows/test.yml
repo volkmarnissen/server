@@ -1,14 +1,7 @@
 name:  Run Update Release Description
 
 on:
-  workflow_call:
-    secrets:
-      DOCKERHUB_USERNAME:
-        required: true
-      DOCKERHUB_TOKEN:
-        required: true
-      PAT:
-        required: true  
+  workflow_dispatch:
 permissions:
   contents: write
 jobs:
