@@ -141,121 +141,137 @@ export class MqttDiscover {
   private generateDiscoveryPayloads(slave: Slave, spec: ImodbusSpecification): ItopicAndPayloads[] {
     let payloads: { topic: string; payload: string }[] = []
     // instantiate the converters
-    if (this.language)
-      for (let e of spec.entities) {
-        // !slave.suppressedEntities.includes(e.id)
-        if (e.id >= 0 && !e.variableConfiguration) {
-          let converter = ConverterMap.getConverter(e)
-          let ent: ImodbusEntity = e as ImodbusEntity
+    try{
+      if (this.language)
+        for (let e of spec.entities) {
+          debug( "Update state topic " + e.mqttname )
+          // !slave.suppressedEntities.includes(e.id)
+          if (e.id >= 0 && !e.variableConfiguration) {
+            let converter = ConverterMap.getConverter(e)
+            let ent: ImodbusEntity = e as ImodbusEntity
+  
+            if (converter) {
+              debug( "Converter " + e.mqttname )
 
-          if (converter) {
-            var obj: any = new Object()
-            obj.device = new Object()
-            let slaveName = slave.getName()
-            if (!obj.device.name)
-              if (slaveName) obj.device.name = slaveName
-              else {
-                let name = getSpecificationI18nName(spec, this.language, false)
-                if (name) obj.device.name = name
-              }
-
-            if (!obj.device.manufacturer && spec.manufacturer) obj.device.manufacturer = spec.manufacturer
-            if (!obj.device.model && spec.model) obj.device.model = spec.model
-            obj.device.identifiers = [obj.device.name]
-            spec.entities.forEach((ent1) => {
-              if (ent1.variableConfiguration) {
-                switch (ent1.variableConfiguration.targetParameter) {
-                  case VariableTargetParameters.deviceSerialNumber:
-                    let sn = (ent1 as ImodbusEntity).mqttValue
-                    if (sn) obj.device.serial_number = sn
-                    break
-                  case VariableTargetParameters.deviceSWversion:
-                    let sv = (ent1 as ImodbusEntity).mqttValue
-                    if (sv) obj.device.sw_version = sv
-                    break
-                  case VariableTargetParameters.deviceIdentifiers:
-                    let o = (ent1 as ImodbusEntity).mqttValue
-                    if (o) obj.device.identifiers.push(o)
-                    break
-                  case VariableTargetParameters.entityUom:
-                    if (e.id == ent1.variableConfiguration.entityId && converter!.getParameterType(e) === 'Inumber') {
-                      obj.unit_of_measurement = (ent1 as ImodbusEntity).mqttValue
-                    }
-                    break
-
-                  // Add additionial device attributes here
-                  // obj.device.<???> = (ent1 as ImodbusEntity).mqttValue;
+              var obj: any = new Object()
+              obj.device = new Object()
+              let slaveName = slave.getName()
+              if (!obj.device.name)
+                if (slaveName) obj.device.name = slaveName
+                else {
+                  let name = getSpecificationI18nName(spec, this.language, false)
+                  if (name) obj.device.name = name
                 }
-              }
-            })
-            if (e.forceUpdate) obj.force_update = true
-            if (e.entityCategory && e.entityCategory.length) obj.entity_category = e.entityCategory
-
-            if (e.icon) obj.icon = e.icon
-            if (!e.variableConfiguration) {
-              let name = getSpecificationI18nEntityName(spec, this.language, e.id)
-              let filename = Config.getFileNameFromSlaveId(slave.getSlaveId())
-              if (!obj.name && name) obj.name = name
-              if (!obj.object_id && e.mqttname) obj.object_id = e.mqttname
-              if (!obj.unique_id) obj.unique_id = 'M2M' + slave.getBusId() + filename + e.mqttname
-
-              if (!obj.value_template) obj.value_template = '{{ value_json.' + obj.object_id + ' }}'
-              if (!obj.state_topic) obj.state_topic = slave.getStateTopic()
-              if (!obj.availability && !obj.availability_topic) obj.availability_topic = slave.getAvailabilityTopic()
-              let cmdTopic = slave.getEntityCommandTopic(ent)
-              if (!obj.command_topic && !e.readonly) obj.command_topic = cmdTopic?cmdTopic.commandTopic:undefined
-              switch (converter.getParameterType(e)) {
-                case 'Iselect':
-                  if (!e.readonly) {
-                    let ns = e.converterParameters as Iselect
-                    if (e.converter.name === 'select' && ns && ns.optionModbusValues && ns.optionModbusValues.length) {
-                      obj.options = []
-                      for (let modbusValue of ns.optionModbusValues)
-                        obj.options.push(getSpecificationI18nEntityOptionName(spec, this.language, e.id, modbusValue))
-
-                      if (obj.options == undefined || obj.options.length == 0)
-                        log.log(LogLevelEnum.warn, 'generateDiscoveryPayloads: No options specified for ' + obj.name)
-                      else
-                        obj.options.forEach((o: IselectOption) => {
-                          if (!o) log.log(LogLevelEnum.warn, 'generateDiscoveryPayloads: option with no text for ' + e.id)
-                        })
-                    }
-                    obj.device_class = 'enum'
-                    if (e.converter.name === 'binary' && ns.device_class) obj.device_class = ns.device_class
+  
+              if (!obj.device.manufacturer && spec.manufacturer) obj.device.manufacturer = spec.manufacturer
+              if (!obj.device.model && spec.model) obj.device.model = spec.model
+              obj.device.identifiers = [obj.device.name]
+              debug( "Entities " + e.mqttname )
+              spec.entities.forEach((ent1) => {
+                if (ent1.variableConfiguration) {
+                  switch (ent1.variableConfiguration.targetParameter) {
+                    case VariableTargetParameters.deviceSerialNumber:
+                      let sn = (ent1 as ImodbusEntity).mqttValue
+                      if (sn) obj.device.serial_number = sn
+                      break
+                    case VariableTargetParameters.deviceSWversion:
+                      let sv = (ent1 as ImodbusEntity).mqttValue
+                      if (sv) obj.device.sw_version = sv
+                      break
+                    case VariableTargetParameters.deviceIdentifiers:
+                      let o = (ent1 as ImodbusEntity).mqttValue
+                      if (o) obj.device.identifiers.push(o)
+                      break
+                    case VariableTargetParameters.entityUom:
+                      if (e.id == ent1.variableConfiguration.entityId && converter!.getParameterType(e) === 'Inumber') {
+                        obj.unit_of_measurement = (ent1 as ImodbusEntity).mqttValue
+                      }
+                      break
+  
+                    // Add additionial device attributes here
+                    // obj.device.<???> = (ent1 as ImodbusEntity).mqttValue;
                   }
-                  break
-                case 'Inumber':
-                  let nn = e.converterParameters as Inumber
-                  if (!obj.unit_of_measurement && nn && nn.uom) obj.unit_of_measurement = nn.uom
-                  if (nn && nn.device_class && nn.device_class.toLowerCase() != 'none') obj.device_class = nn.device_class
-                  if (nn && nn.state_class && nn.state_class) obj.state_class = MqttDiscover.getStateClass(nn.state_class)
-                  if (e.converter.name === 'number' && !e.readonly) {
-                    if (nn.step) obj.step = nn.step
-                    if (nn.identification) {
-                      if (nn.identification.min != undefined) obj.min = nn.identification.min
-                      if (nn.identification.max != undefined) obj.max = nn.identification.max
-                    }
-                  }
-                  break
-                case 'Itext':
-                  if (!e.readonly) {
-                    let nt = e.converterParameters as Itext
-                    if (nt.stringlength > 0) obj.max = nt.stringlength
-                    if (nt.identification && nt.identification.length) obj.pattern = nt.identification
-                  }
-                  break
-              }
-
-              payloads.push({
-                topic: this.generateEntityConfigurationTopic(slave, e),
-                payload: JSON.stringify(obj),
+                }
               })
+              if (e.forceUpdate) obj.force_update = true
+              if (e.entityCategory && e.entityCategory.length) obj.entity_category = e.entityCategory
+  
+              if (e.icon) obj.icon = e.icon
+              if (!e.variableConfiguration) {
+                let name = getSpecificationI18nEntityName(spec, this.language, e.id)
+                let filename = Config.getFileNameFromSlaveId(slave.getSlaveId())
+                if (!obj.name && name) obj.name = name
+                if (!obj.object_id && e.mqttname) obj.object_id = e.mqttname
+                if (!obj.unique_id) obj.unique_id = 'M2M' + slave.getBusId() + filename + e.mqttname
+  
+                if (!obj.value_template) obj.value_template = e.value_template? e.value_template : '{{ value_json.' + obj.object_id + ' }}'
+                if (!obj.state_topic) obj.state_topic = slave.getStateTopic()
+                if (!obj.availability && !obj.availability_topic) obj.availability_topic = slave.getAvailabilityTopic()
+                let cmdTopic = slave.getEntityCommandTopic(ent)
+                if (!obj.command_topic && !e.readonly) obj.command_topic = cmdTopic?cmdTopic.commandTopic:undefined
+                debug( "Entity " + e.mqttname )
+                switch (converter.getParameterType(e)) {
+                  case 'Iselect':
+                    debug( "Select " + e.mqttname )
+                    if (!e.readonly) {
+                      let ns = e.converterParameters as Iselect
+                      if (e.converter.name === 'select' && ns && ns.optionModbusValues && ns.optionModbusValues.length) {
+                        obj.options = []
+                        for (let modbusValue of ns.optionModbusValues)
+                          obj.options.push(getSpecificationI18nEntityOptionName(spec, this.language, e.id, modbusValue))
+  
+                        if (obj.options == undefined || obj.options.length == 0)
+                          log.log(LogLevelEnum.warn, 'generateDiscoveryPayloads: No options specified for ' + obj.name)
+                        else
+                          obj.options.forEach((o: IselectOption) => {
+                            if (!o) log.log(LogLevelEnum.warn, 'generateDiscoveryPayloads: option with no text for ' + e.id)
+                          })
+                      }
+                      obj.device_class = 'enum'
+                      if (e.converter.name === 'binary' && ns.device_class) obj.device_class = ns.device_class
+                    }
+                    break
+                  case 'Inumber':
+                    debug( "Number " + e.mqttname )
+                    let nn = e.converterParameters as Inumber
+                    if (!obj.unit_of_measurement && nn && nn.uom) obj.unit_of_measurement = nn.uom
+                    if (nn && nn.device_class && nn.device_class.toLowerCase() != 'none') obj.device_class = nn.device_class
+                    if (nn && nn.state_class && nn.state_class) obj.state_class = MqttDiscover.getStateClass(nn.state_class)
+                    if (e.converter.name === 'number' && !e.readonly) {
+                      if (nn.step) obj.step = nn.step
+                      if (nn.identification) {
+                        if (nn.identification.min != undefined) obj.min = nn.identification.min
+                        if (nn.identification.max != undefined) obj.max = nn.identification.max
+                      }
+                    }
+                    break
+                  case 'Itext':
+                    debug( "Text " + e.mqttname )
+                    if (!e.readonly) {
+                      let nt = e.converterParameters as Itext
+                      if (nt.stringlength > 0) obj.max = nt.stringlength
+                      if (nt.identification && nt.identification.length) obj.pattern = nt.identification
+                    }
+                    break
+                }
+                debug( "push " + e.mqttname )
+
+                payloads.push({
+                  topic: this.generateEntityConfigurationTopic(slave, e),
+                  payload: JSON.stringify(obj),
+                })
+              }
             }
           }
         }
+      else {
+        log.log(LogLevelEnum.error, 'generateDiscoveryPayloads: specification or language is undefined')
       }
-    else {
-      log.log(LogLevelEnum.error, 'generateDiscoveryPayloads: specification or language is undefined')
+  
+    }
+    catch(e:any){
+      debug( "Exception " + e.message )
+      log.log(LogLevelEnum.error, e.message)
     }
     return payloads
   }
@@ -415,11 +431,14 @@ export class MqttDiscover {
             // Insert new/changed topics
             if (!deleteAllEntities && newSpec && newSpec.entities && this.client) {
                 this.generateDiscoveryPayloads(slave, newSpec as ImodbusSpecification).forEach((tp) => {
+                  debug("====================== publish " + tp.topic)
                   this.client!.publish(tp.topic, tp.payload, retain) // write entity
+                  debug("====================== publish done" + tp.topic)
                 })
             }
             resolve()
-          } catch (e) {
+          } catch (e:any) {
+            debug("Error " + e.message)
             reject(e)
           }
         })
@@ -447,7 +466,7 @@ export class MqttDiscover {
         debugMqttClient( format(message, args))
       }
       opts.clean = true
-      opts.clientId = 'modbus2mqtt'
+      opts.clientId = 'modbus2mqtt'  
       if (opts.ca == undefined) delete opts.ca
       if (opts.key == undefined) delete opts.key
       if (opts.cert == undefined) delete opts.cert
@@ -456,7 +475,6 @@ export class MqttDiscover {
       this.client.on('error', error)
       this.client.on('message', this.onMqttMessage.bind(this))
       this.client.on('connect', () => {
-        debug('New MQTT Connection ')
         onConnected()
       })
     } else {
@@ -485,13 +503,13 @@ export class MqttDiscover {
 
   private getMqttClient(): Promise<MqttClient> {
     return new Promise<MqttClient>((resolve, reject) => {
-      if (this.client && this.client.connected) {
+      if (this.client) {
         resolve(this.client)
       } else {
         this.connectMqtt(
           undefined,
           () => {
-            debug(LogLevelEnum.notice, 'poll: MQTT client reconnected')
+            // debug(LogLevelEnum.notice, 'poll: MQTT client reconnected')
             resolve(this.client!)
           },
           reject
@@ -526,11 +544,14 @@ export class MqttDiscover {
           .then(() => {
             let idx = this.subscribedSlaves.findIndex((s) => 0 == Slave.compareSlaves(s, slave))
             if (idx >= 0) this.subscribedSlaves[idx] = slave
-            this.readModbusAndPublishState(slave)
+            // give homeassistant some time to update the entity
+            setTimeout(()=>{
+              this.readModbusAndPublishState(slave)
               .then(() => {
                 resolve()
               })
               .catch(reject)
+            },500)
           })
           .catch(reject) // no wait
     })
