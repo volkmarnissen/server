@@ -1,12 +1,35 @@
-name:  Run unit tests
+name:  Run Update Release Description
 
 on:
   workflow_dispatch:
-  pull_request:
-    types: [opened, reopened,edited]
 permissions:
   contents: write
 jobs:
   test:
-    name: "Test pull request"
-    uses: modbus2mqtt/specification.shared/.github/workflows/test.yml@main
+    runs-on: ubuntu-latest
+    environment: release
+    name: 'Test E2E'  
+    steps:
+      - name: Check out server
+        uses: actions/checkout@v4
+        with:
+          path: 'server'
+          token: ${{ secrets.PAT }}    
+      - name: "✏️ Generate release changelog"
+        uses: heinrichreimer/action-github-changelog-generator@v2.4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          output: CHANGELOG.md    
+      - uses: actions/github-script@v6
+        env:
+          RELEASE_ID: ${{ github.event.release.id }}
+          with:
+            script: |
+              const { RELEASE_ID } = process.env
+          
+              octokit.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: `${RELEASE_ID}`,
+              bodyFile: 'CHANGELOG.md'
+              })
