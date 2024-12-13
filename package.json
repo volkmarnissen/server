@@ -39,7 +39,7 @@
     "@google-cloud/translate": "^8.3.0",
     "@modbus2mqtt/angular": "^0.12.13",
     "@modbus2mqtt/server.shared": "^0.13.9",
-    "@modbus2mqtt/specification": "file:../specification",
+    "@modbus2mqtt/specification": "^0.15.24",
     "@modbus2mqtt/specification.shared": "^0.10.8",
     "@octokit/rest": "^20.1.1",
     "adm-zip": "^0.5.16",
