@@ -142,8 +142,8 @@ describe('MQTT Discovery Tests', () => {
           addEntity(1,1,false )
           addEntity(2,3,false )
           saveSpecification(false)
-          
-          cy.task('mqttGetTopicAndPayloads').then((tAndP) => {
+          //Homeassistant need time between discovery and state sending
+          cy.wait(500).task('mqttGetTopicAndPayloads').then((tAndP) => {
             //expect(tAndP.length).to.eq(2)
             expect( tAndP.findIndex(tp=>tp.payload == "online")).not.to.eq(-1)
             expect( tAndP.findIndex(tp=>tp.topic.endsWith("/state/"))).not.to.eq(-1)

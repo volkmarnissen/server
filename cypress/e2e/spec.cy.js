@@ -37,11 +37,12 @@ function runBusses() {
   cy.get('div.card-header-buttons:first button').eq(1).click()
 }
 
-function runSlaves() {
+function runSlaves(willLog) {
+  let logSetting = { log: willLog }
   cy.url().should('contain', prefix + '/slaves')
   cy.get('[formcontrolname="slaveId"]').type('3{enter}', { force: true })
   // Show specification third header button on first card
-  cy.get('div.card-header-buttons:first button').eq(2).click()
+  cy.get('div.card-header-buttons:first button:contains("add_box")', logSetting).eq(0, logSetting).click( logSetting)
   cy.url().should('contain', prefix + '/specification')
 }
 
@@ -59,7 +60,7 @@ describe('End to End Tests', () => {
       runRegister(true, defaultm2mPort)
       runConfig(true)
       runBusses()
-      runSlaves()
+      runSlaves(true)
     }
   )
   it(
