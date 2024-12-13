@@ -363,8 +363,10 @@ export class HttpServer extends HttpServerBase {
               if (pullRequest.merged) log.log(LogLevelEnum.notice, 'Merged ' + pullRequest.pullNumber)
               else if (pullRequest.closed) log.log(LogLevelEnum.notice, 'Closed ' + pullRequest.pullNumber)
               else debug('Polled pullrequest ' + pullRequest.pullNumber)
+            
+              if( pullRequest.merged|| pullRequest.closed)
+                this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(response))
             })
-            this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(response))
           })
           .catch((err) => {
             res.statusCode = HttpErrorsEnum.ErrNotAcceptable
