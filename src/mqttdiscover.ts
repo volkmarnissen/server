@@ -465,7 +465,7 @@ export class MqttDiscover {
         let message = args.shift()
         debugMqttClient( format(message, args))
       }
-      opts.clean = true
+      opts.clean = false
       opts.clientId = 'modbus2mqtt'  
       if (opts.ca == undefined) delete opts.ca
       if (opts.key == undefined) delete opts.key
