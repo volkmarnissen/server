@@ -62,7 +62,7 @@ export class Bus {
     }
   }
   static getBusses(): Bus[] {
-    if (!Bus.busses|| Bus.busses.length != ConfigBus.getBussesProperties().length) {
+    if (!Bus.busses || Bus.busses.length != ConfigBus.getBussesProperties().length) {
       Bus.readBussesFromConfig()
     }
     //debug("getBusses Number of busses:" + Bus.busses!.length)

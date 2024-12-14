@@ -126,7 +126,6 @@ export class Modbus2Mqtt {
                 }
               })
             })
-    
           })
           .catch((e) => {
             log.log(LogLevelEnum.error, 'Start polling Contributions: ' + e.message)

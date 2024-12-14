@@ -127,6 +127,8 @@ function mockedHttp(_options: any, cb: (res: any) => any) {
   cb({ statusCode: 200 })
 }
 let oldExecuteHassioGetRequest: any
+let lspec = yamlDir + '/local/specifications/'
+  
 const oldAuthenticate: (req: any, res: any, next: () => void) => void = HttpServer.prototype.authenticate
 beforeAll(() => {
   return new Promise<void>((resolve, reject) => {
@@ -134,6 +136,7 @@ beforeAll(() => {
     let cfg = new Config()
     cfg.readYamlAsync().then(() => {
       ConfigBus.readBusses()
+      fs.copyFileSync(lspec + 'waterleveltransmitter.yaml', lspec + 'waterleveltransmitter.bck', undefined)
       ;(Config as any)['fakeModbusCache'] = true
       jest.mock('../src/modbus')
       ModbusCache.prototype.submitGetHoldingRegisterRequest = submitGetHoldingRegisterRequest
@@ -435,6 +438,11 @@ describe('http POST', () => {
   afterAll(() => {
     // Cleanup
     if (fs.existsSync(testdir + test1)) fs.unlinkSync(testdir + test1)
+    
+      
+    if( fs.existsSync(lspec + 'waterleveltransmitter.bck'))
+      fs.unlinkSync(lspec + 'waterleveltransmitter.bck')
+ 
   })
 
   test('POST /specification: add new Specification rename device.specification', (done) => {
@@ -446,9 +454,7 @@ describe('http POST', () => {
       onConnected()
     }
     let spec1: ImodbusSpecification = Object.assign(spec)
-    let lspec = yamlDir + '/local/specifications/'
-    fs.copyFileSync(lspec + 'waterleveltransmitter.yaml', lspec + 'waterleveltransmitter.bck', undefined)
-
+  
     let filename = yamlDir + '/local/specifications/waterleveltransmitter.yaml'
     fs.unlinkSync(ConfigSpecification['getSpecificationPath'](spec1))
     let url = apiUri.specfication + '?busid=0&slaveid=2&originalFilename=waterleveltransmitter'
@@ -488,10 +494,6 @@ describe('http POST', () => {
           .catch((_e) => {
             log.log(LogLevelEnum.error, _e)
           })
-      })
-      .finally(() => {
-        fs.copyFileSync(lspec + 'waterleveltransmitter.bck', filename)
-        fs.unlinkSync(lspec + 'waterleveltransmitter.bck')
       })
   })
   test('POST /modbus/entity: update ModbusCache data', (done) => {
@@ -542,8 +544,6 @@ describe('http POST', () => {
       let lspec = yamlDir + '/local/specifications/'
       if (!fs.existsSync(lspec + 'waterleveltransmitter.bck'))
         fs.copyFileSync(lspec + 'waterleveltransmitter.yaml', lspec + 'waterleveltransmitter.bck', undefined)
-      else if (!fs.existsSync(lspec + 'waterleveltransmitter.yaml'))
-        fs.copyFileSync(lspec + 'waterleveltransmitter.bck', lspec + 'waterleveltransmitter.yaml', undefined)
       supertest(httpServer.app)
         .post('/api/upload?specification=waterleveltransmitter&usage=doc')
         .attach('documents', Buffer.from('whatever'), { filename: testPdf })
@@ -564,8 +564,7 @@ describe('http POST', () => {
           expect(fs.existsSync(testdir + test1)).toBeTruthy()
           fs.unlinkSync(testdir + test1)
           fs.copyFileSync(lspec + 'waterleveltransmitter.bck', lspec + 'waterleveltransmitter.yaml', undefined)
-          fs.unlinkSync(lspec + 'waterleveltransmitter.bck')
-          supertest(httpServer.app)
+           supertest(httpServer.app)
             .delete(
               '/api/upload?specification=waterleveltransmitter&url=/files/waterleveltransmitter/' +
                 testPdf +

@@ -16,7 +16,7 @@ const log = new Logger('modbus')
 export class Modbus {
   constructor() {}
 
-  writeEntityModbus(bus: Bus, slaveid: number, entity: Ientity, modbusValue: ReadRegisterResult): Promise<void> {
+  static writeEntityModbus(bus: Bus, slaveid: number, entity: Ientity, modbusValue: ReadRegisterResult): Promise<void> {
     // this.modbusClient.setID(device.slaveid);
     if (Config.getConfiguration().fakeModbus) {
       return new Promise<void>((resolve) => {
@@ -34,7 +34,7 @@ export class Modbus {
     throw new Error('No modbusaddress or registerType passed')
   }
 
-  writeEntityMqtt(bus: Bus, slaveid: number, spec: Ispecification, entityid: number, mqttValue: string): Promise<void> {
+  static writeEntityMqtt(bus: Bus, slaveid: number, spec: Ispecification, entityid: number, mqttValue: string): Promise<void> {
     // this.modbusClient.setID(device.slaveid);
     let entity = spec.entities.find((ent) => ent.id == entityid)
     if (Config.getConfiguration().fakeModbus) {

@@ -429,9 +429,9 @@ test('onMessage SendCommandTopic from this app', (done) => {
   let slave = structuredClone(bus!.getSlaveBySlaveId(1))
   slave!.specification = ConfigSpecification.getSpecificationByFilename(slave!.specificationid!)
   let sl = new Slave(0, slave!, Config.getConfiguration().mqttbasetopic)
-  ;(slave!.specification! as Ispecification).entities[0].readonly = false
+  ;(slave!.specification! as Ispecification).entities[2].readonly = false
   mdl['onMqttMessage'](
-    sl.getEntityCommandTopic((slave!.specification! as Ispecification).entities[0])!.commandTopic,
+    sl.getEntityCommandTopic((slave!.specification! as Ispecification).entities[2])!.commandTopic,
     Buffer.from(' ')
   )
     .then(() => {
@@ -488,8 +488,7 @@ class FakeMqttDeleteEntitySlave extends FakeMqtt {
 
   public override publish(topic: string, message: Buffer): void {
     if (topic.startsWith('homeassistant')) {
-      if(message.length== 0)
-        this.discoveryIsUnPublished = true
+      if (message.length == 0) this.discoveryIsUnPublished = true
     }
     this.isAsExcpected = !this.unsubscribed && this.discoveryIsUnPublished
   }
@@ -525,9 +524,7 @@ test('onAddSlave/onUpdateSlave/onDeleteSlave', (done) => {
   mdl['connectMqtt'] = function (undefined, onConnected: () => void, error: (e: any) => void) {
     onConnected()
   }
-  let spec = ConfigSpecification['specifications'].find(
-    (s: Ispecification) => s.filename == 'deyeinverterl'
-  ) as Ispecification
+  let spec = ConfigSpecification['specifications'].find((s: Ispecification) => s.filename == 'deyeinverterl') as Ispecification
   let slave: Islave = { slaveid: 7, specificationid: 'deyeinverterl', specification: spec, name: 'wl2', rootTopic: 'wl2' }
   mdl['onAddSlave'](new Slave(0, slave, Config.getConfiguration().mqttbasetopic)).then(() => {
     expect(mdl['subscribedSlaves'].length).toBe(slaveCount + 1)
@@ -558,7 +555,7 @@ test('onAddSlave/onUpdateSlave/onDeleteSlave', (done) => {
         expect(mdl['subscribedSlaves'].find((s) => s.getSlaveId() == 7)!.getSpecification()!.entities.length).toBe(2)
         fake = new FakeMqttDeleteSlaveTopic(mdl, FakeModes.Poll)
         mdl['client'] = fake as any as MqttClient
-            mdl['onDeleteSlave'](new Slave(0, slave, Config.getConfiguration().mqttbasetopic))
+        mdl['onDeleteSlave'](new Slave(0, slave, Config.getConfiguration().mqttbasetopic))
           .then(() => {
             expect(mdl['subscribedSlaves'].length).toBe(slaveCount)
             expect(fake.isAsExcpected).toBeTruthy()

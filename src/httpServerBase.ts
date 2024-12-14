@@ -12,6 +12,7 @@ import { LogLevelEnum, Logger } from '@modbus2mqtt/specification'
 
 import { apiUri } from '@modbus2mqtt/server.shared'
 import { AddressInfo } from 'net'
+import { MqttDiscover } from './mqttdiscover'
 
 interface IAddonInfo {
   slug: string
@@ -127,7 +128,17 @@ export class HttpServerBase {
     let token = HttpServerBase.getAuthTokenFromUrl(req.url)
     if (token != undefined) req.url = req.url.replace(token + '/', '')
     else token = HttpServerBase.getAuthTokenFromHeader(req)
-    if (req.url.indexOf('/api/') >= 0 || req.url.indexOf('/user/register') >= 0 || req.url.indexOf('/download/') >= 0) {
+    let slaveTopicFound =
+      null !=
+      MqttDiscover.getInstance()
+        .getSlaveBaseTopics()
+        .find((tp) => tp.startsWith(req.url.substring(1)))
+    if (
+      req.url.indexOf('/api/') >= 0 ||
+      req.url.indexOf('/user/register') >= 0 ||
+      req.url.indexOf('/download/') >= 0 ||
+      slaveTopicFound
+    ) {
       let authStatus = Config.getAuthStatus()
       if (authStatus.hassiotoken) {
         let address = (req.socket.address() as AddressInfo).address
