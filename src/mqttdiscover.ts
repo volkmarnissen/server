@@ -466,7 +466,7 @@ export class MqttDiscover {
         debugMqttClient( format(message, args))
       }
       opts.clean = false
-      opts.clientId = 'modbus2mqtt'  
+      opts.clientId = Config.getConfiguration().mqttbasetopic
       if (opts.ca == undefined) delete opts.ca
       if (opts.key == undefined) delete opts.key
       if (opts.cert == undefined) delete opts.cert
