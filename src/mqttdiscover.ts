@@ -26,6 +26,7 @@ import { QoS } from 'mqtt-packet'
 
 import { rejects } from 'assert'
 import { Observable } from 'rxjs'
+import { get } from 'http'
 const debug = Debug('mqttdiscover')
 const debugAction = Debug('actions')
 const debugMqttClient = Debug('mqttclient')
@@ -390,7 +391,10 @@ export class MqttDiscover {
       if (s) {
         if (s.getTriggerPollTopic() == topic) return this.readModbusAndPublishState(s)
         else {
-          return this.sendCommand(s, topic, payload.toString('utf-8'))
+          if( topic== s.getCommandTopic()){
+              this.sendEntityCommand(s,topic, payload.toString("utf-8"))
+          }else      
+          return this.sendEntityCommand(s, topic, payload.toString('utf-8'))
         }
       }
     }
@@ -398,7 +402,7 @@ export class MqttDiscover {
       resolve()
     })
   }
-  sendCommand(slave: Slave, topic: string, payload: string): Promise<void> {
+  sendEntityCommand(slave: Slave, topic: string, payload: string): Promise<void> {
     let entity = slave.getEntityFromCommandTopic(topic)
     if (entity && ! entity.readonly )
       return new Promise<void>((resolve, reject) => {
@@ -412,6 +416,25 @@ export class MqttDiscover {
       reject(new Error('No writable entity found for topic ' + topic))
     })
   }
+  sendCommand(slave: Slave, payload: string): Promise<void> {
+    let p = JSON.parse(payload)
+    let promisses:Promise<void>[]=[]
+    Object.getOwnPropertyNames(p).forEach(propName =>{
+       let entity = slave.getSpecification()?.entities.find(e=> e.mqttname == p[propName] )
+       let promisses:Promise<void>[]=[]
+       if (entity && ! entity.readonly )
+          promisses.push(MqttDiscover.sendCommandModbus(slave, entity, false, p.toString()))
+        
+        })
+
+       if( promisses.length >0 )
+        return Promise.all(promisses)
+                  .then(() => {})
+       else
+        return new Promise<void>((_resolve, reject) => {
+          reject(new Error('No writable entity found in payload ' + payload))
+      })
+    }
   private containsTopic(tp: ItopicAndPayloads, tps: ItopicAndPayloads[]) {
     let t = tps.findIndex((t) => tp.topic === t.topic)
     return -1 != t

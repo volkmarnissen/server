@@ -416,6 +416,35 @@ function copySubscribedSlaves(toA: Slave[], fromA: Slave[]) {
     toA.push(s.clone())
   })
 }
+test('onMessage SendEntityCommandTopic from this app', (done) => {
+  expect(md['subscribedSlaves'].length).toBeGreaterThan(3)
+  let mdl = new MqttDiscover({}, 'en')
+  copySubscribedSlaves(mdl['subscribedSlaves'], md['subscribedSlaves'])
+  let fake = new FakeMqttSendCommandTopic(mdl, FakeModes.Poll)
+  mdl['client'] = fake as any as MqttClient
+  mdl['connectMqtt'] = function (undefined, onConnected: () => void, error: (e: any) => void) {
+    onConnected()
+  }
+  let bus = Bus.getBus(0)
+  let slave = structuredClone(bus!.getSlaveBySlaveId(1))
+  slave!.specification = ConfigSpecification.getSpecificationByFilename(slave!.specificationid!)
+  let sl = new Slave(0, slave!, Config.getConfiguration().mqttbasetopic)
+  ;(slave!.specification! as Ispecification).entities[2].readonly = false
+  mdl['onMqttMessage'](
+    sl.getEntityCommandTopic(sl.getSpecification()!.entities[2])!.commandTopic,
+    Buffer.from('{ "hotwatertargettemperature": 20.2 }')
+  )
+    .then(() => {
+      // expect a state topic (FakeModes.Poll)
+      expect(fake.isAsExcpected).toBeTruthy()
+      done()
+    })
+    .catch((e) => {
+      debug('Error' + e.message)
+      expect(false).toBeTruthy()
+      done()
+    })
+})
 test('onMessage SendCommandTopic from this app', (done) => {
   expect(md['subscribedSlaves'].length).toBeGreaterThan(3)
   let mdl = new MqttDiscover({}, 'en')
@@ -445,7 +474,6 @@ test('onMessage SendCommandTopic from this app', (done) => {
       done()
     })
 })
-
 class FakeMqttAddSlaveTopic extends FakeMqtt {
   private discoveryIsPublished: boolean = false
   private stateIsPublished: boolean = false

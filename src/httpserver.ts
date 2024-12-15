@@ -86,8 +86,9 @@ export class HttpServer extends HttpServerBase {
         MqttDiscover.readModbus(slave)?.subscribe((spec) => {
           let payload = slave.getStatePayload(spec.entities)
           this.returnResult(req, res, HttpErrorsEnum.OK, payload)
+          return
         })
-      } else if (req.method == 'GET' && url.indexOf('/set')!= -1) {
+      } else if (req.method == 'GET' && (url.indexOf('/set/')!= -1 || url.indexOf('/setModbus/')!= -1)) {
         let idx = url.indexOf('/set/')
         let postLength = 5
         if( idx == -1 ){
@@ -96,14 +97,25 @@ export class HttpServer extends HttpServerBase {
         }
         if( idx == -1)
           return next() //should not happen
-        md.sendCommand(slave, url.substring(0, idx+postLength), url.substring(idx+postLength))
+        md.sendEntityCommand(slave, url.substring(0, idx+postLength), url.substring(idx+postLength))
           .then(() => {
             this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify({ result: 'OK' }))
           })
           .catch((e) => {
             this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify({ result: e.message }))
           })
-      } else return next()
+      } else if (req.method == 'POST' && url.indexOf('/set/')!= -1 ){
+        md.sendCommand(slave, JSON.stringify(req.body))
+          .then(() => {
+            this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify({ result: 'OK' }))
+          })
+          .catch((e) => {
+            this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify({ result: e.message }))
+          })
+
+      }
+      else
+        return next()
     } else return next()
   }
 
