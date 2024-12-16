@@ -272,10 +272,10 @@ export class HttpServerBase {
     this.app.use(bodyparser.json())
     this.app.use(bodyparser.urlencoded({ extended: true }))
     this.app.use(express.json())
-    this.app.use(this.processStaticAngularFiles.bind(this))
     //@ts-ignore
     this.app.use(function (_undefined: any, res: http.ServerResponse, next: any) {
       //            res.setHeader('charset', 'utf-8')
+      debug('Authenticate')
       res.setHeader('Access-Control-Allow-Methods', 'POST, PUT, OPTIONS, DELETE, GET')
       res.setHeader('Access-Control-Allow-Origin', '*')
       res.setHeader(
@@ -292,6 +292,7 @@ export class HttpServerBase {
       res.redirect('index.html')
     })
     this.initApp()
+    this.app.use(this.processStaticAngularFiles.bind(this))
     this.app.all(/.*/, this.processAll.bind(this))
     this.app.on('connection', function (socket: any) {
       socket.setTimeout(2 * 60 * 1000)

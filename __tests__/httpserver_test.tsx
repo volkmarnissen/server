@@ -128,7 +128,7 @@ function mockedHttp(_options: any, cb: (res: any) => any) {
 }
 let oldExecuteHassioGetRequest: any
 let lspec = yamlDir + '/local/specifications/'
-  
+
 const oldAuthenticate: (req: any, res: any, next: () => void) => void = HttpServer.prototype.authenticate
 beforeAll(() => {
   return new Promise<void>((resolve, reject) => {
@@ -438,11 +438,8 @@ describe('http POST', () => {
   afterAll(() => {
     // Cleanup
     if (fs.existsSync(testdir + test1)) fs.unlinkSync(testdir + test1)
-    
-      
-    if( fs.existsSync(lspec + 'waterleveltransmitter.bck'))
-      fs.unlinkSync(lspec + 'waterleveltransmitter.bck')
- 
+
+    if (fs.existsSync(lspec + 'waterleveltransmitter.bck')) fs.unlinkSync(lspec + 'waterleveltransmitter.bck')
   })
 
   test('POST /specification: add new Specification rename device.specification', (done) => {
@@ -454,7 +451,7 @@ describe('http POST', () => {
       onConnected()
     }
     let spec1: ImodbusSpecification = Object.assign(spec)
-  
+
     let filename = yamlDir + '/local/specifications/waterleveltransmitter.yaml'
     fs.unlinkSync(ConfigSpecification['getSpecificationPath'](spec1))
     let url = apiUri.specfication + '?busid=0&slaveid=2&originalFilename=waterleveltransmitter'
@@ -564,7 +561,7 @@ describe('http POST', () => {
           expect(fs.existsSync(testdir + test1)).toBeTruthy()
           fs.unlinkSync(testdir + test1)
           fs.copyFileSync(lspec + 'waterleveltransmitter.bck', lspec + 'waterleveltransmitter.yaml', undefined)
-           supertest(httpServer.app)
+          supertest(httpServer.app)
             .delete(
               '/api/upload?specification=waterleveltransmitter&url=/files/waterleveltransmitter/' +
                 testPdf +

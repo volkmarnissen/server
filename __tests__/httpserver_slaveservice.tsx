@@ -91,14 +91,18 @@ class MockMqttDiscover {
     }
     return undefined
   }
-  sendEntityCommand(_slave: Slave, topic:string, payload: string): Promise<void> {
-    expect( topic.startsWith("/")).toBeFalsy()
-    expect(payload).toBe("20.2")
-    return new Promise<void>((resolve=>{resolve()}))
+  sendEntityCommandWithPublish(_slave: Slave, topic: string, payload: string): Promise<void> {
+    expect(topic.startsWith('/')).toBeFalsy()
+    expect(payload).toBe('20.2')
+    return new Promise<void>((resolve) => {
+      resolve()
+    })
   }
-  sendCommand( _slave: Slave, payload: string): Promise<void> {
-    expect(payload.indexOf("20.2")).not.toBe(-1)
-    return new Promise<void>((resolve=>{resolve()}))
+  sendCommand(_slave: Slave, payload: string): Promise<void> {
+    expect(payload.indexOf('20.2')).not.toBe(-1)
+    return new Promise<void>((resolve) => {
+      resolve()
+    })
   }
 }
 function prepareMqttDiscover(): MockMqttDiscover {
@@ -113,7 +117,7 @@ it('GET state topic', (done) => {
     .get('/' + mockDiscover.slave.getStateTopic())
     .expect(200)
     .then((response) => {
-      expect(response.text.indexOf("waterleveltransmitter")).not.toBe(-1)
+      expect(response.text.indexOf('waterleveltransmitter')).not.toBe(-1)
       done()
     })
     .catch((e) => {
@@ -124,27 +128,26 @@ it('GET state topic', (done) => {
 
 test('GET command Entity topic', (done) => {
   let mockDiscover = prepareMqttDiscover()
-  let url = '/' + mockDiscover.slave.getEntityCommandTopic( mockDiscover.slave.getSpecification()!.entities[2])!.commandTopic
-  url = url + "20.2"
+  let url = '/' + mockDiscover.slave.getEntityCommandTopic(mockDiscover.slave.getSpecification()!.entities[2])!.commandTopic
+  url = url + '20.2'
   supertest(httpServer.app)
     .get(url)
     //.send("{hotwatertargettemperature: 20.2}")
-   // .send("20.2")
+    // .send("20.2")
     .expect(200)
     .then(() => {
       done()
     })
-  })
-  test('POST command topic', (done) => {
-      let mockDiscover = prepareMqttDiscover()
-      let url = '/' + mockDiscover.slave.getCommandTopic()
-       supertest(httpServer.app)
-        .post(url)
-        .send({ "hotwatertargettemperature" : 20.2 })
-       // .send("20.2")
-        .expect(200)
-        .then(() => {
-          done()
-        })
-      })
-
+})
+test('POST command topic', (done) => {
+  let mockDiscover = prepareMqttDiscover()
+  let url = '/' + mockDiscover.slave.getCommandTopic()
+  supertest(httpServer.app)
+    .post(url)
+    .send({ hotwatertargettemperature: 20.2 })
+    // .send("20.2")
+    .expect(200)
+    .then(() => {
+      done()
+    })
+})

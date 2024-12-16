@@ -113,8 +113,8 @@ export class MqttDiscover {
   getSlaveBaseTopics(): string[] {
     return this.subscribedSlaves.map<string>((value) => value.getBaseTopic())
   }
-  getSlave(url: string): Slave | undefined {
-    return this.subscribedSlaves.find((value) => url.substring(1).startsWith(value.getBaseTopic()))
+  getSlave(topic: string): Slave | undefined {
+    return this.subscribedSlaves.find((value) => topic.startsWith(value.getBaseTopic()))
   }
   private generateEntityConfigurationTopic(slave: Slave, ent: Ientity): string {
     let haType = 'sensor'
@@ -363,25 +363,22 @@ export class MqttDiscover {
     }
     return 'unknown issue'
   }
-  static sendCommandModbus(slave: Slave, entity: Ientity, modbus: boolean, payload: string): Promise<void> {
-    if (entity && slave) {
-      const cnv = ConverterMap.getConverter(entity)
-      if (cnv) {
-        let promise: Promise<void>
-        if (modbus) {
-          return Modbus.writeEntityModbus(Bus.getBus(slave.getBusId())!, slave.getSlaveId(), entity, {
-            data: JSON.parse(payload.toString()),
-            buffer: Buffer.allocUnsafe(0),
-          })
-        } else {
-          let spec = slave.getSpecification()
-          if (spec)
-            return Modbus.writeEntityMqtt(Bus.getBus(slave.getBusId())!, slave.getSlaveId(), spec, entity.id, payload.toString())
-        }
-      } // for Testing
-    }
-    return new Promise<void>((resolve) => {
-      resolve()
+  private sendCommandModbus(slave: Slave, entity: Ientity, modbus: boolean, payload: string): Promise<void> {
+    const cnv = ConverterMap.getConverter(entity)
+    if (cnv) {
+          if (modbus)
+            return Modbus.writeEntityModbus(Bus.getBus(slave.getBusId())!, slave.getSlaveId(), entity, {
+              data: JSON.parse(payload.toString()),
+              buffer: Buffer.allocUnsafe(0),
+            })
+          else {
+            let spec = slave.getSpecification()
+            if (spec)
+              return Modbus.writeEntityMqtt(Bus.getBus(slave.getBusId())!, slave.getSlaveId(), spec, entity.id, payload.toString())
+          }
+    } 
+    return new Promise<void>((_resolve, reject) => {
+        reject(new Error('No Converter or spec found for spec/entity ' + slave.getSpecificationId() + '/' + entity.mqttname))
     })
   }
   // returns a promise for testing
@@ -389,12 +386,13 @@ export class MqttDiscover {
     if (topic) {
       let s = this.subscribedSlaves.find((s) => topic.startsWith(s.getBaseTopic()!))
       if (s) {
-        if (s.getTriggerPollTopic() == topic) return this.readModbusAndPublishState(s)
+        if (s.getTriggerPollTopic() == topic) return this.readModbusAndPublishState(s) as any as Promise<void>
         else {
-          if( topic== s.getCommandTopic()){
-              this.sendEntityCommand(s,topic, payload.toString("utf-8"))
-          }else      
-          return this.sendEntityCommand(s, topic, payload.toString('utf-8'))
+           if (topic == s.getCommandTopic())
+            return this.sendCommand(s, payload.toString('utf-8')) as any as Promise<void>
+           else if (topic.startsWith(s.getBaseTopic()) && topic.indexOf("/set/") ) {
+            return this.sendEntityCommandWithPublish(s, topic, payload.toString('utf-8')) as any as Promise<void>
+          }
         }
       }
     }
@@ -402,39 +400,46 @@ export class MqttDiscover {
       resolve()
     })
   }
-  sendEntityCommand(slave: Slave, topic: string, payload: string): Promise<void> {
+  sendEntityCommandWithPublish(slave: Slave, topic: string, payload: string): Promise<ImodbusSpecification> {
     let entity = slave.getEntityFromCommandTopic(topic)
-    if (entity && ! entity.readonly )
-      return new Promise<void>((resolve, reject) => {
-        MqttDiscover.sendCommandModbus(slave, entity, topic.endsWith('/setModbus/'), payload.toString())
+    if (entity && !entity.readonly)
+      return new Promise<ImodbusSpecification>((resolve, reject) => {
+        this.sendEntityCommand(slave, topic,  payload.toString())
           .then(() => {
             this.readModbusAndPublishState(slave).then(resolve).catch(reject)
           })
           .catch(reject)
       })
+    log.log(LogLevelEnum.error, 'No writable entity found for topic ' + topic)
+    return new Promise<ImodbusSpecification>((_resolve, reject) => {
+      reject(new Error('No writable entity found for topic ' + topic))
+    })
+  }
+  private sendEntityCommand(slave: Slave, topic: string, payload: string): Promise<void> {
+    let entity = slave.getEntityFromCommandTopic(topic)
+    if (entity && !entity.readonly)
+       return this.sendCommandModbus(slave, entity, topic.endsWith('/set/modbus/'), payload.toString())
+    log.log(LogLevelEnum.error, 'No writable entity found for topic ' + topic)
     return new Promise<void>((_resolve, reject) => {
       reject(new Error('No writable entity found for topic ' + topic))
     })
   }
-  sendCommand(slave: Slave, payload: string): Promise<void> {
-    let p = JSON.parse(payload)
-    let promisses:Promise<void>[]=[]
-    Object.getOwnPropertyNames(p).forEach(propName =>{
-       let entity = slave.getSpecification()?.entities.find(e=> e.mqttname == p[propName] )
-       let promisses:Promise<void>[]=[]
-       if (entity && ! entity.readonly )
-          promisses.push(MqttDiscover.sendCommandModbus(slave, entity, false, p.toString()))
-        
-        })
 
-       if( promisses.length >0 )
-        return Promise.all(promisses)
-                  .then(() => {})
-       else
-        return new Promise<void>((_resolve, reject) => {
-          reject(new Error('No writable entity found in payload ' + payload))
+  sendCommand(slave: Slave, payload: string): Promise<ImodbusSpecification> {
+    return new Promise<ImodbusSpecification>((resolve, reject)=>{
+      let p = JSON.parse(payload)
+      let promisses: Promise<void>[]=[]
+      Object.getOwnPropertyNames(p).forEach((propName) => {
+        let entity = slave.getSpecification()?.entities.find((e) => e.mqttname == propName)
+        if (entity && !entity.readonly) promisses.push(this.sendCommandModbus(slave, entity, false, p.toString()))
+      })  
+      if (promisses.length > 0) Promise.all<void>(promisses).then(() => {
+        this.readModbusAndPublishState(slave).then(resolve).catch(reject)  
       })
-    }
+      else
+          reject(new Error('No writable entity found in payload ' + payload))
+    })
+  }
   private containsTopic(tp: ItopicAndPayloads, tps: ItopicAndPayloads[]) {
     let t = tps.findIndex((t) => tp.topic === t.topic)
     return -1 != t
@@ -607,12 +612,12 @@ export class MqttDiscover {
     })
   }
 
-  private readModbusAndPublishState(slave: Slave): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
+  private readModbusAndPublishState(slave: Slave): Promise<ImodbusSpecification> {
+    return new Promise<ImodbusSpecification>((resolve, reject) => {
       let obs = MqttDiscover.readModbus(slave)
       if (obs)
         obs.subscribe((spec) => {
-          this.publishState(slave, spec).then(resolve).catch(reject)
+          this.publishState(slave, spec).then(()=>{resolve(spec)}).catch(reject)
         })
     })
   }
@@ -756,13 +761,16 @@ export class MqttDiscover {
           .then((mqttClient) => {
             this.onUpdateSlave(slave)
               .then(() => {
-                mqttClient!.subscribe(
-                  slave.getBaseTopic() + '/#',
-                  { qos: this.generateQos(slave, slave.getSpecification()) },
-                  (err) => {
-                    if (err) log.log(LogLevelEnum.error, 'subscribeSlave: MQTT subscribe error: ', err.message)
-                  }
-                )
+                let options = { qos: this.generateQos(slave, slave.getSpecification()) }
+                let error = (err: any) => {
+                  if (err) log.log(LogLevelEnum.error, 'subscribeSlave: MQTT subscribe error: ', err.message)
+                }
+                mqttClient.subscribe(slave.getTriggerPollTopic(), options, error)
+                let cmdTopic = slave.getCommandTopic()
+                if (cmdTopic) {
+                  mqttClient.subscribe(cmdTopic, options, error)
+                  mqttClient.subscribe(slave.getEntityCommandTopicFilter(), options, error)
+                }
                 resolve()
               })
               .catch(reject)
@@ -781,7 +789,12 @@ export class MqttDiscover {
             this.subscribedSlaves.splice(idx, 1)
             this.getMqttClient()
               .then((mqttClient) => {
-                this.client!.unsubscribe(slave.getBaseTopic() + '/#')
+                mqttClient.unsubscribe(slave.getTriggerPollTopic())
+                let cmdTopic = slave.getCommandTopic()
+                if (cmdTopic) {
+                  mqttClient.unsubscribe(cmdTopic)
+                  mqttClient.subscribe(slave.getEntityCommandTopicFilter())
+                }
               })
               .catch((e) => {
                 log.log(LogLevelEnum.error, e.message)

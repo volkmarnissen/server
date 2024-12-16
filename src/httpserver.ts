@@ -76,7 +76,7 @@ export class HttpServer extends HttpServerBase {
       }
     super.returnResult(req, res, code, message, object)
   }
-  handleSlaveTopics(req: Request, res: http.ServerResponse, next: any):any {
+  handleSlaveTopics(req: Request, res: http.ServerResponse, next: any): any {
     let md = MqttDiscover.getInstance()
     let url = req.url.substring(1)
     let slave = md.getSlave(url)
@@ -88,23 +88,22 @@ export class HttpServer extends HttpServerBase {
           this.returnResult(req, res, HttpErrorsEnum.OK, payload)
           return
         })
-      } else if (req.method == 'GET' && (url.indexOf('/set/')!= -1 || url.indexOf('/setModbus/')!= -1)) {
+      } else if (req.method == 'GET' && (url.indexOf('/set/') != -1 || url.indexOf('/set/modbus/') != -1)) {
         let idx = url.indexOf('/set/')
         let postLength = 5
-        if( idx == -1 ){
-          idx = url.indexOf('/setModbus/')
+        if (idx == -1) {
+          idx = url.indexOf('/set/modbus/')
           postLength = 11
         }
-        if( idx == -1)
-          return next() //should not happen
-        md.sendEntityCommand(slave, url.substring(0, idx+postLength), url.substring(idx+postLength))
+        if (idx == -1) return next() //should not happen
+        md.sendEntityCommandWithPublish(slave, url, url.substring(idx + postLength))
           .then(() => {
             this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify({ result: 'OK' }))
           })
           .catch((e) => {
             this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify({ result: e.message }))
           })
-      } else if (req.method == 'POST' && url.indexOf('/set/')!= -1 ){
+      } else if (req.method == 'POST' && url.indexOf('/set/') != -1) {
         md.sendCommand(slave, JSON.stringify(req.body))
           .then(() => {
             this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify({ result: 'OK' }))
@@ -112,10 +111,7 @@ export class HttpServer extends HttpServerBase {
           .catch((e) => {
             this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify({ result: e.message }))
           })
-
-      }
-      else
-        return next()
+      } else return next()
     } else return next()
   }
 

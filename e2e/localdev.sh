@@ -133,10 +133,10 @@ sudo bash -c 'cat >'$WWWROOT'/addons/self/info/info.json <<EOF
   "data":{
     "slug": "slugtest",
     "ingress": true,
-    "ingress_entry": "modbus2mqtt",
+    "ingress_entry": "ingress",
     "ingress_panel" : true,
     "ingress_port": 1234,
-    "ingress_url": "modbus2mqtt"
+    "ingress_url": "ingress"
   }
 }
 EOF'
@@ -171,7 +171,7 @@ server {
      index hardware.json;
   }
 
-  location /modbus2mqtt/ {
+  location /ingress/ {
         proxy_pass http://localhost:3004/;
         proxy_pass_header Content-Type; 
   }

@@ -228,7 +228,7 @@ export class Config {
         : DEFAULT_MQTT_CONNECT_TIMEOUT
       Config.config.mqttconnect.clientId = Config.config.mqttconnect.clientId ? Config.config.mqttconnect.clientId : 'modbus2mqtt'
       Config.config.mqttconnect.clean = Config.config.mqttconnect.clean ? Config.config.mqttconnect.clean : true
-      delete Config.config.mqttconnect.will 
+      delete Config.config.mqttconnect.will
       Config.config.httpport = Config.config.httpport ? Config.config.httpport : 3000
       Config.config.fakeModbus = Config.config.fakeModbus ? Config.config.fakeModbus : false
       Config.config.noAuthentication = Config.config.noAuthentication ? Config.config.noAuthentication : false
