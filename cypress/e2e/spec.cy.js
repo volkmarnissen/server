@@ -87,7 +87,7 @@ describe('End to End Tests', () => {
     },
     () => {
       cy.exec('npm run e2e:reset')
-      prefix = 'modbus2mqtt'
+      prefix = 'ingress'
       cy.visit('http://localhost:80/' + prefix)
       runBusses()
     }

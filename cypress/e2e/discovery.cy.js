@@ -155,7 +155,7 @@ describe('MQTT Discovery Tests', () => {
       let willLog = true
       let logSetting = { log: willLog }
       cy.exec('npm run e2e:reset', logSetting)
-      prefix = 'modbus2mqtt'
+      prefix = 'ingress'
       cy.visit('http://localhost:80/' + prefix, logSetting)
       // monitor discovery topics
       let mqttConnect = Cypress.env('mqttconnect')
