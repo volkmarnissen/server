@@ -390,7 +390,7 @@ export class MqttDiscover {
         else {
            if (topic == s.getCommandTopic())
             return this.sendCommand(s, payload.toString('utf-8')) as any as Promise<void>
-           else if (topic.startsWith(s.getBaseTopic()) && topic.indexOf("/set/") ) {
+           else if (topic.startsWith(s.getBaseTopic()) && topic.indexOf("/set/") != -1) {
             return this.sendEntityCommandWithPublish(s, topic, payload.toString('utf-8')) as any as Promise<void>
           }
         }
