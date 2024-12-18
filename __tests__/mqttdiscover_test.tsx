@@ -431,19 +431,18 @@ test('onMessage SendEntityCommandTopic from this app', (done) => {
   slave!.specification = ConfigSpecification.getSpecificationByFilename(slave!.specificationid!)
   let sl = new Slave(0, slave!, Config.getConfiguration().mqttbasetopic)
   ;(slave!.specification! as Ispecification).entities[2].readonly = false
-  let oldwriteEntityMqtt = Modbus.writeEntityMqtt 
-  let writeEntityMqttMock = jest.fn().mockImplementation( () => Promise.resolve()) 
+  let oldwriteEntityMqtt = Modbus.writeEntityMqtt
+  let writeEntityMqttMock = jest.fn().mockImplementation(() => Promise.resolve())
   Modbus.writeEntityMqtt = writeEntityMqttMock as any
   mdl['onMqttMessage'](
     sl.getEntityCommandTopic((slave!.specification! as ImodbusSpecification).entities[2])!.commandTopic!,
-    Buffer.from("20.2")
+    Buffer.from('20.2')
   )
     .then(() => {
-      
       expect(fake.isAsExcpected).toBeTruthy()
       expect(writeEntityMqttMock).toHaveBeenCalled()
       Modbus.writeEntityMqtt = oldwriteEntityMqtt
-  
+
       done()
     })
     .catch((e) => {
@@ -458,8 +457,8 @@ test('onMessage SendCommandTopic from this app', (done) => {
   copySubscribedSlaves(mdl['subscribedSlaves'], md['subscribedSlaves'])
   let fake = new FakeMqttSendCommandTopic(mdl, FakeModes.Poll)
   mdl['client'] = fake as any as MqttClient
-  let oldwriteEntityMqtt = Modbus.writeEntityMqtt 
-  let writeEntityMqttMock = jest.fn().mockImplementation( () => Promise.resolve()) 
+  let oldwriteEntityMqtt = Modbus.writeEntityMqtt
+  let writeEntityMqttMock = jest.fn().mockImplementation(() => Promise.resolve())
   Modbus.writeEntityMqtt = writeEntityMqttMock as any
 
   mdl['connectMqtt'] = function (undefined, onConnected: () => void, error: (e: any) => void) {
@@ -470,14 +469,11 @@ test('onMessage SendCommandTopic from this app', (done) => {
   slave!.specification = ConfigSpecification.getSpecificationByFilename(slave!.specificationid!)
   let sl = new Slave(0, slave!, Config.getConfiguration().mqttbasetopic)
   ;(slave!.specification! as Ispecification).entities[2].readonly = false
-  mdl['onMqttMessage'](
-    sl.getCommandTopic()!,
-    Buffer.from('{ "hotwatertargettemperature": 20.2 }')
-  )
+  mdl['onMqttMessage'](sl.getCommandTopic()!, Buffer.from('{ "hotwatertargettemperature": 20.2 }'))
     .then(() => {
       expect(writeEntityMqttMock).toHaveBeenCalled()
       Modbus.writeEntityMqtt = oldwriteEntityMqtt
-      
+
       expect(fake.isAsExcpected).toBeTruthy()
       done()
     })
