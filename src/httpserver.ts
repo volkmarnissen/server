@@ -324,8 +324,7 @@ export class HttpServer extends HttpServerBase {
       debug('configuration')
       try {
         let config = Config.getConfiguration()
-        if( Config.getAuthStatus().hassiotoken )
-          config.rootUrl = "http://" + os.hostname() + ":" + config.httpport + "/"
+        if (Config.getAuthStatus().hassiotoken) config.rootUrl = 'http://' + os.hostname() + ':' + config.httpport + '/'
         this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(config))
       } catch (e) {
         log.log(LogLevelEnum.error, 'Error getConfiguration: ' + JSON.stringify(e))
