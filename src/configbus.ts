@@ -206,6 +206,11 @@ export class ConfigBus {
         if (deletables.includes(prop)) delete (o as any)[prop]
       }
     }
+    if( o.noDiscovery != undefined && o.noDiscovery == false )
+      delete (o as any).noDiscovery
+    if( o.noDiscoverEntities != undefined && o.noDiscoverEntities.length == 0 )
+      delete (o as any).noDiscoverEntities
+
     let s = stringify(o)
     fs.writeFileSync(newFilePath, s, { encoding: 'utf8' })
     if (oldFilePath !== newFilePath && fs.existsSync(oldFilePath))

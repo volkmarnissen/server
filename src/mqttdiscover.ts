@@ -458,7 +458,7 @@ export class MqttDiscover {
                     {
                       tAndPs.push({topic: tp.topic, payload:tp.payload, entityid:0 }) // write entity
                       debug('====================== publish done ' + tp.topic)
-                    } else log.log(LogLevelEnum.error, 'MQTT client disconnected')
+                    }
                 })
               }
               this.getMqttClient()
@@ -674,7 +674,7 @@ export class MqttDiscover {
   }
   private generateQos(slave: Slave, spec?: Ispecification): QoS {
     let qos = slave.getQos()
-    if (qos == undefined && spec != undefined)
+    if ((qos == undefined || qos == -1) && spec != undefined)
       if (spec.entities.find((e) => e.readonly == false) != undefined) return 1
       else return 0
 
@@ -690,12 +690,12 @@ export class MqttDiscover {
             mqttClient.publish(topic, slave.getStatePayload(spec.entities), { qos: this.generateQos(slave, spec) })
             mqttClient.publish(slave.getAvailabilityTopic(), 'online', { qos: this.generateQos(slave, spec) })
             resolve()
-          } catch (e) {
+          } catch (e:any) {
             try {
               mqttClient.publish(slave.getAvailabilityTopic(), 'offline', { qos: this.generateQos(slave, spec) })
-            } catch (e) {
+            } catch (e:any) {
               // ignore the error
-              debug('Error')
+              debug('Error ' + e.message)
             }
           }
         } else {
