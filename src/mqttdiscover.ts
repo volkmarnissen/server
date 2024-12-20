@@ -253,6 +253,8 @@ export class MqttDiscover {
                         if (nn.identification.min != undefined) obj.min = nn.identification.min
                         if (nn.identification.max != undefined) obj.max = nn.identification.max
                       }
+                      if(nn.decimals != undefined )
+                        obj.suggested_display_precision  = nn.decimals
                     }
                     break
                   case 'Itext':
@@ -534,29 +536,24 @@ export class MqttDiscover {
     }
   }
 
-  validateConnection(client: ImqttClient | undefined, callback: (valid: boolean, message: string) => void) {
-    let conn = () => {
-      this.connectMqtt(
-        client,
-        () => {
-          callback(true, 'OK')
-          if (this.client)
-            this.client.end(() => {
-              this.client = undefined
-            })
-        },
-        (e) => {
-          this.error(e)
-          this.client!.end(() => {
-            this.client = undefined
-          })
+  validateConnection(connectionData: ImqttClient | undefined, callback: (valid: boolean, message: string) => void) {
+      if(connectionData && connectionData.mqttserverurl != undefined){
+        let client = connect(connectionData.mqttserverurl,connectionData)      
+        client.on('error', (e) => {
+          client!.end(() => {})
           callback(false, e.toString())
-        }
-      )
-    }
-    if (this.client?.connected) this.client.end(conn)
-    else conn()
+        })
+        client.on('connect', () => {
+          callback(true, 'OK')
+          if (client)
+            client.end(() => {              
+            })
+        })
+      }
+      else
+        callback(false, 'no mqttserverlurl passes')
   }
+  
   private equalConnectionData(client: MqttClient, clientConfiguration: ImqttClient): boolean {
     return (
       client.options.protocol + '://' + client.options.host + ':' + client.options.port == clientConfiguration.mqttserverurl &&
