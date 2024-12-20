@@ -33,6 +33,7 @@ const debug = Debug('mqttdiscover_test')
 const topic4Deletion = {
   topic: 'homeassistant/sensor/1s0/e1/topic4Deletion',
   payload: '',
+  entityid: 1
 }
 class MdFakeMqtt extends FakeMqtt {
   public override publish(topic: string, message: Buffer): void {
@@ -108,7 +109,7 @@ beforeAll((done) => {
     slave = {
       specificationid: 'deye',
       slaveid: 2,
-      polInterval: 100,
+      pollInterval: 100,
     }
 
     let serialNumber: ImodbusEntity = {
@@ -182,7 +183,7 @@ var tps: ItopicAndPayloads[] = []
 function spyMqttOnMessage(ev: string, _cb: Function): MqttClient {
   if (ev === 'message') {
     for (let tp of tps) {
-      md!['onMqttMessage'](tp.topic, Buffer.from(tp.payload, 'utf8'))
+      md!['onMqttMessage'](tp.topic, Buffer.from(tp.payload as string, 'utf8'))
     }
   }
   return md!['client'] as MqttClient
@@ -196,26 +197,26 @@ test('Discover', (done) => {
     let s = structuredClone(spec)
     s.entities.push(selectTestWritable)
 
-    let payloads: { topic: string; payload: string }[] = md['generateDiscoveryPayloads'](
+    let payloads: ItopicAndPayloads[] = md['generateDiscoveryPayloads'](
       new Slave(0, slave, Config.getConfiguration().mqttbasetopic),
       s
     )
     expect(payloads.length).toBe(3)
-    let payloadCurrentPower = JSON.parse(payloads[0].payload)
-    let payloadSelectTestPower = JSON.parse(payloads[1].payload)
+    let payloadCurrentPower = JSON.parse(payloads[0].payload as string)
+    let payloadSelectTestPower = JSON.parse(payloads[1].payload as string)
     expect(payloadCurrentPower.name).toBe('Current Power')
     expect(payloadCurrentPower.unit_of_measurement).toBe('kW')
     expect(payloadSelectTestPower.device.name).toBe('Deye Inverter')
     expect(payloadSelectTestPower.name).toBe('Select Test')
     expect(payloadSelectTestPower.options).not.toBeDefined()
     expect(payloads[1].topic.indexOf('/sensor/')).toBeGreaterThan(0)
-    let payloadSelectTestWritable = JSON.parse(payloads[2].payload)
+    let payloadSelectTestWritable = JSON.parse(payloads[2].payload as string)
     expect(payloads[2].topic.indexOf('/select/')).toBeGreaterThan(0)
     expect(payloadSelectTestWritable.device_class).toBe('enum')
     expect(payloadSelectTestWritable.options).toBeDefined()
     expect(payloadSelectTestWritable.options.length).toBeGreaterThan(0)
     expect(payloadSelectTestWritable.command_topic).toBeDefined()
-    let pl = JSON.parse(payloads[0].payload)
+    let pl = JSON.parse(payloads[0].payload as string)
     //expect(pl.unit_of_measurement).toBe("kW");
     expect(pl.device.manufacturer).toBe(spec.manufacturer)
     expect(pl.device.model).toBe(spec.model)
@@ -486,7 +487,6 @@ test('onMessage SendCommandTopic from this app', (done) => {
 class FakeMqttAddSlaveTopic extends FakeMqtt {
   private discoveryIsPublished: boolean = false
   private stateIsPublished: boolean = false
-
   public override publish(topic: string, message: Buffer): void {
     if (topic.startsWith('homeassistant')) {
       expect(message.length).not.toBe(0)

@@ -33,8 +33,9 @@ const debugMqttClient = Debug('mqttclient')
 const log = new Logger('mqttdiscover')
 const defaultPollCount = 50 // 5 seconds
 export interface ItopicAndPayloads {
-  topic: string
-  payload: string
+  topic: string,
+  payload: string| Buffer,
+  entityid:number
 }
 const retain: IClientPublishOptions = { retain: true, qos: 1 }
 const modbusValues = 'modbusValues'
@@ -147,7 +148,7 @@ export class MqttDiscover {
     )
   }
   private generateDiscoveryPayloads(slave: Slave, spec: ImodbusSpecification): ItopicAndPayloads[] {
-    let payloads: { topic: string; payload: string }[] = []
+    let payloads: ItopicAndPayloads[] = []
     // instantiate the converters
     try {
       if (this.language)
@@ -268,6 +269,7 @@ export class MqttDiscover {
                 payloads.push({
                   topic: this.generateEntityConfigurationTopic(slave, e),
                   payload: JSON.stringify(obj),
+                  entityid: e.id
                 })
               }
             }
@@ -445,21 +447,26 @@ export class MqttDiscover {
 
   private publishDiscoveryEntities(slave: Slave, deleteAllEntities: boolean = false): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-      this.getMqttClient()
-        .then((mqttClient) => {
+      let tAndPs:ItopicAndPayloads[] =[]
+
           try {
             let insertNew = () => {
               // Insert new/changed topics
               if (!deleteAllEntities && newSpec && newSpec.entities && this.client) {
                 this.generateDiscoveryPayloads(slave, newSpec as ImodbusSpecification).forEach((tp) => {
-                  if (this.client && this.client.connected) {
-                    this.client.reconnect
-                    this.client!.publish(tp.topic, tp.payload, retain) // write entity
-                  } else log.log(LogLevelEnum.error, 'MQTT client disconnected')
-                  debug('====================== publish done ' + tp.topic)
+                  if( !slave.getNoDiscoverEntities().includes(tp.entityid ) && !slave.getNoDiscovery() )
+                    {
+                      tAndPs.push({topic: tp.topic, payload:tp.payload, entityid:0 }) // write entity
+                      debug('====================== publish done ' + tp.topic)
+                    } else log.log(LogLevelEnum.error, 'MQTT client disconnected')
                 })
               }
-              resolve()
+              this.getMqttClient()
+              .then((mqttClient) => {
+                tAndPs.forEach( tAndP=>mqttClient.publish(tAndP.topic, tAndP.payload))
+              })
+              .catch(reject)
+                  resolve()
             }
             let subscribedSlave = this.subscribedSlaves.find((s) => 0 == Slave.compareSlaves(s, slave))
             let newSpec = slave.getSpecification()
@@ -471,22 +478,19 @@ export class MqttDiscover {
                 let newTopic = newEnt ? this.generateEntityConfigurationTopic(slave, newEnt) : undefined
                 let oldTopic = oldEnt ? this.generateEntityConfigurationTopic(slave, oldEnt) : undefined
                 if (oldTopic)
-                  if (!newSpec || deleteAllEntities || !newEnt || newTopic != oldTopic) {
+                  if (!newSpec || deleteAllEntities|| slave.getNoDiscovery()|| slave.getNoDiscoverEntities().includes(oldEnt.id) || !newEnt || newTopic != oldTopic) {
                     if (oldEnt) debug('delete entity ' + slave.getBusId() + 's' + slave.getSlaveId() + '/e' + oldEnt.id)
                     else debug('delete Bus/slave ')
-                    this.client!.publish(oldTopic, Buffer.alloc(0), retain) // delete entity
+                    tAndPs.push({topic: oldTopic, payload: Buffer.alloc(0), entityid:0} ) // delete entity
                     waitForDeletions = true
                   }
               })
             }
-            if (waitForDeletions) setTimeout(insertNew, 500)
-            else insertNew()
+            insertNew()
           } catch (e: any) {
             debug('Error ' + e.message)
             reject(e)
           }
-        })
-        .catch(reject)
     })
   }
 
@@ -516,7 +520,10 @@ export class MqttDiscover {
       if (opts.key == undefined) delete opts.key
       if (opts.cert == undefined) delete opts.cert
       // Close client when connection ends
-      this.client = connect(connectionData.mqttserverurl, opts as IClientOptions)
+      if (this.client)
+        this.client.reconnect(opts as IClientOptions)
+      else
+        this.client = connect(connectionData.mqttserverurl, opts as IClientOptions)      
       this.client.on('error', error)
       this.client.on('message', this.onMqttMessage.bind(this))
       this.client.on('connect', () => {
@@ -573,8 +580,12 @@ export class MqttDiscover {
 
       if (this.client != undefined) {
         if (this.equalConnectionData(this.client, Config.getConfiguration().mqttconnect)) {
-          resolve(this.client)
-          return
+          if( this.client.connected)
+          {
+            resolve(this.client)
+            return
+          }   
+          // else connect again     
         } else {
           // reconnect with new connection date
           this.client.end(conn)
@@ -671,26 +682,28 @@ export class MqttDiscover {
   }
   private publishState(slave: Slave, spec: ImodbusSpecification): Promise<void> {
     return new Promise<void>((resolve) => {
-      let topic = slave.getStateTopic()
-      let bus = Bus.getBus(slave.getBusId())
-      if (this.client && bus && spec) {
-        try {
-          this.client!.publish(topic, slave.getStatePayload(spec.entities), { qos: this.generateQos(slave, spec) })
-          this.client!.publish(slave.getAvailabilityTopic(), 'online', { qos: this.generateQos(slave, spec) })
-          resolve()
-        } catch (e) {
+      this.getMqttClient().then(mqttClient=>{
+        let topic = slave.getStateTopic()
+        let bus = Bus.getBus(slave.getBusId())
+        if (this.client && bus && spec) {
           try {
-            this.client!.publish(slave.getAvailabilityTopic(), 'offline', { qos: this.generateQos(slave, spec) })
+            mqttClient.publish(topic, slave.getStatePayload(spec.entities), { qos: this.generateQos(slave, spec) })
+            mqttClient.publish(slave.getAvailabilityTopic(), 'online', { qos: this.generateQos(slave, spec) })
+            resolve()
           } catch (e) {
-            // ignore the error
-            debug('Error')
+            try {
+              mqttClient.publish(slave.getAvailabilityTopic(), 'offline', { qos: this.generateQos(slave, spec) })
+            } catch (e) {
+              // ignore the error
+              debug('Error')
+            }
           }
-        }
-      } else {
-        if (!this.client) log.log(LogLevelEnum.error, 'No MQTT Client available')
-        if (!bus) log.log(LogLevelEnum.error, 'No Bus available')
-        if (!spec) log.log(LogLevelEnum.error, 'No Spec available')
-      }
+        } else {
+          if (!this.client) log.log(LogLevelEnum.error, 'No MQTT Client available')
+          if (!bus) log.log(LogLevelEnum.error, 'No Bus available')
+          if (!spec) log.log(LogLevelEnum.error, 'No Spec available')
+        }  
+      })
     })
   }
 
@@ -715,10 +728,10 @@ export class MqttDiscover {
             let pc: number | undefined = this.pollCounts.get(sl.getKey())
             let trigger = this.triggers.find((k) => 0 == Slave.compareSlaves(k.slave, sl))
 
-            if (pc == undefined || pc > (slave.polInterval != undefined ? slave.polInterval / 100 : defaultPollCount)) pc = 0
+            if (pc == undefined || pc > (slave.pollInterval != undefined ? slave.pollInterval / 100 : defaultPollCount)) pc = 0
             if (pc == 0 || trigger != undefined) {
               debug('Update Discovery')
-              debugAction('poll start (' + bus.getId() + ',' + slave.slaveid + ')interval: ' + slave.polInterval)
+              debugAction('poll start (' + bus.getId() + ',' + slave.slaveid + ')interval: ' + slave.pollInterval)
               debug('poll: start sending payload busid: ' + bus.getId() + ' slaveid: ' + slave.slaveid)
               debugAction('poll end')
               let s = MqttDiscover.addSpecificationToSlave(new Slave(bus.getId(), slave, Config.getConfiguration().mqttbasetopic))
