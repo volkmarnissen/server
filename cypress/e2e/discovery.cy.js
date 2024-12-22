@@ -26,7 +26,8 @@ function runSlaves(willLog) {
   cy.get('[formcontrolname="slaveId"]', logSetting).type('3{enter}', { force: true, log: willLog })
   // Show specification third header button on first card
 
-  cy.get('div.card-header-buttons:first button', logSetting).eq(2, logSetting).click(logSetting)
+  cy.get('div.card-header-buttons:first button ', logSetting).eq(1, logSetting).click(logSetting)
+  cy.get('div.card-header-buttons:first button ', logSetting).eq(2, logSetting).click(logSetting)
   cy.url().should('contain', prefix + '/specification')
 }
 function setUrls(willLog) {
@@ -119,7 +120,8 @@ function addSlave(willLog) {
     .get('mat-option')
     .contains('No polling')
     .click(logSetting)
-  // Show specification third header button on first card
+  cy.get('div.card-header-buttons:first button:contains("check_circle")', logSetting).eq(0, logSetting).click(logSetting)
+    // Show specification third header button on first card
   cy.get('div.card-header-buttons:first button:contains("add_box")', logSetting).eq(0, logSetting).click(logSetting)
 
   cy.url().should('contain', prefix + '/specification')
@@ -177,14 +179,19 @@ describe('MQTT Discovery Tests', () => {
           addEntity(2, 3, false)
           saveSpecification(false)
           //Homeassistant need time between discovery and state sending
-          cy.wait(500)
+          cy.wait(1000)
             .task('mqttGetTopicAndPayloads')
             .then((tAndP) => {
               //expect(tAndP.length).to.eq(2)
-              expect(tAndP.findIndex((tp) => tp.payload == 'online')).not.to.eq(-1)
-              expect(tAndP.findIndex((tp) => tp.topic.endsWith('/state/'))).not.to.eq(-1)
+              let idx = tAndP.findIndex((tp) => tp.payload == 'online')
+              if( idx == -1 )
+                console.log( tAndP )
+              expect(idx).not.to.eq(-1)
+              idx = tAndP.findIndex((tp) => tp.topic.endsWith('/state/'))
+              if( idx == -1 )
+                console.log( tAndP )
+              expect(idx ).not.to.eq(-1)
               expect(tAndP.filter((tp) => tp.topic.startsWith('homeassistant/')).length).to.eq(2)
-              cy.log('tAndP ' + JSON.stringify(tAndP, null, 4))
             })
           cy.readFile('e2e/temp/yaml-dir-addon/local/specifications/files/thespec/files.yaml').should('exist')
         })

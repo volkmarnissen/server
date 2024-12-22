@@ -54,7 +54,8 @@ export class FakeMqtt {
       debug('publish: ' + topic + '\n' + message)
     }
   }
-  public end() {
+  public end(endFunc:()=>void) {
+    endFunc()
     debug('end')
   }
   public on(event: 'message', cb: () => {}) {}

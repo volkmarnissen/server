@@ -256,8 +256,8 @@ StartLimitIntervalSec=1
 [Service]
 Type=simple
 Environment="HASSIO_TOKEN=abcd1234"
-Environment="DEBUG=config.addon"
-ExecStart=|node| |cwd|/dist/modbus2mqtt.js -y |cwd|/e2e/temp/yaml-dir-addon -s |cwd|/e2e/temp/ssl 
+Environment="DEBUG=config.addon mqttclient"
+ExecStart=|node|  |cwd|/dist/modbus2mqtt.js -y |cwd|/e2e/temp/yaml-dir-addon -s |cwd|/e2e/temp/ssl 
 [Install]
 WantedBy=multi-user.target
 EOF10'  | sed -e "s:|cwd|:${SERVERDIR}:g" | sed -e "s:|node|:"`which node`":g" | bash -c 'cat >'$SERVICES'/modbus2mqtt-addon.service'
