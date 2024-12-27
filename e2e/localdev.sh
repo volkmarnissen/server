@@ -81,8 +81,11 @@ rm -rf ${BASEDIR}/temp/yaml-dir ${BASEDIR}/temp/yaml-dir-addon
 mkdir -p ${BASEDIR}/temp/yaml-dir/local
 mkdir -p ${BASEDIR}/temp/log
 echo 'httpport: 3005' >${BASEDIR}/temp/yaml-dir/local/modbus2mqtt.yaml
+chmod 777 ${BASEDIR}/temp/yaml-dir/local/modbus2mqtt.yaml
 mkdir -p ${BASEDIR}/temp/yaml-dir-addon/local
 (echo "httpport: 3004" &&  echo "supervisor_host: localhost" )>${BASEDIR}/temp/yaml-dir-addon/local/modbus2mqtt.yaml
+chmod 777 ${BASEDIR}/temp/yaml-dir-addon/local/modbus2mqtt.yaml
+
 # reset: init yaml-dir and restart modbus2mqtt services
 if [ "$1" == "reset" ]
 then

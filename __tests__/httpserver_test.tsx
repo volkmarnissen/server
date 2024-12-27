@@ -143,10 +143,10 @@ beforeAll(() => {
       HttpServer.prototype.authenticate = (req, res, next) => {
         next()
       }
-      let  mdl = MqttDiscover.getInstance()
+      let mdl = MqttDiscover.getInstance()
       let fake = new FakeMqtt(mdl, FakeModes.Poll)
       mdl['client'] = fake as any as MqttClient
-      
+
       httpServer = new HttpServer(join(yamlDir, 'angular'))
 
       httpServer.setModbusCacheAvailable()

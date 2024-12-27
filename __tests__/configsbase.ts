@@ -18,13 +18,13 @@ export class FakeMqtt {
   disconnected = false
   connected = true
   isAsExcpected = false
-  options:ImqttClient ={
-    protocol: "mqtt",
-    host: "doesnt_exist",
+  options: ImqttClient = {
+    protocol: 'mqtt',
+    host: 'doesnt_exist',
     port: 1007,
-    username: "modbus2mqtt",
-    password: "modbus2mqtt"
-   }
+    username: 'modbus2mqtt',
+    password: 'modbus2mqtt',
+  }
   constructor(
     protected md: MqttDiscover,
     public fakeMode: FakeModes
@@ -54,7 +54,7 @@ export class FakeMqtt {
       debug('publish: ' + topic + '\n' + message)
     }
   }
-  public end(endFunc:()=>void) {
+  public end(endFunc: () => void) {
     endFunc()
     debug('end')
   }

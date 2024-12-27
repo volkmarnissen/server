@@ -97,7 +97,7 @@ export class Modbus2Mqtt {
           Config.getConfiguration().githubPersonalToken ? Config.getConfiguration().githubPersonalToken! : null,
           join(ConfigSpecification.yamlDir, 'public')
         )
-        let startServer = ()=>{
+        let startServer = () => {
           let md = MqttDiscover.getInstance()
           ConfigBus.readBusses()
           this.pollTasks()
@@ -110,28 +110,31 @@ export class Modbus2Mqtt {
             },
             30 * 1000 * 60
           )
-          httpServer.init().then(() => {
-            httpServer.app.listen(Config.getConfiguration().httpport, () => {
-              log.log(LogLevelEnum.notice, `modbus2mqtt listening on  ${os.hostname()}: ${Config.getConfiguration().httpport}`)
-              new ConfigSpecification().deleteNewSpecificationFiles()
-              Bus.getAllAvailableModusData()
-              if (process.env.MODBUS_NOPOLL == undefined) {
-                md.startPolling()
-              } else {
-                log.log(LogLevelEnum.notice, 'Poll disabled by environment variable MODBUS_POLL')
-              }
+          httpServer
+            .init()
+            .then(() => {
+              httpServer.app.listen(Config.getConfiguration().httpport, () => {
+                log.log(LogLevelEnum.notice, `modbus2mqtt listening on  ${os.hostname()}: ${Config.getConfiguration().httpport}`)
+                new ConfigSpecification().deleteNewSpecificationFiles()
+                Bus.getAllAvailableModusData()
+                if (process.env.MODBUS_NOPOLL == undefined) {
+                  md.startPolling()
+                } else {
+                  log.log(LogLevelEnum.notice, 'Poll disabled by environment variable MODBUS_POLL')
+                }
+              })
             })
-        })
-        .catch((e) => {
-          log.log(LogLevelEnum.error, 'Start polling Contributions: ' + e.message)
-        })
-
+            .catch((e) => {
+              log.log(LogLevelEnum.error, 'Start polling Contributions: ' + e.message)
+            })
         }
         let httpServer = new HttpServer(angulardir)
         debugAction('readBussesFromConfig starts')
         gh.init()
           .then(startServer)
-          .catch(e=>{startServer}) 
+          .catch((e) => {
+            startServer
+          })
       })
   }
 }

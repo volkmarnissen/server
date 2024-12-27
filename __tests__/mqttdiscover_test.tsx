@@ -1,5 +1,6 @@
 import { Config } from '../src/config'
 import {
+  IbaseSpecification,
   Ientity,
   ImodbusEntity,
   ImodbusSpecification,
@@ -33,7 +34,7 @@ const debug = Debug('mqttdiscover_test')
 const topic4Deletion = {
   topic: 'homeassistant/sensor/1s0/e1/topic4Deletion',
   payload: '',
-  entityid: 1
+  entityid: 1,
 }
 class MdFakeMqtt extends FakeMqtt {
   public override publish(topic: string, message: Buffer): void {
@@ -159,8 +160,8 @@ beforeAll((done) => {
     spec.entities.push(serialNumber)
     spec.entities.push(currentSolarPower)
     spec.entities.push(selectTest)
-    slave.specification = spec
-    new ConfigSpecification().writeSpecification(spec, () => {}, spec.filename)
+    slave.specification = spec as any
+    new ConfigSpecification().writeSpecification(spec as any, () => {}, spec.filename)
     bus!.writeSlave(slave)
 
     done()
@@ -431,14 +432,11 @@ test('onMessage SendEntityCommandTopic from this app', (done) => {
   let slave = structuredClone(bus!.getSlaveBySlaveId(1))
   slave!.specification = ConfigSpecification.getSpecificationByFilename(slave!.specificationid!)
   let sl = new Slave(0, slave!, Config.getConfiguration().mqttbasetopic)
-  ;(slave!.specification! as Ispecification).entities[2].readonly = false
+  ;(slave!.specification! as any).entities[2].readonly = false
   let oldwriteEntityMqtt = Modbus.writeEntityMqtt
   let writeEntityMqttMock = jest.fn().mockImplementation(() => Promise.resolve())
   Modbus.writeEntityMqtt = writeEntityMqttMock as any
-  mdl['onMqttMessage'](
-    sl.getEntityCommandTopic((slave!.specification! as ImodbusSpecification).entities[2])!.commandTopic!,
-    Buffer.from('20.2')
-  )
+  mdl['onMqttMessage'](sl.getEntityCommandTopic((slave!.specification! as any).entities[2])!.commandTopic!, Buffer.from('20.2'))
     .then(() => {
       expect(fake.isAsExcpected).toBeTruthy()
       expect(writeEntityMqttMock).toHaveBeenCalled()
@@ -469,7 +467,7 @@ test('onMessage SendCommandTopic from this app', (done) => {
   let slave = structuredClone(bus!.getSlaveBySlaveId(1))
   slave!.specification = ConfigSpecification.getSpecificationByFilename(slave!.specificationid!)
   let sl = new Slave(0, slave!, Config.getConfiguration().mqttbasetopic)
-  ;(slave!.specification! as Ispecification).entities[2].readonly = false
+  ;(slave!.specification! as any).entities[2].readonly = false
   mdl['onMqttMessage'](sl.getCommandTopic()!, Buffer.from('{ "hotwatertargettemperature": 20.2 }'))
     .then(() => {
       expect(writeEntityMqttMock).toHaveBeenCalled()
@@ -562,20 +560,18 @@ test('onAddSlave/onUpdateSlave/onDeleteSlave', (done) => {
     onConnected()
   }
   let spec = ConfigSpecification['specifications'].find((s: Ispecification) => s.filename == 'deyeinverterl') as Ispecification
-  let slave: Islave = { slaveid: 7, specificationid: 'deyeinverterl', specification: spec, name: 'wl2', rootTopic: 'wl2' }
-  mdl['onAddSlave'](new Slave(0, slave, Config.getConfiguration().mqttbasetopic)).then(() => {
+  let slave: Islave = { slaveid: 7, specificationid: 'deyeinverterl', specification: spec as any, name: 'wl2', rootTopic: 'wl2' }
+  mdl['onUpdateSlave'](new Slave(0, slave, Config.getConfiguration().mqttbasetopic)).then(() => {
     expect(mdl['subscribedSlaves'].length).toBe(slaveCount + 1)
     expect(fake.isAsExcpected).toBeTruthy()
     let s1 = mdl['subscribedSlaves'].find((s) => s.getSlaveId() == 7)!.clone()
-    spec = ConfigSpecification['specifications'].find(
-      (s: Ispecification) => s.filename == s1.getSpecificationId()!
-    ) as Ispecification
+    spec = ConfigSpecification['specifications'].find((s: Ispecification) => s.filename == s1.getSpecificationId()!) as any
     let oldSpec = structuredClone(spec)
     // delete an entity
     let spec1 = structuredClone(spec)
     spec1.entities.splice(0, 1)
     let s3 = s1.clone()
-    s3.setSpecification(spec1)
+    s3.setSpecification(spec1 as any)
     fake = new FakeMqttDeleteEntitySlave(mdl, FakeModes.Poll)
     mdl['client'] = fake as any as MqttClient
     // onUpdateSlave with removed entity
@@ -584,7 +580,7 @@ test('onAddSlave/onUpdateSlave/onDeleteSlave', (done) => {
       expect(mdl['subscribedSlaves'].find((s) => s.getSlaveId() == 7)!.getSpecification()!.entities.length).toBe(1)
       // onUpdateSlave with added entity
       let s2 = s3.clone()
-      s2.setSpecification(oldSpec)
+      s2.setSpecification(oldSpec as any)
       fake = new FakeMqttAddEntitySlave(mdl, FakeModes.Poll)
       mdl['client'] = fake as any as MqttClient
       mdl['onUpdateSlave'](s2).then(() => {
