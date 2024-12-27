@@ -81,8 +81,11 @@ rm -rf ${BASEDIR}/temp/yaml-dir ${BASEDIR}/temp/yaml-dir-addon
 mkdir -p ${BASEDIR}/temp/yaml-dir/local
 mkdir -p ${BASEDIR}/temp/log
 echo 'httpport: 3005' >${BASEDIR}/temp/yaml-dir/local/modbus2mqtt.yaml
+chmod 777 ${BASEDIR}/temp/yaml-dir/local/modbus2mqtt.yaml
 mkdir -p ${BASEDIR}/temp/yaml-dir-addon/local
 (echo "httpport: 3004" &&  echo "supervisor_host: localhost" )>${BASEDIR}/temp/yaml-dir-addon/local/modbus2mqtt.yaml
+chmod 777 ${BASEDIR}/temp/yaml-dir-addon/local/modbus2mqtt.yaml
+
 # reset: init yaml-dir and restart modbus2mqtt services
 if [ "$1" == "reset" ]
 then
@@ -133,10 +136,10 @@ sudo bash -c 'cat >'$WWWROOT'/addons/self/info/info.json <<EOF
   "data":{
     "slug": "slugtest",
     "ingress": true,
-    "ingress_entry": "modbus2mqtt",
+    "ingress_entry": "ingress",
     "ingress_panel" : true,
     "ingress_port": 1234,
-    "ingress_url": "modbus2mqtt"
+    "ingress_url": "ingress"
   }
 }
 EOF'
@@ -171,7 +174,7 @@ server {
      index hardware.json;
   }
 
-  location /modbus2mqtt/ {
+  location /ingress/ {
         proxy_pass http://localhost:3004/;
         proxy_pass_header Content-Type; 
   }
@@ -256,8 +259,8 @@ StartLimitIntervalSec=1
 [Service]
 Type=simple
 Environment="HASSIO_TOKEN=abcd1234"
-Environment="DEBUG=config.addon"
-ExecStart=|node| |cwd|/dist/modbus2mqtt.js -y |cwd|/e2e/temp/yaml-dir-addon -s |cwd|/e2e/temp/ssl 
+Environment="DEBUG=config.addon mqttclient"
+ExecStart=|node|  |cwd|/dist/modbus2mqtt.js -y |cwd|/e2e/temp/yaml-dir-addon -s |cwd|/e2e/temp/ssl 
 [Install]
 WantedBy=multi-user.target
 EOF10'  | sed -e "s:|cwd|:${SERVERDIR}:g" | sed -e "s:|node|:"`which node`":g" | bash -c 'cat >'$SERVICES'/modbus2mqtt-addon.service'

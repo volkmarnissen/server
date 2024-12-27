@@ -1,6 +1,7 @@
 {
 	"folders": [
 		{
+			"name": "m2m",
 			"path": "../.."
 		},
 		{
@@ -26,7 +27,7 @@
 	],
 	"settings": {
 		"jest.disabledWorkspaceFolders": [
-			"m2m"
+			"m2m", "specification.shared", "server.shared", "angular"
 		]
 	}
 }

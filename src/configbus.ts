@@ -22,9 +22,14 @@ export class ConfigBus {
   private static emitSlaveEvent(event: ConfigListenerEvent, arg: Slave) {
     let rc = MqttDiscover.addSpecificationToSlave(arg)
     ConfigBus.listeners.forEach((eventListener) => {
-      if (eventListener.event == event) (eventListener.listener as (arg: Slave) => Promise<void>)(rc).then(()=>{
-        debug("Event listener executed")
-      }).catch(e=>{ log.log(LogLevelEnum.error, "Unable to call event listener: " + e.message)})
+      if (eventListener.event == event)
+        (eventListener.listener as (arg: Slave) => Promise<void>)(rc)
+          .then(() => {
+            debug('Event listener executed')
+          })
+          .catch((e) => {
+            log.log(LogLevelEnum.error, 'Unable to call event listener: ' + e.message)
+          })
     })
   }
   private static emitBusEvent(event: ConfigListenerEvent, arg: number) {
@@ -70,13 +75,12 @@ export class ConfigBus {
                     encoding: 'utf8',
                   })
                   var o: Islave = parse(src)
-                  if(o.specificationid && o.specificationid.length){
+                  if (o.specificationid && o.specificationid.length) {
                     ConfigBus.busses[ConfigBus.busses.length - 1].slaves.push(o)
                     ConfigBus.emitSlaveEvent(
                       ConfigListenerEvent.addSlave,
                       new Slave(busid, o, Config.getConfiguration().mqttbasetopic)
                     )
-        
                   }
                 }
               })
@@ -135,7 +139,7 @@ export class ConfigBus {
       if (b.busId > maxBusId) maxBusId = b.busId
     })
     maxBusId++
-    log.log(LogLevelEnum.notice, "AddBusProperties: " + maxBusId)
+    log.log(LogLevelEnum.notice, 'AddBusProperties: ' + maxBusId)
     let busArrayIndex =
       ConfigBus.busses.push({
         busId: maxBusId,
@@ -202,6 +206,9 @@ export class ConfigBus {
         if (deletables.includes(prop)) delete (o as any)[prop]
       }
     }
+    if (o.noDiscovery != undefined && o.noDiscovery == false) delete (o as any).noDiscovery
+    if (o.noDiscoverEntities != undefined && o.noDiscoverEntities.length == 0) delete (o as any).noDiscoverEntities
+
     let s = stringify(o)
     fs.writeFileSync(newFilePath, s, { encoding: 'utf8' })
     if (oldFilePath !== newFilePath && fs.existsSync(oldFilePath))

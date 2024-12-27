@@ -42,7 +42,7 @@ function runSlaves(willLog) {
   cy.url().should('contain', prefix + '/slaves')
   cy.get('[formcontrolname="slaveId"]').type('3{enter}', { force: true })
   // Show specification third header button on first card
-  cy.get('div.card-header-buttons:first button:contains("add_box")', logSetting).eq(0, logSetting).click( logSetting)
+  cy.get('div.card-header-buttons:first button:contains("add_box")', logSetting).eq(0, logSetting).click(logSetting)
   cy.url().should('contain', prefix + '/specification')
 }
 
@@ -87,7 +87,7 @@ describe('End to End Tests', () => {
     },
     () => {
       cy.exec('npm run e2e:reset')
-      prefix = 'modbus2mqtt'
+      prefix = 'ingress'
       cy.visit('http://localhost:80/' + prefix)
       runBusses()
     }

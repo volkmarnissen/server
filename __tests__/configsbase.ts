@@ -3,6 +3,7 @@ import { MqttDiscover } from '../src/mqttdiscover'
 import Debug from 'debug'
 import exp from 'constants'
 import { Config } from '../src/config'
+import { ImqttClient } from '@modbus2mqtt/server.shared'
 
 export const yamlDir = '__tests__/yaml-dir'
 export let singleMutex = new Mutex()
@@ -17,6 +18,13 @@ export class FakeMqtt {
   disconnected = false
   connected = true
   isAsExcpected = false
+  options: ImqttClient = {
+    protocol: 'mqtt',
+    host: 'doesnt_exist',
+    port: 1007,
+    username: 'modbus2mqtt',
+    password: 'modbus2mqtt',
+  }
   constructor(
     protected md: MqttDiscover,
     public fakeMode: FakeModes
@@ -46,7 +54,8 @@ export class FakeMqtt {
       debug('publish: ' + topic + '\n' + message)
     }
   }
-  public end() {
+  public end(endFunc: () => void) {
+    endFunc()
     debug('end')
   }
   public on(event: 'message', cb: () => {}) {}

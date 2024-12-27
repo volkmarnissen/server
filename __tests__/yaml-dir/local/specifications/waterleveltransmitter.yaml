@@ -23,6 +23,26 @@ entities:
     variableConfiguration:
       targetParameter: 2
       entityId: 1
+  - id: 3
+    modbusAddress: 4
+    converter:
+      name: number
+      registerTypes:
+        - 3
+        - 4
+    converterParameters:
+      multiplier: 1
+      offset: 0
+      numberFormat: 0
+      identification:
+        min: 31
+        max: 70
+      uom: °C
+    mqttname: hotwatertargettemperature
+    valid: true
+    registerType: 3
+    readonly: false
+    modbusError: ""
 i18n:
   - lang: en
     texts:
@@ -30,5 +50,7 @@ i18n:
         text: Water Level Transmitter
       - textId: e1
         text: Water Level Transmitter
+      - textId: e3
+        text: Hot Water Target Temperature
 version: "0.3"
 testdata: {}

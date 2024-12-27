@@ -341,8 +341,7 @@ it('Modbus writeEntityMqtt', (done) => {
   let dev = ConfigBus.getSlave(0, 1)!
   expect(dev).toBeDefined
 
-  new Modbus()
-    .writeEntityMqtt(Bus.getBus(0)!, 1, spec, 3, 'test')
+  Modbus.writeEntityMqtt(Bus.getBus(0)!, 1, spec, 3, 'test')
     .catch((e) => {
       expect(`[FAIL] ${e}`.trim()).toBeFalsy()
     })

@@ -1,4 +1,4 @@
 specificationid: waterleveltransmitter
 slaveid: 2
-polInterval: 100
+pollInterval: 100
 evalTimeout: true

@@ -1,5 +1,6 @@
 import Debug from 'debug'
 import * as http from 'http'
+import os from 'os'
 import { Request } from 'express'
 import * as express from 'express'
 import { ConverterMap, M2mGitHub } from '@modbus2mqtt/specification'
@@ -76,6 +77,44 @@ export class HttpServer extends HttpServerBase {
       }
     super.returnResult(req, res, code, message, object)
   }
+  handleSlaveTopics(req: Request, res: http.ServerResponse, next: any): any {
+    let md = MqttDiscover.getInstance()
+    let url = req.url.substring(1)
+    let slave = md.getSlave(url)
+    if (slave) {
+      if (req.method == 'GET' && url.endsWith('/state/')) {
+        let md = new Modbus()
+        MqttDiscover.readModbus(slave)?.subscribe((spec) => {
+          let payload = slave.getStatePayload(spec.entities)
+          this.returnResult(req, res, HttpErrorsEnum.OK, payload)
+          return
+        })
+      } else if (req.method == 'GET' && (url.indexOf('/set/') != -1 || url.indexOf('/set/modbus/') != -1)) {
+        let idx = url.indexOf('/set/')
+        let postLength = 5
+        if (idx == -1) {
+          idx = url.indexOf('/set/modbus/')
+          postLength = 11
+        }
+        if (idx == -1) return next() //should not happen
+        md.sendEntityCommandWithPublish(slave, url, url.substring(idx + postLength))
+          .then(() => {
+            this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify({ result: 'OK' }))
+          })
+          .catch((e) => {
+            this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify({ result: e.message }))
+          })
+      } else if (req.method == 'POST' && url.indexOf('/set/') != -1) {
+        md.sendCommand(slave, JSON.stringify(req.body))
+          .then(() => {
+            this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify({ result: 'OK' }))
+          })
+          .catch((e) => {
+            this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify({ result: e.message }))
+          })
+      } else return next()
+    } else return next()
+  }
 
   modbusCacheAvailable: boolean = false
   setModbusCacheAvailable() {
@@ -94,6 +133,7 @@ export class HttpServer extends HttpServerBase {
       this.app.use('/' + filesUrlPrefix, express.static(localdir))
       this.app.use('/' + filesUrlPrefix, express.static(publicdir))
     }
+    this.app.use(this.handleSlaveTopics.bind(this))
     //@ts-ignore
     // app.use(function (err:any, req:any, res:any, next:any) {
     //     res.status(409).json({status: err.status, message: err.message})
@@ -284,6 +324,7 @@ export class HttpServer extends HttpServerBase {
       debug('configuration')
       try {
         let config = Config.getConfiguration()
+        if (Config.getAuthStatus().hassiotoken) config.rootUrl = 'http://' + os.hostname() + ':' + config.httpport + '/'
         this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(config))
       } catch (e) {
         log.log(LogLevelEnum.error, 'Error getConfiguration: ' + JSON.stringify(e))
@@ -363,8 +404,8 @@ export class HttpServer extends HttpServerBase {
               if (pullRequest.merged) log.log(LogLevelEnum.notice, 'Merged ' + pullRequest.pullNumber)
               else if (pullRequest.closed) log.log(LogLevelEnum.notice, 'Closed ' + pullRequest.pullNumber)
               else debug('Polled pullrequest ' + pullRequest.pullNumber)
-            
-              if( pullRequest.merged|| pullRequest.closed)
+
+              if (pullRequest.merged || pullRequest.closed)
                 this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(response))
             })
           })
@@ -482,8 +523,7 @@ export class HttpServer extends HttpServerBase {
         let mqttValue = req.query.mqttValue
         let entityid = req.query.entityid ? parseInt(req.query.entityid) : undefined
         if (entityid && mqttValue)
-          new Modbus()
-            .writeEntityMqtt(bus, Number.parseInt(req.query.slaveid), req.body, entityid, mqttValue)
+          Modbus.writeEntityMqtt(bus, Number.parseInt(req.query.slaveid), req.body, entityid, mqttValue)
             .then(() => {
               this.returnResult(req, res, HttpErrorsEnum.OkCreated, '')
             })
@@ -597,9 +637,9 @@ export class HttpServer extends HttpServerBase {
           if (req.body) {
             // req.body.documents
             let config = new ConfigSpecification()
-            config.appendSpecificationUrls(req.query.specification!, [req.body]).then(files=>{
+            config.appendSpecificationUrls(req.query.specification!, [req.body]).then((files) => {
               if (files) this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(files))
-                else this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, ' specification not found')    
+              else this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, ' specification not found')
             })
           } else {
             this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, ' specification not found')
@@ -628,13 +668,15 @@ export class HttpServer extends HttpServerBase {
           debug('Files uploaded')
           if (req.files) {
             // req.body.documents
-            let config = new ConfigSpecification();
-            let f:string[] = [];
-            (req.files as Express.Multer.File[])!.forEach((f0:any) => {f.push(f0.originalname)});
-            config.appendSpecificationFiles(req.query.specification!, f, req.query.usage!).then(files=>{
-                if (files) this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(files))
-                  else this.returnResult(req, res, HttpErrorsEnum.OkNoContent, ' specification not found or no files passed')      
-              })
+            let config = new ConfigSpecification()
+            let f: string[] = []
+            ;(req.files as Express.Multer.File[])!.forEach((f0: any) => {
+              f.push(f0.originalname)
+            })
+            config.appendSpecificationFiles(req.query.specification!, f, req.query.usage!).then((files) => {
+              if (files) this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(files))
+              else this.returnResult(req, res, HttpErrorsEnum.OkNoContent, ' specification not found or no files passed')
+            })
           } else {
             this.returnResult(req, res, HttpErrorsEnum.OkNoContent, ' specification not found or no files passed')
           }
