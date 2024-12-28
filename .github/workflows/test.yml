@@ -25,15 +25,6 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Publish Multiplatform  
-        uses: int128/docker-manifest-create-action@v2
-        with:
-          tags: |
-            modbus2mqtt/modbus2mqtt:${{env.TAG_NAME}}
-          sources: |
-            modbus2mqtt/modbus2mqtt-aarch64:${{env.TAG_NAME}}
-            modbus2mqtt/modbus2mqtt-amd64:${{env.TAG_NAME}}
-            modbus2mqtt/modbus2mqtt-armv7:${{env.TAG_NAME}}
         
     
 
