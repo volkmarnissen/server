@@ -13,13 +13,18 @@ on:
 permissions:
   contents: write
 jobs:
-  publish:
+  publish:  
     name: "Publish to Docker and Addon"
     runs-on: ubuntu-latest
     environment: release
     env:
       TAG_NAME: "0.16.18"
     steps:
+    - name: Check out server
+      uses: actions/checkout@v4
+      with:
+        path: 'server'
+        token: ${{ secrets.PAT }}    
     - name: Login to DockerHub
       uses: docker/login-action@v2
       with:
@@ -28,6 +33,8 @@ jobs:
     - name: get-npm-version
       id: package-version
       uses: martinbeentjes/npm-get-version-action@v1.3.1        
+      with:
+        path: server
     - name: Publish Multiplatform  
       uses: int128/docker-manifest-create-action@v2
       with:
