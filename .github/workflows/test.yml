@@ -1,35 +1,40 @@
-name:  Run Update Release Description
+name:  Test
 
 on:
   workflow_dispatch:
+  workflow_call:
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
+      PAT:
+        required: true
 permissions:
   contents: write
 jobs:
-  test:
+  publish:
+    name: "Publish to Docker and Addon"
     runs-on: ubuntu-latest
     environment: release
-    name: 'Test E2E'  
+    env:
+      TAG_NAME: "declaration"
     steps:
-      - name: Check out server
-        uses: actions/checkout@v4
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
         with:
-          path: 'server'
-          token: ${{ secrets.PAT }}    
-      - name: "✏️ Generate release changelog"
-        uses: heinrichreimer/action-github-changelog-generator@v2.4
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Publish Multiplatform  
+        uses: int128/docker-manifest-create-action@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          output: CHANGELOG.md    
-      - uses: actions/github-script@v6
-        env:
-          RELEASE_ID: ${{ github.event.release.id }}
-          with:
-            script: |
-              const { RELEASE_ID } = process.env
-          
-              octokit.rest.repos.updateRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: `${RELEASE_ID}`,
-              bodyFile: 'CHANGELOG.md'
-              })
+          tags: |
+            modbus2mqtt/modbus2mqtt:${{env.TAG_NAME}}
+          sources: |
+            modbus2mqtt/modbus2mqtt-aarch64:${{env.TAG_NAME}}
+            modbus2mqtt/modbus2mqtt-amd64:${{env.TAG_NAME}}
+            modbus2mqtt/modbus2mqtt-armv7:${{env.TAG_NAME}}
+        
+    
+
+  
