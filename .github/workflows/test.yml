@@ -25,15 +25,18 @@ jobs:
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
+    - name: get-npm-version
+      id: package-version
+      uses: martinbeentjes/npm-get-version-action@v1.3.1        
     - name: Publish Multiplatform  
       uses: int128/docker-manifest-create-action@v2
       with:
         tags: |
-          modbus2mqtt/modbus2mqtt:${{env.TAG_NAME}}
+          modbus2mqtt/modbus2mqtt:${{ steps.package-version.outputs.current-version}}
         sources: |
-          modbus2mqtt/modbus2mqtt-aarch64:${{env.TAG_NAME}}
-          modbus2mqtt/modbus2mqtt-amd64:${{env.TAG_NAME}}
-          modbus2mqtt/modbus2mqtt-armv7:${{env.TAG_NAME}}
+          modbus2mqtt/modbus2mqtt-aarch64:${{ steps.package-version.outputs.current-version}}
+          modbus2mqtt/modbus2mqtt-amd64:${{ steps.package-version.outputs.current-version}}
+          modbus2mqtt/modbus2mqtt-armv7:${{ steps.package-version.outputs.current-version}}
           
         
     
