@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: release
     env:
-      TAG_NAME: "declaration"
+      TAG_NAME: "v0.16.18"
     steps:
     - name: Login to DockerHub
       uses: docker/login-action@v2
