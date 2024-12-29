@@ -55,6 +55,7 @@ jobs:
         with:
           path: server
       - name: Publish Multiplatform  
+        if: ${{ false }}
         uses: int128/docker-manifest-create-action@v2
         with:
           tags: |
