@@ -174,7 +174,7 @@ export class MqttDiscover {
 
               if (!obj.device.manufacturer && spec.manufacturer) obj.device.manufacturer = spec.manufacturer
               if (!obj.device.model && spec.model) obj.device.model = spec.model
-              obj.device.identifiers = ["m2m" + slave.getBusId() +"s" + slave.getSlaveId()]
+              obj.device.identifiers = ['m2m' + slave.getBusId() + 's' + slave.getSlaveId()]
               debug('Entities ' + e.mqttname)
               spec.entities.forEach((ent1) => {
                 if (ent1.variableConfiguration) {
@@ -776,6 +776,7 @@ export class MqttDiscover {
       })
       if (needPolls.length > 0) {
         let tAndP: ItopicAndPayloads[] = []
+        let pollDeviceCount = 0
         needPolls.forEach((bs) => {
           // Trigger state only if it's configured to do so
           let spMode = bs.slave.getPollMode()
@@ -793,19 +794,22 @@ export class MqttDiscover {
               }).subscribe((spec) => {
                 tAndP.push({ topic: bs.slave.getStateTopic(), payload: bs.slave.getStatePayload(spec.entities), entityid: 0 })
                 tAndP.push({ topic: bs.slave.getAvailabilityTopic(), payload: 'online', entityid: 0 })
+                pollDeviceCount++
+                if (pollDeviceCount == needPolls.length)
+                  this.getMqttClient()
+                    .then((mqttClient) => {
+                      debug("poll: publishing")
+                      tAndP.forEach((tAndP) => {
+                        mqttClient.publish(tAndP.topic, tAndP.payload)
+                      })
+                      resolve()
+                    })
+                    .catch(error)
               })
           }
           // Remove trigger
           if (idx >= 0) this.triggers.splice(idx, 1)
         })
-        this.getMqttClient()
-          .then((mqttClient) => {
-            tAndP.forEach((tAndP) => {
-              mqttClient.publish(tAndP.topic, tAndP.payload)
-            })
-            resolve()
-          })
-          .catch(error)
       }
     })
   }
