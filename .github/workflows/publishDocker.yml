@@ -42,6 +42,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Publish
+        if: ${{ false }}
         uses: home-assistant/builder@master
         with:
           args: |
@@ -55,15 +56,15 @@ jobs:
         with:
           path: server
       - name: Publish Multiplatform  
-        if: ${{ false }}
-        uses: int128/docker-manifest-create-action@v2
+        uses: Noelware/docker-manifest-action@master
         with:
-          tags: |
+          inputs: |
             modbus2mqtt/modbus2mqtt:${{ steps.package-version.outputs.current-version}}
-          sources: |
+          images: |
             modbus2mqtt/modbus2mqtt-aarch64:${{ steps.package-version.outputs.current-version}}
             modbus2mqtt/modbus2mqtt-amd64:${{ steps.package-version.outputs.current-version}}
             modbus2mqtt/modbus2mqtt-armv7:${{ steps.package-version.outputs.current-version}}
+          push: true
       - name: "✏️ Generate release changelog"
         uses: heinrichreimer/action-github-changelog-generator@v2.4
         with:
