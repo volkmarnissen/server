@@ -15,7 +15,7 @@ npm install
 npm ci
 npm run build
 npm test
-if [ "$2" != '' ]
+if [ "$3" != '' ]
 then 
    git tag  -d  $2
    git push origin :refs/tags/$2
