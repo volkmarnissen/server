@@ -447,13 +447,12 @@ describe('http POST', () => {
   })
 
   test('POST /specification: add new Specification rename device.specification', (done) => {
-    let md = (MqttDiscover['instance'] = new MqttDiscover({}, 'en'))
+    let md = (MqttDiscover['instance'] = new MqttDiscover())
     ConfigBus['listeners'] = []
     let fake = new FakeMqtt(md, FakeModes.Poll)
     md['client'] = fake as any as MqttClient
-    md['connectMqtt'] = function (undefined, onConnected: () => void, error: (e: any) => void) {
-      onConnected()
-    }
+    md['connectMqtt'] = function (undefined) {}
+
     let spec1: ImodbusSpecification = Object.assign(spec)
 
     let filename = yamlDir + '/local/specifications/waterleveltransmitter.yaml'

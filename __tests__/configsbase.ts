@@ -17,7 +17,7 @@ let debug = Debug('configsbase')
 export class FakeMqtt {
   disconnected = false
   connected = true
-  isAsExcpected = false
+  isAsExpected = false
   options: ImqttClient = {
     protocol: 'mqtt',
     host: 'doesnt_exist',
@@ -45,10 +45,10 @@ export class FakeMqtt {
       } else
         switch (this.fakeMode) {
           case FakeModes.Poll:
-            this.isAsExcpected = true
+            this.isAsExpected = true
             break
           case FakeModes.Poll2:
-            this.isAsExcpected = false
+            this.isAsExpected = false
             break
         }
       debug('publish: ' + topic + '\n' + message)

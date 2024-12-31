@@ -23,7 +23,12 @@
 		{
 			"name": "specification.shared",
 			"path": "../../specification.shared"
+		},
+		{
+			"name": "modbus2mqtt.config",
+			"path": "../../modbus2mqtt.config"
 		}
+		
 	],
 	"settings": {
 		"jest.disabledWorkspaceFolders": [
