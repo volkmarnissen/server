@@ -459,6 +459,8 @@ export class Config {
             })
           }
           Config.config = parse(src)
+          if (Config.config.debugComponents && Config.config.debugComponents.length) Debug.enable(Config.config.debugComponents)
+
           if (Config.yamlDir.length == 0) log.log(LogLevelEnum.error, 'yamlDir not set')
           else if (Config.config) Config.config.filelocation = Config.yamlDir
           else {
@@ -502,6 +504,7 @@ export class Config {
   writeConfiguration(config: Iconfiguration) {
     let cpConfig = structuredClone(config)
     Config.config = config
+    if (cpConfig.debugComponents && cpConfig.debugComponents.length) Debug.enable(cpConfig.debugComponents)
     let secrets = {}
     if (cpConfig.mqttconnect.password) {
       ;(secrets as any)['mqttpassword'] = cpConfig.mqttconnect.password
