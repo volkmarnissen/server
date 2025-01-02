@@ -353,7 +353,7 @@ export class MqttDiscover {
     if (cnv) {
       if (modbus)
         return Modbus.writeEntityModbus(Bus.getBus(slave.getBusId())!, slave.getSlaveId(), entity, {
-          data: JSON.parse(payload.toString()),
+          data: [Number.parseInt(payload)],
           buffer: Buffer.allocUnsafe(0),
         })
       else {
