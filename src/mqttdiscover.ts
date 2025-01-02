@@ -375,7 +375,7 @@ export class MqttDiscover {
         if (s.getTriggerPollTopic() == topic) {
           debug('Triggering Poll')
           return this.readModbusAndPublishState(s) as any as Promise<void>
-        } else {
+        } else if( payload != undefined && payload != null ){
           if (topic == s.getCommandTopic()) return this.sendCommand(s, payload.toString('utf-8')) as any as Promise<void>
           else if (topic.startsWith(s.getBaseTopic()) && topic.indexOf('/set/') != -1) {
             return this.sendEntityCommandWithPublish(s, topic, payload.toString('utf-8')) as any as Promise<void>
