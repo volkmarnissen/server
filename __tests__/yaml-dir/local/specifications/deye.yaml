@@ -31,7 +31,6 @@ entities:
       targetParameter: 1
     converter:
       name: text
-      registerTypes: []
     converterParameters:
       stringlength: 12
     registerType: 3
@@ -41,7 +40,6 @@ entities:
     mqttname: currentpower
     converter:
       name: number
-      registerTypes: []
     converterParameters:
       uom: kW
     registerType: 3
@@ -54,7 +52,6 @@ entities:
     readonly: true
     converter:
       name: select
-      registerTypes: []
     converterParameters:
       optionModbusValues:
         - 1
