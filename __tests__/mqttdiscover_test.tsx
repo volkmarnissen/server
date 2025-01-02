@@ -482,6 +482,37 @@ test('onMessage SendCommandTopic from this app', (done) => {
       done()
     })
 })
+test('onMessage SendCommand with modbusValues', (done) => {
+  expect(md['subscribedSlaves'].length).toBeGreaterThan(3)
+  let mdl = new MqttDiscover()
+  copySubscribedSlaves(mdl['subscribedSlaves'], md['subscribedSlaves'])
+  let fake = new FakeMqttSendCommandTopic(mdl, FakeModes.Poll)
+  mdl['client'] = fake as any as MqttClient
+  let oldwriteEntityMqtt = Modbus.writeEntityMqtt
+  let writeEntityModbusMock = jest.fn().mockImplementation(() => Promise.resolve())
+  Modbus.writeEntityModbus = writeEntityModbusMock as any
+
+  mdl['connectMqtt'] = function (undefined) {
+    mdl['onConnect'](mdl['client']!)
+  }
+  let bus = Bus.getBus(0)
+  let slave = structuredClone(bus!.getSlaveBySlaveId(1))
+  slave!.specification = ConfigSpecification.getSpecificationByFilename(slave!.specificationid!)
+  let sl = new Slave(0, slave!, Config.getConfiguration().mqttbasetopic)
+  mdl['onMqttMessage'](sl.getCommandTopic()!, Buffer.from('{ "modbusValues": { "operatingmode": 2 }}'))
+    .then(() => {
+      expect(writeEntityModbusMock).toHaveBeenCalled()
+      Modbus.writeEntityMqtt = oldwriteEntityMqtt
+
+      expect(fake.isAsExpected).toBeTruthy()
+      done()
+    })
+    .catch((e) => {
+      debug('Error' + e.message)
+      expect(false).toBeTruthy()
+      done()
+    })
+})
 class FakeMqttAddSlaveTopic extends FakeMqtt {
   private discoveryIsPublished: boolean = false
   private stateIsPublished: boolean = false

@@ -415,9 +415,16 @@ export class MqttDiscover {
     return new Promise<ImodbusSpecification>((resolve, reject) => {
       let p = JSON.parse(payload)
       let promisses: Promise<void>[] = []
-      Object.getOwnPropertyNames(p).forEach((propName) => {
+      if(p.modbusValues){
+        Object.getOwnPropertyNames(p.modbusValues).forEach((propName) => {
+          let entity = slave.getSpecification()?.entities.find((e) => e.mqttname == propName)
+          if (entity && !entity.readonly) promisses.push(this.sendCommandModbus(slave, entity, true, p.modbusValues[propName].toString()))
+        })
+      }
+     Object.getOwnPropertyNames(p).forEach((propName) => {
+        let value = p[propName].toString()
         let entity = slave.getSpecification()?.entities.find((e) => e.mqttname == propName)
-        if (entity && !entity.readonly) promisses.push(this.sendCommandModbus(slave, entity, false, p.toString()))
+        if (entity && !entity.readonly &&  (p.modbusValues == undefined|| p.modbusValues[propName] == undefined )) promisses.push(this.sendCommandModbus(slave, entity, false, value ))
       })
       if (promisses.length > 0)
         Promise.all<void>(promisses).then(() => {
