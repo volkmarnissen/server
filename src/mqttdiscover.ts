@@ -238,8 +238,8 @@ export class MqttDiscover {
                         if (nn.identification.min != undefined) obj.min = nn.identification.min
                         if (nn.identification.max != undefined) obj.max = nn.identification.max
                       }
-                      if (nn.decimals != undefined) obj.suggested_display_precision = nn.decimals
                     }
+                    if (nn.decimals != undefined) obj.suggested_display_precision = nn.decimals
                     break
                   case 'Itext':
                     if (!e.readonly) {
