@@ -1,0 +1,42 @@
+{
+    "build": { "dockerfile": "Dockerfile" },
+
+    "customizations": {
+      "vscode": {
+        "extensions": ["dbaeumer.vscode-eslint", "Angular.ng-template","mhutchie.git-graph", 
+        "ms-vscode.vscode-typescript", "ms-vscode.js-debug-nightly", "orta.vscode-jest", 
+        "firsttris.vscode-jest-runner", "esbenp.prettier-vscode"]
+      }
+    },  
+    "forwardPorts": [3000],
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspace/m2m,type=bind",
+    "workspaceFolder": "/workspace/m2m/server",
+    "mounts": [
+    {
+        "source": "${localWorkspaceFolder}/../specification.shared",
+        "target": "/workspace/m2m/specification.shared",
+        "type": "bind"
+    },
+    {
+        "source": "${localWorkspaceFolder}/../specification",
+        "target": "/workspace/m2m//specification",
+        "type": "bind"
+    },
+    {
+        "source": "${localWorkspaceFolder}/../server.shared",
+        "target": "/workspace/m2m//server.shared",
+        "type": "bind"
+    },
+    {
+        "source": "${localWorkspaceFolder}/../server",
+        "target": "/workspace/m2m//server",
+        "type": "bind"
+    }
+    ,
+    {
+        "source": "${localWorkspaceFolder}/../angular",
+        "target": "/workspace/dummyFolderOne/angular",
+        "type": "bind"
+    }
+]    
+}
