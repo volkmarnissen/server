@@ -133,7 +133,7 @@ export class Modbus2Mqtt {
         gh.init()
           .then(startServer)
           .catch((e) => {
-            startServer
+            startServer()
           })
       })
   }
