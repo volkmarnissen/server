@@ -634,7 +634,7 @@ export class MqttDiscover {
         this.getMqttClient((mqttClient) => {
           log.log(LogLevelEnum.notice, 'Publish Discovery: length:' + tAndPs.length)
           tAndPs.forEach((tAndP) => {
-            mqttClient.publish(tAndP.topic, tAndP.payload, { qos: 1 })
+            mqttClient.publish(tAndP.topic, tAndP.payload, retain)
           })
           if (newSlave) this.resubscribe(mqttClient)
         })
@@ -664,7 +664,7 @@ export class MqttDiscover {
       })
       this.getMqttClient((mqttClient) => {
         tAndPs.forEach((tAndP) => {
-          mqttClient.publish(tAndP.topic, tAndP.payload, { qos: 1 })
+          mqttClient.publish(tAndP.topic, tAndP.payload, retain)
         })
         resolve()
       })
@@ -814,7 +814,7 @@ export class MqttDiscover {
           let tAndPs = this.generateDiscoveryEntities(slave, true)
           this.subscribedSlaves.splice(idx, 1)
           tAndPs.forEach((tAndP) => {
-            mqttClient.publish(tAndP.topic, tAndP.payload, { qos: this.generateQos(slave, slave.getSpecification()) })
+            mqttClient.publish(tAndP.topic, tAndP.payload, retain)
           })
           mqttClient.unsubscribe(slave.getTriggerPollTopic())
           let cmdTopic = slave.getCommandTopic()
