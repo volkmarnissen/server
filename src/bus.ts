@@ -1,5 +1,5 @@
 import Debug from 'debug'
-import { Observable, Subject, first } from 'rxjs'
+import { Subject } from 'rxjs'
 import { ImodbusEntity, ImodbusSpecification, ModbusRegisterType, SpecificationStatus } from '@modbus2mqtt/specification.shared'
 import { IdentifiedStates } from '@modbus2mqtt/specification.shared'
 import { Mutex } from 'async-mutex'
@@ -12,7 +12,6 @@ import {
   emptyModbusValues,
 } from '@modbus2mqtt/specification'
 import { ConfigBus } from './configbus'
-import { Modbus } from './modbus'
 import * as fs from 'fs'
 import { submitGetHoldingRegisterRequest } from './submitRequestMock'
 import { IfileSpecification } from '@modbus2mqtt/specification'
@@ -26,10 +25,10 @@ import {
   IRTUConnection,
   ITCPConnection,
   IidentificationSpecification,
-  PollModes,
+  ImodbusErrorsForSlave,
+  ModbusErrorsForSlave,
 } from '@modbus2mqtt/server.shared'
 import { ConfigSpecification } from '@modbus2mqtt/specification'
-import { MqttDiscover } from './mqttdiscover'
 import { Config } from './config'
 const debug = Debug('bus')
 const debugMutex = Debug('bus.mutex')
@@ -38,10 +37,10 @@ const log = new Logger('bus')
 export interface ReadRegisterResultWithDuration extends IReadRegisterResultOrError {
   duration: number
 }
-
 export class Bus {
   private static busses: Bus[] | undefined = undefined
   private static allSpecificationsModbusAddresses: Set<ImodbusAddress> | undefined = undefined
+  private modbusErrors = new Map<number, ImodbusErrorsForSlave>()
   static readBussesFromConfig(): void {
     let ibs = ConfigBus.getBussesProperties()
     if (!Bus.busses) Bus.busses = []
@@ -437,6 +436,7 @@ export class Bus {
   deleteSlave(slaveid: number) {
     ConfigBus.deleteSlave(this.properties.busId, slaveid)
     if (this.slaves) this.slaves!.delete(slaveid)
+    if (this.modbusErrors.get(slaveid)) this.modbusErrors.delete(slaveid)
   }
   static getModbusAddressesForSpec(spec: IfileSpecification, addresses: Set<ImodbusAddress>): void {
     for (let ent of spec.entities) {
@@ -505,7 +505,18 @@ export class Bus {
   readModbusRegister(task: string, slaveid: number, addresses: Set<ImodbusAddress>): Promise<ImodbusValues> {
     return this.readModbusRegisterLogControl(task, true, slaveid, addresses)
   }
-
+  updateErrorsForSlaveId(slaveId: number, spec: ImodbusSpecification) {
+    let slaveErrors = this.modbusErrors.get(slaveId)
+    let me: ModbusErrorsForSlave | undefined = undefined
+    if (!slaveErrors) {
+      me = new ModbusErrorsForSlave(slaveId)
+      this.modbusErrors.set(slaveId, (slaveErrors = me.get()))
+    } else me = new ModbusErrorsForSlave(slaveId, slaveErrors)
+    me.setErrors(spec)
+  }
+  getModbusErrorsForSlaveId(slaveId: number): ImodbusErrorsForSlave | undefined {
+    return this.modbusErrors.get(slaveId)
+  }
   /*
    * getAvailableSpecs uses bus.slaves cache if possible
    */
@@ -679,6 +690,7 @@ export class Bus {
         let ispec = ConfigSpecification.getSpecificationByFilename(s.specificationid)
         if (ispec) s.specification = ispec
       }
+      s.modbusErrorsForSlave = this.getModbusErrorsForSlaveId(s.slaveid)
     })
     return this.properties.slaves
   }
@@ -688,6 +700,7 @@ export class Bus {
     if (slave && slave.specificationid) {
       let ispec = ConfigSpecification.getSpecificationByFilename(slave.specificationid)
       if (ispec) slave.specification = ispec
+      slave.modbusErrorsForSlave = this.getModbusErrorsForSlaveId(slave.slaveid)
     }
     return slave
   }

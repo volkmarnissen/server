@@ -1,5 +1,5 @@
 import { Config, ConfigListenerEvent } from './config'
-import { ConfigSpecification, ConverterMap } from '@modbus2mqtt/specification'
+import { ConfigSpecification, ConverterMap, M2mSpecification } from '@modbus2mqtt/specification'
 import { format } from 'util'
 import {
   Inumber,
@@ -24,6 +24,7 @@ import { Mutex } from 'async-mutex'
 import { QoS } from 'mqtt-packet'
 
 import { Observable } from 'rxjs'
+import { ClientOptions } from 'ws'
 const debug = Debug('mqttdiscover')
 const debugAction = Debug('actions')
 const debugMqttClient = Debug('mqttclient')
@@ -513,17 +514,20 @@ export class MqttDiscover {
       }
       if (connectionData.mqttserverurl) {
         let opts = connectionData
-        opts.log = (...args) => {
+        // connect need IClientOptions which has some additional properties in the type
+        let iopts = connectionData as IClientOptions
+        iopts.log = (...args) => {
           let message = args.shift()
           debugMqttClient(format(message, args))
         }
-        opts.clean = false
-        opts.reconnectPeriod = 1000
-        opts.keepalive = 50000
-        opts.clientId = Config.getConfiguration().mqttbasetopic
-        if (opts.ca == undefined) delete opts.ca
-        if (opts.key == undefined) delete opts.key
-        if (opts.cert == undefined) delete opts.cert
+        iopts.clean = false
+        iopts.reconnectPeriod = 1000
+        iopts.keepalive = 50000
+        iopts.clientId = Config.getConfiguration().mqttbasetopic
+        if (iopts.ca == undefined) delete iopts.ca
+        if (iopts.key == undefined) delete iopts.key
+        if (iopts.cert == undefined) delete iopts.cert
+
         if (this.client) this.client.reconnect(opts as IClientOptions)
         else this.client = connect(connectionData.mqttserverurl, opts as IClientOptions)
         this.client.removeAllListeners('error')
@@ -555,7 +559,7 @@ export class MqttDiscover {
 
   validateConnection(connectionData: ImqttClient | undefined, callback: (valid: boolean, message: string) => void) {
     if (connectionData && connectionData.mqttserverurl != undefined) {
-      let client = connect(connectionData.mqttserverurl, connectionData)
+      let client = connect(connectionData.mqttserverurl, connectionData as IClientOptions)
       client.on('error', (e) => {
         client!.end(() => {})
         callback(false, e.toString())
@@ -789,6 +793,7 @@ export class MqttDiscover {
               }).subscribe((spec) => {
                 tAndP.push({ topic: bs.slave.getStateTopic(), payload: bs.slave.getStatePayload(spec.entities), entityid: 0 })
                 tAndP.push({ topic: bs.slave.getAvailabilityTopic(), payload: 'online', entityid: 0 })
+                bus.updateErrorsForSlaveId(bs.slave.getSlaveId(), spec)
                 pollDeviceCount++
                 if (pollDeviceCount == needPolls.length)
                   this.getMqttClient((mqttClient) => {

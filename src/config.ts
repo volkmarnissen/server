@@ -25,6 +25,7 @@ import {
 import AdmZip from 'adm-zip'
 import { Bus } from './bus'
 import { MqttDiscover } from './mqttdiscover'
+import { IClientOptions } from 'mqtt/*'
 
 const CONFIG_VERSION = '0.1'
 declare global {
@@ -351,9 +352,9 @@ export class Config {
   }
   static updateMqttTlsConfig(config: Iconfiguration) {
     if (config && config.mqttconnect) {
-      config.mqttconnect.key = this.readCertfile(config.mqttkeyFile)
-      config.mqttconnect.ca = this.readCertfile(config.mqttcaFile)
-      config.mqttconnect.cert = this.readCertfile(config.mqttcertFile)
+      ;(config.mqttconnect as IClientOptions).key = this.readCertfile(config.mqttkeyFile)
+      ;(config.mqttconnect as IClientOptions).ca = this.readCertfile(config.mqttcaFile)
+      ;(config.mqttconnect as IClientOptions).cert = this.readCertfile(config.mqttcertFile)
     }
   }
 
@@ -367,11 +368,15 @@ export class Config {
             config.mqttconnect = mqtt.data
             if (
               config.mqttconnect.mqttserverurl == undefined &&
-              config.mqttconnect.host != undefined &&
-              config.mqttconnect.port != undefined
+              (config.mqttconnect as IClientOptions).host != undefined &&
+              (config.mqttconnect as IClientOptions).port != undefined
             )
               config.mqttconnect.mqttserverurl =
-                (config.mqttconnect.ssl ? 'mqtts' : 'mqtt') + '://' + config.mqttconnect.host + ':' + config.mqttconnect.port
+                (config.mqttconnect.ssl ? 'mqtts' : 'mqtt') +
+                '://' +
+                (config.mqttconnect as IClientOptions).host +
+                ':' +
+                (config.mqttconnect as IClientOptions).port
             if (mqtt.data.ssl) Config.updateMqttTlsConfig(config)
             delete (config.mqttconnect as any).ssl
             delete (config.mqttconnect as any).protocol

@@ -19,9 +19,6 @@ export class FakeMqtt {
   connected = true
   isAsExpected = false
   options: ImqttClient = {
-    protocol: 'mqtt',
-    host: 'doesnt_exist',
-    port: 1007,
     username: 'modbus2mqtt',
     password: 'modbus2mqtt',
   }
