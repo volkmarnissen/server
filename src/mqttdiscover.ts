@@ -238,8 +238,8 @@ export class MqttDiscover {
                         if (nn.identification.min != undefined) obj.min = nn.identification.min
                         if (nn.identification.max != undefined) obj.max = nn.identification.max
                       }
-                      if (nn.decimals != undefined) obj.suggested_display_precision = nn.decimals
                     }
+                    if (nn.decimals != undefined) obj.suggested_display_precision = nn.decimals
                     break
                   case 'Itext':
                     if (!e.readonly) {
@@ -375,7 +375,7 @@ export class MqttDiscover {
         if (s.getTriggerPollTopic() == topic) {
           debug('Triggering Poll')
           return this.readModbusAndPublishState(s) as any as Promise<void>
-        } else {
+        } else if (payload != undefined && payload != null) {
           if (topic == s.getCommandTopic()) return this.sendCommand(s, payload.toString('utf-8')) as any as Promise<void>
           else if (topic.startsWith(s.getBaseTopic()) && topic.indexOf('/set/') != -1) {
             return this.sendEntityCommandWithPublish(s, topic, payload.toString('utf-8')) as any as Promise<void>
@@ -415,16 +415,23 @@ export class MqttDiscover {
     return new Promise<ImodbusSpecification>((resolve, reject) => {
       let p = JSON.parse(payload)
       let promisses: Promise<void>[] = []
-      if(p.modbusValues){
+      if (typeof p != 'object') {
+        reject(new Error('Send Command failed: payload is an object ' + payload))
+        return
+      }
+
+      if (p.modbusValues) {
         Object.getOwnPropertyNames(p.modbusValues).forEach((propName) => {
           let entity = slave.getSpecification()?.entities.find((e) => e.mqttname == propName)
-          if (entity && !entity.readonly) promisses.push(this.sendCommandModbus(slave, entity, true, p.modbusValues[propName].toString()))
+          if (entity && !entity.readonly)
+            promisses.push(this.sendCommandModbus(slave, entity, true, p.modbusValues[propName].toString()))
         })
       }
-     Object.getOwnPropertyNames(p).forEach((propName) => {
+      Object.getOwnPropertyNames(p).forEach((propName) => {
         let value = p[propName].toString()
         let entity = slave.getSpecification()?.entities.find((e) => e.mqttname == propName)
-        if (entity && !entity.readonly &&  (p.modbusValues == undefined|| p.modbusValues[propName] == undefined )) promisses.push(this.sendCommandModbus(slave, entity, false, value ))
+        if (entity && !entity.readonly && (p.modbusValues == undefined || p.modbusValues[propName] == undefined))
+          promisses.push(this.sendCommandModbus(slave, entity, false, value))
       })
       if (promisses.length > 0)
         Promise.all<void>(promisses).then(() => {
@@ -628,7 +635,7 @@ export class MqttDiscover {
         this.getMqttClient((mqttClient) => {
           log.log(LogLevelEnum.notice, 'Publish Discovery: length:' + tAndPs.length)
           tAndPs.forEach((tAndP) => {
-            mqttClient.publish(tAndP.topic, tAndP.payload, { qos: 1 })
+            mqttClient.publish(tAndP.topic, tAndP.payload, retain)
           })
           if (newSlave) this.resubscribe(mqttClient)
         })
@@ -658,7 +665,7 @@ export class MqttDiscover {
       })
       this.getMqttClient((mqttClient) => {
         tAndPs.forEach((tAndP) => {
-          mqttClient.publish(tAndP.topic, tAndP.payload, { qos: 1 })
+          mqttClient.publish(tAndP.topic, tAndP.payload, retain)
         })
         resolve()
       })
@@ -808,7 +815,7 @@ export class MqttDiscover {
           let tAndPs = this.generateDiscoveryEntities(slave, true)
           this.subscribedSlaves.splice(idx, 1)
           tAndPs.forEach((tAndP) => {
-            mqttClient.publish(tAndP.topic, tAndP.payload, { qos: this.generateQos(slave, slave.getSpecification()) })
+            mqttClient.publish(tAndP.topic, tAndP.payload, retain)
           })
           mqttClient.unsubscribe(slave.getTriggerPollTopic())
           let cmdTopic = slave.getCommandTopic()
