@@ -137,7 +137,7 @@ export class ModbusServer {
   }
 
   async startServer(port: number): Promise<ServerTCP> {
-    let rc = new Promise<ServerTCP>((resolve) => {
+    let rc = new Promise<ServerTCP>((resolve, reject) => {
       this.serverTCP = new ServerTCP(vector, {
         host: '0.0.0.0',
         port: port,
@@ -146,7 +146,7 @@ export class ModbusServer {
 
       this.serverTCP.on('socketError', function (err) {
         // Handle socket error if needed, can be ignored
-        console.error(err)
+        reject(err)
       })
       this.serverTCP.on('initialized', () => {
         log.log(LogLevelEnum.notice, 'ModbusTCP listening on modbus://0.0.0.0:' + port)
@@ -212,6 +212,6 @@ export function logValues() {
 export function runModbusServer(port: number = 8502): void {
   new ModbusServer().startServer(port).then(() => {
     log.log(LogLevelEnum.notice, 'listening')
-  })
+  }).catch(e=>log.log( LogLevelEnum.error, "Unable to start " + e.message))
 }
 // set the server to answer for modbus requests

@@ -9,12 +9,15 @@ import { ModbusRegisterType } from '@modbus2mqtt/specification.shared'
 import Debug from 'debug'
 import { IBus, IModbusConnection, ITCPConnection } from '@modbus2mqtt/server.shared'
 import { Config } from './config'
+import  process  from 'process'
 const debug = Debug('modbusTCPserver')
 const log = new Logger('modbusTCPserver')
 var port: number = 502
 
 export function startModbusTCPserver(yamlDir: string, busId: number) {
   debug('starting')
+  if( process.pid )
+    log.log(LogLevelEnum.notice, "PROCESSID=" + process.pid )
   let gh = new M2mGitHub(null, join(yamlDir, 'public'))
   gh.init()
     .then(() => {

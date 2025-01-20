@@ -133,3 +133,5 @@ dist
 **/.DS_Store
 .jest/
 **/secrets.txt
+e2e/yaml-dir-tcp/public
+e2e/mosquitto/password.txt
