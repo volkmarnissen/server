@@ -277,6 +277,7 @@ Wants=network.target
 Type=notify
 NotifyAccess=main
 ExecStart=/usr/sbin/mosquitto -c |mosquittodir|/homeassistant.conf
+mosquitto_passwd -b ${MOSQUITTO_DIR}/password.txt homeassistant homeassistant
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=on-failure
 ExecStartPre=/bin/mkdir -m 740 -p |mosquittodir|/log/mosquitto

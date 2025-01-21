@@ -47,6 +47,9 @@ function runSlaves(willLog) {
 }
 
 describe('End to End Tests', () => {
+  beforeAll(() => {
+    cy.exec('npm run e2e:init')
+  })
   it(
     'register->mqtt->busses->slaves->specification with authentication',
     {

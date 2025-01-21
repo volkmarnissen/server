@@ -144,6 +144,9 @@ function backspaces(num) {
 }
 
 describe('MQTT Discovery Tests', () => {
+  before(() => {
+    cy.exec('npm run e2e:init')
+  })
   it(
     'mqtt hassio addon',
     {
