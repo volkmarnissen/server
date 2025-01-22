@@ -142,10 +142,16 @@ function backspaces(num) {
   for (let a = 0; a < num; a++) rc = rc + '{backspace}'
   return rc
 }
+let logSetting = { log: true }
 
 describe('MQTT Discovery Tests', () => {
   before(() => {
-    cy.exec('npm run e2e:init')
+    cy.log('before')
+    cy.task('e2eInit', logSetting)
+    cy.log('afterinit')
+  })
+  after(() => {
+    cy.task('e2eStop', logSetting)
   })
   it(
     'mqtt hassio addon',
@@ -157,9 +163,8 @@ describe('MQTT Discovery Tests', () => {
     },
     () => {
       Cypress.config('defaultCommandTimeout', 20000)
-      let willLog = true
-      let logSetting = { log: willLog }
-      cy.exec('npm run e2e:reset', logSetting)
+      logSetting.log = true
+      cy.task('e2eReset', logSetting)
       prefix = 'ingress'
       cy.visit('http://localhost:80/' + prefix, logSetting)
       // monitor discovery topics
@@ -174,7 +179,7 @@ describe('MQTT Discovery Tests', () => {
           cy.log('Configure Specification name')
           cy.get('#specForm [formcontrolname="name"]', { log: false }).type(backspaces(10) + 'the spec{enter}', {
             force: true,
-            log: willLog,
+            log: logSetting.log,
           })
 
           setUrls(true)

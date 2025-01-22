@@ -1,5 +1,27 @@
 const { defineConfig } = require('cypress')
 const MqttHelper = require('./cypress/functions/mqtt')
+const spawn = require('child_process').spawn
+const path = require('path');
+const fs = require('fs');
+
+function startServer(command, args) {
+  return new Promise((resolve, reject) => {
+    console.log("starting " + ExecuteCommandWithPath)
+    let execFile = process.env.PATH.split(path.delimiter).find(dir=>fs.existsSync(path.join(dir, command ) ))
+    spawn(execFile,args)
+      (error, stdout, stderr) => {
+          console.log(stdout);
+          console.log(stderr);
+          if (error !== null) {
+              console.log(`exec error: ${error}`);
+              reject(error);
+              return
+          }
+          else
+          resolve(stdout);
+      });
+})
+}
 module.exports = defineConfig({
   e2e: {
     baseUrl: 'http://localhost',
@@ -36,8 +58,11 @@ module.exports = defineConfig({
           mqttHelper.resetTopicAndPayloads()
           return null
         },
-      })
-    },
+        e2eInit() { return startServer("npm run e2e:init") },
+        e2eReset() { return startServer("npm run e2e:reset") },
+        e2eStop() { return startServer("npm run e2e:stop")}
+    })
+  },
     env: {
       mqttconnect: {
         mqttserverurl: 'mqtt://localhost:3001',

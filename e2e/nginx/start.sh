@@ -15,5 +15,5 @@ then
 else
   # Wait for kill 100ms
   sleep 0.1
-  nohup /usr/sbin/nginx -c e2e/nginx/nginx.conf  -p . 2>&1 >e2e/temp/nginx.log &
+  nohup /usr/sbin/nginx -c e2e/nginx/nginx.conf  -p . </dev/null  2>&1 >e2e/temp/nginx.log &
 fi
