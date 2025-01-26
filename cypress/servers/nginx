@@ -1,0 +1,25 @@
+
+#!/bin/sh 
+set -e
+TMPDIR=`mktemp -d -t nginx`
+export TMPDIR
+trap 'echo signal 15 $0 $1; rm -rf $TMPDIR' 15
+trap 'echo signal 2 $0 $1; rm -rf $TMPDIR' 2
+
+NGINXLIB=/var/lib/nginx
+MIMETYPES=/etc/nginx/mime.types
+if [ -r "/opt/homebrew/var/homebrew/linked/nginx" ]
+then
+    NGINXLIB=/opt/homebrew/var/homebrew/linked/nginx
+    MIMETYPES=/opt/homebrew/etc/nginx/mime.types
+fi
+if [ ! -w "$NGINXLIB" ]
+then 
+  echo "$NGINXLIB must be writable for the current user"
+  exit 2
+fi
+sed -e 's|/etc/nginx/mime.types|'$MIMETYPES'|g' <cypress/servers/nginx.conf/nginx.conf |
+sed -e 's|<temp>|'$TMPDIR'|g' >$TMPDIR/nginx.conf
+echo starting nginx -c $TMPDIR/nginx.conf
+nginx -c $TMPDIR/nginx.conf  -p . </dev/null 
+

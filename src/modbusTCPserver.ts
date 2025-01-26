@@ -148,6 +148,14 @@ export class ModbusServer {
         // Handle socket error if needed, can be ignored
         reject(err)
       })
+      this.serverTCP.on('serverError', function (err) {
+        // Handle socket error if needed, can be ignored
+        reject(err)
+      })
+      this.serverTCP.on('error', function (err) {
+        // Handle socket error if needed, can be ignored
+        reject(err)
+      })
       this.serverTCP.on('initialized', () => {
         log.log(LogLevelEnum.notice, 'ModbusTCP listening on modbus://0.0.0.0:' + port)
         resolve(this.serverTCP!)

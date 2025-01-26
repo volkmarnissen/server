@@ -26,7 +26,7 @@
       "postDebugTask": "npm: e2e:end.debug",
       "timeout": 10000,
       "program": "${workspaceFolder}/dist/modbus2mqtt.js",
-      "args": [  "-y", "~/m2m/server/e2e/temp/yaml-dir-addon", "-s" ,"~/m2m/server/e2e/temp/ssl"],
+      "args": [  "-y", "${workspaceFolder}/e2e/servers/modbus2mqtt.temp", "-s" ,"${workspaceFolder}/e2e/servers/modbus2mqtt.temp" ],
       "console": "integratedTerminal",
       "env": {
         "HASSIO_TOKEN": "abcd1234",
@@ -44,8 +44,8 @@
       "name": "Run Server TCP",
       "preLaunchTask": "npm: build.dev",
       "timeout": 10000,
-      "program": "${workspaceFolder}/dist/modbus2mqtt.js",
-      "args": [  "-s", "../ssl", "-y" ,"../yaml-dir", "--busid", "0"],
+      "program": "${workspaceFolder}/dist/runModbusTCPserver.js",
+      "args": [   "-y" ,"cypress/servers/modbustcp.conf/yaml-dir", "--busid", "0"],
       "console": "integratedTerminal",
       "env": {
         "DEBUG": "config",
@@ -62,7 +62,7 @@
       "name": "Run TestServer TCP",
       "preLaunchTask": "npm: build.dev",
       "timeout": 10000,
-      "program": "${workspaceFolder}/dist/modbus2mqtt.js",
+      "program": "${workspaceFolder}/dist/runModbusTCPserver.js",
       "args": [  "-s", "${workspaceFolder}/e2e/temp/ssl", "-y" ,"${workspaceFolder}/e2e/temp/yaml-dir", "--busid", "${workspaceFolder}/e2e/temp/yaml-dir-tcp:0"],
       "console": "integratedTerminal",
       "env": {

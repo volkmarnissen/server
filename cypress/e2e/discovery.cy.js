@@ -148,10 +148,14 @@ describe('MQTT Discovery Tests', () => {
   before(() => {
     cy.log('before')
     cy.task('e2eInit', logSetting)
+    console.log("e2eInit finished")
     cy.log('afterinit')
   })
   after(() => {
-    cy.task('e2eStop', logSetting)
+    // wait for all tests then 
+    // cy.task('e2eStop', logSetting)
+     console.log("e2eStop finished")
+  
   })
   it(
     'mqtt hassio addon',
@@ -166,7 +170,7 @@ describe('MQTT Discovery Tests', () => {
       logSetting.log = true
       cy.task('e2eReset', logSetting)
       prefix = 'ingress'
-      cy.visit('http://localhost:80/' + prefix, logSetting)
+      cy.visit('http://localhost:' + Cypress.env('nginxAddonHttpPort') +'/' + prefix, logSetting)
       // monitor discovery topics
       let mqttConnect = Cypress.env('mqttconnect')
       assert(mqttConnect != undefined)

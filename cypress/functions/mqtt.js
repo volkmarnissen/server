@@ -40,7 +40,9 @@ class MqttHelper {
           return
         } else this.client.reconnect(this.connectionData)
       else this.client = mqtt.connect(connectionData.mqttserverurl, this.connectionData)
-      this.client.on('error', reject)
+      this.client.on('error', (e)=>{
+        console.log( "url: " + connectionData.mqttserverurl + JSON.stringify(this.connectionData))
+        reject(e)})
       this.client.on('message', this.onMessage.bind(this))
       this.client.on('connect', () => {
         resolve(this.client)

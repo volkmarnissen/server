@@ -1,0 +1,10 @@
+ #!/bin/sh
+ set -e
+ TMPDIR=`mktemp -d -t modbustcp`
+ export TMPDIR
+ trap 'echo signal 15 $TMPDIR; rm -rf $TMPDIR' 15
+ trap 'echo signal 2 $TMPDIR; rm -rf $TMPDIR' 2
+ mkdir -p $TMPDIR/local
+ cp -r cypress/servers/modbustcp.conf/* $TMPDIR/local
+ echo starting modbustcp 
+ node dist/runModbusTCPserver.js -y $TMPDIR  --busid 0 </dev/null 

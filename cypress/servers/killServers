@@ -1,0 +1,4 @@
+#!/bin/sh
+FILTER='nginx: master|runModbusTCP|modbus2mqtt.js|mosquitto'
+pkill  -f  "$FILTER"
+pgrep -f "$FILTER"

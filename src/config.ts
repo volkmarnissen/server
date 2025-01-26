@@ -36,7 +36,7 @@ declare global {
   }
 }
 const DEFAULT_MQTT_CONNECT_TIMEOUT = 60 * 1000
-const HASSIO_TIMEOUT = 300
+const HASSIO_TIMEOUT = 3000
 export enum MqttValidationResult {
   OK = 0,
   tokenExpired = 1,

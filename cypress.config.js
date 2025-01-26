@@ -1,24 +1,68 @@
 const { defineConfig } = require('cypress')
 const MqttHelper = require('./cypress/functions/mqtt')
-const readyator = require('readyator')
+const waitOn = require('wait-on')
 const spawn = require('child_process').spawn
 const path = require('path');
 const fs = require('fs');
+var initControllers = []
+var resetControllers = []
+function stopChildProcess(c){
+  console.log("stopChildProcess " + c.command)
+  c.child_process.kill('SIGTERM', (err) => {
+    console.log("Aborted: " + JSON.stringify(err))
+  });
 
-function startServer(command, args, ports) {
-    console.log("starting " + command)
-    let execFile = process.env.PATH.split(path.delimiter).find(dir=>fs.existsSync(path.join(dir, command ) ))
-    if( execFile )
-      spawn(path.join(execFile, command ),args)
-      if( ports){
-        return readyator.default(ports)
-      }
-    return new Promise((resolve)=>{resolve()})
+}
+function restartServers(command, args, ports, controllerArray) {
+  return new Promise((resolve, reject)=>{
+    let pathes = process.env.PATH.split(path.delimiter);
+    pathes.unshift('');
+    let execFile = pathes.find(dir=>fs.existsSync(path.join(dir, command ) ))
+    if( execFile ){
+      controllerArray.forEach(stopChildProcess)
+       setTimeout(()=>{
+        args.forEach(arg=>{
+          let cmd = command +' ' + arg
+          console.log("starting " + cmd)
+                let child_process = spawn(path.join(execFile, command ),arg.split(' '))
+                const cmdObj = {
+                  command:cmd,
+                  prefix: arg,
+                  child_process: child_process,
+                  onData: function(data){
+                    console.log(this.prefix + ":" + data)
+                  },
+                  onClose:  (controllerArray,code) => {
+                    console.log(`${this.command} exited with code ${code}`);
+                    const findCommand = (c)=>c.command == cmd 
+                    let idx = controllerArray.findIndex(findCommand)
+                    if( idx >=0 )
+                      controllerArray.splice(idx,1)
+                  }
+                }      
+                controllerArray.push(cmdObj)
+                child_process.stdout.on('data', cmdObj.onData.bind(cmdObj));
+                child_process.stderr.on('data', cmdObj.onData.bind(cmdObj));
+                child_process.on('close', cmdObj.onClose.bind(cmdObj, controllerArray));
+        })
+        let opts={
+          resources: [],
+          timeout:3000  
+        }
+        if( ports){
+          ports.forEach(port=>{ opts.resources.push("tcp:localhost:" + port)} )
+        }
+        waitOn(opts).then(resolve("running")) .catch(reject)     
+      }, 100)
+    
+    }
+    else
+      reject( "exec file for " + command + " not found" )
+  })
 }
 
 module.exports = defineConfig({
   e2e: {
-    baseUrl: 'http://localhost',
     setupNodeEvents(on, config) {
       // implement node event listeners here
       on('task', {
@@ -27,7 +71,7 @@ module.exports = defineConfig({
             // mqtt connect with onConnected = resolve
             let mqttHelper = MqttHelper.getInstance()
             mqttHelper.connect(connectionData)
-            console.log('test')
+            console.log('mqttConnection: ' + JSON.stringify(connectionData))
             resolve('connected')
           })
         },
@@ -52,12 +96,40 @@ module.exports = defineConfig({
           mqttHelper.resetTopicAndPayloads()
           return null
         },
-        e2eInit() { return startServer("npm", ["run", "e2e:init"], [3002, 3006])},
-        e2eReset() { return startServer("npm", ["run", "e2e:reset"],[3001, 3003,3004, 3005]) },
-        e2eStop() { return startServer("npm", ["run", "e2e:stop"] ,[]) }
+        e2eInit() { return restartServers("sh", 
+          ["cypress/servers/nginx","cypress/servers/modbustcp"], 
+          [config.env.nginxAddonHttpPort, config.modbusTcpHttpPort], 
+          initControllers)},
+        e2eReset() { return restartServers("sh", 
+          [
+            "cypress/servers/mosquitto",
+            "cypress/servers/modbus2mqtt " + config.env.modbus2mqttE2eHttpPort,
+            "cypress/servers/modbus2mqtt " + config.env.modbus2mqttAddonHttpPort + " localhost"
+          ],[
+            config.env.mosquittoAuthMqttPort, 
+            config.env.mosquittoNoAuthMqttPort,
+            config.env.modbus2mqttAddonHttpPort, 
+            config.env.modbus2mqttE2eHttpPort
+          ], 
+          resetControllers) 
+        },
+        e2eStop() { 
+          
+          return new Promise((resolve)=>{
+            initControllers.forEach(stopChildProcess)
+            resetControllers.forEach(stopChildProcess)
+            resolve('Stopped')
+          })
+         }
     })
   },
     env: {
+      nginxAddonHttpPort: 3006, //nginx
+      modbus2mqttAddonHttpPort: 3004, //ingress port
+      modbusTcpHttpPort: 3002, 
+      modbus2mqttE2eHttpPort: 3005,
+      mosquittoAuthMqttPort: 3001,
+      mosquittoNoAuthMqttPort: 3003,
       mqttconnect: {
         mqttserverurl: 'mqtt://localhost:3001',
         username: 'homeassistant',
