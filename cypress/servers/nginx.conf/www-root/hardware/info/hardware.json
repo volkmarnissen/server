@@ -1,10 +1,6 @@
 {
   "data":{
    "devices": [
-   {
-     "subsystem": "tty",
-     "dev_path": "/dev/ttyUSB0"
-   }
    ]
   }
 }

@@ -2,8 +2,8 @@
 set -e
 TMPDIR=`mktemp -d -t modbustcp`
 export TMPDIR
-trap 'echo signal 15 $TMPDIR; rm -rf $TMPDIR' 15
-trap 'echo signal 2 $TMPDIR; rm -rf $TMPDIR' 2
+trap 'echo signal 15 $TMPDIR; rm -rf $TMPDIR; exit 1' 15
+trap 'echo signal 2 $TMPDIR; rm -rf $TMPDIR; exit 1' 2
 
 rm -rf e2e/temp/yaml-dir e2e/temp/yaml-dir-addon 
 mkdir -p $TMPDIR/yaml-dir/local
@@ -18,12 +18,16 @@ then
     TMPDIR=$DEBUGTMPDIR
     rm -rf $TMPDIR/*
 fi
+echo "TMPDIR=$TMPDIR"
 mkdir -p $TMPDIR/local
-echo modbus2mqtt $HTTPPORT $TMPDIR
 echo 'httpport: '$HTTPPORT >$TMPDIR/local/modbus2mqtt.yaml
 if [ $# -ge 2 ]
 then
     echo "supervisor_host: localhost:3006" >>$TMPDIR/local/modbus2mqtt.yaml
     export HASSIO_TOKEN=abcd1234
 fi
-node dist/modbus2mqtt.js -y $TMPDIR -s $TMPDIR   
+node dist/modbus2mqtt.js -y $TMPDIR -s $TMPDIR &
+KILLPID=$!
+echo KILLPID=$KILLPID
+wait $KILLPID
+echo "Terminating  $0"

@@ -158,7 +158,7 @@ beforeAll(() => {
 })
 
 it('GET /devices', (done) => {
-  supertest(httpServer.app)
+  supertest(httpServer["app"])
     .get(apiUri.slaves + '?busid=0')
     .expect(200)
     .then((response) => {
@@ -176,7 +176,7 @@ it('GET /nextCheck', (done) => {
   M2mSpecification['ghContributions'].set('test', {
     nextCheck: '10 Min',
   })
-  supertest(httpServer.app)
+  supertest(httpServer["app"])
     .get(apiUri.nextCheck + '?spec=test')
     .expect(200)
     .then((response) => {
@@ -189,7 +189,7 @@ it('GET /nextCheck', (done) => {
 })
 
 it('GET /specsForSlave', (done) => {
-  supertest(httpServer.app)
+  supertest(httpServer["app"])
     .get(apiUri.specsForSlaveId + '?busid=0&slaveid=1')
     .expect(200)
     .then((response) => {
@@ -204,7 +204,7 @@ it('GET /specsForSlave', (done) => {
 })
 it('GET / (root)', (done) => {
   Config['executeHassioGetRequest'] = oldExecuteHassioGetRequest
-  supertest(httpServer.app)
+  supertest(httpServer["app"])
     .get('/index.html')
     .expect(200)
     .then((response) => {
@@ -218,7 +218,7 @@ it('GET / (root)', (done) => {
 
 it('GET / (root) with Ingress header', (done) => {
   Config['executeHassioGetRequest'] = oldExecuteHassioGetRequest
-  supertest(httpServer.app)
+  supertest(httpServer["app"])
     .get('/index.html')
     .set({ 'X-Ingress-Path': 'test' })
     .expect(200)
@@ -232,7 +232,7 @@ it('GET / (root) with Ingress header', (done) => {
 })
 
 it('GET angular files', (done) => {
-  supertest(httpServer.app)
+  supertest(httpServer["app"])
     .get('/en-US/test.css')
     .expect(200)
     .then((response) => {
@@ -242,7 +242,7 @@ it('GET angular files', (done) => {
     })
 })
 it('GET local files', (done) => {
-  supertest(httpServer.app)
+  supertest(httpServer["app"])
     .get('/specifications/files/waterleveltransmitter/files.yaml')
     .expect(200)
     .then((response) => {
@@ -261,10 +261,10 @@ it('GET local files', (done) => {
 
 it('register,login validate', (done) => {
   var token = ''
-  supertest(httpServer.app)
+  supertest(httpServer["app"])
     .get('/user/reqister?name=test&password=test123')
     .then((_response) => {
-      supertest(httpServer.app)
+      supertest(httpServer["app"])
         .get('/user/login?name=test&password=test123')
         .expect(200)
         .then((response) => {
@@ -303,7 +303,7 @@ it('supervisor login', (done) => {
     },
   }
   process.env.HASSIO_TOKEN = 'test'
-  supertest(httpServer.app)
+  supertest(httpServer["app"])
     .get(apiUri.userAuthenticationStatus)
     .expect(200)
     .then((response) => {
@@ -318,7 +318,7 @@ it('supervisor login', (done) => {
 })
 
 it('GET /' + apiUri.specifications, (done) => {
-  supertest(httpServer.app)
+  supertest(httpServer["app"])
     .get(apiUri.specifications)
     .expect(200)
     .then((response) => {
@@ -332,7 +332,7 @@ it('GET /' + apiUri.specifications, (done) => {
 })
 
 test('GET /converters', (done) => {
-  supertest(httpServer.app)
+  supertest(httpServer["app"])
     .get('/api/converters')
     .expect(200)
     .then((response) => {
@@ -353,7 +353,7 @@ test('GET /converters', (done) => {
 })
 
 test('GET /modbus/specification', (done) => {
-  supertest(httpServer.app)
+  supertest(httpServer["app"])
     .get('/api/modbus/specification?busid=0&slaveid=1&spec=waterleveltransmitter')
     .expect(HttpErrorsEnum.OK)
     .then((response) => {
@@ -364,7 +364,7 @@ test('GET /modbus/specification', (done) => {
 })
 
 test('GET /busses', (done) => {
-  supertest(httpServer.app)
+  supertest(httpServer["app"])
     .get('/api/busses')
     .expect(200)
     .then((response) => {
@@ -387,7 +387,7 @@ test('ADD/DELETE /busses', (done) => {
   Bus.readBussesFromConfig()
   let oldLength = Bus.getBusses().length
 
-  supertest(httpServer.app)
+  supertest(httpServer["app"])
     .post('/api/bus')
     .accept('application/json')
     .send(newConn)
@@ -396,7 +396,7 @@ test('ADD/DELETE /busses', (done) => {
     .then((response) => {
       expect(Bus.getBusses().length).toBe(oldLength + 1)
       let newNumber = response.body
-      supertest(httpServer.app)
+      supertest(httpServer["app"])
         .delete('/api/bus?busid=' + newNumber.busid)
         .then((_response) => {
           expect(200)
@@ -407,7 +407,7 @@ test('ADD/DELETE /busses', (done) => {
 })
 
 test('post specification zip', (done) => {
-  supertest(httpServer.app)
+  supertest(httpServer["app"])
     .post(apiUri.uploadSpec)
     .accept('application/json')
     .send('Just some text to make sure it fails')
@@ -422,7 +422,7 @@ test('POST /mqtt/validate', (done) => {
   let config = Config.getConfiguration()
   config.mqttconnect.mqttserverurl = 'mqtt://doesnt_exist:1007'
   new Config().writeConfiguration(config)
-  supertest(httpServer.app)
+  supertest(httpServer["app"])
     .post('/api/validate/mqtt')
     .send(config)
     .expect(200)
@@ -460,7 +460,7 @@ describe('http POST', () => {
     let url = apiUri.specfication + '?busid=0&slaveid=2&originalFilename=waterleveltransmitter'
 
     //@ts-ignore
-    supertest(httpServer.app)
+    supertest(httpServer["app"])
       .post(url)
       .accept('application/json')
       .send(spec1)
@@ -478,7 +478,7 @@ describe('http POST', () => {
         }
         testdata.holdingRegisters.set(100, { error: new Error('failed!!!') })
         Bus.getBus(0)!['setModbusAddressesForSlave'](2, testdata)
-        supertest(httpServer.app)
+        supertest(httpServer["app"])
           .post(url)
           .accept('application/json')
           .send(spec1)
@@ -498,7 +498,7 @@ describe('http POST', () => {
   })
   test('POST /modbus/entity: update ModbusCache data', (done) => {
     //@ts-ignore
-    supertest(httpServer.app)
+    supertest(httpServer["app"])
       .post('/api/modbus/entity?busid=0&slaveid=1&entityid=1')
       .send(spec2)
       .accept('application/json')
@@ -521,7 +521,7 @@ describe('http POST', () => {
     conn.timeout = 500
     ConfigBus.updateBusProperties(Bus.getBus(0)!.properties!, conn)
     //@ts-ignore
-    supertest(httpServer.app)
+    supertest(httpServer["app"])
       .post('/api/bus?busid=0')
       .send(conn)
       .expect(201)
@@ -544,7 +544,7 @@ describe('http POST', () => {
       let lspec = yamlDir + '/local/specifications/'
       if (!fs.existsSync(lspec + 'waterleveltransmitter.bck'))
         fs.copyFileSync(lspec + 'waterleveltransmitter.yaml', lspec + 'waterleveltransmitter.bck', undefined)
-      supertest(httpServer.app)
+      supertest(httpServer["app"])
         .post('/api/upload?specification=waterleveltransmitter&usage=doc')
         .attach('documents', Buffer.from('whatever'), { filename: testPdf })
         .attach('documents', Buffer.from('whatever2'), { filename: test1 })
@@ -564,7 +564,7 @@ describe('http POST', () => {
           expect(fs.existsSync(testdir + test1)).toBeTruthy()
           fs.unlinkSync(testdir + test1)
           fs.copyFileSync(lspec + 'waterleveltransmitter.bck', lspec + 'waterleveltransmitter.yaml', undefined)
-          supertest(httpServer.app)
+          supertest(httpServer["app"])
             .delete(
               '/api/upload?specification=waterleveltransmitter&url=/files/waterleveltransmitter/' +
                 testPdf +
@@ -579,14 +579,14 @@ describe('http POST', () => {
                 fileLocation: FileLocation.Global,
                 usage: SpecificationFileUsage.documentation,
               }
-              supertest(httpServer.app)
+              supertest(httpServer["app"])
                 .post('/api/addFilesUrl?specification=waterleveltransmitter')
                 .set('Content-Type', 'application/json; charset=utf-8')
                 .send(i)
                 .expect(201)
                 .then((_response) => {
                   expect(_response.body.length).toBe(4)
-                  supertest(httpServer.app)
+                  supertest(httpServer["app"])
                     .delete(
                       '/api/upload?specification=waterleveltransmitter&url=http://www.spiegel.de&usage=' +
                         SpecificationFileUsage.documentation
@@ -594,7 +594,7 @@ describe('http POST', () => {
                     .expect(200)
                     .then((_response) => {
                       expect(_response.body.length).toBe(3)
-                      supertest(httpServer.app)
+                      supertest(httpServer["app"])
                         .delete(
                           '/api/upload?specification=waterleveltransmitter&url=' +
                             _response.body[1].url +

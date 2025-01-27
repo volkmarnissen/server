@@ -13,7 +13,6 @@ import  process  from 'process'
 const debug = Debug('modbusTCPserver')
 const log = new Logger('modbusTCPserver')
 var port: number = 502
-
 export function startModbusTCPserver(yamlDir: string, busId: number) {
   debug('starting')
   if( process.pid )

@@ -14,4 +14,7 @@ if [ -r "/opt/homebrew/sbin/mosquitto" ]
 then
   EXEC=/opt/homebrew/sbin/mosquitto
 fi
-$EXEC -c $TMPDIR/mosquitto.conf
+$EXEC -c $TMPDIR/mosquitto.conf &
+KILLPID=$!
+echo KILLPID=$KILLPID
+wait $KILLPID

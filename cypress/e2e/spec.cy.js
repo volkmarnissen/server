@@ -1,10 +1,10 @@
 let prefix = ''
-let defaultm2mPort = 3005
-let mqttAuthorizedPort = 3001
-let mqttUnAuthorizedPort = 3003
 
 function runRegister(authentication, port) {
-  cy.visit('http://localhost:' + port + '/' + prefix)
+  if( prefix.length )
+    cy.visit('http://localhost:' + Cypress.env('nginxAddonHttpPort') +'/' + prefix)
+  else
+    cy.visit('http://localhost:' + Cypress.env('modbus2mqttE2eHttpPort'))
   if (authentication) {
     cy.get('[formcontrolname="username"]').type('test')
     cy.get('[formcontrolname="password"]').type('test')
@@ -13,7 +13,7 @@ function runRegister(authentication, port) {
   cy.url().should('contain', prefix + '/configure')
 }
 function runConfig(authentication) {
-  let port = authentication ? mqttAuthorizedPort : mqttUnAuthorizedPort
+  let port = authentication ? Cypress.env('mosquittoAuthMqttPort') : Cypress.env('mosquittoNoAuthMqttPort')
   cy.get('[formcontrolname="mqttserverurl"]').type('mqtt://localhost:' + port, { force: true })
   cy.get('[formcontrolname="mqttserverurl"]').trigger('change')
   if (authentication) {
@@ -45,11 +45,30 @@ function runSlaves(willLog) {
   cy.get('div.card-header-buttons:first button:contains("add_box")', logSetting).eq(0, logSetting).click(logSetting)
   cy.url().should('contain', prefix + '/specification')
 }
+function e2eReset(willLog){
+  let logSetting = { log: willLog }
+  cy.task("e2eServicesStop", logSetting)
+  cy.task("e2eServicesStart", logSetting)
 
+}
 describe('End to End Tests', () => {
-  beforeAll(() => {
-    cy.exec('npm run e2e:init')
+  before(() => {
+    let logSetting = { log: false }
+ 
+    cy.task('log', 'Before')
+    // wait for all tests then 
+    cy.task('e2eInitServicesStop', logSetting)
+    cy.task('e2eInitServicesStart', logSetting)
+
   })
+  after(() => {
+    let logSetting = { log: false }
+    cy.task('log', 'After')
+    // wait for all tests then 
+    cy.task('e2eInitServicesStop', logSetting)
+    cy.task('e2eServicesStop', logSetting)
+  })
+
   it(
     'register->mqtt->busses->slaves->specification with authentication',
     {
@@ -59,8 +78,9 @@ describe('End to End Tests', () => {
       },
     },
     () => {
-      cy.exec('npm run e2e:reset')
-      runRegister(true, defaultm2mPort)
+
+      e2eReset(false)
+      runRegister(true)
       runConfig(true)
       runBusses()
       runSlaves(true)
@@ -75,8 +95,8 @@ describe('End to End Tests', () => {
       },
     },
     () => {
-      cy.exec('npm run e2e:reset')
-      runRegister(false, defaultm2mPort)
+      e2eReset(false)
+      runRegister(false, Cypress.env('modbus2mqttE2eHttpPort'))
       runConfig(false)
     }
   )
@@ -89,9 +109,9 @@ describe('End to End Tests', () => {
       },
     },
     () => {
-      cy.exec('npm run e2e:reset')
+      e2eReset(false)
       prefix = 'ingress'
-      cy.visit('http://localhost:80/' + prefix)
+      cy.visit('http://localhost:' + Cypress.env('nginxAddonHttpPort') +'/' + prefix)
       runBusses()
     }
   )

@@ -142,33 +142,41 @@ function backspaces(num) {
   for (let a = 0; a < num; a++) rc = rc + '{backspace}'
   return rc
 }
+function e2eReset(log){
+  cy.task("e2eServicesStop", log)
+  cy.task("e2eServicesStart", log)
+
+}
 let logSetting = { log: true }
 
 describe('MQTT Discovery Tests', () => {
   before(() => {
-    cy.log('before')
-    cy.task('e2eInit', logSetting)
-    console.log("e2eInit finished")
-    cy.log('afterinit')
+    cy.task('log', 'Before')
+    // wait for all tests then 
+    cy.task('e2eInitServicesStop', logSetting)
+    cy.task('e2eInitServicesStart', logSetting)
+
   })
   after(() => {
+    cy.task('log', 'After')
     // wait for all tests then 
-    // cy.task('e2eStop', logSetting)
-     console.log("e2eStop finished")
-  
+    cy.task('e2eInitServicesStop', logSetting)
+    cy.task('e2eServicesStop', logSetting)
   })
+
   it(
     'mqtt hassio addon',
     {
       retries: {
-        runMode: 3,
-        openMode: 1,
+        runMode: 0,
+        openMode: 0,
       },
     },
     () => {
       Cypress.config('defaultCommandTimeout', 20000)
       logSetting.log = true
-      cy.task('e2eReset', logSetting)
+      let addonConfig = undefined;
+      e2eReset( logSetting)
       prefix = 'ingress'
       cy.visit('http://localhost:' + Cypress.env('nginxAddonHttpPort') +'/' + prefix, logSetting)
       // monitor discovery topics
@@ -203,7 +211,10 @@ describe('MQTT Discovery Tests', () => {
               expect(idx).not.to.eq(-1)
               expect(tAndP.filter((tp) => tp.topic.startsWith('homeassistant/')).length).to.eq(2)
             })
-          cy.readFile('e2e/temp/yaml-dir-addon/local/specifications/files/thespec/files.yaml').should('exist')
+          cy.task("getTempDir",Cypress.env("modbus2mqttAddonHttpPort").toString()).then((tmpdir)=>{
+            debugger
+            cy.readFile( tmpdir + '/local/specifications/files/thespec/files.yaml').should('exist')
+          })
         })
       })
     }

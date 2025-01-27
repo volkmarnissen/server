@@ -1,4 +1,4 @@
- #!/bin/sh
+#!/bin/sh
  set -e
  TMPDIR=`mktemp -d -t modbustcp`
  export TMPDIR
@@ -7,4 +7,7 @@
  mkdir -p $TMPDIR/local
  cp -r cypress/servers/modbustcp.conf/* $TMPDIR/local
  echo starting modbustcp 
- node dist/runModbusTCPserver.js -y $TMPDIR  --busid 0 </dev/null 
+ node dist/runModbusTCPserver.js -y $TMPDIR  --busid 0 </dev/null &
+KILLPID=$!
+echo KILLPID=$KILLPID
+wait $KILLPID
