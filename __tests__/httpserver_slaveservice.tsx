@@ -113,7 +113,7 @@ function prepareMqttDiscover(): MockMqttDiscover {
 it('GET state topic', (done) => {
   let mockDiscover = prepareMqttDiscover()
 
-  supertest(httpServer["app"])
+  supertest(httpServer['app'])
     .get('/' + mockDiscover.slave.getStateTopic())
     .expect(200)
     .then((response) => {
@@ -130,7 +130,7 @@ test('GET command Entity topic', (done) => {
   let mockDiscover = prepareMqttDiscover()
   let url = '/' + mockDiscover.slave.getEntityCommandTopic(mockDiscover.slave.getSpecification()!.entities[2])!.commandTopic
   url = url + '20.2'
-  supertest(httpServer["app"])
+  supertest(httpServer['app'])
     .get(url)
     //.send("{hotwatertargettemperature: 20.2}")
     // .send("20.2")
@@ -142,7 +142,7 @@ test('GET command Entity topic', (done) => {
 test('POST command topic', (done) => {
   let mockDiscover = prepareMqttDiscover()
   let url = '/' + mockDiscover.slave.getCommandTopic()
-  supertest(httpServer["app"])
+  supertest(httpServer['app'])
     .post(url)
     .send({ hotwatertargettemperature: 20.2 })
     // .send("20.2")

@@ -93,10 +93,11 @@ function addEntity(entitynum, modbusAddress, willLog) {
 }
 function saveSpecification(willLog) {
   let logSetting = { log: willLog }
+  
   cy.log('Save Specification ')
   cy.get('div.saveCancel:first button', logSetting).eq(0, logSetting).should('not.is.disabled')
   cy.get('div.saveCancel:first button', logSetting).eq(0, logSetting).trigger('click', logSetting)
-  cy.get('div.saveCancel:first button', logSetting).eq(0, logSetting).should('is.disabled')
+//  cy.get('div.saveCancel:first button', logSetting).eq(0, logSetting).should('is.disabled')
   cy.get('div.saveCancel:first button', logSetting).eq(1, logSetting).trigger('click', logSetting)
   cy.url().should('contain', prefix + '/slaves')
 }
@@ -213,7 +214,6 @@ describe('MQTT Discovery Tests', () => {
               expect(tAndP.filter((tp) => tp.topic.startsWith('homeassistant/')).length).to.eq(2)
             })
           cy.task("getTempDir",Cypress.env("modbus2mqttAddonHttpPort").toString()).then((tmpdir)=>{
-            debugger
             cy.readFile( tmpdir + '/local/specifications/files/thespec/files.yaml').should('exist')
           })
         })

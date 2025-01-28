@@ -59,12 +59,11 @@ export class HttpServerBase {
       JSON.stringify(e)
     }
   }
-  listen( listenFunction:() => void ){
+  listen(listenFunction: () => void) {
     this.server = this.app.listen(Config.getConfiguration().httpport, listenFunction)
   }
-  close(){
-    if( this.server)
-      this.server.close()
+  close() {
+    if (this.server) this.server.close()
   }
   private static getAuthTokenFromHeader(req: Request): string | undefined {
     let authHeader: string | undefined = undefined

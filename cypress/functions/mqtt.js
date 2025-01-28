@@ -27,14 +27,14 @@ class MqttHelper {
       this.tAndP.push({ topic: topic, payload: payload.toString(), messageId: packet.messageId })
     }
   }
-  onError(e){
-    console.log( "MQTT Helper error " + e.message)
+  onError(e) {
+    console.log('MQTT Helper error ' + e.message)
   }
-  onClose(){
-    console.log( "MQTT connection closed")
+  onClose() {
+    console.log('MQTT connection closed')
   }
-  onReconnect(){
-    console.log("Reconnecting")
+  onReconnect() {
+    console.log('Reconnecting')
     this.client.removeAllListeners('error')
     this.client.removeAllListeners('message')
     this.client.removeAllListeners('reconnect')
@@ -42,7 +42,7 @@ class MqttHelper {
     this.client.on('message', this.onMessage.bind(this))
     this.client.on('reconnect', this.onReconnect.bind(this, this.client))
   }
-  close(){
+  close() {
     this.client.end()
   }
   connect(connectionData) {
@@ -58,15 +58,16 @@ class MqttHelper {
           return
         } else this.client.reconnect(this.connectionData)
       else this.client = mqtt.connect(connectionData.mqttserverurl, this.connectionData)
-      this.client.on('error', (e)=>{
+      this.client.on('error', (e) => {
         this.onError(e)
-        reject(e)})
+        reject(e)
+      })
       this.client.on('message', this.onMessage.bind(this))
       this.client.on('connect', () => {
         resolve(this.client)
       })
-      this.client.on('reconnect', this.onReconnect.bind(this, this.client))      
-      this.client.on('close', this.onClose.bind(this, this.client))      
+      this.client.on('reconnect', this.onReconnect.bind(this, this.client))
+      this.client.on('close', this.onClose.bind(this, this.client))
     })
   }
   publish(topic, payload) {

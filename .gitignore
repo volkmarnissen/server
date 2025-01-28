@@ -134,4 +134,4 @@ dist
 .jest/
 **/secrets.txt
 e2e
-cypress/screenshots/**/*
+cypress/screenshots/

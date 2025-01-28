@@ -134,7 +134,6 @@ export class ModbusServer {
         value: nv[1],
       })
     })
-
   }
 
   async startServer(port: number): Promise<ServerTCP> {
@@ -218,19 +217,21 @@ export function logValues() {
     log.log(LogLevelEnum.notice, 's: ' + c.slaveid + ' a: ' + c.address + ' v: ' + c.value)
   })
 }
-let server: ModbusServer| undefined = undefined 
+let server: ModbusServer | undefined = undefined
 export function runModbusServer(port: number = 8502): void {
   server = new ModbusServer()
-  server.startServer(port).then(() => {
-    log.log(LogLevelEnum.notice, 'listening')
-  }).catch(e=>{
-    log.log( LogLevelEnum.error, "Unable to start " + e.message)
-    process.exit(1)
-  })
+  server
+    .startServer(port)
+    .then(() => {
+      log.log(LogLevelEnum.notice, 'listening')
+    })
+    .catch((e) => {
+      log.log(LogLevelEnum.error, 'Unable to start ' + e.message)
+      process.exit(1)
+    })
 }
 process.on('SIGINT', () => {
-  if( server )
-    server.stopServer()
+  if (server) server.stopServer()
 })
 
 // set the server to answer for modbus requests

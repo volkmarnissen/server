@@ -14,14 +14,13 @@ import { SpecificationStatus } from '@modbus2mqtt/specification.shared'
 import * as fs from 'fs'
 import { ConfigBus } from './configbus'
 const { argv } = require('node:process')
-let httpServer: HttpServer|undefined = undefined
-       
+let httpServer: HttpServer | undefined = undefined
+
 process.on('unhandledRejection', (reason, p) => {
   log.log(LogLevelEnum.error, 'Unhandled Rejection at: Promise', p, 'reason:', JSON.stringify(reason))
 })
 process.on('SIGINT', () => {
-  if( httpServer )
-    httpServer.close()
+  if (httpServer) httpServer.close()
   process.exit(1)
 })
 
@@ -116,24 +115,24 @@ export class Modbus2Mqtt {
             },
             30 * 1000 * 60
           )
-          if( httpServer)
-          httpServer
-            .init()
-            .then(() => {
-              httpServer!.listen(() => {
-                log.log(LogLevelEnum.notice, `modbus2mqtt listening on  ${os.hostname()}: ${Config.getConfiguration().httpport}`)
-                new ConfigSpecification().deleteNewSpecificationFiles()
-                Bus.getAllAvailableModusData()
-                if (process.env.MODBUS_NOPOLL == undefined) {
-                  md.startPolling()
-                } else {
-                  log.log(LogLevelEnum.notice, 'Poll disabled by environment variable MODBUS_POLL')
-                }
+          if (httpServer)
+            httpServer
+              .init()
+              .then(() => {
+                httpServer!.listen(() => {
+                  log.log(LogLevelEnum.notice, `modbus2mqtt listening on  ${os.hostname()}: ${Config.getConfiguration().httpport}`)
+                  new ConfigSpecification().deleteNewSpecificationFiles()
+                  Bus.getAllAvailableModusData()
+                  if (process.env.MODBUS_NOPOLL == undefined) {
+                    md.startPolling()
+                  } else {
+                    log.log(LogLevelEnum.notice, 'Poll disabled by environment variable MODBUS_POLL')
+                  }
+                })
               })
-            })
-            .catch((e) => {
-              log.log(LogLevelEnum.error, 'Start polling Contributions: ' + e.message)
-            })
+              .catch((e) => {
+                log.log(LogLevelEnum.error, 'Start polling Contributions: ' + e.message)
+              })
         }
         httpServer = new HttpServer(angulardir)
         debugAction('readBussesFromConfig starts')
