@@ -1,7 +1,7 @@
 
 #!/bin/sh 
 set -e
-TMPDIR=`mktemp -d -t nginx`
+TMPDIR=`mktemp -d -t nginxXXXXXX`
 export TMPDIR
 trap 'echo signal 15 $0 $1; rm -rf $TMPDIR' 15
 trap 'echo signal 2 $0 $1; rm -rf $TMPDIR' 2

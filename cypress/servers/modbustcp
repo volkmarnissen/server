@@ -1,6 +1,6 @@
 #!/bin/sh
  set -e
- TMPDIR=`mktemp -d -t modbustcp`
+ TMPDIR=`mktemp -d -t modbustcpXXXXXX`
  export TMPDIR
  trap 'echo signal 15 $TMPDIR; rm -rf $TMPDIR' 15
  trap 'echo signal 2 $TMPDIR; rm -rf $TMPDIR' 2

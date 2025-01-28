@@ -132,6 +132,7 @@ export class HttpServerBase {
   authenticate(req: Request, res: http.ServerResponse, next: any) {
     //  req.header('')
     // All api calls and a user registration when a user is already registered needs authorization
+    debugUrl('authenticate' + req.url)
     let config = Config.getConfiguration()
     let token = HttpServerBase.getAuthTokenFromUrl(req.url)
     if (token != undefined) req.url = req.url.replace(token + '/', '')

@@ -7,12 +7,13 @@ const spawn = require('child_process').spawn
 const execFileSync = require('child_process').execFileSync
 const path = require('path');
 const fs = require('fs');
-const { exec } = require('child_process')
+const { exec } = require('child_process');
+const { clearTimeout } = require('node:timers');
 
 const stopServiceTimeout = 20000
 var initControllers = []
 var resetControllers = []
-
+var logStartupFlag = false
 function pidIsRunning(pid) {
   try {
     process.kill(pid, 'SIGINT');
@@ -22,15 +23,18 @@ function pidIsRunning(pid) {
     return rc
    }
 }
-
+function logStartup(msg){
+  if( logStartupFlag)
+    console.log( msg)
+}
 function stopChildProcess(c){
-  console.log("stopChildProcess " + c.command + " " + c.child_process.pid)
+  logStartup("stopChildProcess " + c.command + " " + c.child_process.pid)
   if( c.killpid >0){
-    console.log(execFileSync("kill" ,["-SIGINT", c.killpid.toString() ]))
+    logStartup(execFileSync("kill" ,["-SIGINT", c.killpid.toString() ]))
   }
   else
   c.child_process.kill('SIGINT', (err) => {
-    console.log("Aborted: " + JSON.stringify(err))
+    logStartup("Aborted: " + JSON.stringify(err))
   });
   
 }
@@ -46,14 +50,14 @@ function startProcesses(command, args,ports,controllerArray){
     if( execFile ){
       args.forEach(arg=>{
         let cmd = command +' ' + arg
-        console.log("starting " + cmd )
+        logStartup("starting " + cmd )
               let child_process = spawn(path.join(execFile, command ),arg.split(' '))
               const cmdObj = {
                 command:cmd,
                 prefix: arg,
                 child_process: child_process,
                 onData: function(data){
-                  console.log(this.prefix + ":" + data)
+                  logStartup(this.prefix + ":" + data)
                   let tmp = data.toString()
                   if( tmp.startsWith("TMPDIR=")){
                     let t = tmpdirs.find(tc=>tc.command== this.command)
@@ -68,7 +72,7 @@ function startProcesses(command, args,ports,controllerArray){
                   }
                 },
                 onClose:  function (controllerArray,code){
-                  console.log(`${cmd} exited with code ${code}`);
+                  logStartup(`${cmd} exited with code ${code}`);
                   const findCommand = (c)=>c.command == cmd 
                   let l = controllerArray.length
                   if( controllerArray && controllerArray.length){
@@ -76,20 +80,17 @@ function startProcesses(command, args,ports,controllerArray){
                     if( idx >=0 ){
                       controllerArray.splice(idx,1)
                       if(controllerArray.length == 0 ){
-                        console.log("All Processes stopped " +  stoppedTimer.timer)
-                        if( stoppedTimer.timer != undefined )
-                          clearTimeout(stoppedTimer.timer)
-                        stoppedTimer.timer = undefined
+                        logStartup("All Processes stopped " +  stoppedTimer.timer)                        
                         onAllProcessesStopped.emit('stopped')
                       }
                       else{
-                        controllerArray.forEach( c=>console.log("Living " +  c.command))
-                        console.log("Living processes " +  controllerArray.length)
+                        controllerArray.forEach( c=>logStartup("Living " +  c.command))
                       }
                     }
                     else
-                     console.log( "Command not found " + cmd)
+                     logStartup( "Command not found " + cmd)
                   }
+                  logStartup("onClose Living processes " +  controllerArray.length)
                 }
               }      
               controllerArray.push(cmdObj)
@@ -99,7 +100,7 @@ function startProcesses(command, args,ports,controllerArray){
       })
       if( args.length == controllerArray.length){
         waitForPorts(args, controllerArray, ports).then(()=>{
-            console.log("Processes started")
+            logStartup("Processes started")
             resolve("OK")
           }).catch(reject)
       }
@@ -112,11 +113,11 @@ function startProcesses(command, args,ports,controllerArray){
 function waitForPorts(args, controllerArray, ports){
   return new Promise((resolve, reject)=>{
     if( !args || !controllerArray || args.length != controllerArray.length){
-      console.log("Not all Processes started")
+      logStartup("Not all Processes started")
       reject("Processes not started correctly")
       return
     } 
-    console.log( "opts")
+    logStartup( "opts")
     
     let opts={
       resources: [],
@@ -128,9 +129,9 @@ function waitForPorts(args, controllerArray, ports){
       
      waitOn(opts).then(
        ()=>{
-        console.log( "WaitThen")
+        logStartup( "WaitThen")
           let rc = []
-          console.log("waitSuccess " + args[0])
+          logStartup("waitSuccess " + args[0])
           resolve("Process started")
   
        }) .catch(reject)  
@@ -150,24 +151,32 @@ function stopServices( controllerArray) {
           let killpid = c.killpid
           if( !c.killpid)
             killpid = c.child_process.pid
-          console.log("pid " + killpid)
+          logStartup("pid " + killpid)
           if( killpid && !pidIsRunning(killpid)){
             controllerArray.splice(idx,1)
           }
-        },500)
+
+        })
         if( controllerArray.length == 0){
+          logStartup("All processes stopped by process kill")
           clearInterval(interv)
           interv = 0
           onAllProcessesStopped.emit('stopped')
-        } 
-      }, 1000)
+        }else
+          logStartup("process kill has still " +  controllerArray.length)
+
+      }, 500)
       stoppedTimer.timer = setTimeout(()=>{
-        console.log("Stopping Services timeout" )
+        logStartup("Stopping Services timeout" )
         reject("Stopping processes timed out" )
         if(interv)clearInterval(interv)
       },stopServiceTimeout)
       onAllProcessesStopped.on('stopped', ()=>{
+        if( stoppedTimer.timer != undefined )
+          clearTimeout(stoppedTimer.timer)
+        stoppedTimer.timer = undefined
         if( interv )clearInterval(interv)
+        interv = 0
         resolve("OK")})
       controllerArray.forEach(stopChildProcess)
     }
@@ -176,22 +185,22 @@ function stopServices( controllerArray) {
 
 function restartServers(command, args, ports, controllerArray) {
   return new Promise((resolve, reject)=>{
-    console.log( "RestartServers")
+    logStartup( "RestartServers")
     let pathes = process.env.PATH.split(path.delimiter);
     pathes.unshift('');
     let execFile = pathes.find(dir=>fs.existsSync(path.join(dir, command ) ))
     if( execFile ){
       if( controllerArray.length){
         stoppedTimer.timer = setTimeout(()=>{
-          console.log("Stopping timeout " + args[0] + " " + stoppedTimer.timer)
+          logStartup("Stopping timeout " + args[0] + " " + stoppedTimer.timer)
           reject("Stopping processes timed out " )
         },stopServiceTimeout)
         controllerArray.forEach(stopChildProcess)
       }
-      console.log("Restart:StartProcess " + stoppedTimer.timer)
+      logStartup("Restart:StartProcess " + stoppedTimer.timer)
       startProcesses(execFile,command, args,controllerArray,stoppedTimer,ports, 
-        ()=>{console.log("RestartServer resolvedXX"); resolve("OK") }).then(()=>{
-              console.log( "RestartServers resolved")
+        ()=>{logStartup("RestartServer resolvedXX"); resolve("OK") }).then(()=>{
+              logStartup( "RestartServers resolved")
               resolve("OK")}).catch(reject)
     }
     else
@@ -202,6 +211,9 @@ function restartServers(command, args, ports, controllerArray) {
 module.exports = defineConfig({
   e2e: {
     setupNodeEvents(on, config) {
+     
+     logStartupFlag =  config.env.logstartup
+     console.log("Startup Logging is " + (logStartupFlag? "enabled": disabled))
       // implement node event listeners here
       on('task', {
         mqttConnect(connectionData) {
@@ -209,11 +221,18 @@ module.exports = defineConfig({
             // mqtt connect with onConnected = resolve
             let mqttHelper = MqttHelper.getInstance()
             mqttHelper.connect(connectionData)
-            console.log('mqttConnection: ' + JSON.stringify(connectionData))
             resolve('connected')
           })
         },
-        mqttSubscribe(topic) {
+        mqttClose() {
+          return new Promise((resolve, reject) => {
+            // mqtt connect with onConnected = resolve
+            let mqttHelper = MqttHelper.getInstance()
+            mqttHelper.close()
+            resolve('closed')
+          })
+        },
+          mqttSubscribe(topic) {
           let mqttHelper = MqttHelper.getInstance()
           mqttHelper.subscribe(topic)
           return null
@@ -235,18 +254,18 @@ module.exports = defineConfig({
           return null
         },
         e2eInitServicesStart() { 
-          console.log("e2eInit")
+          logStartup("e2eInit")
           return startProcesses("sh", 
           ["cypress/servers/nginx","cypress/servers/modbustcp"], 
           [config.env.nginxAddonHttpPort, config.env.modbusTcpHttpPort], 
           initControllers)
         },
         e2eInitServicesStop() { 
-            console.log("e2eStop")
+            logStartup("e2eStop")
             return stopServices( initControllers) 
         },
         e2eServicesStart() { 
-            console.log("e2eServicesStart")
+            logStartup("e2eServicesStart")
             return startProcesses("sh", 
             [
               "cypress/servers/mosquitto",
@@ -262,11 +281,11 @@ module.exports = defineConfig({
             resetControllers) 
         },
         e2eServicesStop() { 
-          console.log("e2eStop")
+          logStartup("e2eStop")
           return stopServices( resetControllers) 
         },
         e2eServicesStart() { 
-          console.log("e2eServicesStart")
+          logStartup("e2eServicesStart")
           return startProcesses("sh", 
           [
             "cypress/servers/mosquitto",
@@ -291,7 +310,6 @@ module.exports = defineConfig({
             let parts = command.split(":")
 
               let tmp = tmpdirs.find(t=>t.command.indexOf(command ) >=0 )
-              console.log("GetTempDir: " + tmp.command + " " + JSON.stringify(tmpdirs,null, " "))
               if( !tmp  ) 
                 reject(new Error("getTempDir: command not found  " + command + " " + tmpdirs.length)) 
               else
@@ -304,7 +322,7 @@ module.exports = defineConfig({
         e2eStop() { 
           
           return new Promise((resolve)=>{
-            console.log("e2eStop")
+            logStartup("e2eStop")
            // initControllers.forEach(stopChildProcess)
             resetControllers.forEach(stopChildProcess)
             resolve('Stopped')
@@ -317,6 +335,7 @@ module.exports = defineConfig({
     })
   },
     env: {
+      logstartup: true, // Set to true to log startup services messages
       nginxAddonHttpPort: 3006, //nginx
       modbus2mqttAddonHttpPort: 3004, //ingress port
       modbusTcpHttpPort: 3002, 
@@ -326,7 +345,7 @@ module.exports = defineConfig({
       mqttconnect: {
         mqttserverurl: 'mqtt://localhost:3001',
         username: 'homeassistant',
-        password: 'homeassistant',
+        password: 'homeassistant'
       },
     },
   },

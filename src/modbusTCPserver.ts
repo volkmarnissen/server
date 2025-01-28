@@ -5,8 +5,8 @@ import { LogLevelEnum, Logger } from '@modbus2mqtt/specification'
 export const XYslaveid = 1
 export const Dimplexslaveid = 2
 export const Eastronslaveid = 3
-const log = new Logger('modbusserver')
-const debug = Debug('modbusserver')
+const log = new Logger('modbusTCP')
+const debug = Debug('modbusTCP')
 const dimplexHolding = [
   [1, 200],
   [1, 200],

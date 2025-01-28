@@ -26,7 +26,7 @@
       "postDebugTask": "npm: e2e:end.debug",
       "timeout": 10000,
       "program": "${workspaceFolder}/dist/modbus2mqtt.js",
-      "args": [  "-y", "${workspaceFolder}/e2e/servers/modbus2mqtt.temp", "-s" ,"${workspaceFolder}/e2e/servers/modbus2mqtt.temp" ],
+      "args": [  "-y", "${workspaceFolder}/e2e/modbus2mqtt.temp", "-s" ,"${workspaceFolder}/e2e/modbus2mqtt.temp" ],
       "console": "integratedTerminal",
       "env": {
         "HASSIO_TOKEN": "abcd1234",
