@@ -9,6 +9,9 @@ timeout 12 bash -c '
     if [ $? -eq 0 ] 
     then
       echo  services is available at $1 $?
+    else 
+      echo  services is not!! available at $1 $?
+      exit 2
     fi
 }
 
