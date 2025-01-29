@@ -32,7 +32,7 @@ beforeAll(() => {
       HttpServer.prototype.authenticate = (req, res, next) => {
         next()
       }      
-      // startModbusTCPserver(ConfigSpecification.yamlDir, 0)
+      startModbusTCPserver(ConfigSpecification.yamlDir, 0)
 
       httpServer = new HttpServer(join(yamlDir, 'angular'))
       httpServer.setModbusCacheAvailable()
@@ -42,8 +42,7 @@ beforeAll(() => {
   })
 })
 afterAll(() => {
-  // stopModbusTCPServer()
-  httpServer.close()
+  stopModbusTCPServer()
 })
 
 it('Discrete Input ?', (done) => {
