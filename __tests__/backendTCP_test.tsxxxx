@@ -16,6 +16,11 @@ var httpServer: HttpServer
 
 beforeAll(() => {
   return new Promise<void>((resolve, reject) => {
+    let mdl = MqttDiscover.getInstance()
+    // fake MQTT: avoid reconnect
+    mdl['equalConnectionData']= ()=>{return true}
+    let fake = new FakeMqtt(mdl, FakeModes.Poll)
+    mdl['client'] = fake as any as MqttClient
     Config['yamlDir'] = backendTCPDir
     Config['sslDir']= backendTCPDir
     ConfigSpecification.yamlDir = backendTCPDir
@@ -27,9 +32,6 @@ beforeAll(() => {
       HttpServer.prototype.authenticate = (req, res, next) => {
         next()
       }      
-      let mdl = MqttDiscover.getInstance()
-      let fake = new FakeMqtt(mdl, FakeModes.Poll)
-      mdl['client'] = fake as any as MqttClient
       startModbusTCPserver(ConfigSpecification.yamlDir, 0)
 
       httpServer = new HttpServer(join(yamlDir, 'angular'))
