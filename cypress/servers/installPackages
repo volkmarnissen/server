@@ -1,0 +1,5 @@
+#!/bin/sh
+set +e
+sudo apt-get install -y nginx mosquitto mosquitto-clients 
+sudo rm -rf /etc/nginx/sites-enabled/default
+set -e
