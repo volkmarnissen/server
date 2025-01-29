@@ -1,5 +1,5 @@
 import { expect, it, xit, xtest, test, jest, describe, beforeAll, afterAll } from '@jest/globals'
-import { startModbusTCPserver } from '../src/modbusTCPserver'
+import { startModbusTCPserver, stopModbusTCPServer } from '../src/modbusTCPserver'
 
 import { HttpErrorsEnum, ImodbusSpecification, ImodbusEntity } from '@modbus2mqtt/specification.shared'
 import { FakeMqtt, FakeModes, backendTCPDir, yamlDir } from './configsbase'
@@ -40,6 +40,7 @@ beforeAll(() => {
   })
 })
 afterAll(() => {
+  stopModbusTCPServer()
 })
 
 it('Discrete Input ?', (done) => {
