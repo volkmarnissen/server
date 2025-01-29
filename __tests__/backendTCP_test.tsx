@@ -36,7 +36,7 @@ beforeAll(() => {
 
       httpServer = new HttpServer(join(yamlDir, 'angular'))
       httpServer.setModbusCacheAvailable()
-      httpServer.init()
+      //httpServer.init()
       resolve()
     })
   })
