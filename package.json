@@ -41,7 +41,6 @@
     "@modbus2mqtt/specification": "github:modbus2mqtt/specification",
     "@modbus2mqtt/specification.shared": "github:modbus2mqtt/specification.shared",
     "@octokit/rest": "^20.1.1",
-    "@types/mqtt": "^0.0.34",
     "adm-zip": "^0.5.16",
     "assert": "^2.1.0",
     "async-mutex": "^0.5.0",

@@ -4,28 +4,21 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { join } from 'path'
 import stream from 'stream'
-import { Observable, Subject } from 'rxjs'
-import { BUS_TIMEOUT_DEFAULT, getBaseFilename, IbaseSpecification } from '@modbus2mqtt/specification.shared'
+import { Subject } from 'rxjs'
+import { getBaseFilename } from '@modbus2mqtt/specification.shared'
 import { sign, verify } from 'jsonwebtoken'
 import * as bcrypt from 'bcryptjs'
 import * as http from 'http'
-import { ConfigSpecification, LogLevelEnum, Logger } from '@modbus2mqtt/specification'
-import { SerialPort } from 'serialport'
+import { LogLevelEnum, Logger } from '@modbus2mqtt/specification'
 import {
   ImqttClient,
   AuthenticationErrors,
-  IBus,
   Iconfiguration,
-  IModbusConnection,
-  Islave,
-  PollModes,
-  Slave,
   IUserAuthenticationStatus,
 } from '@modbus2mqtt/server.shared'
 import AdmZip from 'adm-zip'
 import { Bus } from './bus'
-import { MqttDiscover } from './mqttdiscover'
-import { IClientOptions } from 'mqtt/*'
+import { IClientOptions } from 'mqtt'
 
 const CONFIG_VERSION = '0.1'
 declare global {
