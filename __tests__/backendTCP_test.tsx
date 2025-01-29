@@ -43,6 +43,7 @@ beforeAll(() => {
 })
 afterAll(() => {
   // stopModbusTCPServer()
+  httpServer.close()
 })
 
 it('Discrete Input ?', (done) => {
