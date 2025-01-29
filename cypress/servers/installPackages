@@ -2,4 +2,5 @@
 set +e
 sudo apt-get install -y nginx mosquitto mosquitto-clients 
 sudo rm -rf /etc/nginx/sites-enabled/default
+sudoc chmod 777 /var/lib/nginx
 set -e
