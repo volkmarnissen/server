@@ -1,0 +1,3 @@
+serialport: /dev/ttyACM0
+timeout: 500
+baudrate: 9600
