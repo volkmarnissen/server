@@ -6,6 +6,7 @@ import { Config } from '../src/config'
 import { ImqttClient } from '@modbus2mqtt/server.shared'
 
 export const yamlDir = '__tests__/yaml-dir'
+export const backendTCPDir = '__tests__/backendTCP'
 export let singleMutex = new Mutex()
 export enum FakeModes {
   Poll,
