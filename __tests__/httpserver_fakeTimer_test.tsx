@@ -59,7 +59,7 @@ function binaryParser(res: any, callback: (_error: null, data: any) => void) {
   })
 }
 it('GET download/local', (done) => {
-  supertest(httpServer.app)
+  supertest(httpServer['app'])
     .get('/download/local')
     .responseType('blob')
     .expect(200)

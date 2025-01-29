@@ -30,8 +30,9 @@ const log = new Logger('HttpServerBase')
 //import { IfileSpecification } from './ispecification';
 
 export class HttpServerBase {
-  app: express.Application
+  protected app: express.Application
   languages = ['en']
+  server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>
   constructor(private angulardir: string = '.') {
     this.app = require('express')()
   }
@@ -57,6 +58,12 @@ export class HttpServerBase {
       log.log(LogLevelEnum.error, e.message)
       JSON.stringify(e)
     }
+  }
+  listen(listenFunction: () => void) {
+    this.server = this.app.listen(Config.getConfiguration().httpport, listenFunction)
+  }
+  close() {
+    if (this.server) this.server.close()
   }
   private static getAuthTokenFromHeader(req: Request): string | undefined {
     let authHeader: string | undefined = undefined
@@ -124,6 +131,7 @@ export class HttpServerBase {
   authenticate(req: Request, res: http.ServerResponse, next: any) {
     //  req.header('')
     // All api calls and a user registration when a user is already registered needs authorization
+    debugUrl('authenticate' + req.url)
     let config = Config.getConfiguration()
     let token = HttpServerBase.getAuthTokenFromUrl(req.url)
     if (token != undefined) req.url = req.url.replace(token + '/', '')

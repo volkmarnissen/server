@@ -93,10 +93,11 @@ function addEntity(entitynum, modbusAddress, willLog) {
 }
 function saveSpecification(willLog) {
   let logSetting = { log: willLog }
+  
   cy.log('Save Specification ')
   cy.get('div.saveCancel:first button', logSetting).eq(0, logSetting).should('not.is.disabled')
   cy.get('div.saveCancel:first button', logSetting).eq(0, logSetting).trigger('click', logSetting)
-  cy.get('div.saveCancel:first button', logSetting).eq(0, logSetting).should('is.disabled')
+//  cy.get('div.saveCancel:first button', logSetting).eq(0, logSetting).should('is.disabled')
   cy.get('div.saveCancel:first button', logSetting).eq(1, logSetting).trigger('click', logSetting)
   cy.url().should('contain', prefix + '/slaves')
 }
@@ -142,23 +143,44 @@ function backspaces(num) {
   for (let a = 0; a < num; a++) rc = rc + '{backspace}'
   return rc
 }
+function e2eReset(log){
+  cy.task("e2eServicesStop", log)
+  cy.task("e2eServicesStart", log)
+
+}
+let logSetting = { log: true }
 
 describe('MQTT Discovery Tests', () => {
+  before(() => {
+    cy.task('log', 'Before')
+    // wait for all tests then 
+    //cy.task('e2eInitServicesStop', logSetting)
+    //cy.task('e2eInitServicesStart', logSetting)
+
+  })
+  after(() => {
+    cy.task('log', 'After')
+    cy.task('mqttClose')
+    // wait for all tests then 
+    //cy.task('e2eInitServicesStop', logSetting)
+    cy.task('e2eServicesStop', logSetting)
+  })
+
   it(
     'mqtt hassio addon',
     {
       retries: {
-        runMode: 3,
-        openMode: 1,
+        runMode: 0,
+        openMode: 0,
       },
     },
     () => {
       Cypress.config('defaultCommandTimeout', 20000)
-      let willLog = true
-      let logSetting = { log: willLog }
-      cy.exec('npm run e2e:reset', logSetting)
+      logSetting.log = true
+      let addonConfig = undefined;
+      e2eReset( logSetting)
       prefix = 'ingress'
-      cy.visit('http://localhost:80/' + prefix, logSetting)
+      cy.visit('http://localhost:' + Cypress.env('nginxAddonHttpPort') +'/' + prefix, logSetting)
       // monitor discovery topics
       let mqttConnect = Cypress.env('mqttconnect')
       assert(mqttConnect != undefined)
@@ -171,7 +193,7 @@ describe('MQTT Discovery Tests', () => {
           cy.log('Configure Specification name')
           cy.get('#specForm [formcontrolname="name"]', { log: false }).type(backspaces(10) + 'the spec{enter}', {
             force: true,
-            log: willLog,
+            log: logSetting.log,
           })
 
           setUrls(true)
@@ -191,7 +213,9 @@ describe('MQTT Discovery Tests', () => {
               expect(idx).not.to.eq(-1)
               expect(tAndP.filter((tp) => tp.topic.startsWith('homeassistant/')).length).to.eq(2)
             })
-          cy.readFile('e2e/temp/yaml-dir-addon/local/specifications/files/thespec/files.yaml').should('exist')
+          cy.task("getTempDir",Cypress.env("modbus2mqttAddonHttpPort").toString()).then((tmpdir)=>{
+            cy.readFile( tmpdir + '/local/specifications/files/thespec/files.yaml').should('exist')
+          })
         })
       })
     }

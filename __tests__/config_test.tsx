@@ -123,7 +123,6 @@ it('getMqttConnectOptions: read connection from hassio', (done) => {
   cfg.getMqttConnectOptions().then((_mqttData) => {
     expect(_mqttData.mqttserverurl).toBe('mqtt://core-mosquitto:1883')
     expect(_mqttData.username).toBe(mqttService.username)
-    expect(_mqttData.host).toBe(mqttService.host)
     mockReject = true
     cfg.getMqttConnectOptions().catch((reason) => {
       expect(reason).toBe(mockedReason)

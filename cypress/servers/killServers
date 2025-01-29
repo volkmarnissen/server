@@ -1,0 +1,9 @@
+#!/bin/sh
+FILTER='modbus2mqtt.js|mosquitto'
+FILTER_INIT='nginx: master|runModbusTCP'
+if [ $# -gt 0 ]
+then
+ FILTER="$FILTER_INIT"
+fi
+pkill  -f  "$FILTER"
+pgrep -f "$FILTER"

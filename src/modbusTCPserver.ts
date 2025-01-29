@@ -1,12 +1,18 @@
 import { FCallbackVal, IServiceVector, ServerTCP } from 'modbus-serial'
 import Debug from 'debug'
 import { ModbusRegisterType } from '@modbus2mqtt/specification.shared'
-import { LogLevelEnum, Logger } from '@modbus2mqtt/specification'
+import { IfileSpecification, LogLevelEnum, Logger, M2mGitHub, Migrator } from '@modbus2mqtt/specification'
+import { IModbusConnection, ITCPConnection } from '@modbus2mqtt/server.shared'
+import { VERSION } from 'ts-node'
+import * as fs from 'fs'
+import { join } from 'path'
+import { parse } from 'yaml'
+
 export const XYslaveid = 1
 export const Dimplexslaveid = 2
 export const Eastronslaveid = 3
-const log = new Logger('modbusserver')
-const debug = Debug('modbusserver')
+const log = new Logger('modbusTCP')
+const debug = Debug('modbusTCP')
 const dimplexHolding = [
   [1, 200],
   [1, 200],
@@ -137,7 +143,7 @@ export class ModbusServer {
   }
 
   async startServer(port: number): Promise<ServerTCP> {
-    let rc = new Promise<ServerTCP>((resolve) => {
+    let rc = new Promise<ServerTCP>((resolve, reject) => {
       this.serverTCP = new ServerTCP(vector, {
         host: '0.0.0.0',
         port: port,
@@ -146,7 +152,15 @@ export class ModbusServer {
 
       this.serverTCP.on('socketError', function (err) {
         // Handle socket error if needed, can be ignored
-        console.error(err)
+        reject(err)
+      })
+      this.serverTCP.on('serverError', function (err) {
+        // Handle socket error if needed, can be ignored
+        reject(err)
+      })
+      this.serverTCP.on('error', function (err) {
+        // Handle socket error if needed, can be ignored
+        reject(err)
       })
       this.serverTCP.on('initialized', () => {
         log.log(LogLevelEnum.notice, 'ModbusTCP listening on modbus://0.0.0.0:' + port)
@@ -209,9 +223,99 @@ export function logValues() {
     log.log(LogLevelEnum.notice, 's: ' + c.slaveid + ' a: ' + c.address + ' v: ' + c.value)
   })
 }
+let server: ModbusServer | undefined = undefined
 export function runModbusServer(port: number = 8502): void {
-  new ModbusServer().startServer(port).then(() => {
-    log.log(LogLevelEnum.notice, 'listening')
-  })
+  server = new ModbusServer()
+  server
+    .startServer(port)
+    .then(() => {
+      log.log(LogLevelEnum.notice, 'listening')
+    })
+    .catch((e) => {
+      log.log(LogLevelEnum.error, 'Unable to start ' + e.message)
+      process.exit(1)
+    })
 }
+process.on('SIGINT', () => {
+  stopModbusTCPServer()
+});
+
+export function stopModbusTCPServer(){
+  if (server) server.stopServer()
+}
+export function startModbusTCPserver(yamlDir: string, busId: number) {
+  debug('starting')
+  if (process.pid) log.log(LogLevelEnum.notice, 'PROCESSID=' + process.pid)
+  let gh = new M2mGitHub(null, join(yamlDir, 'public'))
+  gh.init()
+    .then(() => {
+      let port = 502
+      clearRegisterValues()
+      let directoryBus = join(yamlDir, 'local/busses/bus.' + busId)
+      let directoryPublicSpecs = join(yamlDir, 'public/specifications')
+      let directoryLocalSpecs = join(yamlDir, 'local/specifications')
+      if (!fs.existsSync(directoryBus)) {
+        log.log(LogLevelEnum.error, 'Unable to start TCP server: Bus directory not found ' + directoryBus)
+        return
+      }
+      console.log('read bus' + directoryBus)
+      let files = fs.readdirSync(directoryBus)
+      files.forEach((slaveFileName) => {
+        if (slaveFileName == 'bus.yaml') {
+          let content = fs.readFileSync(join(directoryBus, slaveFileName), {
+            encoding: 'utf8',
+          })
+          let connection: IModbusConnection = parse(content.toString())
+          port = (connection as ITCPConnection).port
+        }
+
+        if (slaveFileName.startsWith('s'))
+          try {
+            console.log('read slave' + slaveFileName)
+            let content = fs.readFileSync(join(directoryBus, slaveFileName), {
+              encoding: 'utf8',
+            })
+            let slave = parse(content.toString())
+            let slaveid = slave.slaveid
+            let specFilename = slave.specificationid
+            if (specFilename) {
+              let fn = join(directoryLocalSpecs, specFilename + '.yaml')
+              if (!fs.existsSync(fn)) fn = join(directoryPublicSpecs, specFilename + '.yaml')
+              if (!fs.existsSync(fn)) console.log('TCP Server: Spec file not found: ' + fn)
+              else {
+                content = fs.readFileSync(fn, { encoding: 'utf8' })
+                let spec: IfileSpecification = parse(content.toString())
+                spec = new Migrator().migrate(spec)
+                if (spec.testdata) {
+                  let testdata = spec.testdata
+                  if (spec.testdata.analogInputs)
+                    spec.testdata.analogInputs.forEach((avp) => {
+                      let a = avp.address
+                      if (avp.value != undefined) addRegisterValue(slaveid, a, ModbusRegisterType.AnalogInputs, avp.value)
+                    })
+                  if (spec.testdata.holdingRegisters)
+                    spec.testdata.holdingRegisters.forEach((avp) => {
+                      let a = avp.address
+                      if (avp.value != undefined) addRegisterValue(slaveid, a, ModbusRegisterType.HoldingRegister, avp.value)
+                    })
+                  if (spec.testdata.coils)
+                    spec.testdata.coils.forEach((avp) => {
+                      let a = avp.address
+                      if (avp.value != undefined) addRegisterValue(slaveid, a, ModbusRegisterType.Coils, avp.value)
+                    })
+                }
+              }
+            }
+            //  logValues()
+          } catch (e: any) {
+            console.error('Unable to read  directory for ' + e)
+          }
+      })
+      runModbusServer(port)
+    })
+    .catch((e: any) => {
+      log.log(LogLevelEnum.error, 'Failed to init github: ' + e.message)
+    })
+}
+
 // set the server to answer for modbus requests

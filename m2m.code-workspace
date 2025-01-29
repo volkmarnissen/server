@@ -9,6 +9,10 @@
 			"path": "../angular"
 		},
 		{
+			"name": "modbus2mqtt",
+			"path": "."
+		},	
+		{
 			"name": "server",
 			"path": "."
 		},

@@ -1,0 +1,724 @@
+entities:
+  - id: 1
+    modbusAddress: 174
+    converter:
+      name: number
+    converterParameters:
+      multiplier: 1
+      offset: 0
+      numberFormat: 0
+      identification:
+        min: 31
+        max: 70
+      device_class: temperature
+      uom: °C
+    mqttname: hotwatertargettemperature
+    valid: true
+    registerType: 3
+    readonly: false
+    entityCategory: diagnostic
+  - id: 0
+    modbusAddress: 1
+    converter:
+      name: number
+    converterParameters:
+      multiplier: 0.1
+      offset: 0
+      decimals: 1
+      numberFormat: 2
+      identification:
+        min: -20
+        max: 50
+      device_class: temperature
+      uom: °C
+    mqttname: outertemperature
+    valid: true
+    registerType: 3
+    readonly: true
+  - id: 2
+    modbusAddress: 3
+    converter:
+      name: number
+    converterParameters:
+      multiplier: 0.1
+      offset: 0
+      decimals: 1
+      numberFormat: 2
+      identification:
+        min: 0
+        max: 70
+      device_class: temperature
+      state_class: 1
+      uom: °C
+    mqttname: hotwatertemperature
+    valid: true
+    registerType: 3
+    readonly: true
+  - id: 3
+    modbusAddress: 11
+    converter:
+      name: number
+    converterParameters:
+      multiplier: 0.1
+      offset: 0
+      decimals: 1
+      numberFormat: 2
+      identification:
+        min: 15
+        max: 30
+      device_class: temperature
+      state_class: 1
+      uom: °C
+    mqttname: roomtemperature
+    valid: true
+    registerType: 3
+    readonly: true
+  - id: 5
+    modbusAddress: 47
+    converter:
+      name: number
+    converterParameters:
+      multiplier: 0.1
+      offset: 0
+      numberFormat: 0
+      step: 0.1
+      identification:
+        min: 0.5
+        max: 5
+      device_class: temperature
+      uom: K
+    mqttname: hysteresis
+    valid: true
+    icon: mdi:alarm
+    registerType: 3
+    readonly: false
+  - id: 14
+    modbusAddress: 252
+    converter:
+      name: number
+    converterParameters:
+      multiplier: 0.1
+      offset: 0
+      numberFormat: 0
+      identification:
+        min: 2
+        max: 15
+      device_class: temperature
+      uom: K
+    mqttname: hysteresishotwater
+    valid: true
+    icon: mdi:alarm
+    registerType: 3
+    readonly: false
+    entityCategory: diagnostic
+  - id: 4
+    modbusAddress: 46
+    converter:
+      name: number
+    converterParameters:
+      multiplier: 0.1
+      offset: 0
+      decimals: 1
+      numberFormat: 2
+      step: 0.1
+      identification:
+        min: 15
+        max: 30
+      device_class: temperature
+      uom: °C
+    mqttname: roomtargettemperature
+    valid: true
+    registerType: 3
+    readonly: false
+  - converter:
+      name: select
+    modbusAddress: 192
+    id: 7
+    converterParameters:
+      multiplier: 1
+      offset: 0
+      numberFormat: 0
+      optionModbusValues:
+        - 7
+        - 6
+        - 4
+        - 2
+        - 5
+        - 3
+        - 1
+        - 0
+        - 60
+    valid: true
+    mqttname: selecttimetable
+    registerType: 3
+    readonly: false
+    entityCategory: config
+  - id: 6
+    modbusAddress: 3
+    converter:
+      name: binary
+    converterParameters: {}
+    mqttname: externallock
+    valid: true
+    registerType: 1
+    readonly: false
+  - registerType: 3
+    readonly: true
+    converter:
+      name: select
+    modbusAddress: 103
+    id: 8
+    converterParameters:
+      optionModbusValues:
+        - 0
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+        - 10
+        - 11
+        - 24
+        - 30
+    valid: true
+    mqttname: status
+  - registerType: 3
+    readonly: false
+    converter:
+      name: select
+    modbusAddress: 142
+    id: 9
+    converterParameters:
+      optionModbusValues:
+        - 0
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+    valid: true
+    mqttname: operatingmode
+  - registerType: 3
+    readonly: true
+    converter:
+      name: select
+    modbusAddress: 104
+    id: 10
+    converterParameters:
+      optionModbusValues:
+        - 0
+        - 2
+        - 5
+        - 6
+        - 7
+        - 8
+        - 9
+        - 10
+        - 11
+        - 12
+        - 13
+        - 14
+        - 15
+        - 16
+        - 17
+        - 18
+        - 19
+        - 20
+        - 21
+        - 23
+        - 24
+        - 25
+        - 29
+        - 31
+        - 33
+        - 34
+        - 35
+    valid: true
+    mqttname: locks
+    entityCategory: diagnostic
+  - registerType: 3
+    readonly: true
+    converter:
+      name: select
+    modbusAddress: 105
+    id: 11
+    converterParameters:
+      optionModbusValues:
+        - 0
+        - 1
+        - 2
+        - 3
+        - 4
+        - 6
+        - 10
+        - 12
+        - 13
+        - 15
+        - 16
+        - 19
+        - 20
+        - 21
+        - 22
+        - 23
+        - 24
+        - 25
+        - 26
+        - 28
+        - 29
+        - 30
+        - 31
+        - 32
+    valid: true
+    mqttname: error
+    entityCategory: diagnostic
+  - registerType: 3
+    readonly: false
+    converter:
+      name: select
+    modbusAddress: 106
+    id: 12
+    converterParameters:
+      optionModbusValues:
+        - 0
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+        - 6
+        - 7
+        - 8
+        - 9
+        - 10
+        - 11
+        - 12
+        - 14
+        - 15
+        - 16
+        - 17
+        - 18
+        - 19
+        - 20
+        - 21
+        - 22
+        - 23
+        - 24
+        - 26
+        - 28
+        - 29
+        - 30
+    valid: true
+    mqttname: sensorerror
+    entityCategory: diagnostic
+  - registerType: 1
+    readonly: true
+    converter:
+      name: binary
+    modbusAddress: 45
+    id: 13
+    converterParameters: {}
+    valid: true
+    mqttname: heatcircuit1pump
+    entityCategory: diagnostic
+  - registerType: 3
+    readonly: true
+    converter:
+      name: number
+    modbusAddress: 2
+    id: 15
+    converterParameters:
+      multiplier: 0.1
+      offset: 0
+      decimals: 1
+      numberFormat: 0
+      identification:
+        min: 0
+        max: 70
+      device_class: temperature
+      uom: °C
+    valid: true
+    mqttname: returhtemperature
+    entityCategory: diagnostic
+  - registerType: 3
+    readonly: true
+    converter:
+      name: number
+    modbusAddress: 53
+    id: 16
+    converterParameters:
+      multiplier: 0.1
+      offset: 0
+      decimals: 1
+      numberFormat: 0
+      device_class: temperature
+      state_class: 1
+      uom: K
+    valid: true
+    mqttname: returhtemperaturetarget
+  - registerType: 3
+    readonly: true
+    converter:
+      name: number
+    modbusAddress: 5
+    id: 17
+    converterParameters:
+      multiplier: 0.1
+      offset: 0
+      decimals: 1
+      numberFormat: 0
+      identification:
+        min: 20
+        max: 70
+      device_class: temperature
+      uom: °C
+    valid: true
+    mqttname: flowtemperature
+i18n:
+  - lang: en
+    texts:
+      - textId: name
+        text: Dimplex PCO5
+      - textId: e0
+        text: Outer Temperature
+      - textId: e1
+        text: Hot Water Target Temperature
+      - textId: e2
+        text: Hot Water Temperature
+      - textId: e3
+        text: Room Temperature
+      - textId: e4
+        text: Room Target Temperature
+      - textId: e5
+        text: Hysteresis (1 HC)
+      - textId: e6
+        text: External Lock
+      - textId: e7
+        text: Select Timetable
+      - textId: e7o.0
+        text: Not Selected
+      - textId: e7o.1
+        text: 1.HC Subsidence
+      - textId: e7o.3
+        text: 2.HC Subsidence
+      - textId: e7o.5
+        text: 3.HC Subsidence
+      - textId: e7o.2
+        text: 1.HC Raise
+      - textId: e7o.4
+        text: 2.HC Raise
+      - textId: e7o.6
+        text: 3.HC Raise
+      - textId: e7o.7
+        text: Warm Water Lock
+      - textId: e8
+        text: Status
+      - textId: e8o.0
+        text: Off(0)
+      - textId: e8o.1
+        text: Off
+      - textId: e8o.2
+        text: Heating
+      - textId: e8o.3
+        text: Pool
+      - textId: e8o.4
+        text: Hot Water
+      - textId: e8o.5
+        text: Cooling
+      - textId: e8o.10
+        text: Defrost
+      - textId: e8o.11
+        text: Flow Control
+      - textId: e8o.24
+        text: Wait for Status Switch
+      - textId: e8o.30
+        text: Locked
+      - textId: e9
+        text: Operating Mode
+      - textId: e9o.0
+        text: Sommer
+      - textId: e9o.1
+        text: Winter
+      - textId: e9o.2
+        text: Urlaub
+      - textId: e9o.3
+        text: Party
+      - textId: e9o.4
+        text: 2nd Heating
+      - textId: e9o.5
+        text: Cooling
+      - textId: e10
+        text: Locks
+      - textId: e10o.0
+        text: No lock
+      - textId: e10o.2
+        text: Volume Flow
+      - textId: e10o.5
+        text: Function Check
+      - textId: e10o.6
+        text: Limit HT
+      - textId: e10o.7
+        text: System Control
+      - textId: e10o.8
+        text: Switch Cooling
+      - textId: e10o.9
+        text: Pumpe Prestart
+      - textId: e10o.10
+        text: Minimal Stop Time
+      - textId: e10o.11
+        text: Net Limit
+      - textId: e10o.12
+        text: Limit Switching Cycles
+      - textId: e10o.13
+        text: HOT Water post heating
+      - textId: e10o.14
+        text: renewable
+      - textId: e10o.15
+        text: Public Net Lock
+      - textId: e10o.16
+        text: Softstart
+      - textId: e10o.17
+        text: Flow
+      - textId: e10o.18
+        text: Limit Heat Pump
+      - textId: e10o.19
+        text: High Pressure
+      - textId: e10o.20
+        text: Low Pressure
+      - textId: e10o.21
+        text: Limit Heater
+      - textId: e10o.23
+        text: System Limit
+      - textId: e10o.24
+        text: Load Primary Circle
+      - textId: e10o.25
+        text: External Lock
+      - textId: e10o.29
+        text: Inverter
+      - textId: e10o.31
+        text: Preheat
+      - textId: e10o.33
+        text: Evd Initialization
+      - textId: e10o.34
+        text: 2nd Heater released
+      - textId: e10o.35
+        text: Error
+      - textId: e11
+        text: Error
+      - textId: e11o.0
+        text: No error
+      - textId: e11o.1
+        text: Error N17.1
+      - textId: e11o.2
+        text: Error N17.2
+      - textId: e11o.3
+        text: Error N17.3
+      - textId: e11o.4
+        text: Error N17.4
+      - textId: e11o.6
+        text: Electron. Ex. Valve
+      - textId: e11o.10
+        text: WPIO
+      - textId: e11o.12
+        text: Inverter
+      - textId: e11o.13
+        text: WQIF
+      - textId: e11o.15
+        text: Sensor error
+      - textId: e11o.16
+        text: Low Pressure Sole
+      - textId: e11o.19
+        text: "!Primary circuit"
+      - textId: e11o.20
+        text: "!Defrost"
+      - textId: e11o.21
+        text: "!Low Pressure Sole"
+      - textId: e11o.22
+        text: "!Hotwater"
+      - textId: e11o.23
+        text: Load Compressor
+      - textId: e11o.24
+        text: Coding
+      - textId: e11o.25
+        text: "!Low Pressure"
+      - textId: e11o.26
+        text: "!Frost Protection"
+      - textId: e11o.28
+        text: "!High Pressure"
+      - textId: e11o.29
+        text: "!Temperature Difference"
+      - textId: e11o.30
+        text: "!Heat gas thermostat"
+      - textId: e11o.31
+        text: "!Flow"
+      - textId: e11o.32
+        text: "! Heat up"
+      - textId: e12
+        text: Sensor Error
+      - textId: e12o.0
+        text: None
+      - textId: e12o.1
+        text: Outside Sensor(R1)
+      - textId: e12o.2
+        text: Return Sensor(R2)
+      - textId: e12o.3
+        text: Hot Water Sensor(R3)
+      - textId: e12o.4
+        text: Coding(R7)
+      - textId: e12o.5
+        text: Flow temperature(R9)
+      - textId: e12o.6
+        text: 2nd Heating Circuit(R5)
+      - textId: e12o.7
+        text: 3rd Heatubg Circuit(R13)
+      - textId: e12o.8
+        text: Renewable Sensor(R13)
+      - textId: e12o.9
+        text: Room Temperature 1
+      - textId: e12o.10
+        text: Room Temperature 2
+      - textId: e12o.11
+        text: Heat Source Source(R6)
+      - textId: e12o.12
+        text: Heat Source Sink(R24)
+      - textId: e12o.14
+        text: Collector(R23)
+      - textId: e12o.15
+        text: Low Pressure(R25)
+      - textId: e12o.16
+        text: High Pressure(R26)
+      - textId: e12o.17
+        text: Room Moisture 1
+      - textId: e12o.18
+        text: Room Moisture 2
+      - textId: e12o.19
+        text: Frost protection Cold
+      - textId: e12o.20
+        text: Host gas
+      - textId: e12o.21
+        text: Return Flow(R2.1)
+      - textId: e12o.22
+        text: Pool(R20)
+      - textId: e12o.23
+        text: Flow Cooling passive(R11)
+      - textId: e12o.24
+        text: Return Cooling passive(R4)
+      - textId: e12o.26
+        text: Solar storage(R22)
+      - textId: e12o.28
+        text: Request Sensor(Heating)(R2.2)
+      - textId: e12o.29
+        text: ETM Econ
+      - textId: e12o.30
+        text: Request Sensor Cooling(R39)
+      - textId: e13
+        text: Heat Circuit 1 Pump(M13)
+      - textId: e14
+        text: Hysteresis Hot Water
+      - textId: e15
+        text: Return Temperature
+      - textId: e16
+        text: Return Temperature Target
+      - textId: e7o.60
+        text: unknown
+      - textId: e17
+        text: Flow Temperature
+  - lang: de
+    texts:
+      - textId: e7o.7
+        text: Warmes Wasserschloss
+      - textId: e7o.6
+        text: 3.HC erhöhen
+      - textId: e7o.4
+        text: 2.HC erhöhen
+      - textId: e7o.2
+        text: 1.HC erhöhen
+      - textId: e7o.5
+        text: 3.HC Senkung
+      - textId: e7o.3
+        text: 2.HC Senkung
+      - textId: e7o.1
+        text: 1.HC Senkung
+      - textId: e7o.0
+        text: Nicht ausgewählt
+      - textId: e7
+        text: Wählen Sie den Zeitplan
+      - textId: e6
+        text: Externes Schloss
+      - textId: e5
+        text: Hysterese
+      - textId: e4
+        text: Zielzimmertemperatur
+      - textId: e3
+        text: Zimmertemperatur
+      - textId: e2
+        text: Heißwassertemperatur
+      - textId: e1
+        text: Temperatur des Heißwasserziels
+      - textId: e0
+        text: Außentemperatur
+      - textId: name
+        text: Dimplex PCO5
+      - textId: e8
+        text: Status
+      - textId: e14
+        text: Hysterese Warmwasser
+      - textId: e13
+        text: Heizkreis 1 Pumpe (M13)
+      - textId: e12
+        text: Sensorfehler
+      - textId: e11
+        text: Fehler
+      - textId: e10
+        text: Sperren
+      - textId: e9
+        text: Betriebsart
+      - textId: e15
+        text: Rücklauftemperatur
+      - textId: e16
+        text: Rücklauftemperatur Soll
+filename: dimplexpco5
+version: "0.3"
+testdata:
+  holdingRegisters:
+    - address: 174
+      value: 54
+    - address: 1
+      value: 87
+    - address: 3
+      value: 495
+    - address: 11
+      value: 222
+    - address: 47
+      value: 40
+    - address: 252
+      value: 60
+    - address: 46
+      value: 236
+    - address: 192
+      value: 0
+    - address: 103
+      value: 1
+    - address: 142
+      value: 1
+    - address: 104
+      value: 0
+    - address: 105
+      value: 0
+    - address: 106
+      value: 0
+    - address: 2
+      value: 250
+    - address: 53
+      value: 255
+    - address: 5
+      value: 262
+  coils:
+    - address: 3
+      value: 0
+    - address: 45
+      value: 1
+model: SI 6
+manufacturer: Dimplex
+name: Dimplex PCO5
+nextEntityId: 18
+pullUrl: https://github.com/volkmarnissen/modbus2mqtt.config/pull/197

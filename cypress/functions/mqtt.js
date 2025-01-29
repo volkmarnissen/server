@@ -21,12 +21,30 @@ class MqttHelper {
   }
 
   onMessage(topic, payload, packet) {
+    console.log('onMessage id:' + packet.messageId + ' topic:' + topic + ' payload: ' + payload.toString())
     if (this.tAndP && !this.tAndP.find((tp) => tp.messageId == packet.messageId)) {
       console.log('onMessage id:' + packet.messageId + ' topic:' + topic + ' payload: ' + payload.toString())
       this.tAndP.push({ topic: topic, payload: payload.toString(), messageId: packet.messageId })
     }
   }
-
+  onError(e) {
+    console.log('MQTT Helper error ' + e.message)
+  }
+  onClose() {
+    console.log('MQTT connection closed')
+  }
+  onReconnect() {
+    console.log('Reconnecting')
+    this.client.removeAllListeners('error')
+    this.client.removeAllListeners('message')
+    this.client.removeAllListeners('reconnect')
+    this.client.on('error', this.onError.bind(this))
+    this.client.on('message', this.onMessage.bind(this))
+    this.client.on('reconnect', this.onReconnect.bind(this, this.client))
+  }
+  close() {
+    this.client.end()
+  }
   connect(connectionData) {
     this.connectionData = structuredClone(connectionData)
     this.connectionData.clean = false
@@ -40,11 +58,16 @@ class MqttHelper {
           return
         } else this.client.reconnect(this.connectionData)
       else this.client = mqtt.connect(connectionData.mqttserverurl, this.connectionData)
-      this.client.on('error', reject)
+      this.client.on('error', (e) => {
+        this.onError(e)
+        reject(e)
+      })
       this.client.on('message', this.onMessage.bind(this))
       this.client.on('connect', () => {
         resolve(this.client)
       })
+      this.client.on('reconnect', this.onReconnect.bind(this, this.client))
+      this.client.on('close', this.onClose.bind(this, this.client))
     })
   }
   publish(topic, payload) {
