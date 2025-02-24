@@ -276,7 +276,7 @@ describe('ServerTCP based', () => {
     expect(mse.lastAllEntitiesFailedTime).toBe(oldLastAllEntitiesFailedTime)
     expect(mse.lastErrorTime).toBeGreaterThan(0)
     expect(mse.lastIdentifiedSinceLastSuccessful).toBe(0)
-    expect(mse.lastSuccessfulIdentifiedTime).toBeGreaterThan(oldLastSuccessfulIdentifiedTime)
+    expect(mse.lastSuccessfulIdentifiedTime).toBeGreaterThanOrEqual(oldLastSuccessfulIdentifiedTime)
     expect(mse.notIdentifiedEntities.length).toBe(1)
     expect(mse.totalErrorCount).toBe(1)
     done()

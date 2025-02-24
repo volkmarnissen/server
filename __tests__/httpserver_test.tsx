@@ -144,6 +144,7 @@ beforeAll(() => {
         next()
       }
       let mdl = MqttDiscover.getInstance()
+      mdl['equalConnectionData']= ()=>{return true}
       let fake = new FakeMqtt(mdl, FakeModes.Poll)
       mdl['client'] = fake as any as MqttClient
 
