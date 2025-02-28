@@ -24,9 +24,19 @@ jobs:
       - name: Install modules
         if: github.event.pull_request.merged == true
         run: |
-          npm install --package-lock-only github:specification.shared
-          npm install --package-lock-only github:specification
-          npm install --package-lock-only github:modbus2mqtt/server.shared
-          npm install --package-lock-only github:modbus2mqtt/angular
+          npm install --package-lock-only github:specification.shared github:specification \
+          github:modbus2mqtt/server.sharedgithub:modbus2mqtt/angular
       - uses: stefanzweifel/git-auto-commit-action@v5
         if: github.event.pull_request.merged == true
+  updateHassio:
+    needs: updatepkgjson
+    name: "Publish Addon"
+    uses: modbus2mqtt/server/.github/workflows/publishDocker.yml@main
+    permissions:
+      contents: write
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      PAT: ${{ secrets.PAT }}
+    
+     
