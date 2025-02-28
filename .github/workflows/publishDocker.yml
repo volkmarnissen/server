@@ -19,6 +19,7 @@ jobs:
     environment: release
     env:
       TAG_NAME: "declaration"
+      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Check out server
         uses: actions/checkout@v4
