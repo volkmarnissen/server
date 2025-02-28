@@ -22,16 +22,14 @@ class StringReplacement(NamedTuple):
     pattern: str
     newValue:str
 
-
 def getVersion(basedir, component):
     with open(os.path.join(basedir, component,'package.json'), 'r') as f:
         d = json.load(f)
         version =d['version']
         return version
 
-def getLatestClosedPullRequest(basedir, component ):
-    result = subprocess.Popen(['gh', 'pr', 'list', 
-	    '-s' , 'closed' , '-L', '1', '--json', 'number'],
+def githubcli(basedir, component, args):
+    result = subprocess.Popen(args,
 	cwd=os.path.join(basedir, component),
  	stdout=subprocess.PIPE,
  	stderr=subprocess.PIPE) 
@@ -40,10 +38,24 @@ def getLatestClosedPullRequest(basedir, component ):
     eprint(err)
     return_code = result.returncode
     if return_code == 0:
+        return out
+    else:
+        return ''
+
+def getLatestClosedPullRequest(basedir, component ):
+    out = githubcli(basedir, component,['gh', 'pr', 'list', 
+	    '-s' , 'closed' , '-L', '1', '--json', 'number'])
+    if out != '':
         d = json.loads(out)
         return d[0]['number']
     else:
         return 0;
+
+def removeTag(basedir, component, tagname ):
+    githubcli(basedir, component,['git', 'push', '--delete', 
+	    'origin' , tagname])
+    eprint("tagname: !" + tagname + "!")
+    githubcli(basedir, component,['git', 'tag', '-d', tagname])
 
 def getVersionForDevelopment(basedir, component):
     prnumber = getLatestClosedPullRequest(basedir, component)
@@ -105,6 +117,7 @@ if args.release or args.ref.endswith("release"):
     print("TAG_NAME=v" + version)
 else:
     version = getVersionForDevelopment(args.basedir, 'server' )
+    removeTag(args.basedir,hassioAddonRepository, 'v' +version)
     replacements = [
         StringReplacement(pattern='<version>', newValue=version),
         StringReplacement(pattern='image:.*', newValue=''),
