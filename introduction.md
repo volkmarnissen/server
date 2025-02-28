@@ -57,10 +57,10 @@ Modbus TCP based devices
 - Mosquitto broker Addon [Addon Information](https://github.com/home-assistant/addons/tree/master/mosquitto)
   - Install the Addon
   - Start it (no configuration is required)
-  - Mosbus <=> MQTT from this repository: https://github.com/modbus2mqtt/hassio-addon-repository
+  - Mosbus <=> MQTT from this repository: https://github.com/modbus2mqtt/hassio-addon-repository#release
     - In the Addon Store click on the three dots in the upper right corner
     - Select repositories
-    - Add this URL: https://github.com/modbus2mqtt/hassio-addon-repository
+    - Add this URL: https://github.com/modbus2mqtt/hassio-addon-repository#release
     - Refresh the Web Page if required
     - install Modbus <=> MQTT
     - start Modbus <=> MQTT (no configuration is required)
