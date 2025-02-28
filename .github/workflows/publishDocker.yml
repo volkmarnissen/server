@@ -36,7 +36,7 @@ jobs:
         id: prepareAddonDirectory
         run: |
          chmod +x ./server/docker/releaseAddon.py 
-         ./server/docker/releaseAddon.py --release >>$GITHUB_ENV
+         ./server/docker/releaseAddon.py --ref ${{github.ref}} >>$GITHUB_ENV
       - name: "✏️ Generate release changelog"
         uses: heinrichreimer/action-github-changelog-generator@v2.4
         with:
