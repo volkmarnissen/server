@@ -7,7 +7,9 @@ import sys
 import tarfile
 import subprocess
 from typing import NamedTuple
- 
+
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs) 
 server ='server'
 hassioAddonRepository= 'hassio-addon-repository'
 
@@ -34,8 +36,8 @@ def getLatestClosedPullRequest(basedir, component ):
  	stdout=subprocess.PIPE,
  	stderr=subprocess.PIPE) 
     out, err = result.communicate()
-    print(out)
-    print(err)
+    eprint(out)
+    eprint(err)
     return_code = result.returncode
     if return_code == 0:
         d = json.loads(out)
@@ -53,13 +55,13 @@ def getVersionForDevelopment(basedir, component):
 def replaceStringInFile(inFile, outFile, replacements):
     out=[]
     for repl in replacements:
-        print( "replacements: " , repl.pattern, repl.newValue)
+        eprint( "replacements: " , repl.pattern, repl.newValue)
     with open(inFile, 'r') as r:
             for line in r:
                 for repl in replacements:
                     lineNew = re.sub(rf"{repl.pattern}", repl.newValue,line)
                     if lineNew != line:
-                        print( "Replace with ", lineNew)
+                        eprint( "Replace with ", lineNew)
                     line = lineNew
                 if( lineNew != "" ):
                     out.append(lineNew)
