@@ -30,7 +30,7 @@ jobs:
         with:
           path: 'hassio-addon-repository'
           repository: 'modbus2mqtt/hassio-addon-repository'
-          ref: '${GITHUB_HEAD_REF}'
+          ref: '${{github.ref}}'
           token: ${{ secrets.PAT }}
       - name: Prepare Addon Directory
         id: prepareAddonDirectory
