@@ -42,23 +42,13 @@ def createAddonDirectoryForRelease(basedir,version):
     replaceStringInFile(os.path.join(basedir, server, 'hassio-addon', configYaml), \
         os.path.join(basedir, hassioAddonRepository,modbus2mqtt,  configYaml),"<version>", version )
 
-    tar = tarfile.open(os.path.join(basedir, hassioAddonRepository,modbus2mqtt,"rootfs.tar"), "w")
-    pwd = os.getcwd()
-    os.chdir(os.path.join(basedir, server,dockerDir, "rootfs"))
-    tar.add('.')
-    os.chdir(pwd)
-    tar.close()
-
 def createAddonDirectoryForDebug(basedir):
     sys.stderr.write("createAddonDirectory debug " +  basedir + "\n") 
 
 # runs in (@modbus2mqtt)/server
-# Creates Dockerfile in (@modbus2mqtt)/hassio-addon-repository
 # Creates rootfs.tar in (@modbus2mqtt)/hassio-addon-repository
 def createDockerDirectoryForRelease(basedir, version):
     sys.stderr.write("createDockerforRelease " + basedir + " "  + version  + "\n")
-    replaceStringInFile(os.path.join(basedir, server, dockerDir, DockerfileTemplate), \
-        os.path.join(basedir, hassioAddonRepository,modbus2mqtt,  dockerFile),"<version>", version )
     
 
 
