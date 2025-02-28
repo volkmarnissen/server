@@ -17,6 +17,7 @@ modbus2mqtt ='modbus2mqtt'
 configYaml='config.yaml'
 dockerDir ='docker'
 dockerFile = 'Dockerfile'
+dockerfileTemplate = 'Dockerfile.template'
 
 class StringReplacement(NamedTuple):
     pattern: str
@@ -91,11 +92,15 @@ def replaceAndDeleteStringInFile(inFile, outFile, replaceName, replaceValue, del
 
 # runs in (@modbus2mqtt)/server
 # updates config.yaml in (@modbus2mqtt)/hassio-addon-repository
-def updateConfigYamlVersion(basedir,version, replacements):
+def updateConfigAndDockerfile(basedir,version, replacements,replacementsDocker):
     sys.stderr.write("createAddonDirectory release " + basedir  + " " +  version + "\n")
     serverP = os.path.join(basedir, server, 'hassio-addon', configYaml)
     hassioP = os.path.join(basedir, hassioAddonRepository,modbus2mqtt,  configYaml)
     replaceStringInFile(serverP,hassioP, replacements)
+    serverP = os.path.join(basedir, server, dockerDir, dockerfileTemplate)
+    hassioP = os.path.join(basedir, hassioAddonRepository,modbus2mqtt,  dockerFile)
+    replaceStringInFile(serverP,hassioP, replacementsDocker )
+ 
 
 # publishes docker image from (@modbus2mqtt)/hassio-addon-repository
 # docker login needs to be executed in advance 
@@ -113,7 +118,7 @@ if args.release or args.ref.endswith("release"):
     replacements = [
         StringReplacement(pattern='<version>', newValue=version),
         ]
-    updateConfigYamlVersion(args.basedir, version, replacements)
+    updateConfigYamlVersion(args.basedir, version, replacements,replacements)
     print("TAG_NAME=v" + version)
 else:
     version = getVersionForDevelopment(args.basedir, 'server' )
@@ -124,6 +129,9 @@ else:
         StringReplacement(pattern='slug:.*', newValue='slug: modbusdev'),
         StringReplacement(pattern='codenotary:.*', newValue=''),
         ]
-    updateConfigYamlVersion(args.basedir, version, replacements)
+    replacementsDocker = [
+        StringReplacement(pattern='\@modbus2mqtt/server\@\${BUILD_VERSION}', newValue="github:modbus2mqtt/server"),
+        ]        
+    updateConfigAndDockerfile(args.basedir, version, replacements,replacementsDocker)
     print("TAG_NAME=v" + version)
 
