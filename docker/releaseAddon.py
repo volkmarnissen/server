@@ -28,8 +28,20 @@ def getVersion(basedir, component):
         return version
 
 def getLatestClosedPullRequest(basedir, component ):
-    d = json.loads(subprocess.getoutput( 'cd ' + os.path.join(basedir, component ) + '; gh pr list -s closed -L 1 --json number' ))
-    return d[0]['number']
+    result = subprocess.Popen(['gh', 'pr', 'list', 
+	    '-s' , 'closed' , '-L', '1', '--json', 'number'],
+	cwd=os.path.join(basedir, component),
+ 	stdout=subprocess.PIPE,
+ 	stderr=subprocess.PIPE) 
+    out, err = result.communicate()
+    print(out)
+    print(err)
+    return_code = result.returncode
+    if return_code == 0:
+        d = json.loads(out)
+        return d[0]['number']
+    else:
+        return 0;
 
 def getVersionForDevelopment(basedir, component):
     prnumber = getLatestClosedPullRequest(basedir, component)
