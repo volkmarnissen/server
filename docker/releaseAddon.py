@@ -27,12 +27,12 @@ def getVersion(basedir, component):
         version =d['version']
         return version
 
-def getLatestClosedPullRequest():
-    d = json.loads(subprocess.getoutput('gh pr list -s closed -L 1 --json number' ))
+def getLatestClosedPullRequest(basedir, component ):
+    d = json.loads(subprocess.getoutput( 'cd ' + os.path.join(basedir, component ) + '; gh pr list -s closed -L 1 --json number' ))
     return d[0]['number']
 
 def getVersionForDevelopment(basedir, component):
-    prnumber = getLatestClosedPullRequest()
+    prnumber = getLatestClosedPullRequest(basedir, component)
     version = getVersion(basedir, component)
     return version + "-pr" + str(prnumber)
 
