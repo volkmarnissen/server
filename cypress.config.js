@@ -55,20 +55,21 @@ function startProcesses(command, args, ports, controllerArray) {
             child_process: child_process,
             onData: function (data) {
               console.log(this.prefix + ':' + data)
-              
-              data.toString().split("\n").forEach( line=>{
-                
-                if (line.startsWith('TMPDIR=')) {
-                  let t = tmpdirs.find((tc) => tc.command == this.command)
-                  let tmp = line.substring('TMPDIR='.length).trim()
-                  if (t) t.tmpdir = tmp
-                  else tmpdirs.push({ command: this.command, tmpdir: tmp })
-                }
-                if (line.startsWith('KILLPID=')) {
-                  this.killpid = Number.parseInt(line.substring('KILLPID='.length))
-                }
-    
-              })
+
+              data
+                .toString()
+                .split('\n')
+                .forEach((line) => {
+                  if (line.startsWith('TMPDIR=')) {
+                    let t = tmpdirs.find((tc) => tc.command == this.command)
+                    let tmp = line.substring('TMPDIR='.length).trim()
+                    if (t) t.tmpdir = tmp
+                    else tmpdirs.push({ command: this.command, tmpdir: tmp })
+                  }
+                  if (line.startsWith('KILLPID=')) {
+                    this.killpid = Number.parseInt(line.substring('KILLPID='.length))
+                  }
+                })
             },
             onClose: function (controllerArray, code) {
               logStartup(`${cmd} exited with code ${code}`)
