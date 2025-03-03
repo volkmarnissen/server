@@ -147,7 +147,7 @@ beforeAll(() => {
       mdl['equalConnectionData']= ()=>{return true}
       let fake = new FakeMqtt(mdl, FakeModes.Poll)
       mdl['client'] = fake as any as MqttClient
-
+      mdl['equalConnectionData']= ()=>{return true}
       httpServer = new HttpServer(join(yamlDir, 'angular'))
 
       httpServer.setModbusCacheAvailable()
