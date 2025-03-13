@@ -8,7 +8,6 @@ import { startModbusTCPserver } from './modbusTCPserver'
 const debug = Debug('modbusTCPserver')
 const log = new Logger('modbusTCPserver')
 
-
 let cli = new Command()
 cli.version(VERSION)
 cli.usage('--yaml <yaml-dir> --busid <buis id number>')

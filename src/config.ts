@@ -10,12 +10,7 @@ import { sign, verify } from 'jsonwebtoken'
 import * as bcrypt from 'bcryptjs'
 import * as http from 'http'
 import { LogLevelEnum, Logger } from '@modbus2mqtt/specification'
-import {
-  ImqttClient,
-  AuthenticationErrors,
-  Iconfiguration,
-  IUserAuthenticationStatus,
-} from '@modbus2mqtt/server.shared'
+import { ImqttClient, AuthenticationErrors, Iconfiguration, IUserAuthenticationStatus } from '@modbus2mqtt/server.shared'
 import AdmZip from 'adm-zip'
 import { Bus } from './bus'
 import { IClientOptions } from 'mqtt'
