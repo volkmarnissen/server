@@ -33,8 +33,8 @@ export function submitGetHoldingRegisterRequest(_slaveid: IslaveId, addresses: S
           m = rc.coils
           break
         case ModbusRegisterType.DiscreteInputs:
-            m = rc.discreteInputs
-            break
+          m = rc.discreteInputs
+          break
       }
       if (_slaveid.slaveid == 1)
         switch (a) {

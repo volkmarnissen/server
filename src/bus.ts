@@ -30,6 +30,7 @@ import {
 } from '@modbus2mqtt/server.shared'
 import { ConfigSpecification } from '@modbus2mqtt/specification'
 import { Config } from './config'
+import { IModbusAPI } from './ModbusRTUWorker'
 const debug = Debug('bus')
 const debugMutex = Debug('bus.mutex')
 const log = new Logger('bus')
@@ -37,7 +38,7 @@ const log = new Logger('bus')
 export interface ReadRegisterResultWithDuration extends IReadRegisterResultOrError {
   duration: number
 }
-export class Bus {
+export class Bus implements IModbusAPI {
   private static busses: Bus[] | undefined = undefined
   private static allSpecificationsModbusAddresses: Set<ImodbusAddress> | undefined = undefined
   private modbusErrors = new Map<number, ImodbusErrorsForSlave>()
@@ -448,15 +449,15 @@ export class Bus {
             //Using writeCoil for single value in case of situation that device does not support multiple at once like
             // LC Technology relay/input boards
             this.modbusClient!.writeCoil(dataaddress, dataB[0])
-            .then(() => {
-              this.modbusClientActionMutex.release()
-              this.modbusClientTimedOut = false
-              resolve()
-            })
-            .catch((e) => {
-              this.modbusClientActionMutex.release()
-              this.setModbusTimout(reject, e)
-            })
+              .then(() => {
+                this.modbusClientActionMutex.release()
+                this.modbusClientTimedOut = false
+                resolve()
+              })
+              .catch((e) => {
+                this.modbusClientActionMutex.release()
+                this.setModbusTimout(reject, e)
+              })
           } else {
             this.modbusClient!.writeCoils(dataaddress, dataB)
               .then(() => {
@@ -614,8 +615,8 @@ export class Bus {
                 if (!values!.coils.has(address.address)) cacheFailed = true
                 break
               case ModbusRegisterType.DiscreteInputs:
-                  if (!values!.discreteInputs.has(address.address)) cacheFailed = true
-                  break
+                if (!values!.discreteInputs.has(address.address)) cacheFailed = true
+                break
             }
           })
         })
@@ -648,8 +649,8 @@ export class Bus {
                 if (!values.coils.has(address.address)) values.coils.set(address.address, noData)
                 break
               case ModbusRegisterType.DiscreteInputs:
-                  if (!values.discreteInputs.has(address.address)) values.discreteInputs.set(address.address, noData)
-                  break
+                if (!values.discreteInputs.has(address.address)) values.discreteInputs.set(address.address, noData)
+                break
             }
           })
           // Store it for cache
