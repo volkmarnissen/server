@@ -135,3 +135,5 @@ dist
 **/secrets.txt
 e2e
 cypress/screenshots/
+coverage.txt
+junit.xml
