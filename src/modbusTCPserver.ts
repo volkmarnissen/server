@@ -238,9 +238,9 @@ export function runModbusServer(port: number = 8502): void {
 }
 process.on('SIGINT', () => {
   stopModbusTCPServer()
-});
+})
 
-export function stopModbusTCPServer(){
+export function stopModbusTCPServer() {
   if (server) server.stopServer()
 }
 export function startModbusTCPserver(yamlDir: string, busId: number) {

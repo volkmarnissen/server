@@ -312,22 +312,22 @@ export class ModbusStateMachine {
           {
             resultTable: this.result.coils,
             readFunc: bus.readCoils,
-            writeFunc: bus.writeCoils
-          }
+            writeFunc: bus.writeCoils,
+          },
         ],
         [
           ModbusRegisterType.DiscreteInputs,
           {
             resultTable: this.result.discreteInputs,
-            readFunc: bus.readDiscreteInputs
-          }
+            readFunc: bus.readDiscreteInputs,
+          },
         ],
       ])
 
       if (this.write) {
-        this.processWriteToModbus(startAddress, this.data, bus!, tbl.get(registerType)!)  
-          
-      } else if (length) this.processReadFromModbus(startAddress, startAddress, bus!, start, length, registerType, tbl.get(registerType)!, false)
+        this.processWriteToModbus(startAddress, this.data, bus!, tbl.get(registerType)!)
+      } else if (length)
+        this.processReadFromModbus(startAddress, startAddress, bus!, start, length, registerType, tbl.get(registerType)!, false)
     }
   }
   // optimizes the timeout for slaves
@@ -342,16 +342,16 @@ export class ModbusStateMachine {
     afterTimeout: boolean
   ) {
     let msg =
-    '(' +
-    this.pid +
-    '):processAction: slaveid: ' +
-    this.slaveId.slaveid +
-    ' startaddr: ' +
-    startAddress +
-    ' l:' +
-    length +
-    ' FC:' +
-    registerType
+      '(' +
+      this.pid +
+      '):processAction: slaveid: ' +
+      this.slaveId.slaveid +
+      ' startaddr: ' +
+      startAddress +
+      ' l:' +
+      length +
+      ' FC:' +
+      registerType
     let slave = bus?.getSlaveBySlaveId(this.slaveId.slaveid)
 
     process.readFunc
@@ -372,7 +372,9 @@ export class ModbusStateMachine {
           (slave.durationOfLongestModbusCall == undefined || slave.durationOfLongestModbusCall < value.duration)
         ) {
           slave.durationOfLongestModbusCall = value.duration
-          debugData(process.readFunc.name + ': set durationOfLongestModbusCall for slaveid: ' + slave.slaveid + 'to: ' + value.duration)
+          debugData(
+            process.readFunc.name + ': set durationOfLongestModbusCall for slaveid: ' + slave.slaveid + 'to: ' + value.duration
+          )
           if (slave.modbusTimout > slave.durationOfLongestModbusCall * 2 && slave.modbusTimout > minTimeout) {
             // slave.modbusTimout = slave.durationOfLongestModbusCall * 2
             debugData(process.readFunc.name + ': set modbusTimout for slaveid: ' + slave.slaveid + 'to: ' + slave.modbusTimout)
@@ -447,12 +449,7 @@ export class ModbusStateMachine {
       })
   }
 
-  private processWriteToModbus(
-    startAddress: number,
-    data: ReadRegisterResult,
-    bus: Bus,
-    process: IModbusProcess
-  ) {
+  private processWriteToModbus(startAddress: number, data: ReadRegisterResult, bus: Bus, process: IModbusProcess) {
     if (!process.writeFunc) {
       debugData('processAction:' + 'No write function defined')
       this.endProcessAction(this.processAction)
@@ -462,9 +459,9 @@ export class ModbusStateMachine {
     process.writeFunc
       .bind(bus)(this.slaveId.slaveid, startAddress, data)
       .then(() => {
-            this.preparedAddressesIndex++
-            this.next(ModbusStates.Result, this.closeAction)
-          })
+        this.preparedAddressesIndex++
+        this.next(ModbusStates.Result, this.closeAction)
+      })
       .catch((e: any) => {
         this.endProcessAction(
           this.retryProcessAction.bind(this, 'writeRegisters', e),
@@ -579,7 +576,7 @@ export class ModbusStateMachine {
         case ModbusRegisterType.DiscreteInputs:
           this.result.discreteInputs.set(a, { error: e })
           break
-        }
+      }
     if (e.errno == 'ETIMEDOUT') {
       let bus = Bus.getBus(this.slaveId.busid)
       let slave = bus?.getSlaveBySlaveId(this.slaveId.slaveid)
