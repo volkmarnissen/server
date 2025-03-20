@@ -135,8 +135,6 @@ dist
 **/secrets.txt
 e2e
 cypress/screenshots/
-junit.xml
 coverage-summary.json
-__tests__/yaml-dir/local/secrets.yaml
-documentation/test_overview.md
 coverage.txt
+junit.xml
