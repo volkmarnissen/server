@@ -1,4 +1,4 @@
-name: Update package.json
+name: On close pull request: deploy to dockerhub
 on:
  pull_request:
     types:
