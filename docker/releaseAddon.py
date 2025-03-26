@@ -61,7 +61,7 @@ def removeTag(basedir, component, tagname ):
 def getVersionForDevelopment(basedir, component):
     prnumber = getLatestClosedPullRequest(basedir, component)
     version = getVersion(basedir, component)
-    return version + "-pr" + str(prnumber)
+    return "v" + version + "-pr" + str(prnumber)
 
 
 
