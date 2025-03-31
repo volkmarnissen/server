@@ -1,5 +1,7 @@
 #!/bin/sh 
 set -e
+BASEDIR=$(dirname "$0")
+cd "$BASEDIR/../.."
 TMPDIR=`mktemp -d -t modbus2mqttXXXXX`
 export TMPDIR
 trap 'echo signal 15 $TMPDIR; if [ ! -r e2e/modbus2mqtt.temp ]; then  rm -rf $TMPDIR; exit 1; fi' 15

@@ -1,4 +1,6 @@
 #!/bin/sh 
+BASEDIR=$(dirname "$0")
+cd "$BASEDIR/../.."
 set -e
 TMPDIR=`mktemp -d -t mosquittoXXXXXX`
 export TMPDIR
