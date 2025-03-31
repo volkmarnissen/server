@@ -1,4 +1,4 @@
-#!/bin/shBASEDIR=$(dirname "$0")
+#!/bin/sh
 BASEDIR=$(dirname "$0")
 cd "$BASEDIR/../.."
  set -e
