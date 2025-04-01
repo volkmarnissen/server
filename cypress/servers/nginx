@@ -1,8 +1,6 @@
 
 #!/bin/sh 
 set -e
-BASEDIR=$(dirname "$0")
-cd "$BASEDIR"
 TMPDIR=`mktemp -d -t nginxXXXXXX`
 export TMPDIR
 trap 'echo signal 15 $0 $1; rm -rf $TMPDIR' 15

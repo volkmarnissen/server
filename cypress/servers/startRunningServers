@@ -14,8 +14,6 @@ timeout 12 bash -c '
       exit 2
     fi
 }
-BASEDIR=$(dirname "$0")
-cd "$BASEDIR/../.."
 pwd
 nohup ./cypress/servers/nginx &
 nohup ./cypress/servers/modbustcp &
