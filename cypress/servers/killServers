@@ -7,3 +7,5 @@ then
 fi
 pkill  -f  "$FILTER"
 pgrep -f "$FILTER"
+# Make sure cleanup doesn't stop processing
+exit 0
