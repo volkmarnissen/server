@@ -55,7 +55,6 @@ describe('End to End Tests', () => {
   before(() => {
     let logSetting = { log: false }
  
-    cy.task('log', 'Before')
     // wait for all tests then 
     cy.task('e2eInitServicesStop', logSetting)
     cy.task('e2eInitServicesStart', logSetting)
@@ -63,7 +62,6 @@ describe('End to End Tests', () => {
   })
   after(() => {
     let logSetting = { log: false }
-    cy.task('log', 'After')
     // wait for all tests then 
     cy.task('e2eInitServicesStop', logSetting)
     cy.task('e2eServicesStop', logSetting)
