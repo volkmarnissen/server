@@ -1,5 +1,0 @@
-nohup: ./cypress/servers/modbustcp: No such file or directory
-./cypress/servers/nginx: line 23: cypress/servers/nginx.conf/nginx.conf: No such file or directory
-starting nginx -c /var/folders/w3/fv0l_d495tn7q4628w7xm8j40000gn/T/nginxXXXXXX.TOqTxIz8vE/nginx.conf
-KILLPID=93071
-nginx: [emerg] no "events" section in configuration
