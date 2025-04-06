@@ -13,7 +13,7 @@ const { clearTimeout } = require('node:timers')
 const stopServiceTimeout = 20000
 var initControllers = []
 var resetControllers = []
-var logStartupFlag = false
+var logStartupFlag = true
 var logServersFlag = false
 function pidIsRunning(pid) {
   try {
