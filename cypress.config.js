@@ -257,19 +257,6 @@ module.exports = defineConfig({
           mqttHelper.resetTopicAndPayloads()
           return null
         },
-        e2eInitServicesStart() {
-          logStartup('e2eInit')
-          return startProcesses(
-            'sh',
-            ['cypress/servers/nginx', 'cypress/servers/modbustcp'],
-            [config.env.nginxAddonHttpPort, config.env.modbusTcpHttpPort],
-            initControllers
-          )
-        },
-        e2eInitServicesStop() {
-          logStartup('e2eStop')
-          return stopServices(initControllers)
-        },
         e2eServicesStart() {
           logStartup('e2eServicesStart')
           return startProcesses(
