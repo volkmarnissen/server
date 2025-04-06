@@ -13,7 +13,7 @@ const { clearTimeout } = require('node:timers')
 const stopServiceTimeout = 20000
 var initControllers = []
 var resetControllers = []
-var logStartupFlag = true
+var logStartupFlag = false
 var logServersFlag = false
 function pidIsRunning(pid) {
   try {
@@ -329,8 +329,8 @@ module.exports = defineConfig({
       })
     },
     env: {
-      logstartup: false, // Set to true to log startup services messages
-      logservers:false,
+      logstartup: true, // Set to true to log startup services messages
+      logservers:true,
       nginxAddonHttpPort: 3006, //nginx
       modbus2mqttAddonHttpPort: 3004, //ingress port
       modbusTcpHttpPort: 3002,
