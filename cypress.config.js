@@ -329,8 +329,8 @@ module.exports = defineConfig({
       })
     },
     env: {
-      logstartup: true, // Set to true to log startup services messages
-      logservers:true,
+      logstartup: false, // Set to true to log startup services messages
+      logservers: false,
       nginxAddonHttpPort: 3006, //nginx
       modbus2mqttAddonHttpPort: 3004, //ingress port
       modbusTcpHttpPort: 3002,
