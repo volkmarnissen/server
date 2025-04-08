@@ -90,4 +90,5 @@ jobs:
           args: |
             --all \
             --target ./hassio-addon-repository/modbus2mqtt.latest \
-            --version ${{env.TAG_NAME}}
+            --version ${{env.TAG_NAME}} \
+            --image modbus2mqtt.latest-{arch}
