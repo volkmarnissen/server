@@ -89,6 +89,4 @@ jobs:
         with:
           args: |
             --all \
-            --target ./hassio-addon-repository/modbus2mqtt \
-            --image modbus2mqtt.latest-{arch} \
-            --docker-hub modbus2mqtt
+            --target ./hassio-addon-repository/modbus2mqtt 
