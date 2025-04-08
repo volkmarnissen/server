@@ -89,4 +89,5 @@ jobs:
         with:
           args: |
             --all \
-            --target ./hassio-addon-repository/modbus2mqtt 
+            --target ./hassio-addon-repository/modbus2mqtt \
+            --version ${{env.TAG_NAME}}
