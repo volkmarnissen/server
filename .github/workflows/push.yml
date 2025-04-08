@@ -91,4 +91,5 @@ jobs:
             --all \
             --target ./hassio-addon-repository/modbus2mqtt.latest \
             --version ${{env.TAG_NAME}} \
-            --image modbus2mqtt.latest-{arch}
+            --image modbus2mqtt.latest-{arch} \
+            --docker-hub modbus2mqtt
