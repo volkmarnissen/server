@@ -117,7 +117,7 @@ jobs:
             ${{steps.platformcheck.outputs.buildarg}} \
             --target ./hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}} \
             --version ${{steps.prepareAddonDirectory.outputs.TAG_NAME}} \
-            --image modbus2mqtt.latest-{arch} \
+            --image server-{arch} \
             --docker-hub ghcr.io/modbus2mqtt
       - name: Checkin hassio-addon-repository
         uses: stefanzweifel/git-auto-commit-action@v5
