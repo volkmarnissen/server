@@ -74,7 +74,7 @@ jobs:
     steps:
       - name: Platform check
         id: platformcheck
-        run: if [ ${{matrix.platform}} == 'ubuntu-22.04-arm' ]; then echo "buildarg=--aarch64"; else echo "buildarg=--amd64 --armv7 --aarch64";fi >> $GITHUB_OUTPUT
+        run: if [ ${{matrix.platform}} == 'ubuntu-22.04-arm' ]; then echo "buildarg=--aarch64"; else echo "buildarg=--amd64 --armv7";fi >> $GITHUB_OUTPUT
       - name: Release Check
         id: releasecheck
         run: if [ ${{github.ref_name}} != 'release' ]; then echo "latest=.latest"; else echo "latest=";fi >> $GITHUB_OUTPUT
