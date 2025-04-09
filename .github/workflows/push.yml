@@ -107,7 +107,7 @@ jobs:
       - name: Prepare Addon Directory
         id: prepareAddonDirectory
         run: |
-          ./bin/releaseAddon.py --ref ${{github.ref}} --pkgversion "hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}/rootfs/usr/app" >>$GITHUB_OUTPUT
+          ./bin/releaseAddon.py --ref ${{github.ref}} --pkgjson "hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}/rootfs/usr/app" >>$GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish
