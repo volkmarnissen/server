@@ -110,6 +110,8 @@ jobs:
           ./bin/releaseAddon.py --ref ${{github.ref}} --pkgjson "hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}/rootfs/usr/app" >>$GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
       - name: Publish
         uses: home-assistant/builder@master 
         with:
