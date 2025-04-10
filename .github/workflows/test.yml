@@ -1,16 +1,110 @@
-name:  Test
-
+#
+name: Test
+# Configures this workflow to run every time a change is pushed to the branch called `release`.
 on:
-  pull_request:
-    types: [opened, closed, reopened]
 
+  workflow_dispatch:
+  
+# Defines two custom environment variables for the workflow. These are used for the Container registry domain, and a name for the Docker image that this workflow builds.
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: modbus2mqtt
+  
+# There is a single job in this workflow. It's configured to run on the latest available version of Ubuntu.
 jobs:
-  printJob:    
-    name: Print event
+  init:
     runs-on: ubuntu-latest
+    outputs:
+      owner: ${{steps.init.outputs.owner}}
     steps:
-    - name: Dump GitHub context
-      env:
-        GITHUB_CONTEXT: ${{ toJson(github) }}
-      run: |
-        echo "$GITHUB_CONTEXT"
+      - uses: actions/checkout@v4
+        with:
+          repository: modbus2mqtt/modbus2mqtt.dev
+          path: .
+      - name: Wait for other workflow run or continue
+        id: init
+        run: |
+          owner=""
+          if [ "${{github.event.act.owner}}" != '' ]
+          then
+            owner="-o ${{github.event.act.owner}}"
+          else
+            owner="-o ${{github.repository_owner}}"
+          fi
+          echo "owner=$owner" >> "$GITHUB_OUTPUT"
+          id
+          bin/pulls.py $owner execorwait --noexec "${{github.event.push.base.repo.name}}:${{github.event.number}}" "${{github.event.push.body}}" merge >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  addondockerpublish:
+    needs: init
+    runs-on: ${{matrix.platform}}
+    strategy:
+      matrix:
+        platform: [ubuntu-latest]
+    outputs:
+      version: ${{steps.prepareAddonDirectory.outputs.TAG_NAME}}
+    # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    steps:
+      - name: Platform check
+        id: platformcheck
+        run: if [ ${{matrix.platform}} == 'ubuntu-22.04-arm' ]; then echo "buildarg=--aarch64"; else echo "buildarg=--amd64";fi >> $GITHUB_OUTPUT
+      - name: Release Check
+        id: releasecheck
+        run: if [ ${{github.ref_name}} != 'release' ]; then echo "latest=.latest"; else echo "latest=";fi >> $GITHUB_OUTPUT
+
+      - uses: actions/checkout@v4
+        with:
+          repository: modbus2mqtt/modbus2mqtt.dev
+          path: .       
+      - uses: actions/checkout@v4
+        with:
+          repository: modbus2mqtt/hassio-addon-repository
+          path: hassio-addon-repository
+          ref: refs/heads/dev
+          #token: ${{ secrets.PAT }}
+
+      - name: "create rootfs/usr/app directory"
+        run:  mkdir -p "hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}/rootfs/usr/app"         
+      - name: "fake package.json" 
+        run: |
+          mkdir -p "hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}/rootfs/usr/app/node_modules/@modbus2mqtt/server"  
+          echo "{ \"name\": \"server\", \"version\": \"0.15.9\" }"  >  "hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}/rootfs/usr/app/node_modules/@modbus2mqtt/server/package.json"  
+          cat  "hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}/rootfs/usr/app/node_modules/@modbus2mqtt/server/package.json"  
+      # Uses the `docker/login-action` action to log in to the Container registry registry using the account and password that will publish the packages. Once published, the packages are scoped to the account defined here.
+      - name: Log in to the Container registry
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ needs.init.outputs.owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # This step uses [docker/metadata-action](https://github.com/docker/metadata-action#about) to extract tags and labels that will be applied to the specified image. The `id` "meta" allows the output of this step to be referenced in a subsequent step. The `images` value provides the base name for the tags and labels.
+      - name: Prepare Addon Directory
+        id: prepareAddonDirectory
+        run: |
+          ./bin/releaseAddon.py --ref ${{github.ref}} --pkgjson "hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}/rootfs/usr/app/node_modules/@modbus2mqtt/server" >>$GITHUB_OUTPUT
+        env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+
+           
