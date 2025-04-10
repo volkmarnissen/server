@@ -57,7 +57,7 @@ jobs:
             node_modules/**/*
           retention-days: 1
 
-  addondockerpublish:
+  release:
     runs-on: ${{matrix.platform}}
     strategy:
       matrix:
@@ -136,11 +136,11 @@ jobs:
           commit_message: ${{steps.prepareAddonDirectory.outputs.TAG_NAME}}
   docker-tag:
     runs-on: ubuntu-latest
-    needs: addondockerpublish
+    needs: release
     steps:
       - name: Publish Multiplatform  
         env:
-          VERSION: ${{needs.addondockerpublish.outputs.version}}
+          VERSION: ${{needs.release.outputs.version}}
         uses: Noelware/docker-manifest-action@master
         with:
           inputs: ghcr.io/modbus2mqtt/modbus2mqtt.latest:${{env.VERSION}}
