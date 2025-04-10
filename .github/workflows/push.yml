@@ -145,7 +145,7 @@ jobs:
           VERSION: ${{needs.release.outputs.version}}
         uses: Noelware/docker-manifest-action@master
         with:
-          tags: ghcr.io/modbus2mqtt/modbus2mqtt.latest:${{env.VERSION}}, ghcr.io/modbus2mqtt/modbus2mqtt.latest:latest
+          tags: ghcr.io/modbus2mqtt/modbus2mqtt.latest:${{env.VERSION}}
           inputs: ghcr.io/modbus2mqtt/modbus2mqtt.latest-arm64:${{env.VERSION}},ghcr.io/modbus2mqtt/modbus2mqtt.latest-amd64:${{env.VERSION}}
           push: true       
 
