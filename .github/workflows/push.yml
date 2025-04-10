@@ -119,7 +119,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{steps.releasecheck.outputs.latest}}-${{steps.platformcheck.outputs.platform}}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{steps.releasecheck.outputs.latest}}-${{steps.platformcheck.outputs.platform}}:${{steps.prepareAddonDirectory.outputs.TAG_NAME}}
           labels: org.opencontainers.image.version=${{steps.prepareAddonDirectory.outputs.TAG_NAME}}
       - name: Build and push
         uses: docker/build-push-action@v6
