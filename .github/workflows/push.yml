@@ -114,16 +114,19 @@ jobs:
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      - name: Publish
-        uses: home-assistant/builder@master 
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
         with:
-          args: |
-            ${{steps.platformcheck.outputs.buildarg}} \
-            --target ./hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}} \
-            --version ${{steps.prepareAddonDirectory.outputs.TAG_NAME}} \
-            --image server-{arch} \
-            --cache-tag ${{steps.prepareAddonDirectory.outputs.TAG_NAME}} \
-            --docker-hub ghcr.io/modbus2mqtt
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          platforms: linux/amd64,linux/arm64
+          context: hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
       - name: Checkin hassio-addon-repository
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
