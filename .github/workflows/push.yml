@@ -88,7 +88,7 @@ jobs:
           repository: modbus2mqtt/hassio-addon-repository
           path: hassio-addon-repository
           ref: refs/heads/dev
-          #token: ${{ secrets.PAT }}
+          token: ${{ secrets.PAT }}
 
       - name: "create rootfs/usr/app directory"
         run:  mkdir -p "hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}/rootfs/usr/app"
