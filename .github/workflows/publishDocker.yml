@@ -73,8 +73,8 @@ jobs:
         if: github.ref == 'refs/heads/release'
         uses: Noelware/docker-manifest-action@master
         with:
-          inputs: modbus2mqtt/modbus2mqtt:${{ steps.package-version.outputs.current-version}}
-          images: modbus2mqtt/modbus2mqtt-aarch64:${{ steps.package-version.outputs.current-version}},modbus2mqtt/modbus2mqtt-amd64:${{ steps.package-version.outputs.current-version}},modbus2mqtt/modbus2mqtt-armv7:${{ steps.package-version.outputs.current-version}}
+          tags: modbus2mqtt/modbus2mqtt:${{ steps.package-version.outputs.current-version}}
+          inputs: modbus2mqtt/modbus2mqtt-aarch64:${{ steps.package-version.outputs.current-version}},modbus2mqtt/modbus2mqtt-amd64:${{ steps.package-version.outputs.current-version}},modbus2mqtt/modbus2mqtt-armv7:${{ steps.package-version.outputs.current-version}}
           push: true
 
         
