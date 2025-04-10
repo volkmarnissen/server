@@ -157,7 +157,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
       - name: Test
         run: |
-          docker buildx imagetools create -t ghcr.io/modbus2mqtt/modbus2mqtt.latest:${{env.VERSION}} --amend ghcr.io/modbus2mqtt/modbus2mqtt.latest-arm64:${{env.VERSION}} --amend ghcr.io/modbus2mqtt/modbus2mqtt.latest-amd64:${{env.VERSION}}
+          docker buildx imagetools create -t ghcr.io/modbus2mqtt/modbus2mqtt.latest:${{env.VERSION}} --amend ghcr.io/modbus2mqtt/modbus2mqtt.latest-arm64:${{env.VERSION}} --amend ghcr.io/modbus2mqtt/modbus2mqtt.latest-amd64:${{env.VERSION}} --push
       - name: Publish Multiplatform  
         if: failure()
         env:
