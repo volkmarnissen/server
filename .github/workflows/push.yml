@@ -140,6 +140,11 @@ jobs:
           commit_message: ${{steps.prepareAddonDirectory.outputs.TAG_NAME}}
   docker-tag:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
     needs: release
     steps:
       - name: Log in to the Container registry
