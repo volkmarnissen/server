@@ -59,6 +59,7 @@ jobs:
 
   release:
     runs-on: ${{matrix.platform}}
+    environment: release
     strategy:
       matrix:
         platform: [ubuntu-latest,ubuntu-22.04-arm]
