@@ -129,6 +129,8 @@ jobs:
           context: hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{steps.releasecheck.outputs.latest}}-${{steps.platformcheck.outputs.platform}}:${{steps.prepareAddonDirectory.outputs.TAG_NAME}}
           labels: ${{ steps.meta.outputs.labels }}
+        env:
+          BUILDX_NO_DEFAULT_ATTESTATIONS: 1
       - name: Checkin hassio-addon-repository
         if: ${{steps.platformcheck.outputs.platform}} == 'amd64'
         uses: stefanzweifel/git-auto-commit-action@v5
