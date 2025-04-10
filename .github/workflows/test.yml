@@ -103,6 +103,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           push: true
+          context: hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
