@@ -61,7 +61,7 @@ jobs:
     runs-on: ${{matrix.platform}}
     strategy:
       matrix:
-        platform: [ubuntu-latest]
+        platform: [ubuntu-latest,ubuntu-22.04-arm]
     needs: init
     outputs:
       version: ${{steps.prepareAddonDirectory.outputs.TAG_NAME}}
@@ -74,7 +74,7 @@ jobs:
     steps:
       - name: Platform check
         id: platformcheck
-        run: if [ ${{matrix.platform}} == 'ubuntu-22.04-arm' ]; then echo "buildarg=--aarch64"; else echo "buildarg=--amd64";fi >> $GITHUB_OUTPUT
+        run: if [ ${{matrix.platform}} == 'ubuntu-22.04-arm' ]; then echo "platform=--arm64"; else echo "platform=amd64";fi >> $GITHUB_OUTPUT
       - name: Release Check
         id: releasecheck
         run: if [ ${{github.ref_name}} != 'release' ]; then echo "latest=.latest"; else echo "latest=";fi >> $GITHUB_OUTPUT
@@ -118,12 +118,12 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{steps.platformcheck.outputs.platform}}
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/${{steps.platformcheck.outputs.platform}}
           context: hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
