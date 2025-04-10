@@ -128,7 +128,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
       - name: Checkin hassio-addon-repository
-        if: ${steps.platformcheck.outputs.platform} == 'amd64'
+        if: ${{steps.platformcheck.outputs.platform}} == 'amd64'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           repository: ./hassio-addon-repository
