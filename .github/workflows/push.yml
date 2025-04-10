@@ -157,7 +157,7 @@ jobs:
       - name: Publish Multiplatform  
         env:
           VERSION: ${{needs.release.outputs.version}}
-        uses: Noelware/docker-manifest-action@master
+        uses: Noelware/docker-manifest-action@v0
         with:
           tags: ghcr.io/modbus2mqtt/modbus2mqtt.latest:${{env.VERSION}}
           inputs: ghcr.io/modbus2mqtt/modbus2mqtt.latest-arm64:${{env.VERSION}},ghcr.io/modbus2mqtt/modbus2mqtt.latest-amd64:${{env.VERSION}}
