@@ -51,7 +51,7 @@ jobs:
             owner="-o ${{github.repository_owner}}"
           fi
           echo "owner=$owner" >> "$GITHUB_OUTPUT"
-          bin/pulls.py $owner execorwait --noexec "${{github.event.push.base.repo.name}}:${{github.event.number}}" "${{github.event.push.body}}" merge >> "$GITHUB_OUTPUT"
+          bin/pulls.py $owner execorwait --noexec "${{github.event.repository.name}}:${{github.event.number}}" "${{github.event.push.body}}" merge >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Node.js
@@ -126,7 +126,7 @@ jobs:
       - name: Prepare Addon Directory
         id: prepareAddonDirectory
         run: |
-          ./bin/releaseAddon.py --ref ${{github.ref}} --pkgjson "hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}/rootfs/usr/app" >>$GITHUB_OUTPUT
+          ./bin/releaseAddon.py --ref ${{github.ref}} --pkgjson "hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}/rootfs/usr/app/node_modules/@modbus2mqtt/server" >>$GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up QEMU
@@ -160,7 +160,7 @@ jobs:
           done 
           cd -
       - name: Checkin hassio-addon-repository
-        if: ${{matrix.platform}} == 'ubuntu-22.04-arm' 
+        if: ${{steps.platformcheck.outputs.platform}} == 'arm64' 
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           repository: ./hassio-addon-repository
