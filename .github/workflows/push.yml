@@ -15,8 +15,25 @@ env:
 # There is a single job in this workflow. It's configured to run on the latest available version of Ubuntu.
 jobs:
   init:
+
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          path: server
+      - name: "✏️ Generate changelog"
+        uses: heinrichreimer/action-github-changelog-generator@v2.4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          output: server/CHANGELOG.md
+      - name: Checkin CHANGELOG.md
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          repository: ./server
+          commit_message: Update CHANGELOG.md
+
       - uses: actions/checkout@v4
         with:
           repository: modbus2mqtt/modbus2mqtt.dev
@@ -131,6 +148,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
         env:
           BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+
       - name: Checkin hassio-addon-repository
         if: ${{steps.platformcheck.outputs.platform}} == 'amd64'
         uses: stefanzweifel/git-auto-commit-action@v5
