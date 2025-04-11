@@ -72,7 +72,7 @@ jobs:
           path: |
             package.json
             package-lock.json
-            node_modules/**/*
+            node_modules/
           retention-days: 1
           include-hidden-files: true
   release:
