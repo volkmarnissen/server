@@ -150,7 +150,6 @@ jobs:
         env:
           BUILDX_NO_DEFAULT_ATTESTATIONS: 1
       - name: Copy CHANGELOG.mds
-        if: ${{steps.platformcheck.outputs.platform}} == 'amd64'
         run: |
           cd hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}
           mkdir -p changes
@@ -161,7 +160,7 @@ jobs:
           done 
           cd -
       - name: Checkin hassio-addon-repository
-        if: ${{steps.platformcheck.outputs.platform}} == 'amd64'
+        if: ${{matrix.platform}} == 'ubuntu-22.04-arm' 
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           repository: ./hassio-addon-repository
