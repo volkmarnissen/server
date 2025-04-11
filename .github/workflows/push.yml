@@ -151,9 +151,14 @@ jobs:
       - name: Copy CHANGELOG.mds
         if: ${{steps.platformcheck.outputs.platform}} == 'amd64'
         run: |
-          mkdir -p hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}/changes
-          cp hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}/rootfs/usr/app/node_modules/@modbus2mqtt/*/CHANGELOG.md hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}/changes
-   
+          cd hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}
+          mkdir -p changes
+          ls -1 rootfs/usr/app/node_modules/@modbus2mqtt | while read dir
+          do 
+            mkdir -p changes/$dir
+            cp rootfs/usr/app/node_modules/@modbus2mqtt/$dir/CHANGELOG.md changes/$dir
+          done 
+          cd -
       - name: Checkin hassio-addon-repository
         if: ${{steps.platformcheck.outputs.platform}} == 'amd64'
         uses: stefanzweifel/git-auto-commit-action@v5
