@@ -74,7 +74,7 @@ jobs:
             package-lock.json
             node_modules/**/*
           retention-days: 1
-
+          include-hidden-files: true
   release:
     runs-on: ${{matrix.platform}}
     environment: release
