@@ -189,6 +189,7 @@ jobs:
           VERSION: ${{needs.release.outputs.version}}
         run: |
           docker buildx imagetools create -t ghcr.io/modbus2mqtt/modbus2mqtt.latest:${{env.VERSION}} ghcr.io/modbus2mqtt/modbus2mqtt.latest-arm64:${{env.VERSION}} ghcr.io/modbus2mqtt/modbus2mqtt.latest-amd64:${{env.VERSION}}
+          docker buildx imagetools create -t ghcr.io/modbus2mqtt/modbus2mqtt.latest:latest ghcr.io/modbus2mqtt/modbus2mqtt.latest-arm64:${{env.VERSION}} ghcr.io/modbus2mqtt/modbus2mqtt.latest-amd64:${{env.VERSION}}
      
 
 
