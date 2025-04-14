@@ -14,6 +14,7 @@ const stopServiceTimeout = 20000
 var initControllers = []
 var resetControllers = []
 var logStartupFlag = false
+var logServersFlag = false
 function pidIsRunning(pid) {
   try {
     process.kill(pid, 'SIGINT')
@@ -24,6 +25,9 @@ function pidIsRunning(pid) {
   }
 }
 function logStartup(msg) {
+  if (logStartupFlag) console.log(msg)
+}
+function logServer(msg) {
   if (logStartupFlag) console.log(msg)
 }
 function stopChildProcess(c) {
@@ -54,7 +58,7 @@ function startProcesses(command, args, ports, controllerArray) {
             prefix: arg,
             child_process: child_process,
             onData: function (data) {
-              console.log(this.prefix + ':' + data)
+              logServer(this.prefix + ':' + data)
 
               data
                 .toString()
@@ -211,6 +215,9 @@ module.exports = defineConfig({
     setupNodeEvents(on, config) {
       logStartupFlag = config.env.logstartup
       console.log('Startup Logging is ' + (logStartupFlag ? 'enabled' : 'disabled'))
+      logServersFlag = config.env.logservers
+      console.log('Server Logging is ' + (logServersFlag ? 'enabled' : 'disabled'))
+     
       // implement node event listeners here
       on('task', {
         mqttConnect(connectionData) {
@@ -249,19 +256,6 @@ module.exports = defineConfig({
           let mqttHelper = MqttHelper.getInstance()
           mqttHelper.resetTopicAndPayloads()
           return null
-        },
-        e2eInitServicesStart() {
-          logStartup('e2eInit')
-          return startProcesses(
-            'sh',
-            ['cypress/servers/nginx', 'cypress/servers/modbustcp'],
-            [config.env.nginxAddonHttpPort, config.env.modbusTcpHttpPort],
-            initControllers
-          )
-        },
-        e2eInitServicesStop() {
-          logStartup('e2eStop')
-          return stopServices(initControllers)
         },
         e2eServicesStart() {
           logStartup('e2eServicesStart')
@@ -336,6 +330,7 @@ module.exports = defineConfig({
     },
     env: {
       logstartup: false, // Set to true to log startup services messages
+      logservers: false,
       nginxAddonHttpPort: 3006, //nginx
       modbus2mqttAddonHttpPort: 3004, //ingress port
       modbusTcpHttpPort: 3002,
