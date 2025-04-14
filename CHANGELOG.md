@@ -1,6 +1,6 @@
 # Changelog for server
 
-## [v0.16.26](https://github.com/modbus2mqtt/server/tree/v0.16.26) (2025-04-14)
+## [Unreleased](https://github.com/modbus2mqtt/server/tree/HEAD)
 
 [Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.16.25...HEAD)
 
@@ -10,7 +10,6 @@
 
 **Merged pull requests:**
 
-- Modbuscache [\#105](https://github.com/modbus2mqtt/server/pull/105) ([volkmarnissen](https://github.com/volkmarnissen))
 - introduce junit reports for test output [\#104](https://github.com/modbus2mqtt/server/pull/104) ([volkmarnissen](https://github.com/volkmarnissen))
 - Disable failing test [\#103](https://github.com/modbus2mqtt/server/pull/103) ([volkmarnissen](https://github.com/volkmarnissen))
 - Jest coverage report and markdown preparation [\#102](https://github.com/modbus2mqtt/server/pull/102) ([volkmarnissen](https://github.com/volkmarnissen))
@@ -27,44 +26,45 @@
 
 ## [v0.16.25](https://github.com/modbus2mqtt/server/tree/v0.16.25) (2025-01-16)
 
-[Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.16.24...v0.16.25)
+[Full Changelog](https://github.com/volkmarnissen/server/compare/v0.16.10...v0.16.12)
+
+## [v0.16.10](https://github.com/volkmarnissen/server/tree/v0.16.10) (2024-10-26)
+
+[Full Changelog](https://github.com/volkmarnissen/server/compare/v0.16.0...v0.16.10)
 
 **Merged pull requests:**
 
-- v0.16.25: Fix decimal places: Passing unchanged value to payload [\#85](https://github.com/modbus2mqtt/server/pull/85) ([volkmarnissen](https://github.com/volkmarnissen))
+- Enable automated Checkin of hassio-addon-repositoryFix releaseAddon.py [\#1](https://github.com/volkmarnissen/server/pull/1) ([volkmarnissen](https://github.com/volkmarnissen))
 
-## [v0.16.24](https://github.com/modbus2mqtt/server/tree/v0.16.24) (2025-01-15)
+## [v0.16.0](https://github.com/volkmarnissen/server/tree/v0.16.0) (2024-08-19)
 
-[Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.16.23...v0.16.24)
+[Full Changelog](https://github.com/volkmarnissen/server/compare/v0.15.0...v0.16.0)
 
-**Closed issues:**
+## [v0.15.0](https://github.com/volkmarnissen/server/tree/v0.15.0) (2024-08-16)
 
-- HA discovery messages are published without retain flag [\#82](https://github.com/modbus2mqtt/server/issues/82)
-- Number precision missing in HA [\#81](https://github.com/modbus2mqtt/server/issues/81)
-- \[BUG\] changing UOM doesn't work via GUI [\#80](https://github.com/modbus2mqtt/server/issues/80)
-- \[BUG\] Variable Properties -\> Unit of Measurement -\> Referenced Entity not selectable [\#79](https://github.com/modbus2mqtt/server/issues/79)
+[Full Changelog](https://github.com/volkmarnissen/server/compare/v0.13.0...v0.15.0)
 
-**Merged pull requests:**
+## [v0.13.0](https://github.com/volkmarnissen/server/tree/v0.13.0) (2024-08-16)
 
-- v0.16.24: Fix package.json [\#84](https://github.com/modbus2mqtt/server/pull/84) ([volkmarnissen](https://github.com/volkmarnissen))
-- Fixes [\#83](https://github.com/modbus2mqtt/server/pull/83) ([volkmarnissen](https://github.com/volkmarnissen))
+[Full Changelog](https://github.com/volkmarnissen/server/compare/v0.12.0...v0.13.0)
 
-## [v0.16.23](https://github.com/modbus2mqtt/server/tree/v0.16.23) (2025-01-02)
+## [v0.12.0](https://github.com/volkmarnissen/server/tree/v0.12.0) (2024-08-06)
 
-[Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.16.22...v0.16.23)
+[Full Changelog](https://github.com/volkmarnissen/server/compare/v0.11.0...v0.12.0)
 
-**Closed issues:**
+## [v0.11.0](https://github.com/volkmarnissen/server/tree/v0.11.0) (2024-08-05)
 
-- Unable to read uint23 [\#70](https://github.com/modbus2mqtt/server/issues/70)
+[Full Changelog](https://github.com/volkmarnissen/server/compare/0.10.0...v0.11.0)
 
-**Merged pull requests:**
+## [0.10.0](https://github.com/volkmarnissen/server/tree/0.10.0) (2024-07-26)
 
-- MQTT: Fix sending ModbusValues parsing errors [\#77](https://github.com/modbus2mqtt/server/pull/77) ([volkmarnissen](https://github.com/volkmarnissen))
+[Full Changelog](https://github.com/volkmarnissen/server/compare/0.9.0...0.10.0)
 
-## [v0.16.22](https://github.com/modbus2mqtt/server/tree/v0.16.22) (2025-01-02)
+## [0.9.0](https://github.com/volkmarnissen/server/tree/0.9.0) (2024-07-25)
 
-[Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.16.21...v0.16.22)
+[Full Changelog](https://github.com/volkmarnissen/server/compare/0.8.0...0.9.0)
 
+<<<<<<< HEAD
 **Merged pull requests:**
 
 - v0.16.21 Add int32 and unsigned int 32 [\#76](https://github.com/modbus2mqtt/server/pull/76) ([volkmarnissen](https://github.com/volkmarnissen))
@@ -313,6 +313,9 @@
 - Add release.py script [\#5](https://github.com/modbus2mqtt/server/pull/5) ([volkmarnissen](https://github.com/volkmarnissen))
 
 ## [v0.16.1](https://github.com/modbus2mqtt/server/tree/v0.16.1) (2024-08-21)
+=======
+## [0.8.0](https://github.com/volkmarnissen/server/tree/0.8.0) (2024-06-21)
+>>>>>>> 3c069ad (Update CHANGELOG.md)
 
 [Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.16.0...v0.16.1)
 
@@ -356,6 +359,6 @@
 
 ## [0.8.0](https://github.com/modbus2mqtt/server/tree/0.8.0) (2024-06-21)
 
-[Full Changelog](https://github.com/modbus2mqtt/server/compare/c887779cc03ebbe51dd0b2eb0456314798829518...0.8.0)
+[Full Changelog](https://github.com/modbus2mqtt/server/compare/e10c8d90dae26c00b0dde56c430bab4944c645de...0.8.0)
 
 \* _This Changelog was automatically generated by [github_changelog_generator](https://github.com/github-changelog-generator/github-changelog-generator)_
