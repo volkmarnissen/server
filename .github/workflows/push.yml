@@ -84,6 +84,7 @@ jobs:
     needs: init
     outputs:
       version: ${{steps.prepareAddonDirectory.outputs.TAG_NAME}}
+      latest: ${{steps.releasecheck.outputs.latest}}
     # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
     permissions:
       contents: read
@@ -189,5 +190,5 @@ jobs:
         env:
           VERSION: ${{needs.release.outputs.version}}
         run: |
-          docker buildx imagetools create -t ghcr.io/modbus2mqtt/modbus2mqtt.latest:${{env.VERSION}} ghcr.io/modbus2mqtt/modbus2mqtt.latest-arm64:${{env.VERSION}} ghcr.io/modbus2mqtt/modbus2mqtt.latest-amd64:${{env.VERSION}}
-          docker buildx imagetools create -t ghcr.io/modbus2mqtt/modbus2mqtt.latest:latest ghcr.io/modbus2mqtt/modbus2mqtt.latest-arm64:${{env.VERSION}} ghcr.io/modbus2mqtt/modbus2mqtt.latest-amd64:${{env.VERSION}}
+          docker buildx imagetools create -t ghcr.io/modbus2mqtt/${{needs.release.outputs.latest}}:${{env.VERSION}} ghcr.io/modbus2mqtt/modbus2mqtt${{needs.release.outputs.latest}}-arm64:${{env.VERSION}} ghcr.io/modbus2mqtt/modbus2mqtt${{needs.release.outputs.latest}}-amd64:${{env.VERSION}}
+          docker buildx imagetools create -t ghcr.io/modbus2mqtt/modbus2mqtt${{needs.release.outputs.latest}}:latest ghcr.io/modbus2mqtt/modbus2mqtt${{needs.release.outputs.latest}}-arm64:${{env.VERSION}} ghcr.io/modbus2mqtt/modbus2mqtt${{needs.release.outputs.latest}}-amd64:${{env.VERSION}}
