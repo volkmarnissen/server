@@ -7,6 +7,7 @@
 <<<<<<< HEAD
 ## [Unreleased](https://github.com/modbus2mqtt/server/tree/HEAD)
 
+<<<<<<< HEAD
 [Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.16.25...HEAD)
 =======
 ## [v0.16.26](https://github.com/modbus2mqtt/server/tree/v0.16.26) (2025-04-14)
@@ -19,6 +20,9 @@
 **Closed issues:**
 
 - Add-on "removed from repository" notification [\#100](https://github.com/modbus2mqtt/server/issues/100)
+=======
+[Full Changelog](https://github.com/volkmarnissen/server/compare/v0.16.12...HEAD)
+>>>>>>> e9ec7e4 (Update CHANGELOG.md)
 
 **Merged pull requests:**
 
@@ -522,49 +526,7 @@
 =======
 >>>>>>> 51de16f (Update CHANGELOG.md)
 
-[Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.16.0...v0.16.1)
-
-**Merged pull requests:**
-
-- Add sript for release process [\#4](https://github.com/modbus2mqtt/server/pull/4) ([volkmarnissen](https://github.com/volkmarnissen))
-- Homeassistant Addon doesn't start [\#3](https://github.com/modbus2mqtt/server/pull/3) ([volkmarnissen](https://github.com/volkmarnissen))
-- Copy rootfs fix [\#2](https://github.com/modbus2mqtt/server/pull/2) ([volkmarnissen](https://github.com/volkmarnissen))
-
-## [v0.16.0](https://github.com/modbus2mqtt/server/tree/v0.16.0) (2024-08-19)
-
-[Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.15.0...v0.16.0)
-
-**Merged pull requests:**
-
-- Added Release Process [\#1](https://github.com/modbus2mqtt/server/pull/1) ([volkmarnissen](https://github.com/volkmarnissen))
-
-## [v0.15.0](https://github.com/modbus2mqtt/server/tree/v0.15.0) (2024-08-16)
-
-[Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.13.0...v0.15.0)
-
-## [v0.13.0](https://github.com/modbus2mqtt/server/tree/v0.13.0) (2024-08-16)
-
-[Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.12.0...v0.13.0)
-
-## [v0.12.0](https://github.com/modbus2mqtt/server/tree/v0.12.0) (2024-08-06)
-
-[Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.11.0...v0.12.0)
-
-## [v0.11.0](https://github.com/modbus2mqtt/server/tree/v0.11.0) (2024-08-05)
-
-[Full Changelog](https://github.com/modbus2mqtt/server/compare/0.10.0...v0.11.0)
-
-## [0.10.0](https://github.com/modbus2mqtt/server/tree/0.10.0) (2024-07-26)
-
-[Full Changelog](https://github.com/modbus2mqtt/server/compare/0.9.0...0.10.0)
-
-## [0.9.0](https://github.com/modbus2mqtt/server/tree/0.9.0) (2024-07-25)
-
-[Full Changelog](https://github.com/modbus2mqtt/server/compare/0.8.0...0.9.0)
-
-## [0.8.0](https://github.com/modbus2mqtt/server/tree/0.8.0) (2024-06-21)
-
-[Full Changelog](https://github.com/modbus2mqtt/server/compare/e10c8d90dae26c00b0dde56c430bab4944c645de...0.8.0)
+[Full Changelog](https://github.com/volkmarnissen/server/compare/c887779cc03ebbe51dd0b2eb0456314798829518...0.8.0)
 
 <<<<<<< HEAD
 >>>>>>> c9f2561 (Update CHANGELOG.md)
