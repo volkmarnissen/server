@@ -1,0 +1,9 @@
+name: Pull Request
+on:
+  pull_request:
+    types: [opened, reopened, edited]
+jobs:
+  release:
+    uses: modbus2mqtt/specification/.github/workflows/pull.yml@main
+    permissions:
+      contents: write
