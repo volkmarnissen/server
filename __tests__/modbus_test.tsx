@@ -15,7 +15,7 @@ import {
 import { Modbus, ModbusForTest } from '../src/modbus'
 import { IslaveId, ModbusCache } from '../src/modbuscache'
 import { getReadRegisterResult, submitGetHoldingRegisterRequest } from '../src/submitRequestMock'
-import { yamlDir } from './configsbase'
+import { initBussesForTest, yamlDir } from './configsbase'
 import { Islave } from '@modbus2mqtt/server.shared'
 import { ConfigSpecification, IfileSpecification, emptyModbusValues } from '@modbus2mqtt/specification'
 import { expect, xit, it, describe, beforeEach, jest, beforeAll } from '@jest/globals'
@@ -29,6 +29,7 @@ let debug = Debug('modbus_test')
 beforeAll(() => {
   jest.mock('../src/modbus')
   ModbusCache.prototype.submitGetHoldingRegisterRequest = submitGetHoldingRegisterRequest
+  initBussesForTest()
 })
 beforeEach(() => {
   spec = {

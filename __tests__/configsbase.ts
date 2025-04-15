@@ -4,6 +4,8 @@ import Debug from 'debug'
 import exp from 'constants'
 import { Config } from '../src/config'
 import { ImqttClient } from '@modbus2mqtt/server.shared'
+import { ConfigBus } from '../src/configbus'
+import { Bus } from '../src/bus'
 
 export const yamlDir = '__tests__/yaml-dir'
 export const backendTCPDir = '__tests__/backendTCP'
@@ -58,3 +60,22 @@ export class FakeMqtt {
   }
   public on(event: 'message', cb: () => {}) {}
 }
+
+export function initBussesForTest(){
+  ConfigBus.readBusses()
+  let ibs = ConfigBus.getBussesProperties()
+  if (!Bus['busses']) Bus['busses'] = []
+  ibs.forEach((ib) => {
+    let bus = Bus['busses']!.find((bus) => bus.getId() == ib.busId)
+    if (bus !== undefined) bus.properties = ib
+    else {
+      let b = new Bus(ib)
+      b.getSlaves().forEach((s) => {
+        s.evalTimeout = true
+      })
+      Bus['busses']!.push(b)
+    }
+  })
+
+}
+

@@ -2,7 +2,7 @@ import { expect, it, xit, xtest, test, jest, describe, beforeAll, afterAll } fro
 import { startModbusTCPserver, stopModbusTCPServer } from '../src/modbusTCPserver'
 
 import { HttpErrorsEnum, ImodbusSpecification, ImodbusEntity } from '@modbus2mqtt/specification.shared'
-import { FakeMqtt, FakeModes, backendTCPDir, yamlDir } from './configsbase'
+import { FakeMqtt, FakeModes, backendTCPDir, yamlDir, initBussesForTest } from './configsbase'
 import supertest from 'supertest'
 import { apiUri } from '@modbus2mqtt/server.shared'
 import { HttpServer } from '../src/httpserver'
@@ -28,7 +28,7 @@ beforeAll(() => {
     let cfg = new Config()
     cfg.readYamlAsync().then(() => {
       ConfigBus.readBusses();
-      
+      initBussesForTest()
       HttpServer.prototype.authenticate = (req, res, next) => {
         next()
       }      

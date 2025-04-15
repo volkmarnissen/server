@@ -39,15 +39,16 @@ const log = new Logger('modbus2mqtt')
 export class Modbus2Mqtt {
   pollTasks() {
     debugAction('readBussesFromConfig starts')
-    Bus.readBussesFromConfig()
-    if (Config.getConfiguration().githubPersonalToken)
-      new ConfigSpecification().filterAllSpecifications((spec) => {
-        if (spec.status == SpecificationStatus.contributed && spec.pullNumber != undefined) {
-          M2mSpecification.startPolling(spec.filename, (e) => {
-            log.log(LogLevelEnum.error, 'Github:' + e.message)
-          })
-        }
-      })
+    Bus.readBussesFromConfig().then(()=>{
+      if (Config.getConfiguration().githubPersonalToken)
+        new ConfigSpecification().filterAllSpecifications((spec) => {
+          if (spec.status == SpecificationStatus.contributed && spec.pullNumber != undefined) {
+            M2mSpecification.startPolling(spec.filename, (e) => {
+              log.log(LogLevelEnum.error, 'Github:' + e.message)
+            })
+          }
+        })  
+    }).catch(e=>{ log.log(LogLevelEnum.error, 'Error initializing busses ' + e.message)})
   }
   init() {
     let cli = new Command()

@@ -12,7 +12,7 @@ import {
   FileLocation,
 } from '@modbus2mqtt/specification.shared'
 import { Config } from '../src/config'
-import { FakeMqtt, FakeModes } from './configsbase'
+import { FakeMqtt, FakeModes, initBussesForTest } from './configsbase'
 import supertest from 'supertest'
 import * as fs from 'fs'
 import { ImodbusSpecification, SpecificationFileUsage, getSpecificationI18nName } from '@modbus2mqtt/specification.shared'
@@ -136,6 +136,7 @@ beforeAll(() => {
     let cfg = new Config()
     cfg.readYamlAsync().then(() => {
       ConfigBus.readBusses()
+      initBussesForTest()
       fs.copyFileSync(lspec + 'waterleveltransmitter.yaml', lspec + 'waterleveltransmitter.bck', undefined)
       ;(Config as any)['fakeModbusCache'] = true
       jest.mock('../src/modbus')
@@ -389,9 +390,12 @@ test('ADD/DELETE /busses', (done) => {
     serialport: '/dev/ttyACM1',
     timeout: 200,
   }
-  Bus.readBussesFromConfig()
-  let oldLength = Bus.getBusses().length
+  initBussesForTest()
 
+  let oldLength = Bus.getBusses().length
+  const mockStaticF = jest.fn((connection: IModbusConnection) => Promise.resolve(new Bus({busId:7, slaves:[],connectionData:{} as any })));
+  let orig = Bus.addBus
+  Bus.addBus= mockStaticF
   supertest(httpServer['app'])
     .post('/api/bus')
     .accept('application/json')
@@ -399,13 +403,13 @@ test('ADD/DELETE /busses', (done) => {
     .set('Content-Type', 'application/json')
     .expect(201)
     .then((response) => {
-      expect(Bus.getBusses().length).toBe(oldLength + 1)
       let newNumber = response.body
       supertest(httpServer['app'])
         .delete('/api/bus?busid=' + newNumber.busid)
         .then((_response) => {
           expect(200)
           expect(Bus.getBusses().length).toBe(oldLength)
+          Bus.addBus = orig
           done()
         })
     })

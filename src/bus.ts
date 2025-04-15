@@ -3,7 +3,7 @@ import { Subject } from 'rxjs'
 import { ImodbusEntity, ImodbusSpecification, ModbusRegisterType, SpecificationStatus } from '@modbus2mqtt/specification.shared'
 import { IdentifiedStates } from '@modbus2mqtt/specification.shared'
 import { Mutex } from 'async-mutex'
-import { ImodbusAddress, ModbusCache } from './modbuscache'
+import { ImodbusAddress, ImodbusAddresses, ModbusCache } from './modbuscache'
 import {
   ConverterMap,
   IReadRegisterResultOrError,
@@ -43,37 +43,42 @@ export class Bus implements IModbusAPI {
   private static busses: Bus[] | undefined = undefined
   private static allSpecificationsModbusAddresses: Set<ImodbusAddress> | undefined = undefined
   private modbusErrors = new Map<number, ImodbusErrorsForSlave>()
-  static readBussesFromConfig(): void {
-    let ibs = ConfigBus.getBussesProperties()
-    if (!Bus.busses) Bus.busses = []
-    ibs.forEach((ib) => {
-      let bus = Bus.busses!.find((bus) => bus.getId() == ib.busId)
-      if (bus !== undefined) bus.properties = ib
-      else {
-        let b = new Bus(ib)
-        b.getSlaves().forEach((s) => {
-          s.evalTimeout = true
-        })
-        this.busses?.push(b)
+  static readBussesFromConfig(): Promise<void[]> {
+      let promisses:Promise<void>[] = []
+      let ibs = ConfigBus.getBussesProperties()
+      if (!Bus.busses) Bus.busses = []
+      ibs.forEach((ib) => {
+        let bus = Bus.busses!.find((bus) => bus.getId() == ib.busId)
+        if (bus !== undefined) bus.properties = ib
+        else {
+          let b = new Bus(ib)
+          promisses.push(b.connectRTU('InitialConnect'))
+          b.getSlaves().forEach((s) => {
+            s.evalTimeout = true
+          })
+          this.busses?.push(b)
+        }
+      })
+      // delete removed busses
+      for (let idx = 0; idx < Bus.busses!.length; idx++) {
+        if (!ibs.find((ib) => ib.busId == Bus.busses![idx].properties.busId)) Bus.busses!.splice(idx, 1)
       }
-    })
-    // delete removed busses
-    for (let idx = 0; idx < Bus.busses!.length; idx++) {
-      if (!ibs.find((ib) => ib.busId == Bus.busses![idx].properties.busId)) Bus.busses!.splice(idx, 1)
-    }
+      return Promise.all(promisses)  
   }
   static getBusses(): Bus[] {
-    if (!Bus.busses || Bus.busses.length != ConfigBus.getBussesProperties().length) {
-      Bus.readBussesFromConfig()
-    }
+    //if (!Bus.busses || Bus.busses.length != ConfigBus.getBussesProperties().length) {
+    //  Bus.readBussesFromConfig()
+    //}
     //debug("getBusses Number of busses:" + Bus.busses!.length)
     return Bus.busses!
   }
-  static addBus(connection: IModbusConnection): Bus {
-    debug('addBus()')
-    let busP = ConfigBus.addBusProperties(connection)
-    let b = Bus.getBusses().find((b) => b.getId() == busP.busId)
-    return b!
+  static addBus(connection: IModbusConnection): Promise<Bus> {
+    return new Promise<Bus>((resolve, reject)=>{
+      debug('addBus()')
+      let busP = ConfigBus.addBusProperties(connection)
+      let b = Bus.getBusses().find((b) => b.getId() == busP.busId)
+      b!.connectRTU('InitialConnect').then(()=>{resolve(b!)}).catch(reject)
+    })
   }
   private connectionChanged(connection: IModbusConnection): boolean {
     let rtu = this.properties.connectionData as IRTUConnection
@@ -93,22 +98,26 @@ export class Bus implements IModbusAPI {
     }
   }
 
-  updateBus(connection: IModbusConnection): Bus {
-    debug('updateBus()')
-    if (this.connectionChanged(connection)) {
-      let busP = ConfigBus.updateBusProperties(this.properties, connection)
-      let b = Bus.getBusses().find((b) => b.getId() == busP.busId)
-      if (b) {
-        b.properties = busP
-        // Change of bus properties can influence the modbus data
-        // E.g. set of lower timeout can lead to error messages
-        b.slaves.clear()
-        b.reconnectRTU("updateBus")
-        Bus.getAllAvailableModusData()
-      } else throw new Error('Bus does not exist')
-      return b
-    }
-    return this
+  updateBus(connection: IModbusConnection): Promise<Bus> {
+    return new Promise<Bus>((resolve, reject)=>{
+      debug('updateBus()')
+      if (this.connectionChanged(connection)) {
+        let busP = ConfigBus.updateBusProperties(this.properties, connection)
+        let b = Bus.getBusses().find((b) => b.getId() == busP.busId)
+        if (b) {
+          b.properties = busP
+          // Change of bus properties can influence the modbus data
+          // E.g. set of lower timeout can lead to error messages
+          b.slaves.clear()
+          b.reconnectRTU("updateBus").then( ()=>{
+            Bus.getAllAvailableModusData()
+            resolve(b)
+          }).catch(reject)
+          
+        } else reject('Bus does not exist')
+        
+      }
+    })
   }
   static deleteBus(busid: number) {
     let idx = Bus.getBusses().findIndex((b) => b.properties.busId == busid)
@@ -487,24 +496,6 @@ export class Bus implements IModbusAPI {
     return Bus.allSpecificationsModbusAddresses!
   }
 
-  private readModbusRegisterLogControl(
-    task: string,
-    printLog: boolean,
-    slaveid: number,
-    addresses: Set<ImodbusAddress>
-  ): Promise<ImodbusValues> {
-    return new Promise((resolve, reject) => {
-      debug('readModbusRegister slaveid: ' + slaveid + ' addresses: ' + JSON.stringify(Array.from(addresses)))
-
-      if (Config.getConfiguration().fakeModbus)
-        submitGetHoldingRegisterRequest({ busid: this.getId(), slaveid: slaveid }, addresses).then(resolve).catch(reject)
-      else
-        new ModbusCache(task + '(' + slaveid + ')', printLog)
-          .submitGetHoldingRegisterRequest({ busid: this.getId(), slaveid: slaveid }, addresses)
-          .then(resolve)
-          .catch(reject)
-    })
-  }
   readModbusRegister( slaveId:number, addresses:Set<ImodbusAddress>, options?:IexecuteOptions):Promise<ImodbusValues>{
     if (Config.getConfiguration().fakeModbus)
       return submitGetHoldingRegisterRequest({ busid: this.getId(), slaveid: slaveId }, addresses)
@@ -512,6 +503,7 @@ export class Bus implements IModbusAPI {
     if(this.modbusClient && this.modbusClient.isOpen)
       return this.modbusRTUprocessor.execute(slaveId,addresses)
     else
+      
       return new Promise<ImodbusValues>((resolve, reject)=>{
         this.connectRTU("InitialConnect").then(()=>{
           return this.modbusRTUprocessor.execute(slaveId,addresses).then(resolve).catch(reject)
@@ -596,7 +588,7 @@ export class Bus implements IModbusAPI {
         return
       }
       
-      this.readModbusRegisterLogControl('getAvailableSpecs', false, slaveid, addresses)
+      this.readModbusRegister(  slaveid, addresses, { task:'getAvailableSpecs',printLogs: false })
         .then((values) => {
           // Add not available addresses to the values
           let noData = { error: new Error('No data available') }
