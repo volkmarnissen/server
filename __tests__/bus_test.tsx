@@ -145,7 +145,6 @@ function testWrite(
 }
 it('Bus getSpecsForDevice', (done) => {
   prepareIdentification()
-  ;(Config['config'] as Iconfiguration).fakeModbus = true
   if (Config.getConfiguration().fakeModbus) debug(LogLevelEnum.notice, 'Fakemodbus')
   Bus.getBus(0)!
     .getAvailableSpecs(1, false)

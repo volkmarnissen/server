@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Run Server",
+       "name": "Run Server",
       "preLaunchTask": "npm: build.dev",
       "timeout": 10000,
       "program": "${workspaceFolder}/dist/modbus2mqtt.js",
@@ -79,7 +79,7 @@
     
     {
       "name": "Attach to homeassistant(local)",
-      "address": "localhost",
+      "address": "homeassistant.lan",
       "localRoot": "${workspaceFolder}/..",
       "port": 9229,
       "remoteRoot": "/usr/app/node_modules/@modbus2mqtt",

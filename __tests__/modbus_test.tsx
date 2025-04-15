@@ -179,7 +179,7 @@ describe('Modbus read', () => {
   it('Modbus read Entity identifiation Iselect identified', (done) => {
     prepareIdentification()
     expect(dev).toBeDefined
-    Config['config'].fakeModbus = false
+    Config['config'].fakeModbus = true
 
     if (ent.converterParameters)
       (ent.converterParameters as Inumber).identification = {
@@ -208,7 +208,7 @@ describe('Modbus read', () => {
   it('Modbus read Entity identifiation string not identified', (done) => {
     //@ts-ignore
     prepareIdentification()
-    Config['config'].fakeModbus = false
+    Config['config'].fakeModbus = true
     expect(dev).toBeDefined
     if (entText.converterParameters) (entText.converterParameters as Itext).identification = 'test'
     spec.entities = [entText]
@@ -220,7 +220,7 @@ describe('Modbus read', () => {
 
   it('Modbus read Entity identifiation string identified', (done) => {
     prepareIdentification()
-    Config['config'].fakeModbus = false
+    Config['config'].fakeModbus = true
     //jest.spyOn(Modbus.prototype, 'readHoldingRegister').mockReturnValue([65 << 8 | 66, 67 << 8 | 68])
     expect(dev).toBeDefined
     if (entText.converterParameters) (entText.converterParameters as Itext).identification = 'ABCD'

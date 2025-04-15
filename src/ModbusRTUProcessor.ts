@@ -18,12 +18,17 @@ export interface IexecuteOptions extends IQueueOptions{
   printLogs?: boolean
   task?: string
 }
+interface ImodbusAddressesWithSlave{
+  slave:number,
+  addresses:ImodbusAddress[]
+}
+
 export class ModbusRTUProcessor {
   private static lastNoticeMessageTime: number
   private static lastNoticeMessage: string
 
   constructor(private queue: ModbusRTUQueue) {}
-  private prepare(slaveId: number, addresses: Set<ImodbusAddress>): ImodbusAddress[] {
+  private prepare(slaveId: number, addresses: Set<ImodbusAddress>): ImodbusAddressesWithSlave {
     let preparedAddresses: ImodbusAddress[] = []
 
     let previousAddress = {
@@ -58,7 +63,7 @@ export class ModbusRTUProcessor {
         length: previousAddress.address - startAddress.address + 1,
         registerType: previousAddress.registerType,
       })
-    return preparedAddresses
+    return {slave:slaveId, addresses: preparedAddresses }
   }
   private logNotice(msg: string, options?: IexecuteOptions) {
     if (options == undefined|| !options.printLogs) return
@@ -132,9 +137,9 @@ export class ModbusRTUProcessor {
       resultMaps.set(ModbusRegisterType.Coils, values.coils)
       resultMaps.set(ModbusRegisterType.DiscreteInputs, values.discreteInputs)
       let resultCount = 0
-      preparedAddresses.forEach((address) => {
+      preparedAddresses.addresses.forEach((address) => {
         this.queue.enqueue(
-          slaveId,
+          preparedAddresses.slave,
           address,
           (result) => {
             if( result == undefined || undefined == address.write)
