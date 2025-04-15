@@ -14,6 +14,7 @@ import { join } from 'path'
 import { MqttDiscover } from '../src/mqttdiscover'
 import { ConfigBus } from '../src/configbus'
 import { Observable, Subject } from 'rxjs'
+import { initBussesForTest } from './configsbase'
 let mockReject = false
 let debug = Debug('testhttpserver')
 const mqttService = {
@@ -56,6 +57,7 @@ beforeAll(() => {
     let cfg = new Config()
     cfg.readYamlAsync().then(() => {
       ConfigBus.readBusses()
+      initBussesForTest()
       ;(Config as any)['fakeModbusCache'] = true
       jest.mock('../src/modbus')
       ModbusCache.prototype.submitGetHoldingRegisterRequest = submitGetHoldingRegisterRequest
