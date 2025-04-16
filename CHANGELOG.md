@@ -28,6 +28,9 @@
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> main
 [Full Changelog](https://github.com/volkmarnissen/server/compare/v0.13.0...v0.15.0)
 
 ## [v0.13.0](https://github.com/volkmarnissen/server/tree/v0.13.0) (2024-08-16)
@@ -50,6 +53,7 @@
 
 [Full Changelog](https://github.com/volkmarnissen/server/compare/0.8.0...0.9.0)
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 **Merged pull requests:**
 
@@ -357,6 +361,10 @@
 
 ## [0.8.0](https://github.com/volkmarnissen/server/tree/0.8.0) (2024-06-21)
 
+=======
+## [0.8.0](https://github.com/volkmarnissen/server/tree/0.8.0) (2024-06-21)
+
+>>>>>>> main
 [Full Changelog](https://github.com/volkmarnissen/server/compare/c887779cc03ebbe51dd0b2eb0456314798829518...0.8.0)
 
 
