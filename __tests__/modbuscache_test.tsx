@@ -2,7 +2,7 @@ import { Config } from '../src/config'
 import { ImodbusAddress, ModbusCache, ModbusStates, exportedForTesting } from '../src/modbuscache'
 import ModbusRTU from 'modbus-serial'
 const { ModbusStateMachine } = exportedForTesting
-import { yamlDir } from './configsbase'
+import { initBussesForTest, yamlDir } from './configsbase'
 import { Mutex } from 'async-mutex'
 import { getReadRegisterResult } from '../src/submitRequestMock'
 import Debug from 'debug'
@@ -57,6 +57,7 @@ beforeAll(() => {
   jest.mock('modbus-serial')
   jest.spyOn(console, 'warn').mockImplementation(() => {})
   jest.spyOn(console, 'log').mockImplementation(() => {})
+  initBussesForTest()
   mockedConnectRTU.mockImplementation(() => {
     jest.spyOn(ModbusRTU.prototype, 'isOpen', 'get').mockReturnValue(true)
     return Promise.resolve()
@@ -138,6 +139,7 @@ describe('submitGetHoldingRegisterRequests', () => {
   beforeAll(() => {
     oldLog = Logger.prototype.log
     Logger.prototype.log = jest.fn()
+    
   })
   afterAll(() => {
     Logger.prototype.log = oldLog
@@ -251,3 +253,4 @@ test('writeRegisters', (done) => {
       expect(false).toBeTruthy
     })
 })
+

@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Run Server",
+       "name": "Run Server",
       "preLaunchTask": "npm: build.dev",
       "timeout": 10000,
       "program": "${workspaceFolder}/dist/modbus2mqtt.js",
@@ -20,6 +20,22 @@
       "sourceMaps": true,  
       "type": "node"
     },
+    {
+      "name": "Test ModbusRTU",
+     "timeout": 10000,
+     "program": "${workspaceFolder}/__tests__/testmodbus.js",
+     "console": "integratedTerminal",
+     "env": {
+       "DEBUG": "",
+       "NODE_OPTIONS": "--experimental-vm-modules npx jest"
+     },
+     "request": "launch",
+     "skipFiles": [
+       "<node_internals>/**"
+     ],
+     "sourceMaps": true,  
+     "type": "node"
+   },    
     {
       "name": "Run Addon Service Server",
       "preLaunchTask": "npm: e2e:server.debug",
@@ -79,7 +95,7 @@
     
     {
       "name": "Attach to homeassistant(local)",
-      "address": "localhost",
+      "address": "homeassistant.lan",
       "localRoot": "${workspaceFolder}/..",
       "port": 9229,
       "remoteRoot": "/usr/app/node_modules/@modbus2mqtt",

@@ -152,15 +152,12 @@ let logSetting = { log: true }
 
 describe('MQTT Discovery Tests', () => {
   before(() => {
-    cy.task('log', 'Before')
     // wait for all tests then 
     //cy.task('e2eInitServicesStop', logSetting)
     //cy.task('e2eInitServicesStart', logSetting)
 
   })
   after(() => {
-    cy.task('log', 'After')
-    cy.task('mqttClose')
     // wait for all tests then 
     //cy.task('e2eInitServicesStop', logSetting)
     cy.task('e2eServicesStop', logSetting)

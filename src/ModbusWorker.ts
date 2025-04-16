@@ -14,25 +14,26 @@ export interface IModbusAPI {
   readInputRegisters: TModbusReadFunction
   writeHoldingRegisters: TModbusWriteFunction
   writeCoils: TModbusWriteFunction
+  reconnectRTU: (task: string)=> Promise<void> 
 }
 export class ModbusWorker {
   protected functionCodeReadMap: Map<ModbusRegisterType, TModbusReadFunction>
   protected functionCodeWriteMap: Map<ModbusRegisterType, TModbusWriteFunction>
   private modbusClient: ModbusRTU | undefined
   constructor(
-    private modbusAPI: IModbusAPI,
+    protected modbusAPI: IModbusAPI,
     protected queue: ModbusRTUQueue
   ) {
     this.functionCodeReadMap = new Map<ModbusRegisterType, TModbusReadFunction>()
     this.functionCodeWriteMap = new Map<ModbusRegisterType, TModbusWriteFunction>()
     queue.addNewEntryListener(this.run.bind(this))
     queue.addCachedEntryListener(this.getCached.bind(this))
-    this.functionCodeReadMap.set(ModbusRegisterType.HoldingRegister, this.modbusAPI.readHoldingRegisters)
-    this.functionCodeReadMap.set(ModbusRegisterType.Coils, this.modbusAPI.readCoils)
-    this.functionCodeReadMap.set(ModbusRegisterType.DiscreteInputs, this.modbusAPI.readDiscreteInputs)
-    this.functionCodeReadMap.set(ModbusRegisterType.AnalogInputs, this.modbusAPI.readInputRegisters)
-    this.functionCodeWriteMap.set(ModbusRegisterType.HoldingRegister, this.modbusAPI.writeHoldingRegisters)
-    this.functionCodeWriteMap.set(ModbusRegisterType.Coils, this.modbusAPI.writeCoils)
+    this.functionCodeReadMap.set(ModbusRegisterType.HoldingRegister, this.modbusAPI.readHoldingRegisters.bind(this.modbusAPI))
+    this.functionCodeReadMap.set(ModbusRegisterType.Coils, this.modbusAPI.readCoils.bind(this.modbusAPI))
+    this.functionCodeReadMap.set(ModbusRegisterType.DiscreteInputs, this.modbusAPI.readDiscreteInputs.bind(this.modbusAPI))
+    this.functionCodeReadMap.set(ModbusRegisterType.AnalogInputs, this.modbusAPI.readInputRegisters.bind(this.modbusAPI))
+    this.functionCodeWriteMap.set(ModbusRegisterType.HoldingRegister, this.modbusAPI.writeHoldingRegisters.bind(this.modbusAPI))
+    this.functionCodeWriteMap.set(ModbusRegisterType.Coils, this.modbusAPI.writeCoils.bind(this.modbusAPI))
   }
   /**
    * If entry is for readind: searchs for entry in cache. If not found, it forwards entry to queue

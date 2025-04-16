@@ -6,7 +6,6 @@ let instance = undefined
 exports.MqttHelper = void 0
 function getInstance() {
   if (instance == undefined) {
-    console.log('call new')
     instance = new MqttHelper()
     if (instance.tAndP == undefined) console.log('After new tAndP is undefined')
   }
@@ -21,9 +20,9 @@ class MqttHelper {
   }
 
   onMessage(topic, payload, packet) {
-    console.log('onMessage id:' + packet.messageId + ' topic:' + topic + ' payload: ' + payload.toString())
+    //console.log('onMessage id:' + packet.messageId + ' topic:' + topic + ' payload: ' + payload.toString())
     if (this.tAndP && !this.tAndP.find((tp) => tp.messageId == packet.messageId)) {
-      console.log('onMessage id:' + packet.messageId + ' topic:' + topic + ' payload: ' + payload.toString())
+      //console.log('onMessage id:' + packet.messageId + ' topic:' + topic + ' payload: ' + payload.toString())
       this.tAndP.push({ topic: topic, payload: payload.toString(), messageId: packet.messageId })
     }
   }

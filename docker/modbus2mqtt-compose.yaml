@@ -2,7 +2,7 @@ version: '3'
 services:
   modbus2mqtt:
     container_name: modbus2mqtt
-    image: modbus2mqtt
+    image: ghcr.io/modbus2mqtt/modbus2mqtt
     hostname: modbus2mqtt
     restart: unless-stopped
     ports:

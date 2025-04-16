@@ -14,7 +14,7 @@ timeout 12 bash -c '
       exit 2
     fi
 }
-
+pwd
 nohup ./cypress/servers/nginx &
 nohup ./cypress/servers/modbustcp &
 checkAvailablePort 3006  # NGINX
