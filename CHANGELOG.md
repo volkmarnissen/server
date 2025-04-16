@@ -4,9 +4,17 @@
 
 [Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.16.26...HEAD)
 
+**Implemented enhancements:**
+
+- \[BUG\] TCP-Connection not kept alive [\#32](https://github.com/modbus2mqtt/server/issues/32)
+
 **Closed issues:**
 
 - \[BUG\] no latest-tag on docker image [\#86](https://github.com/modbus2mqtt/server/issues/86)
+
+**Merged pull requests:**
+
+- Modbuscache [\#106](https://github.com/modbus2mqtt/server/pull/106) ([modbus2mqtt](https://github.com/modbus2mqtt))
 
 ## [v0.16.26](https://github.com/modbus2mqtt/server/tree/v0.16.26) (2025-04-14)
 
@@ -340,29 +348,31 @@
 
 ## [v0.15.0](https://github.com/modbus2mqtt/server/tree/v0.15.0) (2024-08-16)
 
+[Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.13.0...v0.15.0)
 
-## [v0.13.0](https://github.com/volkmarnissen/server/tree/v0.13.0) (2024-08-16)
+## [v0.13.0](https://github.com/modbus2mqtt/server/tree/v0.13.0) (2024-08-16)
 
-[Full Changelog](https://github.com/volkmarnissen/server/compare/v0.12.0...v0.13.0)
+[Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.12.0...v0.13.0)
 
-## [v0.12.0](https://github.com/volkmarnissen/server/tree/v0.12.0) (2024-08-06)
+## [v0.12.0](https://github.com/modbus2mqtt/server/tree/v0.12.0) (2024-08-06)
 
-[Full Changelog](https://github.com/volkmarnissen/server/compare/v0.11.0...v0.12.0)
+[Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.11.0...v0.12.0)
 
-## [v0.11.0](https://github.com/volkmarnissen/server/tree/v0.11.0) (2024-08-05)
+## [v0.11.0](https://github.com/modbus2mqtt/server/tree/v0.11.0) (2024-08-05)
 
-[Full Changelog](https://github.com/volkmarnissen/server/compare/0.10.0...v0.11.0)
+[Full Changelog](https://github.com/modbus2mqtt/server/compare/0.10.0...v0.11.0)
 
-## [0.10.0](https://github.com/volkmarnissen/server/tree/0.10.0) (2024-07-26)
+## [0.10.0](https://github.com/modbus2mqtt/server/tree/0.10.0) (2024-07-26)
 
-[Full Changelog](https://github.com/volkmarnissen/server/compare/0.9.0...0.10.0)
+[Full Changelog](https://github.com/modbus2mqtt/server/compare/0.9.0...0.10.0)
 
-## [0.9.0](https://github.com/volkmarnissen/server/tree/0.9.0) (2024-07-25)
+## [0.9.0](https://github.com/modbus2mqtt/server/tree/0.9.0) (2024-07-25)
 
-[Full Changelog](https://github.com/volkmarnissen/server/compare/0.8.0...0.9.0)
+[Full Changelog](https://github.com/modbus2mqtt/server/compare/0.8.0...0.9.0)
 
-## [0.8.0](https://github.com/volkmarnissen/server/tree/0.8.0) (2024-06-21)
+## [0.8.0](https://github.com/modbus2mqtt/server/tree/0.8.0) (2024-06-21)
 
+[Full Changelog](https://github.com/modbus2mqtt/server/compare/e10c8d90dae26c00b0dde56c430bab4944c645de...0.8.0)
 
 
 
