@@ -1,7 +1,8 @@
 # Changelog for server
 
-## [Unreleased](https://github.com/modbus2mqtt/server/tree/HEAD)
+## [Unreleased](https://github.com/volkmarnissen/server/tree/HEAD)
 
+<<<<<<< HEAD
 [Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.16.26...HEAD)
 
 **Implemented enhancements:**
@@ -613,6 +614,9 @@
 **Fixed bugs:**
 
 - Fixes for Unit Tests\(and CI/CD\) [\#9](https://github.com/modbus2mqtt/server/pull/9) ([volkmarnissen](https://github.com/volkmarnissen))
+=======
+[Full Changelog](https://github.com/volkmarnissen/server/compare/v0.16.12...HEAD)
+>>>>>>> ccf8d08 (Update CHANGELOG.md)
 
 **Merged pull requests:**
 
