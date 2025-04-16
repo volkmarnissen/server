@@ -15,6 +15,7 @@ const logNoticeMaxWaitTime = 1000 * 60 * 30 // 30 minutes
 export interface IexecuteOptions extends IQueueOptions{
   printLogs?: boolean
   task?: string
+  split?:boolean
 }
 interface ImodbusAddressesWithSlave{
   slave:number,
@@ -145,7 +146,7 @@ export class ModbusRTUProcessor {
   execute(slaveId: number, addresses: Set<ImodbusAddress>, options?: IexecuteOptions): Promise<ImodbusValues> {
     return new Promise<ImodbusValues>((resolve) => {
       let preparedAddresses = this.prepare(slaveId, addresses)
-      debug("Request: execute slaveId: " + slaveId + "=====================")
+      debug(( options && options.task ? options.task : 'Request') + ": slaveId: " + slaveId + "=====================")
       for( let a of preparedAddresses.addresses){
           debug(a.registerType + ":"  + a.address +"(" + (a.length?a.length:1)+")")
       }
@@ -195,7 +196,11 @@ export class ModbusRTUProcessor {
               return handledAction
             else
             {
-              debug( "Failure not handled: " + error.message)
+              
+              
+              let id= "slave: " +currentEntry.slaveId + " Reg: " + currentEntry.address.registerType + " Address: "+ currentEntry.address.address + " (l: " + (currentEntry.address.length?currentEntry.address.length:1)+ ")"
+
+              debug( id + ": Failure not handled: " + error.message)
               // error is not handled by the error handler
               resultCount++
             
@@ -204,7 +209,6 @@ export class ModbusRTUProcessor {
               else resultMaps.get(address.registerType)!.set(address.address, r)
 
               let valueCount = this.countResults(values)
-              debug( "Error(" + slaveId  + "/" + valueCount + "/" + addressCount + ") Failure not handled: " + error.message)
               if (valueCount == addressCount) {
                 debug("Finished slaveId: " + slaveId + " addresses.length:" + preparedAddresses.addresses.length )
                 resolve(values)

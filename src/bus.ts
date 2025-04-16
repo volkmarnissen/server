@@ -505,12 +505,12 @@ export class Bus implements IModbusAPI {
       return submitGetHoldingRegisterRequest({ busid: this.getId(), slaveid: slaveId }, addresses)
 
     if(this.modbusClient && this.modbusClient.isOpen)
-      return this.modbusRTUprocessor.execute(slaveId,addresses)
+      return this.modbusRTUprocessor.execute(slaveId,addresses,options)
     else
       
       return new Promise<ImodbusValues>((resolve, reject)=>{
         this.connectRTU("InitialConnect").then(()=>{
-          return this.modbusRTUprocessor.execute(slaveId,addresses).then(resolve).catch(reject)
+          return this.modbusRTUprocessor.execute(slaveId,addresses,options).then(resolve).catch(reject)
         }).catch(reject)
       })
   }
@@ -592,7 +592,7 @@ export class Bus implements IModbusAPI {
         return
       }
       
-      this.readModbusRegister(  slaveid, addresses, { task:'getAvailableSpecs',printLogs: false })
+      this.readModbusRegister(  slaveid, addresses, { task:'getAvailableSpecs',printLogs: false, split:true })
         .then((values) => {
           // Add not available addresses to the values
           let noData = { error: new Error('No data available') }
