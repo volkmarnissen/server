@@ -1,88 +1,16 @@
 # Changelog for server
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> a62ae0d (Update CHANGELOG.md)
-=======
->>>>>>> 8b22b4c (Update CHANGELOG.md)
 ## [Unreleased](https://github.com/modbus2mqtt/server/tree/HEAD)
-=======
-## [Unreleased](https://github.com/volkmarnissen/server/tree/HEAD)
->>>>>>> 98b6115 (Update CHANGELOG.md)
-=======
-## [v0.16.26](https://github.com/modbus2mqtt/server/tree/v0.16.26) (2025-04-14)
->>>>>>> 13d1a8f (Update CHANGELOG.md)
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-[Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.16.25...HEAD)
-=======
-## [v0.16.26](https://github.com/modbus2mqtt/server/tree/v0.16.26) (2025-04-14)
-
-## [v0.16.26](https://github.com/modbus2mqtt/server/tree/v0.16.26) (2025-04-14)
-
-[Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.16.25...v0.16.26)
->>>>>>> e9b84a2 (Update CHANGELOG.md)
-=======
-[Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.16.25...v0.16.26)
->>>>>>> 8b22b4c (Update CHANGELOG.md)
+[Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.16.26...HEAD)
 
 **Closed issues:**
 
-- Add-on "removed from repository" notification [\#100](https://github.com/modbus2mqtt/server/issues/100)
-<<<<<<< HEAD
-=======
-[Full Changelog](https://github.com/volkmarnissen/server/compare/v0.16.12...HEAD)
->>>>>>> e9ec7e4 (Update CHANGELOG.md)
-=======
->>>>>>> 8b22b4c (Update CHANGELOG.md)
+- \[BUG\] no latest-tag on docker image [\#86](https://github.com/modbus2mqtt/server/issues/86)
 
-**Merged pull requests:**
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-- Modbuscache [\#105](https://github.com/modbus2mqtt/server/pull/105) ([volkmarnissen](https://github.com/volkmarnissen))
-<<<<<<< HEAD
->>>>>>> e9b84a2 (Update CHANGELOG.md)
-=======
->>>>>>> a62ae0d (Update CHANGELOG.md)
-=======
->>>>>>> 13d1a8f (Update CHANGELOG.md)
->>>>>>> 8b22b4c (Update CHANGELOG.md)
-- introduce junit reports for test output [\#104](https://github.com/modbus2mqtt/server/pull/104) ([volkmarnissen](https://github.com/volkmarnissen))
-- Disable failing test [\#103](https://github.com/modbus2mqtt/server/pull/103) ([volkmarnissen](https://github.com/volkmarnissen))
-- Jest coverage report and markdown preparation [\#102](https://github.com/modbus2mqtt/server/pull/102) ([volkmarnissen](https://github.com/volkmarnissen))
-- Add ModbusCache draft. Not productive [\#101](https://github.com/modbus2mqtt/server/pull/101) ([volkmarnissen](https://github.com/volkmarnissen))
-- Update introduction.md [\#99](https://github.com/modbus2mqtt/server/pull/99) ([modbus2mqtt](https://github.com/modbus2mqtt))
-- Adding test to check if specifications with discrete inputs and coils… [\#98](https://github.com/modbus2mqtt/server/pull/98) ([arturmietek](https://github.com/arturmietek))
-- rename backendTCP Test because it's failing [\#97](https://github.com/modbus2mqtt/server/pull/97) ([volkmarnissen](https://github.com/volkmarnissen))
-- rename backendTCP Test because it's failing [\#96](https://github.com/modbus2mqtt/server/pull/96) ([volkmarnissen](https://github.com/volkmarnissen))
-- Modbus2mqtt [\#95](https://github.com/modbus2mqtt/server/pull/95) ([volkmarnissen](https://github.com/volkmarnissen))
-- Fix BackendTCP [\#94](https://github.com/modbus2mqtt/server/pull/94) ([volkmarnissen](https://github.com/volkmarnissen))
-- Fix BackendTCP [\#93](https://github.com/modbus2mqtt/server/pull/93) ([volkmarnissen](https://github.com/volkmarnissen))
-- Added status page for modbus errors per slave, cypress tests [\#92](https://github.com/modbus2mqtt/server/pull/92) ([volkmarnissen](https://github.com/volkmarnissen))
-- Adding discrete inputs, rewriten logic for writing registers [\#88](https://github.com/modbus2mqtt/server/pull/88) ([arturmietek](https://github.com/arturmietek))
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-## [Unreleased](https://github.com/volkmarnissen/server/tree/HEAD)
-=======
 ## [v0.16.26](https://github.com/modbus2mqtt/server/tree/v0.16.26) (2025-04-14)
->>>>>>> 7ce5ce4 (Update CHANGELOG.md)
 
 [Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.16.25...v0.16.26)
-
-**Closed issues:**
-
-- Add-on "removed from repository" notification [\#100](https://github.com/modbus2mqtt/server/issues/100)
-  [Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.16.25...v0.16.26)
 
 **Closed issues:**
 
@@ -90,10 +18,6 @@
 
 **Merged pull requests:**
 
-<<<<<<< HEAD
-- Merge pull request \#41 from volkmarnissen/main [\#2](https://github.com/volkmarnissen/server/pull/2) ([volkmarnissen](https://github.com/volkmarnissen))
->>>>>>> 430d0e9 (Update CHANGELOG.md)
-=======
 - Modbuscache [\#105](https://github.com/modbus2mqtt/server/pull/105) ([volkmarnissen](https://github.com/volkmarnissen))
 - introduce junit reports for test output [\#104](https://github.com/modbus2mqtt/server/pull/104) ([volkmarnissen](https://github.com/volkmarnissen))
 - Disable failing test [\#103](https://github.com/modbus2mqtt/server/pull/103) ([volkmarnissen](https://github.com/volkmarnissen))
@@ -108,67 +32,22 @@
 - Fix BackendTCP [\#93](https://github.com/modbus2mqtt/server/pull/93) ([volkmarnissen](https://github.com/volkmarnissen))
 - Added status page for modbus errors per slave, cypress tests [\#92](https://github.com/modbus2mqtt/server/pull/92) ([volkmarnissen](https://github.com/volkmarnissen))
 - Adding discrete inputs, rewriten logic for writing registers [\#88](https://github.com/modbus2mqtt/server/pull/88) ([arturmietek](https://github.com/arturmietek))
->>>>>>> 7ce5ce4 (Update CHANGELOG.md)
-=======
-## [Unreleased](https://github.com/volkmarnissen/server/tree/HEAD)
-=======
-## [Unreleased](https://github.com/modbus2mqtt/server/tree/HEAD)
->>>>>>> 7eecfe5 (Update CHANGELOG.md)
-
-[Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.16.25...HEAD)
-
-**Closed issues:**
-
-- Add-on "removed from repository" notification [\#100](https://github.com/modbus2mqtt/server/issues/100)
-
-**Merged pull requests:**
-
-<<<<<<< HEAD
-- Merge pull request \#41 from volkmarnissen/main [\#2](https://github.com/volkmarnissen/server/pull/2) ([volkmarnissen](https://github.com/volkmarnissen))
->>>>>>> 1c65490 (Update CHANGELOG.md)
-=======
-- introduce junit reports for test output [\#104](https://github.com/modbus2mqtt/server/pull/104) ([volkmarnissen](https://github.com/volkmarnissen))
-- Disable failing test [\#103](https://github.com/modbus2mqtt/server/pull/103) ([volkmarnissen](https://github.com/volkmarnissen))
-- Jest coverage report and markdown preparation [\#102](https://github.com/modbus2mqtt/server/pull/102) ([volkmarnissen](https://github.com/volkmarnissen))
-- Add ModbusCache draft. Not productive [\#101](https://github.com/modbus2mqtt/server/pull/101) ([volkmarnissen](https://github.com/volkmarnissen))
-- Update introduction.md [\#99](https://github.com/modbus2mqtt/server/pull/99) ([modbus2mqtt](https://github.com/modbus2mqtt))
-- Adding test to check if specifications with discrete inputs and coils… [\#98](https://github.com/modbus2mqtt/server/pull/98) ([arturmietek](https://github.com/arturmietek))
-- rename backendTCP Test because it's failing [\#97](https://github.com/modbus2mqtt/server/pull/97) ([volkmarnissen](https://github.com/volkmarnissen))
-- rename backendTCP Test because it's failing [\#96](https://github.com/modbus2mqtt/server/pull/96) ([volkmarnissen](https://github.com/volkmarnissen))
-- Modbus2mqtt [\#95](https://github.com/modbus2mqtt/server/pull/95) ([volkmarnissen](https://github.com/volkmarnissen))
-- Fix BackendTCP [\#94](https://github.com/modbus2mqtt/server/pull/94) ([volkmarnissen](https://github.com/volkmarnissen))
-- Fix BackendTCP [\#93](https://github.com/modbus2mqtt/server/pull/93) ([volkmarnissen](https://github.com/volkmarnissen))
-- Added status page for modbus errors per slave, cypress tests [\#92](https://github.com/modbus2mqtt/server/pull/92) ([volkmarnissen](https://github.com/volkmarnissen))
-- Adding discrete inputs, rewriten logic for writing registers [\#88](https://github.com/modbus2mqtt/server/pull/88) ([arturmietek](https://github.com/arturmietek))
->>>>>>> 7eecfe5 (Update CHANGELOG.md)
-=======
-- Merge pull request \#41 from volkmarnissen/main [\#2](https://github.com/volkmarnissen/server/pull/2) ([volkmarnissen](https://github.com/volkmarnissen))
->>>>>>> 98b6115 (Update CHANGELOG.md)
-<<<<<<< HEAD
->>>>>>> a62ae0d (Update CHANGELOG.md)
-=======
-=======
->>>>>>> 13d1a8f (Update CHANGELOG.md)
->>>>>>> 8b22b4c (Update CHANGELOG.md)
 
 ## [v0.16.25](https://github.com/modbus2mqtt/server/tree/v0.16.25) (2025-01-16)
 
-[Full Changelog](https://github.com/volkmarnissen/server/compare/v0.16.10...v0.16.12)
-
-## [v0.16.10](https://github.com/volkmarnissen/server/tree/v0.16.10) (2024-10-26)
-
-[Full Changelog](https://github.com/volkmarnissen/server/compare/v0.16.0...v0.16.10)
+[Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.16.24...v0.16.25)
 
 **Merged pull requests:**
 
-- Enable automated Checkin of hassio-addon-repositoryFix releaseAddon.py [\#1](https://github.com/volkmarnissen/server/pull/1) ([volkmarnissen](https://github.com/volkmarnissen))
+- v0.16.25: Fix decimal places: Passing unchanged value to payload [\#85](https://github.com/modbus2mqtt/server/pull/85) ([volkmarnissen](https://github.com/volkmarnissen))
 
-## [v0.16.0](https://github.com/volkmarnissen/server/tree/v0.16.0) (2024-08-19)
+## [v0.16.24](https://github.com/modbus2mqtt/server/tree/v0.16.24) (2025-01-15)
 
-[Full Changelog](https://github.com/volkmarnissen/server/compare/v0.15.0...v0.16.0)
+[Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.16.23...v0.16.24)
 
-## [v0.15.0](https://github.com/volkmarnissen/server/tree/v0.15.0) (2024-08-16)
+**Closed issues:**
 
+<<<<<<< HEAD
 [Full Changelog](https://github.com/volkmarnissen/server/compare/v0.13.0...v0.15.0)
 
 ## [v0.13.0](https://github.com/volkmarnissen/server/tree/v0.13.0) (2024-08-16)
@@ -466,108 +345,37 @@
 ## [v0.16.0](https://github.com/modbus2mqtt/server/tree/v0.16.0) (2024-08-19)
 
 [Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.15.0...v0.16.0)
+=======
+- HA discovery messages are published without retain flag [\#82](https://github.com/modbus2mqtt/server/issues/82)
+- Number precision missing in HA [\#81](https://github.com/modbus2mqtt/server/issues/81)
+- \[BUG\] changing UOM doesn't work via GUI [\#80](https://github.com/modbus2mqtt/server/issues/80)
+- \[BUG\] Variable Properties -\> Unit of Measurement -\> Referenced Entity not selectable [\#79](https://github.com/modbus2mqtt/server/issues/79)
+>>>>>>> 3059faf (Update CHANGELOG.md)
 
 **Merged pull requests:**
 
-- Added Release Process [\#1](https://github.com/modbus2mqtt/server/pull/1) ([volkmarnissen](https://github.com/volkmarnissen))
+- v0.16.24: Fix package.json [\#84](https://github.com/modbus2mqtt/server/pull/84) ([volkmarnissen](https://github.com/volkmarnissen))
+- Fixes [\#83](https://github.com/modbus2mqtt/server/pull/83) ([volkmarnissen](https://github.com/volkmarnissen))
 
-## [v0.15.0](https://github.com/modbus2mqtt/server/tree/v0.15.0) (2024-08-16)
+## [v0.16.23](https://github.com/modbus2mqtt/server/tree/v0.16.23) (2025-01-02)
 
-[Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.13.0...v0.15.0)
+[Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.16.22...v0.16.23)
 
-## [v0.13.0](https://github.com/modbus2mqtt/server/tree/v0.13.0) (2024-08-16)
+**Closed issues:**
 
-[Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.12.0...v0.13.0)
+- Unable to read uint23 [\#70](https://github.com/modbus2mqtt/server/issues/70)
 
-## [v0.12.0](https://github.com/modbus2mqtt/server/tree/v0.12.0) (2024-08-06)
-
-[Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.11.0...v0.12.0)
-
-## [v0.11.0](https://github.com/modbus2mqtt/server/tree/v0.11.0) (2024-08-05)
-
-[Full Changelog](https://github.com/modbus2mqtt/server/compare/0.10.0...v0.11.0)
-
-## [0.10.0](https://github.com/modbus2mqtt/server/tree/0.10.0) (2024-07-26)
-
-[Full Changelog](https://github.com/modbus2mqtt/server/compare/0.9.0...0.10.0)
-
-## [0.9.0](https://github.com/modbus2mqtt/server/tree/0.9.0) (2024-07-25)
-
-[Full Changelog](https://github.com/modbus2mqtt/server/compare/0.8.0...0.9.0)
-
-## [0.8.0](https://github.com/modbus2mqtt/server/tree/0.8.0) (2024-06-21)
-
-[Full Changelog](https://github.com/modbus2mqtt/server/compare/e10c8d90dae26c00b0dde56c430bab4944c645de...0.8.0)
-
-=======
->>>>>>> e9b84a2 (Update CHANGELOG.md)
-=======
->>>>>>> 5368097 (Update CHANGELOG.md)
-=======
->>>>>>> 25d52e3 (Update CHANGELOG.md)
-\* _This Changelog was automatically generated by [github_changelog_generator](https://github.com/github-changelog-generator/github-changelog-generator)_
-=======
-=======
->>>>>>> 64dcffa (Update CHANGELOG.md)
-## [v0.16.21](https://github.com/modbus2mqtt/server/tree/v0.16.21) (2024-12-31)
-=======
-[Full Changelog](https://github.com/volkmarnissen/server/compare/e10c8d90dae26c00b0dde56c430bab4944c645de...0.8.0)
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> 1c65490 (Update CHANGELOG.md)
-
-
-<<<<<<< HEAD
 **Merged pull requests:**
 
-- v0.16.21 [\#75](https://github.com/modbus2mqtt/server/pull/75) ([volkmarnissen](https://github.com/volkmarnissen))
+- MQTT: Fix sending ModbusValues parsing errors [\#77](https://github.com/modbus2mqtt/server/pull/77) ([volkmarnissen](https://github.com/volkmarnissen))
 
-## [v0.13.0](https://github.com/volkmarnissen/server/tree/v0.13.0) (2024-08-16)
+## [v0.16.22](https://github.com/modbus2mqtt/server/tree/v0.16.22) (2025-01-02)
 
-[Full Changelog](https://github.com/volkmarnissen/server/compare/v0.12.0...v0.13.0)
+[Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.16.21...v0.16.22)
 
-## [v0.12.0](https://github.com/volkmarnissen/server/tree/v0.12.0) (2024-08-06)
+**Merged pull requests:**
 
-[Full Changelog](https://github.com/volkmarnissen/server/compare/v0.11.0...v0.12.0)
-
-## [v0.11.0](https://github.com/volkmarnissen/server/tree/v0.11.0) (2024-08-05)
-
-[Full Changelog](https://github.com/volkmarnissen/server/compare/0.10.0...v0.11.0)
-
-## [0.10.0](https://github.com/volkmarnissen/server/tree/0.10.0) (2024-07-26)
-
-[Full Changelog](https://github.com/volkmarnissen/server/compare/0.9.0...0.10.0)
-
-## [0.9.0](https://github.com/volkmarnissen/server/tree/0.9.0) (2024-07-25)
-
-[Full Changelog](https://github.com/volkmarnissen/server/compare/0.8.0...0.9.0)
-
-## [0.8.0](https://github.com/volkmarnissen/server/tree/0.8.0) (2024-06-21)
-
-[Full Changelog](https://github.com/volkmarnissen/server/compare/c887779cc03ebbe51dd0b2eb0456314798829518...0.8.0)
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 430d0e9 (Update CHANGELOG.md)
-
-
-\* *This Changelog was automatically generated by [github_changelog_generator](https://github.com/github-changelog-generator/github-changelog-generator)*
-=======
-\* _This Changelog was automatically generated by [github_changelog_generator](https://github.com/github-changelog-generator/github-changelog-generator)_
->>>>>>> 7ce5ce4 (Update CHANGELOG.md)
-=======
-=======
-\* _This Changelog was automatically generated by [github_changelog_generator](https://github.com/github-changelog-generator/github-changelog-generator)_
-=======
-=======
->>>>>>> 8b22b4c (Update CHANGELOG.md)
-<<<<<<< HEAD \* _This Changelog was automatically generated by [github_changelog_generator](https://github.com/github-changelog-generator/github-changelog-generator)_
->>>>>>> a62ae0d (Update CHANGELOG.md)
-=======
+- v0.16.21 Add int32 and unsigned int 32 [\#76](https://github.com/modbus2mqtt/server/pull/76) ([volkmarnissen](https://github.com/volkmarnissen))
 
 ## [v0.16.21](https://github.com/modbus2mqtt/server/tree/v0.16.21) (2024-12-31)
 
@@ -695,7 +503,7 @@
 - Conflict with zigbee2mqtt - zigbee devices disappears [\#40](https://github.com/modbus2mqtt/server/issues/40)
 - \[Manufacturer related\] Unable to use negative temperatures [\#39](https://github.com/modbus2mqtt/server/issues/39)
 - \[FEAT\] Set availability of datapoint based on config-value [\#35](https://github.com/modbus2mqtt/server/issues/35)
-- \[BUG\] Measurements missing "state_class: measurement" [\#34](https://github.com/modbus2mqtt/server/issues/34)
+- \[BUG\] Measurements missing "state\_class: measurement" [\#34](https://github.com/modbus2mqtt/server/issues/34)
 - \[BUG\] Poll Interval not shown on creating slave [\#33](https://github.com/modbus2mqtt/server/issues/33)
 - \[FEAT\] disable auth [\#31](https://github.com/modbus2mqtt/server/issues/31)
 - \[FEAT\] support anonymous mqtt-connection [\#30](https://github.com/modbus2mqtt/server/issues/30)
@@ -703,7 +511,7 @@
 **Merged pull requests:**
 
 - Check all user services after reset [\#44](https://github.com/modbus2mqtt/server/pull/44) ([volkmarnissen](https://github.com/volkmarnissen))
-- MQTT discovery state_class, logon/MQTT no authentication [\#43](https://github.com/modbus2mqtt/server/pull/43) ([volkmarnissen](https://github.com/volkmarnissen))
+- MQTT discovery state\_class, logon/MQTT no authentication [\#43](https://github.com/modbus2mqtt/server/pull/43) ([volkmarnissen](https://github.com/volkmarnissen))
 - Merge pull request \#2 from modbus2mqtt/main [\#42](https://github.com/modbus2mqtt/server/pull/42) ([volkmarnissen](https://github.com/volkmarnissen))
 - Add cypress tests in ci [\#41](https://github.com/modbus2mqtt/server/pull/41) ([volkmarnissen](https://github.com/volkmarnissen))
 
@@ -813,43 +621,7 @@
 - Add release.py script [\#5](https://github.com/modbus2mqtt/server/pull/5) ([volkmarnissen](https://github.com/volkmarnissen))
 
 ## [v0.16.1](https://github.com/modbus2mqtt/server/tree/v0.16.1) (2024-08-21)
-=======
->>>>>>> 51de16f (Update CHANGELOG.md)
 
-<<<<<<< HEAD
-[Full Changelog](https://github.com/volkmarnissen/server/compare/c887779cc03ebbe51dd0b2eb0456314798829518...0.8.0)
-
-<<<<<<< HEAD
->>>>>>> c9f2561 (Update CHANGELOG.md)
-=======
-<<<<<<< HEAD
->>>>>>> 9938bdf (Update CHANGELOG.md)
-
-
-\* *This Changelog was automatically generated by [github_changelog_generator](https://github.com/github-changelog-generator/github-changelog-generator)*
->>>>>>> 983005f (Update CHANGELOG.md)
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> 25d52e3 (Update CHANGELOG.md)
-=======
-\* _This Changelog was automatically generated by [github_changelog_generator](https://github.com/github-changelog-generator/github-changelog-generator)_
->>>>>>> 64dcffa (Update CHANGELOG.md)
-=======
-\* *This Changelog was automatically generated by [github_changelog_generator](https://github.com/github-changelog-generator/github-changelog-generator)*
->>>>>>> 1c65490 (Update CHANGELOG.md)
-=======
-\* _This Changelog was automatically generated by [github_changelog_generator](https://github.com/github-changelog-generator/github-changelog-generator)_
->>>>>>> 7eecfe5 (Update CHANGELOG.md)
-=======
->>>>>>> c9f2561 (Update CHANGELOG.md)
-=======
-=======
-\* _This Changelog was automatically generated by [github_changelog_generator](https://github.com/github-changelog-generator/github-changelog-generator)_
->>>>>>> 51de16f (Update CHANGELOG.md)
-<<<<<<< HEAD
->>>>>>> 9938bdf (Update CHANGELOG.md)
-=======
-=======
 [Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.16.0...v0.16.1)
 
 **Merged pull requests:**
@@ -894,8 +666,6 @@
 
 [Full Changelog](https://github.com/modbus2mqtt/server/compare/e10c8d90dae26c00b0dde56c430bab4944c645de...0.8.0)
 
-=======
->>>>>>> 13d1a8f (Update CHANGELOG.md)
-\* _This Changelog was automatically generated by [github_changelog_generator](https://github.com/github-changelog-generator/github-changelog-generator)_
->>>>>>> 98b6115 (Update CHANGELOG.md)
->>>>>>> a62ae0d (Update CHANGELOG.md)
+
+
+\* *This Changelog was automatically generated by [github_changelog_generator](https://github.com/github-changelog-generator/github-changelog-generator)*
