@@ -30,9 +30,10 @@ import {
 } from '@modbus2mqtt/server.shared'
 import { ConfigSpecification } from '@modbus2mqtt/specification'
 import { Config } from './config'
-import { IModbusAPI, ModbusRTUWorker } from './ModbusRTUWorker'
+import {  ModbusRTUWorker } from './ModbusRTUWorker'
 import { ModbusRTUQueue } from './ModbusRTUQueue'
 import { IexecuteOptions, ModbusRTUProcessor } from './ModbusRTUProcessor'
+import { IModbusAPI } from './ModbusWorker'
 const debug = Debug('bus')
 const log = new Logger('bus')
 
@@ -56,7 +57,7 @@ export class Bus implements IModbusAPI {
           b.getSlaves().forEach((s) => {
             s.evalTimeout = true
           })
-          this.busses?.push(b)
+          Bus.busses!.push(b)
         }
       })
       // delete removed busses
@@ -116,7 +117,8 @@ export class Bus implements IModbusAPI {
           
         } else reject('Bus does not exist')
         
-      }
+      }else
+        resolve(this)
     })
   }
   static deleteBus(busid: number) {
@@ -128,6 +130,8 @@ export class Bus implements IModbusAPI {
   }
   static getBus(busid: number): Bus | undefined {
     // debug("getBus()")
+    if( Bus.getBusses() == undefined)
+      return undefined
     return Bus.getBusses().find((b) => b.properties.busId == busid)
   }
 

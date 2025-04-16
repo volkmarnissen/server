@@ -1,11 +1,16 @@
 import { describe, expect, it } from '@jest/globals'
-import { IModbusAPI, ModbusRTUWorker } from '../src/ModbusRTUWorker'
+import { ModbusRTUWorker } from '../src/ModbusRTUWorker'
+import { IModbusAPI } from '../src/ModbusWorker'
 import { ReadRegisterResultWithDuration } from '../src/bus'
-import { ModbusRTUQueue } from '../src/ModbusRTUQueue'
+import { ModbusErrorActions, ModbusRTUQueue } from '../src/ModbusRTUQueue'
 import { ModbusRegisterType } from '@modbus2mqtt/specification.shared'
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU'
 let data = 198
 class FakeBus implements IModbusAPI {
+  reconnected:boolean =false
+  reconnectRTU(task: string) {
+    return new Promise<void>((resolve)=>{this.reconnected = true; resolve()}) 
+  }
   writeHoldingRegisters(slaveid: number, dataaddress: number, data: ReadRegisterResult): Promise<void> {                     
     return new Promise<void>((resolve) => {
         expect(data.data[0]).toBeGreaterThanOrEqual( 200)
@@ -28,7 +33,16 @@ class FakeBus implements IModbusAPI {
   }
   readCoils(slaveid: number, dataaddress: number, length: number): Promise<ReadRegisterResultWithDuration> {
     return new Promise<ReadRegisterResultWithDuration>((_resolve, reject) => {
-      reject(new Error('Error'))
+      switch (dataaddress){
+        case 199:
+          reject(new Error('Error'))
+          break;
+        case 200:
+          let e = new Error("Error");
+          (e as any).errno = "ETIMEOUT"
+          reject( e)
+      }
+      
     })
   }
   readDiscreteInputs(slaveid: number, dataaddress: number, length: number): Promise<ReadRegisterResultWithDuration> {
@@ -41,6 +55,7 @@ class FakeBus implements IModbusAPI {
 class ModbusRTUWorkerForTest extends ModbusRTUWorker {
   public callCount: number
   public isRunningForTest: boolean
+  public expectedReconnected: boolean = false
   constructor(
     modbusAPI: IModbusAPI,
     queue: ModbusRTUQueue,
@@ -53,7 +68,8 @@ class ModbusRTUWorkerForTest extends ModbusRTUWorker {
     this.isRunningForTest = false
   }
   override onFinish(): void {                    
-   expect(this.callCount).toBe(this.expectedCallCount)
+   expect(this.callCount).toBe(this.expectedCallCount);
+    expect((this.modbusAPI as FakeBus).reconnected).toBe( this.expectedReconnected)
     this.done()
   }
 }
@@ -75,7 +91,7 @@ function enqueue(queue: ModbusRTUQueue, num: number, test: Itest) {
       test.worker!.isRunningForTest = false
       
     },
-    (e) => {}
+    (e) => {return ModbusErrorActions.handledNoReconnect}
   )
 }
 function enqueueWrite(queue: ModbusRTUQueue, num: number, test: Itest) {
@@ -92,7 +108,7 @@ function enqueueWrite(queue: ModbusRTUQueue, num: number, test: Itest) {
         test.worker!.isRunningForTest = false
         
       },
-      (e) => {}
+      (e) => {return ModbusErrorActions.handledNoReconnect}
     )
   }
 describe('ModbusRTUWorker read', () => {
@@ -119,12 +135,68 @@ describe('ModbusRTUWorker read', () => {
       },
       (e) => {
         test.worker!.callCount++
+        return ModbusErrorActions.notHandled
       }
     )
 
     test.worker = new ModbusRTUWorkerForTest(new FakeBus(), queue, done, 1, "read")
+    test.worker.expectedReconnected = false
     test.worker.run()
   })
+  it('Sequential read error processing with reconnect', (done) => {
+    let queue = new ModbusRTUQueue()
+    let test:Itest = { }
+    queue.enqueue(
+      1,
+      { registerType: ModbusRegisterType.Coils, address: 199 },
+      (result) => {
+        // should not be called, because of error
+        expect(true).toBeFalsy()
+      },
+      (e) => {
+        test.worker!.callCount++
+        if( test.worker!.callCount < 2){
+          queue.retry(e)
+          return ModbusErrorActions.handledReconnect
+        }
+        else
+          return ModbusErrorActions.notHandled
+        
+      }
+    )
+
+    test.worker = new ModbusRTUWorkerForTest(new FakeBus(), queue, done, 2, "read")
+    test.worker.expectedReconnected = true
+    test.worker.run()
+    
+})
+
+  it('Sequential read error processing: Timeout', (done) => {
+    let queue = new ModbusRTUQueue()
+    let test:Itest = { }
+    queue.enqueue(
+      1,
+      { registerType: ModbusRegisterType.Coils, address: 200 },
+      (result) => {
+        // should not be called, because of error
+        expect(true).toBeFalsy()
+      },
+      (e) => {
+        test.worker!.callCount++
+        if(test.worker!.callCount <2){
+          queue.retry(e)
+          return ModbusErrorActions.handledNoReconnect
+        }
+        else
+          return ModbusErrorActions.notHandled
+      }
+    )
+
+    test.worker = new ModbusRTUWorkerForTest(new FakeBus(), queue, done, 2, "readExcpetion")
+    test.worker.run()
+    
+  })
+
 })
 describe('ModbusRTUWorker write', () => {
     it('Sequential read and write successful processing', (done) => {
@@ -139,22 +211,5 @@ describe('ModbusRTUWorker write', () => {
       // Hopefully, the run process resetted the queue before next queue entry is added
       enqueueWrite(queue, 201,test)
     })
-    it('Sequential read error processing', (done) => {
-      let queue = new ModbusRTUQueue()
-      let test:Itest = { }
-      queue.enqueue(
-        1,
-        { registerType: ModbusRegisterType.Coils, address: 199 },
-        (result) => {
-          // should not be called, because of error
-          expect(true).toBeFalsy()
-        },
-        (e) => {
-          test.worker!.callCount++
-        }
-      )
-  
-      test.worker = new ModbusRTUWorkerForTest(new FakeBus(), queue, done, 1, "writeExcpetion")
-      test.worker.run()
-    })
+
   })
