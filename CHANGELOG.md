@@ -4,9 +4,17 @@
 
 [Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.16.26...HEAD)
 
+**Implemented enhancements:**
+
+- \[BUG\] TCP-Connection not kept alive [\#32](https://github.com/modbus2mqtt/server/issues/32)
+
 **Closed issues:**
 
 - \[BUG\] no latest-tag on docker image [\#86](https://github.com/modbus2mqtt/server/issues/86)
+
+**Merged pull requests:**
+
+- Modbuscache [\#106](https://github.com/modbus2mqtt/server/pull/106) ([modbus2mqtt](https://github.com/modbus2mqtt))
 
 ## [v0.16.26](https://github.com/modbus2mqtt/server/tree/v0.16.26) (2025-04-14)
 
@@ -665,7 +673,10 @@
 ## [0.8.0](https://github.com/modbus2mqtt/server/tree/0.8.0) (2024-06-21)
 
 [Full Changelog](https://github.com/modbus2mqtt/server/compare/e10c8d90dae26c00b0dde56c430bab4944c645de...0.8.0)
+<<<<<<< HEAD
 >>>>>>> 0fd24ac (Update CHANGELOG.md)
+=======
+>>>>>>> f3e13ab (Update CHANGELOG.md)
 
 
 
