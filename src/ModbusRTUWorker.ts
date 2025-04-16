@@ -1,10 +1,11 @@
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU'
-import { Bus, ReadRegisterResultWithDuration } from './bus'
-import { ModbusRTUQueue, IQueueEntry, ModbusErrorActions } from './ModbusRTUQueue'
-import { IFunctionCode, ModbusRegisterType } from '@modbus2mqtt/specification.shared'
-import ModbusRTU from 'modbus-serial'
+import { ReadRegisterResultWithDuration } from './bus'
+import { ModbusRTUQueue, ModbusErrorActions } from './ModbusRTUQueue'
 import { IModbusAPI, ModbusWorker } from './ModbusWorker'
-import { IReadRegisterResultOrError, Logger, LogLevelEnum } from '@modbus2mqtt/specification'
+import { Logger, LogLevelEnum } from '@modbus2mqtt/specification'
+import Debug from 'debug'
+
+const debug = Debug('modbusrtuprocessor')
 
 type TModbusReadFunction = (slaveid: number, dataaddress: number, length: number) => Promise<ReadRegisterResultWithDuration>
 type TModbusWriteFunction = (slaveid: number, dataaddress: number, data: ReadRegisterResult) => Promise<void>
@@ -52,12 +53,14 @@ export class ModbusRTUWorker extends ModbusWorker {
                         resolve()
                       })
                       .catch((e) => {
-                        if(current.onError(current, e) == ModbusErrorActions.handledReconnect)
+                        if(current.onError(current, e) == ModbusErrorActions.handledReconnect){
+                          debug("Reconnect RTU")
                           this.modbusAPI.reconnectRTU('ReconnectOnError').then(()=>{
                           }).catch(e1=>{
                             log.log(LogLevelEnum.error, "Unable to reconnect: " + e1.message )
                             current.onError(current, e)
                           })
+                        }
                         resolve()
                       })
                 })

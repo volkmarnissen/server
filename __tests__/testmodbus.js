@@ -6,7 +6,6 @@ const client = new ModbusRTU();
 client.connectRTUBuffered("/dev/ttyUSB0", { baudRate: 9600 }, read);
 
 function write() {
-    client.setID(1);
 
     // write the values 0, 0xffff to registers starting at address 5
     // on device number 1.
@@ -17,6 +16,11 @@ function write() {
 function read() {
     // read the 2 registers starting at address 5
     // on device number 1.
-    client.readHoldingRegisters(1, 2)
-        .then(console.log);
+    client.setID(1);
+    client.readHoldingRegisters(1, 5)
+        .then(result=>{
+            console.log("OK")
+        }).catch(e=>{
+            console.log("error")
+        });
 }
