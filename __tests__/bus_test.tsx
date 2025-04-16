@@ -2,7 +2,7 @@ import Debug from 'debug'
 import { expect, it, describe, beforeAll, jest } from '@jest/globals'
 import { Config } from '../src/config'
 import { Bus } from '../src/bus'
-import { yamlDir } from './configsbase'
+import { initBussesForTest, yamlDir } from './configsbase'
 import { ModbusServer, XYslaveid } from './../src/modbusTCPserver'
 import { IdentifiedStates, ImodbusEntity, ImodbusSpecification } from '@modbus2mqtt/specification.shared'
 import { ConfigSpecification, IReadRegisterResultOrError, LogLevelEnum } from '@modbus2mqtt/specification'
@@ -19,14 +19,13 @@ Config['sslDir'] = yamlDir
 beforeAll(() => {
   jest.restoreAllMocks()
   jest.clearAllMocks()
-
+  initBussesForTest()
   Config['yamlDir'] = yamlDir
   new ConfigSpecification().readYaml()
   return new Promise<void>((resolve, reject) => {
     new Config()
       .readYamlAsync()
       .then(() => {
-        ConfigBus.readBusses()
         resolve()
       })
       .catch(reject)
@@ -145,7 +144,6 @@ function testWrite(
 }
 it('Bus getSpecsForDevice', (done) => {
   prepareIdentification()
-  ;(Config['config'] as Iconfiguration).fakeModbus = true
   if (Config.getConfiguration().fakeModbus) debug(LogLevelEnum.notice, 'Fakemodbus')
   Bus.getBus(0)!
     .getAvailableSpecs(1, false)

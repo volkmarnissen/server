@@ -478,14 +478,16 @@ export class HttpServer extends HttpServerBase {
 
       if (req.query.busid != undefined) {
         let bus = Bus.getBus(busid)
-        if (bus) bus.updateBus(req.body)
-        else {
+        if (bus) bus.updateBus(req.body).then((bus)=>{
+          this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify({busid: bus.properties.busId}))
+        }).catch(e=>{
           this.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, 'Bus not found in busses')
-          return
-        }
-      } else busid = Bus.addBus(req.body).properties.busId
-      let rc1 = { busid: busid }
-      this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(rc1))
+        })
+      } else Bus.addBus(req.body).then( bus=>{
+          this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify({busid: bus.properties.busId}))
+        }).catch(e=>{
+        this.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, e.message)
+      })
     })
 
     this.post(apiUri.modbusEntity, (req: GetRequestWithParameter, res: http.ServerResponse) => {

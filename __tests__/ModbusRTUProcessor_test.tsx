@@ -2,7 +2,8 @@ import { jest, expect, it } from "@jest/globals"
 import { ModbusRegisterType } from "@modbus2mqtt/specification.shared"
 import test from "node:test"
 import { ModbusRTUProcessor } from "../src/ModbusRTUProcessor"
-import { ImodbusAddress, ModbusRTUQueue } from "../src/ModbusRTUQueue"
+import { ImodbusAddress, IQueueEntry, ModbusErrorActions, ModbusRTUQueue } from "../src/ModbusRTUQueue"
+import { IReadRegisterResultOrError } from "@modbus2mqtt/specification"
 function addAddresses(addresses: Set<ImodbusAddress>, registerType:ModbusRegisterType, startAddress:number,endAddress:number ){
     for( let idx= startAddress; idx < endAddress; idx++)
     addresses.add({
@@ -21,16 +22,58 @@ it('prepare', () => {
   let queue = new ModbusRTUQueue()
   let modbusProcessor = new ModbusRTUProcessor(queue)
   let preparedAddresses = modbusProcessor['prepare'](1,addresses)
-  expect(preparedAddresses.length).toBe(3)
-  expect(preparedAddresses[0].address).toBe(0)
-  expect(preparedAddresses[0].length).toBe(4)
-  expect(preparedAddresses[0].registerType).toBe(ModbusRegisterType.Coils)
-  expect(preparedAddresses[1].address).toBe(0)
-  expect(preparedAddresses[1].length).toBe(9)
-  expect(preparedAddresses[1].registerType).toBe(ModbusRegisterType.HoldingRegister)
-  expect(preparedAddresses[2].address).toBe(27)
-  expect(preparedAddresses[2].length).toBe(2)
-  expect(preparedAddresses[2].registerType).toBe(ModbusRegisterType.HoldingRegister)
+  expect(preparedAddresses.addresses.length).toBe(3)
+  expect(preparedAddresses.addresses[0].address).toBe(0)
+  expect(preparedAddresses.addresses[0].length).toBe(4)
+  expect(preparedAddresses.addresses[0].registerType).toBe(ModbusRegisterType.Coils)
+  expect(preparedAddresses.addresses[1].address).toBe(0)
+  expect(preparedAddresses.addresses[1].length).toBe(9)
+  expect(preparedAddresses.addresses[1].registerType).toBe(ModbusRegisterType.HoldingRegister)
+  expect(preparedAddresses.addresses[2].address).toBe(27)
+  expect(preparedAddresses.addresses[2].length).toBe(2)
+  expect(preparedAddresses.addresses[2].registerType).toBe(ModbusRegisterType.HoldingRegister)
+})
+
+function prepareQueue():IQueueEntry{
+    let qe:IQueueEntry =  {
+        slaveId:1,
+        address:{address:1,length:2, registerType:ModbusRegisterType.HoldingRegister},
+        onError(qe,e){return ModbusErrorActions.notHandled},
+        onResolve(result){}
+    }
+    return qe;
+}
+
+it('handleError: ETIMEDOUT',()=>{
+    let queue = new ModbusRTUQueue()
+    let modbusProcessor = new ModbusRTUProcessor(queue)
+    let qe = prepareQueue()
+    let ie= {
+        error: {name:"name", message:"message", errno:"ETIMEDOUT"}
+    }
+    expect(modbusProcessor['errorHandler'](qe,ie)).toBe(ModbusErrorActions.handledNoReconnect)
+    expect(queue.getLength()).toBe(1)
+})
+
+it('handleError: notHandled Illegal function',()=>{
+    let queue = new ModbusRTUQueue()
+    let modbusProcessor = new ModbusRTUProcessor(queue)
+    let qe = prepareQueue()
+    let ie= {
+        error: {name:"name", message:"message", modbusCode:1}
+    }
+    expect(modbusProcessor['errorHandler'](qe,ie)).toBe(ModbusErrorActions.notHandled)
+    expect(queue.getLength()).toBe(0)
+})
+it('handleError: handledReconnect',()=>{
+    let queue = new ModbusRTUQueue()
+    let modbusProcessor = new ModbusRTUProcessor(queue)
+    let qe = prepareQueue()
+    let ie= {
+        error: {name:"name", message:"message", modbusCode:3}
+    }
+    expect(modbusProcessor['errorHandler'](qe,ie)).toBe(ModbusErrorActions.handledReconnect)
+    expect(queue.getLength()).toBe(1)
 })
 
 it('execute', () => {
@@ -43,7 +86,7 @@ it('execute', () => {
     let modbusProcessor = new ModbusRTUProcessor(queue)
     let length = queue.getLength()
     let entries = queue.getEntries()
-    queue.clear
+    queue.clear()
     entries.forEach( (qe,idx)=>{
         if( qe.address.registerType == ModbusRegisterType.Coils )
             qe.onResolve({result:{data:[1,1,0,0], buffer: Buffer.allocUnsafe(8)}, duration:199 })

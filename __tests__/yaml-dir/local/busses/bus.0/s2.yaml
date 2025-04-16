@@ -1,4 +1,3 @@
 specificationid: waterleveltransmitter
 slaveid: 2
 pollInterval: 100
-evalTimeout: true

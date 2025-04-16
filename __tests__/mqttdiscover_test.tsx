@@ -20,7 +20,7 @@ import {
   MqttClient,
 } from 'mqtt'
 import { submitGetHoldingRegisterRequest } from '../src/submitRequestMock'
-import { FakeModes, FakeMqtt, yamlDir } from './configsbase'
+import { FakeModes, FakeMqtt, initBussesForTest, yamlDir } from './configsbase'
 import { Bus } from '../src/bus'
 import Debug from 'debug'
 import { ConfigSpecification, Logger } from '@modbus2mqtt/specification'
@@ -93,6 +93,7 @@ beforeAll((done) => {
   Config['config'] = {} as any
   ConfigSpecification.yamlDir = yamlDir
   Config.sslDir = yamlDir
+  initBussesForTest()
   md = MqttDiscover.getInstance()
   let fake = new FakeMqtt(md, FakeModes.Poll)
   md['client'] = fake as any as MqttClient
