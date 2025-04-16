@@ -479,7 +479,7 @@ export class HttpServer extends HttpServerBase {
       if (req.query.busid != undefined) {
         let bus = Bus.getBus(busid)
         if (bus) bus.updateBus(req.body).then((bus)=>{
-          this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(bus))
+          this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify({busid: bus.properties.busId}))
         }).catch(e=>{
           this.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, 'Bus not found in busses')
         })

@@ -1,14 +1,12 @@
 import { ImodbusValues, IReadRegisterResultOrError, LogLevelEnum } from '@modbus2mqtt/specification'
 import { ModbusRegisterType } from '@modbus2mqtt/specification.shared'
-import { ImodbusAddress, IQueueEntry, IQueueOptions, ModbusErrorStates, ModbusRTUQueue } from './ModbusRTUQueue'
+import { ImodbusAddress, IQueueEntry, IQueueOptions, ModbusErrorActions, ModbusErrorStates, ModbusRTUQueue } from './ModbusRTUQueue'
 import { ReadRegisterResultWithDuration } from './bus'
 import { Logger } from '@modbus2mqtt/specification'
 import Debug from 'debug'
 
 const debug = Debug('modbusrtuprocessor')
-const debugData = Debug('modbusrtuprocessor.data')
-const debugNext = Debug('modbusrtuprocessor.next')
-const debugTime = Debug('modbusrtuprocessor.time')
+const debugLog = Debug('modbusrtuprocessor.log')
 const log = new Logger('modbusrtuprocessor')
 
 const maxAddressDelta = 10
@@ -66,7 +64,10 @@ export class ModbusRTUProcessor {
     return {slave:slaveId, addresses: preparedAddresses }
   }
   private logNotice(msg: string, options?: IexecuteOptions) {
-    if (options == undefined|| !options.printLogs) return
+    if (options == undefined|| !options.printLogs) {
+      debugLog(msg)
+      return
+    }
     // suppress similar duplicate messages
     let repeatMessage =
       ModbusRTUProcessor.lastNoticeMessageTime != undefined &&
@@ -87,8 +88,10 @@ export class ModbusRTUProcessor {
    * @param error
    * @returns true if the error was handled
    */
-  private errorHandler(currentEntry: IQueueEntry, result: IReadRegisterResultOrError, options?: IexecuteOptions): boolean {
-    if ((result.error! as any).errno == 'ETIMEDOUT' && currentEntry.errorState != ModbusErrorStates.timeout) {
+  private errorHandler(currentEntry: IQueueEntry, result: IReadRegisterResultOrError, options?: IexecuteOptions): ModbusErrorActions {
+    if(result.error == undefined)
+      return ModbusErrorActions.notHandled
+    if ((result.error as any).errno == 'ETIMEDOUT' && currentEntry.errorState != ModbusErrorStates.timeout) {
       this.logNotice(
         (options && options.task ? options.task : '') +
           ' TIMEOUT: slave:' +
@@ -104,10 +107,28 @@ export class ModbusRTUProcessor {
       )
       currentEntry.errorState = ModbusErrorStates.timeout
       this.queue.retry(currentEntry)
-      return true
+      return ModbusErrorActions.handledNoReconnect
+    }else{
+      let modbusCode = (result.error as any).modbusCode
+      if( modbusCode == undefined)
+        return ModbusErrorActions.notHandled
+      switch (modbusCode) {
+          case 1: //Illegal Function Code. No need to retry
+          return ModbusErrorActions.notHandled
+          case 2: // Illegal Address. No need to retry
+          return ModbusErrorActions.notHandled
+          default:
+            if( currentEntry.errorState != ModbusErrorStates.crc){
+              currentEntry.errorState = ModbusErrorStates.crc
+              this.queue.retry(currentEntry)
+              return ModbusErrorActions.handledReconnect
+            }
+            else{
+              log.log(LogLevelEnum.error, 'Aborting: Modbus Error: ' + modbusCode)
+              return ModbusErrorActions.notHandled
+            }
+      }  
     }
-
-    return false
   }
   private countResults(results:ImodbusValues):number{
     let properties = Object.getOwnPropertyNames(results)
@@ -116,7 +137,7 @@ export class ModbusRTUProcessor {
     size += results.discreteInputs.size
     return size + results.holdingRegisters.size
   }
-  private countAddresses(addresses: Set<ImodbusAddress>):number{
+  private countAddresses(addresses: ImodbusAddress[]):number{
     let size:number = 0
     addresses.forEach(address=>{ size +=(address.length != undefined? address.length:1)})
     return size
@@ -124,7 +145,13 @@ export class ModbusRTUProcessor {
   execute(slaveId: number, addresses: Set<ImodbusAddress>, options?: IexecuteOptions): Promise<ImodbusValues> {
     return new Promise<ImodbusValues>((resolve) => {
       let preparedAddresses = this.prepare(slaveId, addresses)
-      let addressCount = this.countAddresses(addresses)
+      debug("Request: execute slaveId: " + slaveId + "=====================")
+      for( let a of preparedAddresses.addresses){
+          debug(a.registerType + ":"  + a.address +"(" + (a.length?a.length:1)+")")
+      }
+      debug("=====================")
+
+      let addressCount = this.countAddresses(preparedAddresses.addresses)
       let values: ImodbusValues = {
         holdingRegisters: new Map<number, IReadRegisterResultOrError>(),
         analogInputs: new Map<number, IReadRegisterResultOrError>(),
@@ -142,7 +169,7 @@ export class ModbusRTUProcessor {
           preparedAddresses.slave,
           address,
           (result) => {
-            if( result == undefined || undefined == address.write)
+            if( result == undefined || undefined != address.write)
                 throw new Error("Only read results expected for slave: " + slaveId + " function code: " + address.registerType + " address: " + address.address)
             resultCount++
             if (address.length != undefined)
@@ -154,19 +181,36 @@ export class ModbusRTUProcessor {
                 resultMaps.get(address.registerType)!.set(address.address + idx, r)
               }
             else resultMaps.get(address.registerType)!.set(address.address, result)
-
-            if (this.countResults(values) == addressCount) resolve(values)
-          },
+            let valueCount = this.countResults(values)
+            debug( "Result("  + slaveId  + "/" + valueCount + "/" + addressCount + ") startaddress: " + address.address +"(" + (address.length?address.length:1) + ")" +": " + result.result!.data[0] )
+            if (valueCount == addressCount) {
+              debug("Finished slaveId: " + slaveId + " addresses.length:" + preparedAddresses.addresses.length )
+              resolve(values)
+            }
+        },
           (currentEntry, error) => {
             let r: IReadRegisterResultOrError = { error: error }
+            let handledAction = this.errorHandler(currentEntry, r, options)
+            if(handledAction != ModbusErrorActions.notHandled)
+              return handledAction
+            else
+            {
+              debug( "Failure not handled: " + error.message)
+              // error is not handled by the error handler
+              resultCount++
+            
+              if (address.length != undefined)
+                for (let idx = 0; idx < address.length; idx++) resultMaps.get(address.registerType)!.set(address.address + idx, r)
+              else resultMaps.get(address.registerType)!.set(address.address, r)
 
-            if (!this.errorHandler(currentEntry, r, options)) resultCount++
-
-            if (address.length != undefined)
-              for (let idx = 0; idx < address.length; idx++) resultMaps.get(address.registerType)!.set(address.address + idx, r)
-            else resultMaps.get(address.registerType)!.set(address.address, r)
-        
-            if (this.countResults(values) == addressCount) resolve(values)
+              let valueCount = this.countResults(values)
+              debug( "Error(" + slaveId  + "/" + valueCount + "/" + addressCount + ") Failure not handled: " + error.message)
+              if (valueCount == addressCount) {
+                debug("Finished slaveId: " + slaveId + " addresses.length:" + preparedAddresses.addresses.length )
+                resolve(values)
+              }
+              return ModbusErrorActions.notHandled;
+            }
           },options
         )
       })

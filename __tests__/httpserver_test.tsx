@@ -529,6 +529,7 @@ describe('http POST', () => {
   test('POST /modbus/bus: update bus', (done) => {
     let conn = structuredClone(Bus.getBus(0)!.properties.connectionData)
     conn.timeout = 500
+    initBussesForTest()
     ConfigBus.updateBusProperties(Bus.getBus(0)!.properties!, conn)
     //@ts-ignore
     supertest(httpServer['app'])

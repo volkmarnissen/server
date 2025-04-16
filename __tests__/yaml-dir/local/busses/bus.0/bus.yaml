@@ -1,3 +1,3 @@
 baudrate: 9600
 serialport: .gitignore
-timeout: 500
+timeout: 100

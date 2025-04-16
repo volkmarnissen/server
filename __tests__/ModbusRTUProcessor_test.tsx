@@ -2,7 +2,8 @@ import { jest, expect, it } from "@jest/globals"
 import { ModbusRegisterType } from "@modbus2mqtt/specification.shared"
 import test from "node:test"
 import { ModbusRTUProcessor } from "../src/ModbusRTUProcessor"
-import { ImodbusAddress, ModbusRTUQueue } from "../src/ModbusRTUQueue"
+import { ImodbusAddress, IQueueEntry, ModbusErrorActions, ModbusRTUQueue } from "../src/ModbusRTUQueue"
+import { IReadRegisterResultOrError } from "@modbus2mqtt/specification"
 function addAddresses(addresses: Set<ImodbusAddress>, registerType:ModbusRegisterType, startAddress:number,endAddress:number ){
     for( let idx= startAddress; idx < endAddress; idx++)
     addresses.add({
@@ -31,6 +32,48 @@ it('prepare', () => {
   expect(preparedAddresses.addresses[2].address).toBe(27)
   expect(preparedAddresses.addresses[2].length).toBe(2)
   expect(preparedAddresses.addresses[2].registerType).toBe(ModbusRegisterType.HoldingRegister)
+})
+
+function prepareQueue():IQueueEntry{
+    let qe:IQueueEntry =  {
+        slaveId:1,
+        address:{address:1,length:2, registerType:ModbusRegisterType.HoldingRegister},
+        onError(qe,e){return ModbusErrorActions.notHandled},
+        onResolve(result){}
+    }
+    return qe;
+}
+
+it('handleError: ETIMEDOUT',()=>{
+    let queue = new ModbusRTUQueue()
+    let modbusProcessor = new ModbusRTUProcessor(queue)
+    let qe = prepareQueue()
+    let ie= {
+        error: {name:"name", message:"message", errno:"ETIMEDOUT"}
+    }
+    expect(modbusProcessor['errorHandler'](qe,ie)).toBe(ModbusErrorActions.handledNoReconnect)
+    expect(queue.getLength()).toBe(1)
+})
+
+it('handleError: notHandled Illegal function',()=>{
+    let queue = new ModbusRTUQueue()
+    let modbusProcessor = new ModbusRTUProcessor(queue)
+    let qe = prepareQueue()
+    let ie= {
+        error: {name:"name", message:"message", modbusCode:1}
+    }
+    expect(modbusProcessor['errorHandler'](qe,ie)).toBe(ModbusErrorActions.notHandled)
+    expect(queue.getLength()).toBe(0)
+})
+it('handleError: handledReconnect',()=>{
+    let queue = new ModbusRTUQueue()
+    let modbusProcessor = new ModbusRTUProcessor(queue)
+    let qe = prepareQueue()
+    let ie= {
+        error: {name:"name", message:"message", modbusCode:3}
+    }
+    expect(modbusProcessor['errorHandler'](qe,ie)).toBe(ModbusErrorActions.handledReconnect)
+    expect(queue.getLength()).toBe(1)
 })
 
 it('execute', () => {
