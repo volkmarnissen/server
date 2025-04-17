@@ -11,9 +11,10 @@ export interface ImodbusAddress {
   length?: number
 }
 export enum ModbusErrorStates {
+  noerror,
   timeout,
   crc,
-  other,
+  other
 }
 export enum ModbusErrorActions {
   notHandled,
@@ -25,8 +26,10 @@ export interface IQueueEntry {
   slaveId: number
   address: ImodbusAddress
   onResolve: (result?: ReadRegisterResultWithDuration) => void
-  onError: (queueEntry: IQueueEntry, e: any) => ModbusErrorActions
+  onError: (queueEntry: IQueueEntry, e: any) => void
   errorState?: ModbusErrorStates
+  errorCount?:number
+  error?:any
   options?: IQueueOptions
 }
 export interface IQueueOptions {
@@ -46,7 +49,7 @@ export class ModbusRTUQueue {
     slaveId: number,
     address: ImodbusAddress,
     onResolve: (result?: ReadRegisterResultWithDuration) => void,
-    onError: (queueEntry: IQueueEntry, e: any) => ModbusErrorActions,
+    onError: (queueEntry: IQueueEntry, e: any) => void,
     options?: IQueueOptions
   ) {
     let entry: IQueueEntry = {
