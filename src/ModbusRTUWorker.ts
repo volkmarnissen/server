@@ -118,6 +118,8 @@ export class ModbusRTUWorker extends ModbusWorker {
       )
         .then((result) => {
           delete current.error
+          if(current.errorState!= undefined && current.errorState != ModbusErrorStates.noerror)
+            this.debugMessage(current," was successful now")
           current.errorState = ModbusErrorStates.noerror
           current.onResolve(result)
           resolve()
@@ -126,6 +128,7 @@ export class ModbusRTUWorker extends ModbusWorker {
           this.handleErrors(current,e).then(result=>{
             resolve()
           }).catch(e=>{
+            this.debugMessage(current," failed permanently")
             current.onError(current, e)
             resolve()
           })
