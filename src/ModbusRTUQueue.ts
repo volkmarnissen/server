@@ -58,6 +58,7 @@ export class ModbusRTUQueue {
       onResolve: onResolve,
       onError: onError,
       options: options,
+      errorState: ModbusErrorStates.noerror
     }
     if (entry.options && entry.options.useCache) this.eventEmitter.emit(EventCachedEntry, entry)
     else this.retry(entry)
