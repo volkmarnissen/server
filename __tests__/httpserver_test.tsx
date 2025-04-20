@@ -150,7 +150,9 @@ beforeAll(() => {
       }
       let fake = new FakeMqtt(mdl, FakeModes.Poll)
       mdl['client'] = fake as any as MqttClient
-      mdl['equalConnectionData']= ()=>{return true}
+      mdl['equalConnectionData'] = () => {
+        return true
+      }
       httpServer = new HttpServer(join(yamlDir, 'angular'))
 
       httpServer.setModbusCacheAvailable()
@@ -290,7 +292,8 @@ xit('register,login validate fails on github', (done) => {
               done()
             })
           })
-        }).catch((_err) => {
+        })
+        .catch((_err) => {
           expect(false).toBeTruthy()
         })
     })
@@ -393,9 +396,11 @@ test('ADD/DELETE /busses', (done) => {
   initBussesForTest()
 
   let oldLength = Bus.getBusses().length
-  const mockStaticF = jest.fn((connection: IModbusConnection) => Promise.resolve(new Bus({busId:7, slaves:[],connectionData:{} as any })));
+  const mockStaticF = jest.fn((connection: IModbusConnection) =>
+    Promise.resolve(new Bus({ busId: 7, slaves: [], connectionData: {} as any }))
+  )
   let orig = Bus.addBus
-  Bus.addBus= mockStaticF
+  Bus.addBus = mockStaticF
   supertest(httpServer['app'])
     .post('/api/bus')
     .accept('application/json')

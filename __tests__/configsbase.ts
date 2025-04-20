@@ -61,7 +61,7 @@ export class FakeMqtt {
   public on(event: 'message', cb: () => {}) {}
 }
 
-export function initBussesForTest(){
+export function initBussesForTest() {
   ConfigBus.readBusses()
   let ibs = ConfigBus.getBussesProperties()
   if (!Bus['busses']) Bus['busses'] = []
@@ -76,6 +76,4 @@ export function initBussesForTest(){
       Bus['busses']!.push(b)
     }
   })
-
 }
-

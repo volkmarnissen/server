@@ -75,7 +75,7 @@ export class Modbus {
           }
           if (Config.getConfiguration().fakeModbus)
             submitGetHoldingRegisterRequest({ busid: bus.getId(), slaveid: slaveid }, addresses).then(rcf).catch(reject)
-          else bus.readModbusRegister( slaveid, addresses,{task: 'readEntity'}).then(rcf).catch(reject)
+          else bus.readModbusRegister(slaveid, addresses, { task: 'readEntity' }).then(rcf).catch(reject)
         }
       } else {
         let msg = 'Bus ' + bus.properties.busId + ' has no configured Specification'
@@ -115,7 +115,7 @@ export class Modbus {
 
     debugAction('getModbusSpecificationFromData start read from modbus')
     bus
-      .readModbusRegister(slaveid, addresses, {task:task})
+      .readModbusRegister(slaveid, addresses, { task: task })
       .then((values) => {
         debugAction('getModbusSpecificationFromData end read from modbus')
         Modbus.populateEntitiesForSpecification(specification!, values, sub)

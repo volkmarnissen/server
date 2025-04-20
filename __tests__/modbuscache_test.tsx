@@ -139,7 +139,6 @@ describe('submitGetHoldingRegisterRequests', () => {
   beforeAll(() => {
     oldLog = Logger.prototype.log
     Logger.prototype.log = jest.fn()
-    
   })
   afterAll(() => {
     Logger.prototype.log = oldLog
@@ -253,4 +252,3 @@ test('writeRegisters', (done) => {
       expect(false).toBeTruthy
     })
 })
-

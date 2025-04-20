@@ -39,14 +39,14 @@ const log = new Logger('modbus2mqtt')
 export class Modbus2Mqtt {
   pollTasks() {
     debugAction('readBussesFromConfig starts')
-      if (Config.getConfiguration().githubPersonalToken)
-        new ConfigSpecification().filterAllSpecifications((spec) => {
-          if (spec.status == SpecificationStatus.contributed && spec.pullNumber != undefined) {
-            M2mSpecification.startPolling(spec.filename, (e) => {
-              log.log(LogLevelEnum.error, 'Github:' + e.message)
-            })
-          }
-        })  
+    if (Config.getConfiguration().githubPersonalToken)
+      new ConfigSpecification().filterAllSpecifications((spec) => {
+        if (spec.status == SpecificationStatus.contributed && spec.pullNumber != undefined) {
+          M2mSpecification.startPolling(spec.filename, (e) => {
+            log.log(LogLevelEnum.error, 'Github:' + e.message)
+          })
+        }
+      })
   }
   init() {
     let cli = new Command()
@@ -75,75 +75,77 @@ export class Modbus2Mqtt {
     readConfig.readYamlAsync
       .bind(readConfig)()
       .then(() => {
-          ConfigSpecification.setMqttdiscoverylanguage(
-            Config.getConfiguration().mqttdiscoverylanguage,
-            Config.getConfiguration().githubPersonalToken
-          )
-          debug(Config.getConfiguration().mqttconnect.mqttserverurl)
-          let angulardir: undefined | string = undefined
-  
-          // hard coded workaround
-          // let angulardir = require.resolve('@modbus2mqtt/angular')
-          // Did not work in github workflow for testing
-          let dir = dirname(argv[1])
-          while (dir.length > 0 && (!angulardir || !fs.existsSync(angulardir))) {
-            angulardir = join(dir, 'angular/dist/browser')
-            if (!fs.existsSync(angulardir)) angulardir = join(dir, 'node_modules/@modbus2mqtt/angular/dist/browser')
-            dir = dirname(dir)
-          }
-          if (!angulardir || !fs.existsSync(angulardir)) {
-            log.log(LogLevelEnum.error, 'Unable to find angular start file ' + angulardir)
-            process.exit(2)
-          } else log.log(LogLevelEnum.notice, 'angulardir is ' + angulardir)
-          let angulardirLang = path.parse(angulardir).dir
-          debug('http root : ' + angulardir)
-          let gh = new M2mGitHub(
-            Config.getConfiguration().githubPersonalToken ? Config.getConfiguration().githubPersonalToken! : null,
-            join(ConfigSpecification.yamlDir, 'public')
-          )
-          let startServer = () => {
-            let md = MqttDiscover.getInstance()
-            ConfigBus.readBusses()
-            Bus.readBussesFromConfig().then(()=>{
-              this.pollTasks()
-              debugAction('readBussesFromConfig done')
-              debug('Inititialize busses done')
-              //execute every 30 minutes
-              setInterval(
-                () => {
-                  this.pollTasks()
-                },
-                30 * 1000 * 60
-              )
-              if (httpServer)
-                httpServer
-                  .init()
-                  .then(() => {
-                    httpServer!.listen(() => {
-                      log.log(LogLevelEnum.notice, `modbus2mqtt listening on  ${os.hostname()}: ${Config.getConfiguration().httpport}`)
-                      new ConfigSpecification().deleteNewSpecificationFiles()
-                      Bus.getAllAvailableModusData()
-                      if (process.env.MODBUS_NOPOLL == undefined) {
-                        md.startPolling()
-                      } else {
-                        log.log(LogLevelEnum.notice, 'Poll disabled by environment variable MODBUS_POLL')
-                      }
-                    })
+        ConfigSpecification.setMqttdiscoverylanguage(
+          Config.getConfiguration().mqttdiscoverylanguage,
+          Config.getConfiguration().githubPersonalToken
+        )
+        debug(Config.getConfiguration().mqttconnect.mqttserverurl)
+        let angulardir: undefined | string = undefined
+
+        // hard coded workaround
+        // let angulardir = require.resolve('@modbus2mqtt/angular')
+        // Did not work in github workflow for testing
+        let dir = dirname(argv[1])
+        while (dir.length > 0 && (!angulardir || !fs.existsSync(angulardir))) {
+          angulardir = join(dir, 'angular/dist/browser')
+          if (!fs.existsSync(angulardir)) angulardir = join(dir, 'node_modules/@modbus2mqtt/angular/dist/browser')
+          dir = dirname(dir)
+        }
+        if (!angulardir || !fs.existsSync(angulardir)) {
+          log.log(LogLevelEnum.error, 'Unable to find angular start file ' + angulardir)
+          process.exit(2)
+        } else log.log(LogLevelEnum.notice, 'angulardir is ' + angulardir)
+        let angulardirLang = path.parse(angulardir).dir
+        debug('http root : ' + angulardir)
+        let gh = new M2mGitHub(
+          Config.getConfiguration().githubPersonalToken ? Config.getConfiguration().githubPersonalToken! : null,
+          join(ConfigSpecification.yamlDir, 'public')
+        )
+        let startServer = () => {
+          let md = MqttDiscover.getInstance()
+          ConfigBus.readBusses()
+          Bus.readBussesFromConfig().then(() => {
+            this.pollTasks()
+            debugAction('readBussesFromConfig done')
+            debug('Inititialize busses done')
+            //execute every 30 minutes
+            setInterval(
+              () => {
+                this.pollTasks()
+              },
+              30 * 1000 * 60
+            )
+            if (httpServer)
+              httpServer
+                .init()
+                .then(() => {
+                  httpServer!.listen(() => {
+                    log.log(
+                      LogLevelEnum.notice,
+                      `modbus2mqtt listening on  ${os.hostname()}: ${Config.getConfiguration().httpport}`
+                    )
+                    new ConfigSpecification().deleteNewSpecificationFiles()
+                    Bus.getAllAvailableModusData()
+                    if (process.env.MODBUS_NOPOLL == undefined) {
+                      md.startPolling()
+                    } else {
+                      log.log(LogLevelEnum.notice, 'Poll disabled by environment variable MODBUS_POLL')
+                    }
                   })
-                  .catch((e) => {
-                    log.log(LogLevelEnum.error, 'Start polling Contributions: ' + e.message)
-                  })  
-            })
-          }
-          httpServer = new HttpServer(angulardir)
-          debugAction('readBussesFromConfig starts')
-          gh.init()
-            .then(startServer)
-            .catch((e) => {
-              startServer()
-            })
-        })
-        
+                })
+                .catch((e) => {
+                  log.log(LogLevelEnum.error, 'Start polling Contributions: ' + e.message)
+                })
+          })
+        }
+        httpServer = new HttpServer(angulardir)
+        debugAction('readBussesFromConfig starts')
+        gh.init()
+          .then(startServer)
+          .catch((e) => {
+            startServer()
+          })
+      })
   }
 }
 let m = new Modbus2Mqtt()
