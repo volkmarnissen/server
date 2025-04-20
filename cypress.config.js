@@ -217,7 +217,7 @@ module.exports = defineConfig({
       console.log('Startup Logging is ' + (logStartupFlag ? 'enabled' : 'disabled'))
       logServersFlag = config.env.logservers
       console.log('Server Logging is ' + (logServersFlag ? 'enabled' : 'disabled'))
-     
+
       // implement node event listeners here
       on('task', {
         mqttConnect(connectionData) {

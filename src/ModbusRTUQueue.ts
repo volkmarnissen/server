@@ -14,7 +14,7 @@ export enum ModbusErrorStates {
   noerror,
   timeout,
   crc,
-  other
+  other,
 }
 export enum ModbusErrorActions {
   notHandled,
@@ -28,8 +28,8 @@ export interface IQueueEntry {
   onResolve: (result?: ReadRegisterResultWithDuration) => void
   onError: (queueEntry: IQueueEntry, e: any) => void
   errorState?: ModbusErrorStates
-  errorCount?:number
-  error?:any
+  errorCount?: number
+  error?: any
   options?: IQueueOptions
 }
 export interface IQueueOptions {
@@ -43,7 +43,7 @@ export class ModbusRTUQueue {
   }
   retry(entry: IQueueEntry) {
     this.list.push(entry)
-    this.eventEmitter.emit('newEntry')
+    this.eventEmitter.emit(EventNewEntry)
   }
   enqueue(
     slaveId: number,
@@ -58,7 +58,7 @@ export class ModbusRTUQueue {
       onResolve: onResolve,
       onError: onError,
       options: options,
-      errorState: ModbusErrorStates.noerror
+      errorState: ModbusErrorStates.noerror,
     }
     if (entry.options && entry.options.useCache) this.eventEmitter.emit(EventCachedEntry, entry)
     else this.retry(entry)
