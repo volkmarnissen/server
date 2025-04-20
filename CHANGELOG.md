@@ -10,6 +10,7 @@
 
 **Closed issues:**
 
+- Timeout after docker restart [\#107](https://github.com/modbus2mqtt/server/issues/107)
 - \[BUG\] no latest-tag on docker image [\#86](https://github.com/modbus2mqtt/server/issues/86)
 
 **Merged pull requests:**
