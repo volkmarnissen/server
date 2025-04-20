@@ -2,9 +2,10 @@ import { ReadRegisterResult } from 'modbus-serial/ModbusRTU'
 import { ReadRegisterResultWithDuration } from './bus'
 import { ModbusRTUQueue, ModbusErrorActions, IQueueEntry, ModbusErrorStates } from './ModbusRTUQueue'
 import { IModbusAPI, ModbusWorker } from './ModbusWorker'
-import { Logger, LogLevelEnum } from '@modbus2mqtt/specification'
+import { ImodbusValues, IReadRegisterResultOrError, Logger, LogLevelEnum } from '@modbus2mqtt/specification'
 import Debug from 'debug'
 import { IexecuteOptions, ModbusRTUProcessor } from './ModbusRTUProcessor'
+import { ModbusRegisterType } from '@modbus2mqtt/specification.shared'
 
 const debug = Debug('modbusrtuworker')
 const log = new Logger('modbusrtuworker')
@@ -16,6 +17,7 @@ export class ModbusRTUWorker extends ModbusWorker {
   private isRunning = false
   private static lastNoticeMessageTime: number
   private static lastNoticeMessage: string
+  private cache = new Map<number, ImodbusValues>()
 
   constructor(modbusAPI: IModbusAPI, queue: ModbusRTUQueue) {
     super(modbusAPI, queue)
@@ -132,10 +134,38 @@ export class ModbusRTUWorker extends ModbusWorker {
       }
     }
   }
-  private updateCache(current: IQueueEntry, result: ReadRegisterResultWithDuration) {}
+  private updateCache(current: IQueueEntry, result: ReadRegisterResult) {
+    let cacheEntry = this.cache.get(current.slaveId)
+    let f:IReadRegisterResultOrError
+    if( cacheEntry == undefined)
+      cacheEntry = {
+          holdingRegisters: new Map<number, IReadRegisterResultOrError>(),
+          analogInputs: new Map<number, IReadRegisterResultOrError>(),
+          coils: new Map<number, IReadRegisterResultOrError>(),
+          discreteInputs: new Map<number, IReadRegisterResultOrError>()
+      }
+    let table: Map<number, IReadRegisterResultOrError>| undefined = undefined
+     switch(current.address.registerType){
+      case ModbusRegisterType.AnalogInputs: 
+        table = cacheEntry.analogInputs
+        break;
+        case ModbusRegisterType.Coils: 
+        table = cacheEntry.coils
+        break;      case ModbusRegisterType.DiscreteInputs: 
+        table = cacheEntry.discreteInputs
+        break;      case ModbusRegisterType.HoldingRegister:
+        table = cacheEntry.holdingRegisters
+        break;
+      }
+      if( table != undefined )
+        for (let idx = 0; idx < (current.address.length?current.address.length:1); idx++){
+            if( result.data.length > idx)
+              table.set(current.address.address + idx, {result:{data:[result.data[idx]], buffer:Buffer.allocUnsafe(2)} })
+      }
+  }
 
   private updateCacheError(current: IQueueEntry, e: Error) {}
-  private getFromCache(current: IQueueEntry): ReadRegisterResultWithDuration | undefined {
+  private getFromCache(current: IQueueEntry): ImodbusValues | undefined {
     if (current.options && current.options.useCache) {
     }
     return undefined
