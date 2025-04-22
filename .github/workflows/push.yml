@@ -107,7 +107,7 @@ jobs:
         with:
           repository: modbus2mqtt/hassio-addon-repository
           path: hassio-addon-repository
-          ref: refs/heads/dev
+          ref: refs/heads/main
           token: ${{ secrets.PAT }}
 
       - name: 'create rootfs/usr/app directory'
@@ -151,7 +151,13 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{steps.releasecheck.outputs.latest}}-${{steps.platformcheck.outputs.platform}}:${{steps.prepareAddonDirectory.outputs.TAG_NAME}}
           labels: ${{ steps.meta.outputs.labels }}
         env:
-          BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+          BUILDX_NO_DEFAULT_ATTESTATIONS: 1    
+      - name: Delete latest packages
+        uses: actions/delete-package-versions@v5
+        with:
+            package-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{steps.releasecheck.outputs.latest}}-${{steps.platformcheck.outputs.platform}}
+            package-type: 'container'
+            min-versions-to-keep: 4
       - name: Copy CHANGELOG.mds
         run: |
           cd hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}
