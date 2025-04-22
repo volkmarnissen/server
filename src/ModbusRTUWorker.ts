@@ -136,31 +136,33 @@ export class ModbusRTUWorker extends ModbusWorker {
   }
   private updateCache(current: IQueueEntry, result: ReadRegisterResult) {
     let cacheEntry = this.cache.get(current.slaveId)
-    let f:IReadRegisterResultOrError
-    if( cacheEntry == undefined)
+    let f: IReadRegisterResultOrError
+    if (cacheEntry == undefined)
       cacheEntry = {
-          holdingRegisters: new Map<number, IReadRegisterResultOrError>(),
-          analogInputs: new Map<number, IReadRegisterResultOrError>(),
-          coils: new Map<number, IReadRegisterResultOrError>(),
-          discreteInputs: new Map<number, IReadRegisterResultOrError>()
+        holdingRegisters: new Map<number, IReadRegisterResultOrError>(),
+        analogInputs: new Map<number, IReadRegisterResultOrError>(),
+        coils: new Map<number, IReadRegisterResultOrError>(),
+        discreteInputs: new Map<number, IReadRegisterResultOrError>(),
       }
-    let table: Map<number, IReadRegisterResultOrError>| undefined = undefined
-     switch(current.address.registerType){
-      case ModbusRegisterType.AnalogInputs: 
+    let table: Map<number, IReadRegisterResultOrError> | undefined = undefined
+    switch (current.address.registerType) {
+      case ModbusRegisterType.AnalogInputs:
         table = cacheEntry.analogInputs
-        break;
-        case ModbusRegisterType.Coils: 
+        break
+      case ModbusRegisterType.Coils:
         table = cacheEntry.coils
-        break;      case ModbusRegisterType.DiscreteInputs: 
+        break
+      case ModbusRegisterType.DiscreteInputs:
         table = cacheEntry.discreteInputs
-        break;      case ModbusRegisterType.HoldingRegister:
+        break
+      case ModbusRegisterType.HoldingRegister:
         table = cacheEntry.holdingRegisters
-        break;
-      }
-      if( table != undefined )
-        for (let idx = 0; idx < (current.address.length?current.address.length:1); idx++){
-            if( result.data.length > idx)
-              table.set(current.address.address + idx, {result:{data:[result.data[idx]], buffer:Buffer.allocUnsafe(2)} })
+        break
+    }
+    if (table != undefined)
+      for (let idx = 0; idx < (current.address.length ? current.address.length : 1); idx++) {
+        if (result.data.length > idx)
+          table.set(current.address.address + idx, { result: { data: [result.data[idx]], buffer: Buffer.allocUnsafe(2) } })
       }
   }
 
@@ -173,7 +175,7 @@ export class ModbusRTUWorker extends ModbusWorker {
   private executeModbusFunctionCodeRead(current: IQueueEntry): Promise<void> {
     let result = this.getFromCache(current)
     if (result != undefined) {
-      return new Promise<void>((resolve, reject)=>{
+      return new Promise<void>((resolve, reject) => {
         current.errorState = ModbusErrorStates.noerror
         current.onResolve(result)
         resolve()
