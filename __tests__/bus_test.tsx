@@ -5,7 +5,7 @@ import { Bus } from '../src/bus'
 import { initBussesForTest, yamlDir } from './configsbase'
 import { ModbusServer, XYslaveid } from './../src/modbusTCPserver'
 import { IdentifiedStates, ImodbusEntity, ImodbusSpecification } from '@modbus2mqtt/specification.shared'
-import { ConfigSpecification, IReadRegisterResultOrError, LogLevelEnum } from '@modbus2mqtt/specification'
+import { ConfigSpecification, IModbusResultOrError, LogLevelEnum } from '@modbus2mqtt/specification'
 import { singleMutex } from './configsbase'
 import { Iconfiguration, PollModes } from '@modbus2mqtt/server.shared'
 import { ConfigBus } from '../src/configbus'
@@ -67,7 +67,7 @@ function testRead(
   address2: number,
   value1: number,
   value2: number,
-  fc: (slaveid: number, address: number, length: any) => Promise<IReadRegisterResultOrError>
+  fc: (slaveid: number, address: number, length: any) => Promise<IModbusResultOrError>
 ): Promise<void> {
   return new Promise<void>((resolve) => {
     let tcpServer = new ModbusServer()
@@ -78,8 +78,8 @@ function testRead(
         bus!.connectRTU('test').then(() => {
           fc.bind(bus)(XYslaveid, address, 2)
             .then((value) => {
-              expect(value.result!.data[0]).toBe(value1)
-              expect(value.result!.data[1]).toBe(value2)
+              expect(value!.data![0]).toBe(value1)
+              expect(value!.data![1]).toBe(value2)
               fc.bind(bus)(XYslaveid, address2, 2)
                 .then((_value) => {
                   expect(true).toBeFalsy()

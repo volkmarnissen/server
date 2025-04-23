@@ -1,23 +1,19 @@
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU'
 import { ModbusRegisterType } from '@modbus2mqtt/specification.shared'
-import { ImodbusAddress, IslaveId } from './modbuscache'
-import { IReadRegisterResultOrError, ImodbusValues, emptyModbusValues } from '@modbus2mqtt/specification'
+import { IModbusResultOrError, ImodbusValues, emptyModbusValues } from '@modbus2mqtt/specification'
+import { ImodbusAddress } from './ModbusRTUQueue'
 
-export function getReadRegisterResult(n: number): IReadRegisterResultOrError {
-  let one: IReadRegisterResultOrError = {
-    result: {
-      data: [n],
-      buffer: Buffer.allocUnsafe(2),
-    },
+export function getReadRegisterResult(n: number): IModbusResultOrError {
+  let one: IModbusResultOrError = {
+    data: [n],
   }
-  one.result!.buffer.writeInt16BE(n)
   return one
 }
 
-export function submitGetHoldingRegisterRequest(_slaveid: IslaveId, addresses: Set<ImodbusAddress>): Promise<ImodbusValues> {
+export function submitGetHoldingRegisterRequest(slaveid: number, addresses: Set<ImodbusAddress>): Promise<ImodbusValues> {
   return new Promise<ImodbusValues>((resolve, reject) => {
     let rc = emptyModbusValues()
-    if (_slaveid.slaveid > 10) {
+    if (slaveid > 10) {
       reject(new Error('terminate more slaveid '))
       return
     }
@@ -36,7 +32,7 @@ export function submitGetHoldingRegisterRequest(_slaveid: IslaveId, addresses: S
           m = rc.discreteInputs
           break
       }
-      if (_slaveid.slaveid == 1)
+      if (slaveid == 1)
         switch (a) {
           case 0:
             m.set(addr.address, getReadRegisterResult(1))

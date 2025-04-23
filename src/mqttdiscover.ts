@@ -334,10 +334,12 @@ export class MqttDiscover {
             let modbus = parts.length == 5 && parts[4] == modbusValues
             if (!Config.getConfiguration().fakeModbus) {
               if (modbus)
-                promise = Modbus.writeEntityModbus(busAndSlave.bus, busAndSlave.slave.slaveid, entity, {
-                  data: JSON.parse(payload.toString()),
-                  buffer: Buffer.allocUnsafe(0),
-                })
+                promise = Modbus.writeEntityModbus(
+                  busAndSlave.bus,
+                  busAndSlave.slave.slaveid,
+                  entity,
+                  JSON.parse(payload.toString())
+                )
               else promise = Modbus.writeEntityMqtt(busAndSlave.bus, busAndSlave.slave.slaveid, spec, entity.id, payload.toString())
             } // for Testing
             else return (modbus ? 'Modbus ' : 'MQTT ') + payload.toString()
@@ -353,10 +355,7 @@ export class MqttDiscover {
     const cnv = ConverterMap.getConverter(entity)
     if (cnv) {
       if (modbus)
-        return Modbus.writeEntityModbus(Bus.getBus(slave.getBusId())!, slave.getSlaveId(), entity, {
-          data: [Number.parseInt(payload)],
-          buffer: Buffer.allocUnsafe(0),
-        })
+        return Modbus.writeEntityModbus(Bus.getBus(slave.getBusId())!, slave.getSlaveId(), entity, [Number.parseInt(payload)])
       else {
         let spec = slave.getSpecification()
         if (spec)

@@ -1,7 +1,7 @@
-import { ImodbusValues, IReadRegisterResultOrError, LogLevelEnum } from '@modbus2mqtt/specification'
+import { ImodbusValues, IModbusResultOrError, LogLevelEnum } from '@modbus2mqtt/specification'
 import { ModbusRegisterType } from '@modbus2mqtt/specification.shared'
 import { ImodbusAddress, IQueueEntry, IQueueOptions, ModbusErrorActions, ModbusErrorStates, ModbusRTUQueue } from './ModbusRTUQueue'
-import { ReadRegisterResultWithDuration } from './bus'
+import { IModbusResultWithDuration } from './bus'
 import { Logger } from '@modbus2mqtt/specification'
 import Debug from 'debug'
 
@@ -105,12 +105,12 @@ export class ModbusRTUProcessor {
 
       let addressCount = this.countAddresses(preparedAddresses.addresses)
       let values: ImodbusValues = {
-        holdingRegisters: new Map<number, IReadRegisterResultOrError>(),
-        analogInputs: new Map<number, IReadRegisterResultOrError>(),
-        coils: new Map<number, IReadRegisterResultOrError>(),
-        discreteInputs: new Map<number, IReadRegisterResultOrError>(),
+        holdingRegisters: new Map<number, IModbusResultOrError>(),
+        analogInputs: new Map<number, IModbusResultOrError>(),
+        coils: new Map<number, IModbusResultOrError>(),
+        discreteInputs: new Map<number, IModbusResultOrError>(),
       }
-      let resultMaps = new Map<ModbusRegisterType, Map<number, IReadRegisterResultOrError>>()
+      let resultMaps = new Map<ModbusRegisterType, Map<number, IModbusResultOrError>>()
       resultMaps.set(ModbusRegisterType.AnalogInputs, values.analogInputs)
       resultMaps.set(ModbusRegisterType.HoldingRegister, values.holdingRegisters)
       resultMaps.set(ModbusRegisterType.Coils, values.coils)
@@ -120,8 +120,8 @@ export class ModbusRTUProcessor {
         this.queue.enqueue(
           preparedAddresses.slave,
           address,
-          (result) => {
-            if (result == undefined || undefined != address.write)
+          (data) => {
+            if (data == undefined || undefined != address.write)
               throw new Error(
                 'Only read results expected for slave: ' +
                   slaveId +
@@ -133,13 +133,12 @@ export class ModbusRTUProcessor {
             resultCount++
             if (address.length != undefined)
               for (let idx = 0; idx < address.length; idx++) {
-                let r: IReadRegisterResultOrError = {
-                  result: { data: [result.result!.data[idx]], buffer: Buffer.allocUnsafe(2) },
+                let r: IModbusResultOrError = {
+                  data: [data[idx]],
                 }
-                r.result!.buffer.writeUIntBE(result.result!.data[idx], 0, 2)
                 resultMaps.get(address.registerType)!.set(address.address + idx, r)
               }
-            else resultMaps.get(address.registerType)!.set(address.address, result)
+            else resultMaps.get(address.registerType)!.set(address.address, { data: data })
             let valueCount = this.countResults(values)
             debug(
               'Result(' +
@@ -154,7 +153,7 @@ export class ModbusRTUProcessor {
                 (address.length ? address.length : 1) +
                 ')' +
                 ': ' +
-                result.result!.data[0]
+                data[0]
             )
             if (valueCount == addressCount) {
               debug('Finished slaveId: ' + slaveId + ' addresses.length:' + preparedAddresses.addresses.length)
@@ -162,7 +161,7 @@ export class ModbusRTUProcessor {
             }
           },
           (currentEntry, error) => {
-            let r: IReadRegisterResultOrError = { error: error }
+            let r: IModbusResultOrError = { error: error }
 
             let id =
               'slave: ' +

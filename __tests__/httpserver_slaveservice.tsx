@@ -4,7 +4,6 @@ import { HttpServer as HttpServer } from '../src/httpserver'
 import { Config } from '../src/config'
 import supertest from 'supertest'
 import { Ientity, ImodbusSpecification } from '@modbus2mqtt/specification.shared'
-import { ModbusCache } from '../src/modbuscache'
 import { submitGetHoldingRegisterRequest } from '../src/submitRequestMock'
 import { Bus } from '../src/bus'
 import { Slave } from '@modbus2mqtt/server.shared'
@@ -60,7 +59,7 @@ beforeAll(() => {
       initBussesForTest()
       ;(Config as any)['fakeModbusCache'] = true
       jest.mock('../src/modbus')
-      ModbusCache.prototype.submitGetHoldingRegisterRequest = submitGetHoldingRegisterRequest
+      // TODO Fix test: ModbusCache.prototype.submitGetHoldingRegisterRequest = submitGetHoldingRegisterRequest
       HttpServer.prototype.authenticate = (req, res, next) => {
         next()
       }

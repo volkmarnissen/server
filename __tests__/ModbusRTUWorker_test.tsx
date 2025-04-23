@@ -1,8 +1,8 @@
 import { describe, expect, it } from '@jest/globals'
 import { ModbusRTUWorker } from '../src/ModbusRTUWorker'
 import { IModbusAPI } from '../src/ModbusWorker'
-import { ReadRegisterResultWithDuration } from '../src/bus'
-import { ModbusErrorActions, ModbusRTUQueue } from '../src/ModbusRTUQueue'
+import { IModbusResultWithDuration } from '../src/bus'
+import { IQueueEntry, ModbusErrorActions, ModbusRTUQueue } from '../src/ModbusRTUQueue'
 import { ModbusRegisterType } from '@modbus2mqtt/specification.shared'
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU'
 let data = 198
@@ -16,33 +16,33 @@ class FakeBus implements IModbusAPI {
       resolve()
     })
   }
-  writeHoldingRegisters(slaveid: number, dataaddress: number, data: ReadRegisterResult): Promise<void> {
+  writeHoldingRegisters(slaveid: number, dataaddress: number, data: number[]): Promise<void> {
     return new Promise<void>((resolve) => {
       this.wroteDataCount++
-      expect(data.data[0]).toBeGreaterThanOrEqual(200)
+      expect(data[0]).toBeGreaterThanOrEqual(200)
       resolve()
     })
   }
-  writeCoils(slaveid: number, dataaddress: number, data: ReadRegisterResult): Promise<void> {
+  writeCoils(slaveid: number, dataaddress: number, data: number[]): Promise<void> {
     return new Promise<void>((_resolve, reject) => {
       reject(new Error('Error'))
     })
   }
-  defaultRC = (resolve: (result: ReadRegisterResultWithDuration) => void, reject: (e: any) => void) => {
-    resolve({ result: { data: [0], buffer: Buffer.allocUnsafe(2) }, duration: 199 })
+  defaultRC = (resolve: (result: IModbusResultWithDuration) => void, reject: (e: any) => void) => {
+    resolve({ data: [0], duration: 199 })
   }
-  readHoldingRegisters(slaveid: number, dataaddress: number, length: number): Promise<ReadRegisterResultWithDuration> {
-    return new Promise<ReadRegisterResultWithDuration>((resolve) => {
+  readHoldingRegisters(slaveid: number, dataaddress: number, length: number): Promise<IModbusResultWithDuration> {
+    return new Promise<IModbusResultWithDuration>((resolve) => {
       data++
-      resolve({ result: { data: [data], buffer: Buffer.allocUnsafe(2) }, duration: data })
+      resolve({ data: [data], duration: data })
     })
   }
-  readCoils(slaveid: number, dataaddress: number, length: number): Promise<ReadRegisterResultWithDuration> {
-    return new Promise<ReadRegisterResultWithDuration>((resolve, reject) => {
+  readCoils(slaveid: number, dataaddress: number, length: number): Promise<IModbusResultWithDuration> {
+    return new Promise<IModbusResultWithDuration>((resolve, reject) => {
       if (this.callCount > 0) {
         this.callCount = 0
-        let r: ReadRegisterResultWithDuration = {
-          result: { data: [1], buffer: Buffer.allocUnsafe(1) },
+        let r: IModbusResultWithDuration = {
+          data: [1],
           duration: 100,
         }
         resolve(r)
@@ -77,11 +77,11 @@ class FakeBus implements IModbusAPI {
       }
     })
   }
-  readDiscreteInputs(slaveid: number, dataaddress: number, length: number): Promise<ReadRegisterResultWithDuration> {
-    return new Promise<ReadRegisterResultWithDuration>(this.defaultRC)
+  readDiscreteInputs(slaveid: number, dataaddress: number, length: number): Promise<IModbusResultWithDuration> {
+    return new Promise<IModbusResultWithDuration>(this.defaultRC)
   }
-  readInputRegisters(slaveid: number, dataaddress: number, length: number): Promise<ReadRegisterResultWithDuration> {
-    return new Promise<ReadRegisterResultWithDuration>(this.defaultRC)
+  readInputRegisters(slaveid: number, dataaddress: number, length: number): Promise<IModbusResultWithDuration> {
+    return new Promise<IModbusResultWithDuration>(this.defaultRC)
   }
 }
 class ModbusRTUWorkerForTest extends ModbusRTUWorker {
@@ -113,15 +113,13 @@ function enqueue(queue: ModbusRTUQueue, num: number, test: Itest) {
   queue.enqueue(
     1,
     { registerType: ModbusRegisterType.HoldingRegister, address: num },
-    (result) => {
+    (data) => {
       // validate no paralell processing
       expect(test.worker!.isRunningForTest).toBeFalsy()
       test.worker!.isRunningForTest = true
 
-      expect(result).toBeDefined()
-      expect(result!.duration).toBe(num)
-      expect(result!.result).toBeDefined()
-      expect(result!.result?.data[0]).toBe(num)
+      expect(data).toBeDefined()
+      expect(data![0]).toBe(num)
       test.worker!.isRunningForTest = false
     },
     (e) => {
@@ -132,7 +130,7 @@ function enqueue(queue: ModbusRTUQueue, num: number, test: Itest) {
 function enqueueWrite(queue: ModbusRTUQueue, num: number, test: Itest) {
   queue.enqueue(
     1,
-    { registerType: ModbusRegisterType.HoldingRegister, address: num, write: { data: [num], buffer: Buffer.allocUnsafe(2) } },
+    { registerType: ModbusRegisterType.HoldingRegister, address: num, write: [num] },
     () => {
       // validate no paralell processing
       expect(test.worker!.isRunningForTest).toBeFalsy()
@@ -165,7 +163,7 @@ describe('ModbusRTUWorker read', () => {
       1,
       { registerType: ModbusRegisterType.Coils, address: 199 },
       (result) => {
-        expect(result?.result?.data[0]).toBe(1)
+        expect(result![0]).toBe(1)
       },
       (e) => {
         // This should not happen
@@ -176,7 +174,7 @@ describe('ModbusRTUWorker read', () => {
       1,
       { registerType: ModbusRegisterType.Coils, address: 200 },
       (result) => {
-        expect(result?.result?.data[0]).toBe(1)
+        expect(result![0]).toBe(1)
       },
       (e) => {
         // This should not happen
@@ -216,7 +214,7 @@ describe('ModbusRTUWorker read', () => {
       1,
       { registerType: ModbusRegisterType.Coils, address: 199 },
       (result) => {
-        expect(result?.result?.data[0]).toBe(1)
+        expect(result![0]).toBe(1)
       },
       (e) => {
         // This should not happen
@@ -238,7 +236,7 @@ describe('ModbusRTUWorker read', () => {
       { registerType: ModbusRegisterType.Coils, address: 200 },
       (result) => {
         // should not be called, because of error
-        expect(result?.result?.data[0]).toBe(1)
+        expect(result![0]).toBe(1)
       },
       (e) => {
         // This should not happen
@@ -250,6 +248,80 @@ describe('ModbusRTUWorker read', () => {
     test.worker.expectedReconnected = false
     test.worker.expectedAPIcallCount = 0
     test.worker.run()
+  })
+})
+function genCacheEntry(
+  address: number,
+  onResult: (result: number[] | undefined) => void,
+  onError: (error: any) => void
+): IQueueEntry {
+  return {
+    slaveId: 1,
+    address: { address: address, length: 1, registerType: ModbusRegisterType.HoldingRegister },
+    options: { useCache: true },
+    onResolve: onResult,
+    onError: onError,
+  }
+}
+class RTUWorkerCached extends ModbusRTUWorker {
+  constructor(
+    api: IModbusAPI,
+    queue: ModbusRTUQueue,
+    private onFinishP: () => void
+  ) {
+    super(api, queue)
+  }
+  override onFinish(): void {
+    this.onFinishP()
+  }
+}
+describe('ModbusRTUWorker Cache', () => {
+  it('Read from cache', (done) => {
+    let queue = new ModbusRTUQueue()
+    let onResultCallCount = 0
+    let onErrorCallCount = 0
+    let e199 = genCacheEntry(
+      199,
+      (result) => {
+        onResultCallCount++
+        expect(result![0]).toBe(2)
+      },
+      () => {
+        onErrorCallCount++
+      }
+    )
+    let e200 = genCacheEntry(
+      200,
+      (result) => {
+        onResultCallCount++
+        expect(result![0]).toBe(2)
+      },
+      () => {
+        onErrorCallCount++
+      }
+    )
+    let e201 = genCacheEntry(
+      201,
+      (result) => {
+        onResultCallCount++
+        expect(result![0]).toBe(3)
+      },
+      () => {
+        onErrorCallCount++
+      }
+    )
+    let worker = new RTUWorkerCached(new FakeBus(), queue, () => {
+      expect(onResultCallCount).toBe(2)
+      expect(onErrorCallCount).toBe(1)
+      done()
+    })
+    worker['updateCache'](e199, [2])
+    worker['updateCacheError'](e200, new Error('Error'))
+    worker['updateCache'](e201, [3])
+    queue.enqueueEntry(e199)
+    queue.enqueueEntry(e200)
+    queue.enqueueEntry(e201)
+    worker.run()
   })
 })
 describe('ModbusRTUWorker write', () => {
