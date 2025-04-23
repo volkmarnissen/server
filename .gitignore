@@ -140,4 +140,4 @@ coverage-summary.json
 __tests__/yaml-dir/local/secrets.yaml
 documentation/test_overview.md
 coverage.txt
-git status --porcelain
+cypress/servers/modbustcp.conf/yaml-dir/public/
