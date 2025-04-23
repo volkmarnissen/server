@@ -137,4 +137,4 @@ e2e
 cypress/screenshots/
 coverage-summary.json
 coverage.txt
-git status --porcelain
+cypress/servers/modbustcp.conf/yaml-dir/public/
