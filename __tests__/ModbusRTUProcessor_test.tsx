@@ -3,7 +3,6 @@ import { ModbusRegisterType } from '@modbus2mqtt/specification.shared'
 import test from 'node:test'
 import { ModbusRTUProcessor } from '../src/ModbusRTUProcessor'
 import { ImodbusAddress, IQueueEntry, ModbusErrorActions, ModbusRTUQueue } from '../src/ModbusRTUQueue'
-import { IReadRegisterResultOrError } from '@modbus2mqtt/specification'
 function addAddresses(addresses: Set<ImodbusAddress>, registerType: ModbusRegisterType, startAddress: number, endAddress: number) {
   for (let idx = startAddress; idx < endAddress; idx++)
     addresses.add({
@@ -58,12 +57,12 @@ it('execute', (done) => {
     expect(result.coils.size).toBe(4)
     result.coils.forEach((res) => {
       expect(res.error).not.toBeDefined()
-      expect(res.result).toBeDefined()
+      expect(res.data).toBeDefined()
     })
     expect(result.holdingRegisters.size).toBe(9)
     result.holdingRegisters.forEach((res) => {
       expect(res.error).toBeDefined()
-      expect(res.result).not.toBeDefined()
+      expect(res.data).not.toBeDefined()
     })
     done()
   })
@@ -73,8 +72,7 @@ it('execute', (done) => {
     let entries = queue.getEntries()
     queue.clear()
     entries.forEach((qe, idx) => {
-      if (qe.address.registerType == ModbusRegisterType.Coils)
-        qe.onResolve({ result: { data: [1, 1, 0, 0], buffer: Buffer.allocUnsafe(8) }, duration: 199 })
+      if (qe.address.registerType == ModbusRegisterType.Coils) qe.onResolve([1, 1, 0, 0])
       else if (qe.address.address == 0 && qe.address.length != undefined && qe.address.length > 1) {
         let e: any = new Error('Timeout')
         e.errno = 'ETIMEDOUT'

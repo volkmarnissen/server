@@ -1,5 +1,5 @@
 import { IFunctionCode, ModbusRegisterType } from '@modbus2mqtt/specification.shared'
-import { Bus, ReadRegisterResultWithDuration } from './bus'
+import { Bus, IModbusResultWithDuration } from './bus'
 import EventEmitter from 'events'
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU'
 const EventNewEntry = 'newEntry'
@@ -7,7 +7,7 @@ const EventCachedEntry = 'cachedEntry'
 export interface ImodbusAddress {
   address: number
   registerType: ModbusRegisterType
-  write?: ReadRegisterResult
+  write?: number[]
   length?: number
 }
 export enum ModbusErrorStates {
@@ -25,7 +25,7 @@ export enum ModbusErrorActions {
 export interface IQueueEntry {
   slaveId: number
   address: ImodbusAddress
-  onResolve: (result?: ReadRegisterResultWithDuration) => void
+  onResolve: (result?: number[]) => void
   onError: (queueEntry: IQueueEntry, e: any) => void
   errorState?: ModbusErrorStates
   errorCount?: number
@@ -41,14 +41,14 @@ export class ModbusRTUQueue {
   constructor() {
     this.list = []
   }
-  retry(entry: IQueueEntry) {
+  enqueueEntry(entry: IQueueEntry) {
     this.list.push(entry)
     this.eventEmitter.emit(EventNewEntry)
   }
   enqueue(
     slaveId: number,
     address: ImodbusAddress,
-    onResolve: (result?: ReadRegisterResultWithDuration) => void,
+    onResolve: (result?: number[]) => void,
     onError: (queueEntry: IQueueEntry, e: any) => void,
     options?: IQueueOptions
   ) {
@@ -60,8 +60,7 @@ export class ModbusRTUQueue {
       options: options,
       errorState: ModbusErrorStates.noerror,
     }
-    if (entry.options && entry.options.useCache) this.eventEmitter.emit(EventCachedEntry, entry)
-    else this.retry(entry)
+    this.enqueueEntry(entry)
   }
   dequeue(): IQueueEntry | undefined {
     return this.list.shift()

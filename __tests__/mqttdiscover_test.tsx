@@ -9,7 +9,6 @@ import {
   SpecificationStatus,
   VariableTargetParameters,
 } from '@modbus2mqtt/specification.shared'
-import { ModbusCache } from '../src/modbuscache'
 import { ItopicAndPayloads, MqttDiscover } from '../src/mqttdiscover'
 import {
   Client,
@@ -87,7 +86,7 @@ let selectTestWritable: ImodbusEntity = {
 }
 
 beforeAll((done) => {
-  ModbusCache.prototype.submitGetHoldingRegisterRequest = submitGetHoldingRegisterRequest
+  // Fix ModbusCache ModbusCache.prototype.submitGetHoldingRegisterRequest = submitGetHoldingRegisterRequest
   oldLog = Logger.prototype.log
   Config['yamlDir'] = yamlDir
   Config['config'] = {} as any
