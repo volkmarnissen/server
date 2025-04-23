@@ -71,14 +71,25 @@ export class Bus implements IModbusAPI {
       debug('addBus()')
       let busP = ConfigBus.addBusProperties(connection)
       let b = Bus.getBusses().find((b) => b.getId() == busP.busId)
-      b!
-        .connectRTU('InitialConnect')
+      if( b == undefined )
+        Bus.readBussesFromConfig().then(()=>{
+          let b = Bus.getBusses().find((b) => b.getId() == busP.busId)
+          if(b != undefined )
+            b.connectRTU('InitialConnect')
+            .then(() => {
+              resolve(b!)
+            })
+            .catch(reject)
+        }).catch(reject)
+      else
+        b.connectRTU('InitialConnect')
         .then(() => {
           resolve(b!)
         })
         .catch(reject)
     })
   }
+
   private connectionChanged(connection: IModbusConnection): boolean {
     let rtu = this.properties.connectionData as IRTUConnection
     if (rtu.serialport) {
