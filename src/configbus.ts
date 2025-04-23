@@ -108,19 +108,10 @@ export class ConfigBus {
                 timeout: BUS_TIMEOUT_DEFAULT,
                 baudrate: 9600,
               })
-          } else
-            ConfigBus.addBusProperties({
-              serialport: '/dev/ttyACM0',
-              timeout: BUS_TIMEOUT_DEFAULT,
-              baudrate: 9600,
-            })
+          }
         },
-        () => {
-          ConfigBus.addBusProperties({
-            serialport: '/dev/ttyACM0',
-            timeout: BUS_TIMEOUT_DEFAULT,
-            baudrate: 9600,
-          })
+        (e) => {
+          debug("Error reading devices " + e.message)
         }
       )
     }
