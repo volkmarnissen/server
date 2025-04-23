@@ -140,3 +140,4 @@ coverage-summary.json
 __tests__/yaml-dir/local/secrets.yaml
 documentation/test_overview.md
 coverage.txt
+git status --porcelain
