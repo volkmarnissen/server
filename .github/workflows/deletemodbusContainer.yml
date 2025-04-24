@@ -2,27 +2,19 @@ name: Delete Modbus2mqtt Container Versions
 
 on:
   workflow_dispatch:
-
 jobs:
-  delete-container-versions:
+  delete_versions:
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    strategy:
+      matrix:
+        package: [ modbus2mqtt-latest-arm64, modbus2mqtt-latest-amd64, modbus2mqtt-amd64,modbus2mqtt-arm64, modbus2mqtt]
     steps:
-      - uses: modbus2mqtt/server/.github/workflows/deletecontainer.yml@latest
+      - name: Delete all untagged container versions
+        uses: actions/delete-package-versions@v5
         with:
-          package_name: 'modbus2mqtt.latest-arm64'
-      - uses: modbus2mqtt/server/.github/workflows/deletecontainer.yml@latest
-        with:
-          package_name: 'modbus2mqtt-arm64'
-      - uses: modbus2mqtt/server/.github/workflows/deletecontainer.yml@latest
-        with:
-          package_name: 'modbus2mqtt.latest-amd64'
-      - uses: modbus2mqtt/server/.github/workflows/deletecontainer.yml@latest
-        with:
-          package_name: 'modbus2mqtt-amd64'
-      - uses: modbus2mqtt/server/.github/workflows/deletecontainer.yml@latest
-        with:
-          package_name: 'modbus2mqtt'
-      - uses: modbus2mqtt/server/.github/workflows/deletecontainer.yml@latest
-        with:
-          package_name: 'modbus2mqtt-latest'
-        
+          delete-only-untagged-versions: 'false'
+          min-versions-to-keep: 4
+          package-name: ${{ matrix.package }}
+          package-type: container
