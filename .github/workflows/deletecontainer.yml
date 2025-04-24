@@ -32,6 +32,8 @@ on:
 jobs:
   delete_versions:
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
     steps:
       - name: Delete all untagged container versions
         uses: actions/delete-package-versions@v5
