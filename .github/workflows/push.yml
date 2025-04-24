@@ -172,13 +172,7 @@ jobs:
         with:
           repository: ./hassio-addon-repository
           tagging_message: ${{steps.prepareAddonDirectory.outputs.TAG_NAME}}
-          commit_message: ${{steps.prepareAddonDirectory.outputs.TAG_NAME}}
-      - name: Delete latest packages
-        uses: actions/delete-package-versions@v5
-        with:
-            package-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{steps.releasecheck.outputs.latest}}-${{steps.platformcheck.outputs.platform}}
-            package-type: 'container'
-            min-versions-to-keep: 4          
+          commit_message: ${{steps.prepareAddonDirectory.outputs.TAG_NAME}}  
   docker-tag:
     if: always()
     runs-on: ubuntu-latest
