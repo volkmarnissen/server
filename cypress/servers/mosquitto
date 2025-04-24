@@ -3,8 +3,9 @@
 set -e
 TMPDIR=`mktemp -d -t mosquittoXXXXXX`
 export TMPDIR
-trap 'echo signal 15 $TMPDIR; rm -rf $TMPDIR' 15
-trap 'echo signal 2 $TMPDIR; rm -rf $TMPDIR' 2
+export MPID=$$
+trap 'echo signal 15 $MPID $TMPDIR; rm -rf $TMPDIR; kill -15 $MPID; exit 1' 15
+trap 'echo signal 2 $MPID $TMPDIR; rm -rf $TMPDIR; kill -2 $MPID; exit 1;' 2
 
 echo homeassistant:homeassistant >$TMPDIR/password.txt 
 mosquitto_passwd -U $TMPDIR/password.txt
@@ -18,6 +19,7 @@ then
   EXEC=/opt/homebrew/sbin/mosquitto
 fi
 $EXEC -c $TMPDIR/mosquitto.conf &
-KILLPID=$!
+MPID=$!  
+KILLPID=$$
 echo KILLPID=$KILLPID
-wait $KILLPID
+wait $MPID
