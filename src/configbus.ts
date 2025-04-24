@@ -66,7 +66,6 @@ export class ConfigBus {
                 connectionData: connectionData,
                 slaves: [],
               })
-              oneBusFound = true
               let devFiles: string[] = fs.readdirSync(Config.yamlDir + '/local/busses/' + de.name)
 
               devFiles.forEach(function (file: string) {
@@ -91,31 +90,6 @@ export class ConfigBus {
         }
       })
     }
-    if (!oneBusFound) {
-      this.listDevices(
-        (devices) => {
-          if (devices && devices.length) {
-            let usb = devices.find((dev) => dev.toLocaleLowerCase().indexOf('usb') >= 0)
-            if (usb)
-              ConfigBus.addBusProperties({
-                serialport: usb,
-                timeout: BUS_TIMEOUT_DEFAULT,
-                baudrate: 9600,
-              })
-            else
-              ConfigBus.addBusProperties({
-                serialport: devices[0],
-                timeout: BUS_TIMEOUT_DEFAULT,
-                baudrate: 9600,
-              })
-          }
-        },
-        (e) => {
-          debug("Error reading devices " + e.message)
-        }
-      )
-    }
-
     debug('config: busses.length: ' + ConfigBus.busses.length)
   }
 

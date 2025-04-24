@@ -31,13 +31,15 @@ function logServer(msg) {
   if (logStartupFlag) console.log(msg)
 }
 function stopChildProcess(c) {
-  logStartup('stopChildProcess ' + c.command + ' ' + c.child_process.pid)
-  if (c.killpid > 0) {
-    logStartup(execFileSync('kill', ['-SIGINT', c.killpid.toString()]))
-  } else
-    c.child_process.kill('SIGINT', (err) => {
-      logStartup('Aborted: ' + JSON.stringify(err))
-    })
+  logStartup('stopChildProcess ' + c.command + ' ' + c.child_process.pid + ' ' + ( c.killpid?c.killpid:'no killpid'))
+  c.child_process.on('SIGINT', (err) => {
+    logStartup('Aborted: ' + JSON.stringify(err))
+  })
+  if (c.killpid > 0 && c.child_process.pid != c.killpid) {
+    logStartup('Killing ' + c.killpid)
+    process.kill(c.killpid,"SIGINT")
+  }
+  c.child_process.kill('SIGINT')
 }
 let stoppedTimer = {}
 let tmpdirs = []
@@ -52,7 +54,8 @@ function startProcesses(command, args, ports, controllerArray) {
         args.forEach((arg) => {
           let cmd = command + ' ' + arg
           logStartup('starting ' + cmd)
-          let child_process = spawn(path.join(execFile, command), arg.split(' '))
+          let child_process = spawn(path.join(execFile, command), arg.split(' '), {detached:true})
+          child_process.unref()
           const cmdObj = {
             command: cmd,
             prefix: arg,
@@ -67,11 +70,12 @@ function startProcesses(command, args, ports, controllerArray) {
                   if (line.startsWith('TMPDIR=')) {
                     let t = tmpdirs.find((tc) => tc.command == this.command)
                     let tmp = line.substring('TMPDIR='.length).trim()
+
                     if (t) t.tmpdir = tmp
                     else tmpdirs.push({ command: this.command, tmpdir: tmp })
                   }
                   if (line.startsWith('KILLPID=')) {
-                    this.killpid = Number.parseInt(line.substring('KILLPID='.length))
+                    cmdObj.killpid = Number.parseInt(line.substring('KILLPID='.length))
                   }
                 })
             },
@@ -276,7 +280,7 @@ module.exports = defineConfig({
           )
         },
         e2eServicesStop() {
-          logStartup('e2eStop')
+          logStartup('e2eStop number of controllers: ' + resetControllers.length)
           return stopServices(resetControllers)
         },
         e2eServicesStart() {
