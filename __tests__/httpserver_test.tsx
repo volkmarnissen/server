@@ -16,7 +16,6 @@ import { FakeMqtt, FakeModes, initBussesForTest } from './configsbase'
 import supertest from 'supertest'
 import * as fs from 'fs'
 import { ImodbusSpecification, SpecificationFileUsage, getSpecificationI18nName } from '@modbus2mqtt/specification.shared'
-import { ModbusCache } from '../src/modbuscache'
 import { submitGetHoldingRegisterRequest } from '../src/submitRequestMock'
 import { Bus } from '../src/bus'
 import { VERSION } from 'ts-node'
@@ -31,7 +30,7 @@ import {
   ITCPConnection,
 } from '@modbus2mqtt/server.shared'
 import {
-  IReadRegisterResultOrError,
+  IModbusResultOrError,
   IfileSpecification,
   ImodbusValues,
   LogLevelEnum,
@@ -140,7 +139,7 @@ beforeAll(() => {
       fs.copyFileSync(lspec + 'waterleveltransmitter.yaml', lspec + 'waterleveltransmitter.bck', undefined)
       ;(Config as any)['fakeModbusCache'] = true
       jest.mock('../src/modbus')
-      ModbusCache.prototype.submitGetHoldingRegisterRequest = submitGetHoldingRegisterRequest
+      // FIx text ModbusCache.prototype.submitGetHoldingRegisterRequest = submitGetHoldingRegisterRequest
       HttpServer.prototype.authenticate = (req, res, next) => {
         next()
       }
@@ -150,7 +149,9 @@ beforeAll(() => {
       }
       let fake = new FakeMqtt(mdl, FakeModes.Poll)
       mdl['client'] = fake as any as MqttClient
-      mdl['equalConnectionData']= ()=>{return true}
+      mdl['equalConnectionData'] = () => {
+        return true
+      }
       httpServer = new HttpServer(join(yamlDir, 'angular'))
 
       httpServer.setModbusCacheAvailable()
@@ -290,7 +291,8 @@ xit('register,login validate fails on github', (done) => {
               done()
             })
           })
-        }).catch((_err) => {
+        })
+        .catch((_err) => {
           expect(false).toBeTruthy()
         })
     })
@@ -393,9 +395,11 @@ test('ADD/DELETE /busses', (done) => {
   initBussesForTest()
 
   let oldLength = Bus.getBusses().length
-  const mockStaticF = jest.fn((connection: IModbusConnection) => Promise.resolve(new Bus({busId:7, slaves:[],connectionData:{} as any })));
+  const mockStaticF = jest.fn((connection: IModbusConnection) =>
+    Promise.resolve(new Bus({ busId: 7, slaves: [], connectionData: {} as any }))
+  )
   let orig = Bus.addBus
-  Bus.addBus= mockStaticF
+  Bus.addBus = mockStaticF
   supertest(httpServer['app'])
     .post('/api/bus')
     .accept('application/json')
@@ -481,10 +485,10 @@ describe('http POST', () => {
       .then((_response) => {
         // expect((response as any as Response).status).toBe(HttpErrorsEnum.ErrBadRequest)
         let testdata: ImodbusValues = {
-          holdingRegisters: new Map<number, IReadRegisterResultOrError>(),
-          analogInputs: new Map<number, IReadRegisterResultOrError>(),
-          coils: new Map<number, IReadRegisterResultOrError>(),
-          discreteInputs: new Map<number, IReadRegisterResultOrError>(),
+          holdingRegisters: new Map<number, IModbusResultOrError>(),
+          analogInputs: new Map<number, IModbusResultOrError>(),
+          coils: new Map<number, IModbusResultOrError>(),
+          discreteInputs: new Map<number, IModbusResultOrError>(),
         }
         testdata.holdingRegisters.set(100, { error: new Error('failed!!!') })
         Bus.getBus(0)!['setModbusAddressesForSlave'](2, testdata)

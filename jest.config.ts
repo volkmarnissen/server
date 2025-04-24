@@ -12,16 +12,23 @@ const config: Config = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   //  setupFiles: ["<rootDir>/.jest/setEnvVars.js"]
   collectCoverage: true,
-  coverageDirectory:'./',
+  coverageDirectory: './',
   coveragePathIgnorePatterns: ['/node_modules/', '__test__/'],
-  coverageReporters: [ "json-summary"],
-  "reporters": ["default", ["jest-junit", { 
-    "suiteName": "jest tests",
-    "outputDirectory": ".",
-    "outputName": "junit.xml",
-    "uniqueOutputName": "false",
-    "classNameTemplate": "{filename}",
-    "titleTemplate": "{title}",
-    "suiteNameTemplate": "{filename}"} as any]]
+  coverageReporters: ['json-summary'],
+  reporters: [
+    'default',
+    [
+      'jest-junit',
+      {
+        suiteName: 'jest tests',
+        outputDirectory: '.',
+        outputName: 'junit.xml',
+        uniqueOutputName: 'false',
+        classNameTemplate: '{filename}',
+        titleTemplate: '{title}',
+        suiteNameTemplate: '{filename}',
+      } as any,
+    ],
+  ],
 }
 export default config

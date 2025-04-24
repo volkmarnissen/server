@@ -18,20 +18,22 @@ beforeAll(() => {
   return new Promise<void>((resolve, reject) => {
     let mdl = MqttDiscover.getInstance()
     // fake MQTT: avoid reconnect
-    mdl['equalConnectionData']= ()=>{return true}
+    mdl['equalConnectionData'] = () => {
+      return true
+    }
     let fake = new FakeMqtt(mdl, FakeModes.Poll)
     mdl['client'] = fake as any as MqttClient
     Config['yamlDir'] = backendTCPDir
-    Config['sslDir']= backendTCPDir
+    Config['sslDir'] = backendTCPDir
     ConfigSpecification.yamlDir = backendTCPDir
-    new ConfigSpecification().readYaml()    
+    new ConfigSpecification().readYaml()
     let cfg = new Config()
     cfg.readYamlAsync().then(() => {
-      ConfigBus.readBusses();
+      ConfigBus.readBusses()
       initBussesForTest()
       HttpServer.prototype.authenticate = (req, res, next) => {
         next()
-      }      
+      }
       startModbusTCPserver(ConfigSpecification.yamlDir, 0)
 
       httpServer = new HttpServer(join(yamlDir, 'angular'))
@@ -46,32 +48,31 @@ afterAll(() => {
 })
 
 it('Discrete Inputs definition provided check', (done) => {
-  if(httpServer)
+  if (httpServer)
     supertest(httpServer['app'])
-      .get( apiUri.modbusSpecification +'?busid=0&slaveid=3&spec=lc-technology-relay-input')
+      .get(apiUri.modbusSpecification + '?busid=0&slaveid=3&spec=lc-technology-relay-input')
       .expect(HttpErrorsEnum.OK)
       .then((response) => {
         let spec: ImodbusSpecification = response.body
 
-        expect(spec.entities).toBeDefined();
-        expect(spec.entities.length).toEqual(16);
-        expect(spec.entities[0].registerType).toEqual(2);
+        expect(spec.entities).toBeDefined()
+        expect(spec.entities.length).toEqual(16)
+        expect(spec.entities[0].registerType).toEqual(2)
         done()
       })
-  })
+})
 
 it('Coils definition provided check', (done) => {
-  if(httpServer)
+  if (httpServer)
     supertest(httpServer['app'])
-      .get( apiUri.modbusSpecification +'?busid=0&slaveid=3&spec=lc-technology-relay-input')
+      .get(apiUri.modbusSpecification + '?busid=0&slaveid=3&spec=lc-technology-relay-input')
       .expect(HttpErrorsEnum.OK)
       .then((response) => {
         let spec: ImodbusSpecification = response.body
 
-        expect(spec.entities).toBeDefined();
-        expect(spec.entities.length).toEqual(16);
-        expect(spec.entities[8].registerType).toEqual(1);
+        expect(spec.entities).toBeDefined()
+        expect(spec.entities.length).toEqual(16)
+        expect(spec.entities[8].registerType).toEqual(1)
         done()
       })
-  })
-
+})

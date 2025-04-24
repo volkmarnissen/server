@@ -13,8 +13,7 @@ import {
   SpecificationFileUsage,
 } from '@modbus2mqtt/specification.shared'
 import { Modbus, ModbusForTest } from '../src/modbus'
-import { IslaveId, ModbusCache } from '../src/modbuscache'
-import { getReadRegisterResult, submitGetHoldingRegisterRequest } from '../src/submitRequestMock'
+import { getReadRegisterResult } from '../src/submitRequestMock'
 import { initBussesForTest, yamlDir } from './configsbase'
 import { Islave } from '@modbus2mqtt/server.shared'
 import { ConfigSpecification, IfileSpecification, emptyModbusValues } from '@modbus2mqtt/specification'
@@ -28,7 +27,7 @@ let debug = Debug('modbus_test')
 
 beforeAll(() => {
   jest.mock('../src/modbus')
-  ModbusCache.prototype.submitGetHoldingRegisterRequest = submitGetHoldingRegisterRequest
+  // TODO Fix test ModbusCache.prototype.submitGetHoldingRegisterRequest = submitGetHoldingRegisterRequest
   initBussesForTest()
 })
 beforeEach(() => {
@@ -328,14 +327,14 @@ xit('Modbus modbusDataToSpec spec.identified = identified', () => {
   Config['config'].fakeModbus = true
 })
 
-function writeRegisters(_slaveid: IslaveId, _startaddress: number, registerType: ModbusRegisterType): Promise<void> {
+function writeRegisters(slaveid: number, _startaddress: number, registerType: ModbusRegisterType): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     debug('write Registers')
     resolve()
   })
 }
 it('Modbus writeEntityMqtt', (done) => {
-  ModbusCache.prototype.writeRegisters = writeRegisters
+  // TODO Fix test ModbusCache.prototype.writeRegisters = writeRegisters
   let readConfig: Config = new Config()
   readConfig.readYaml()
   new ConfigSpecification().readYaml()

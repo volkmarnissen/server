@@ -2,15 +2,7 @@ import Debug from 'debug'
 import { Subject } from 'rxjs'
 import { ImodbusEntity, ImodbusSpecification, ModbusRegisterType, SpecificationStatus } from '@modbus2mqtt/specification.shared'
 import { IdentifiedStates } from '@modbus2mqtt/specification.shared'
-import { Mutex } from 'async-mutex'
-import { ImodbusAddress, ImodbusAddresses, ModbusCache } from './modbuscache'
-import {
-  ConverterMap,
-  IReadRegisterResultOrError,
-  ImodbusValues,
-  M2mSpecification,
-  emptyModbusValues,
-} from '@modbus2mqtt/specification'
+import { ConverterMap, ImodbusValues, M2mSpecification, emptyModbusValues } from '@modbus2mqtt/specification'
 import { ConfigBus } from './configbus'
 import * as fs from 'fs'
 import { submitGetHoldingRegisterRequest } from './submitRequestMock'
@@ -30,41 +22,42 @@ import {
 } from '@modbus2mqtt/server.shared'
 import { ConfigSpecification } from '@modbus2mqtt/specification'
 import { Config } from './config'
-import {  ModbusRTUWorker } from './ModbusRTUWorker'
-import { ModbusRTUQueue } from './ModbusRTUQueue'
+import { ModbusRTUWorker } from './ModbusRTUWorker'
+import { ImodbusAddress, IQueueEntry, ModbusRTUQueue } from './ModbusRTUQueue'
 import { IexecuteOptions, ModbusRTUProcessor } from './ModbusRTUProcessor'
 import { IModbusAPI } from './ModbusWorker'
 const debug = Debug('bus')
 const log = new Logger('bus')
 
-export interface ReadRegisterResultWithDuration extends IReadRegisterResultOrError {
-  duration: number
+export interface IModbusResultWithDuration {
+  data: number[]
+  duration?: number
 }
 export class Bus implements IModbusAPI {
   private static busses: Bus[] | undefined = undefined
   private static allSpecificationsModbusAddresses: Set<ImodbusAddress> | undefined = undefined
   private modbusErrors = new Map<number, ImodbusErrorsForSlave>()
   static readBussesFromConfig(): Promise<void[]> {
-      let promisses:Promise<void>[] = []
-      let ibs = ConfigBus.getBussesProperties()
-      if (!Bus.busses) Bus.busses = []
-      ibs.forEach((ib) => {
-        let bus = Bus.busses!.find((bus) => bus.getId() == ib.busId)
-        if (bus !== undefined) bus.properties = ib
-        else {
-          let b = new Bus(ib)
-          promisses.push(b.connectRTU('InitialConnect'))
-          b.getSlaves().forEach((s) => {
-            s.evalTimeout = true
-          })
-          Bus.busses!.push(b)
-        }
-      })
-      // delete removed busses
-      for (let idx = 0; idx < Bus.busses!.length; idx++) {
-        if (!ibs.find((ib) => ib.busId == Bus.busses![idx].properties.busId)) Bus.busses!.splice(idx, 1)
+    let promisses: Promise<void>[] = []
+    let ibs = ConfigBus.getBussesProperties()
+    if (!Bus.busses) Bus.busses = []
+    ibs.forEach((ib) => {
+      let bus = Bus.busses!.find((bus) => bus.getId() == ib.busId)
+      if (bus !== undefined) bus.properties = ib
+      else {
+        let b = new Bus(ib)
+        promisses.push(b.connectRTU('InitialConnect'))
+        b.getSlaves().forEach((s) => {
+          s.evalTimeout = true
+        })
+        Bus.busses!.push(b)
       }
-      return Promise.all(promisses)  
+    })
+    // delete removed busses
+    for (let idx = 0; idx < Bus.busses!.length; idx++) {
+      if (!ibs.find((ib) => ib.busId == Bus.busses![idx].properties.busId)) Bus.busses!.splice(idx, 1)
+    }
+    return Promise.all(promisses)
   }
   static getBusses(): Bus[] {
     //if (!Bus.busses || Bus.busses.length != ConfigBus.getBussesProperties().length) {
@@ -74,13 +67,29 @@ export class Bus implements IModbusAPI {
     return Bus.busses!
   }
   static addBus(connection: IModbusConnection): Promise<Bus> {
-    return new Promise<Bus>((resolve, reject)=>{
+    return new Promise<Bus>((resolve, reject) => {
       debug('addBus()')
       let busP = ConfigBus.addBusProperties(connection)
       let b = Bus.getBusses().find((b) => b.getId() == busP.busId)
-      b!.connectRTU('InitialConnect').then(()=>{resolve(b!)}).catch(reject)
+      if( b == undefined )
+        Bus.readBussesFromConfig().then(()=>{
+          let b = Bus.getBusses().find((b) => b.getId() == busP.busId)
+          if(b != undefined )
+            b.connectRTU('InitialConnect')
+            .then(() => {
+              resolve(b!)
+            })
+            .catch(reject)
+        }).catch(reject)
+      else
+        b.connectRTU('InitialConnect')
+        .then(() => {
+          resolve(b!)
+        })
+        .catch(reject)
     })
   }
+
   private connectionChanged(connection: IModbusConnection): boolean {
     let rtu = this.properties.connectionData as IRTUConnection
     if (rtu.serialport) {
@@ -100,7 +109,7 @@ export class Bus implements IModbusAPI {
   }
 
   updateBus(connection: IModbusConnection): Promise<Bus> {
-    return new Promise<Bus>((resolve, reject)=>{
+    return new Promise<Bus>((resolve, reject) => {
       debug('updateBus()')
       if (this.connectionChanged(connection)) {
         let busP = ConfigBus.updateBusProperties(this.properties, connection)
@@ -110,15 +119,14 @@ export class Bus implements IModbusAPI {
           // Change of bus properties can influence the modbus data
           // E.g. set of lower timeout can lead to error messages
           b.slaves.clear()
-          b.reconnectRTU("updateBus").then( ()=>{
-            Bus.getAllAvailableModusData()
-            resolve(b)
-          }).catch(reject)
-          
+          b.reconnectRTU('updateBus')
+            .then(() => {
+              Bus.getAllAvailableModusData()
+              resolve(b)
+            })
+            .catch(reject)
         } else reject('Bus does not exist')
-        
-      }else
-        resolve(this)
+      } else resolve(this)
     })
   }
   static deleteBus(busid: number) {
@@ -130,8 +138,7 @@ export class Bus implements IModbusAPI {
   }
   static getBus(busid: number): Bus | undefined {
     // debug("getBus()")
-    if( Bus.getBusses() == undefined)
-      return undefined
+    if (Bus.getBusses() == undefined) return undefined
     return Bus.getBusses().find((b) => b.properties.busId == busid)
   }
 
@@ -162,9 +169,12 @@ export class Bus implements IModbusAPI {
   properties: IBus
   private modbusClient: ModbusRTU | undefined
   private modbusClientTimedOut: boolean = false
-  constructor(ibus: IBus, private modbusRTUQueue= new ModbusRTUQueue(), 
-    private modbusRTUprocessor= new ModbusRTUProcessor(modbusRTUQueue),
-    private _modbusRTUWorker = new ModbusRTUWorker(this, modbusRTUQueue)) {
+  constructor(
+    ibus: IBus,
+    private modbusRTUQueue = new ModbusRTUQueue(),
+    private modbusRTUprocessor = new ModbusRTUProcessor(modbusRTUQueue),
+    private _modbusRTUWorker = new ModbusRTUWorker(this, modbusRTUQueue)
+  ) {
     this.properties = ibus
   }
   getId(): number {
@@ -222,14 +232,13 @@ export class Bus implements IModbusAPI {
   }
   connectRTU(task: string): Promise<void> {
     let rc = new Promise<void>((resolve, reject) => {
-
-        this.connectRTUClient()
-          .then(resolve)
-          .catch((e) => {
-            log.log(LogLevelEnum.error, task + ' connection failed ')
-            reject(e)
-          })
-      })
+      this.connectRTUClient()
+        .then(resolve)
+        .catch((e) => {
+          log.log(LogLevelEnum.error, task + ' connection failed ')
+          reject(e)
+        })
+    })
     return rc
   }
 
@@ -259,114 +268,114 @@ export class Bus implements IModbusAPI {
     this.modbusClientTimedOut = false
   }
 
-  readHoldingRegisters(slaveid: number, dataaddress: number, length: number): Promise<ReadRegisterResultWithDuration> {
-    let rc = new Promise<ReadRegisterResultWithDuration>((resolve, reject) => {
+  readHoldingRegisters(slaveid: number, dataaddress: number, length: number): Promise<IModbusResultWithDuration> {
+    let rc = new Promise<IModbusResultWithDuration>((resolve, reject) => {
       if (this.modbusClient == undefined) {
         log.log(LogLevelEnum.error, 'modbusClient is undefined')
         reject(new Error('modbusClient is undefined'))
       } else {
         this.prepareRead(slaveid)
-        
-          let start = Date.now()
-          this.modbusClient!.readHoldingRegisters(dataaddress, length)
-            .then((data) => {
-              this.clearModbusTimout()
-              let rc: ReadRegisterResultWithDuration = {
-                result: data,
-                duration: Date.now() - start,
-              }
-              resolve(rc)
-            })
-            .catch((e) => {
-              e.duration = Date.now() - start
-              this.setModbusTimout(reject, e)
-            })
+
+        let start = Date.now()
+        this.modbusClient!.readHoldingRegisters(dataaddress, length)
+          .then((result) => {
+            this.clearModbusTimout()
+            let rc: IModbusResultWithDuration = {
+              data: result.data,
+              duration: Date.now() - start,
+            }
+            resolve(rc)
+          })
+          .catch((e) => {
+            e.duration = Date.now() - start
+            this.setModbusTimout(reject, e)
+          })
       }
     })
     return rc
   }
-  readInputRegisters(slaveid: number, dataaddress: number, length: number): Promise<ReadRegisterResultWithDuration> {
-    let rc = new Promise<ReadRegisterResultWithDuration>((resolve, reject) => {
+  readInputRegisters(slaveid: number, dataaddress: number, length: number): Promise<IModbusResultWithDuration> {
+    let rc = new Promise<IModbusResultWithDuration>((resolve, reject) => {
       if (this.modbusClient == undefined) {
         log.log(LogLevelEnum.error, 'modbusClient is undefined')
         return
       } else {
         this.prepareRead(slaveid)
-          let start = Date.now()
-          this.modbusClient!.readInputRegisters(dataaddress, length)
-            .then((data) => {
-              this.clearModbusTimout()
-              let rc: ReadRegisterResultWithDuration = {
-                result: data,
-                duration: Date.now() - start,
-              }
-              resolve(rc)
-            })
-            .catch((e) => {
-              this.setModbusTimout(reject, e)
-            })
+        let start = Date.now()
+        this.modbusClient!.readInputRegisters(dataaddress, length)
+          .then((result) => {
+            this.clearModbusTimout()
+            let rc: IModbusResultWithDuration = {
+              data: result.data,
+              duration: Date.now() - start,
+            }
+            resolve(rc)
+          })
+          .catch((e) => {
+            this.setModbusTimout(reject, e)
+          })
       }
     })
     return rc
   }
-  readDiscreteInputs(slaveid: number, dataaddress: number, length: number): Promise<ReadRegisterResultWithDuration> {
-    let rc = new Promise<ReadRegisterResultWithDuration>((resolve, reject) => {
+  readDiscreteInputs(slaveid: number, dataaddress: number, length: number): Promise<IModbusResultWithDuration> {
+    let rc = new Promise<IModbusResultWithDuration>((resolve, reject) => {
       if (this.modbusClient == undefined) {
         log.log(LogLevelEnum.error, 'modbusClient is undefined')
         return
       } else {
         this.prepareRead(slaveid)
-          let start = Date.now()
-          this.modbusClient!.readDiscreteInputs(dataaddress, length)
-            .then((resolveBoolean) => {
-              this.clearModbusTimout()
-              let readResult: ReadRegisterResult = {
-                data: [],
-                buffer: Buffer.allocUnsafe(0),
-              }
-              resolveBoolean.data.forEach((d) => {
-                readResult.data.push(d ? 1 : 0)
-              })
-              let rc: ReadRegisterResultWithDuration = {
-                result: readResult,
-                duration: Date.now() - start,
-              }
-              resolve(rc)
+        let start = Date.now()
+        this.modbusClient!.readDiscreteInputs(dataaddress, length)
+          .then((resolveBoolean) => {
+            this.clearModbusTimout()
+            let readResult: ReadRegisterResult = {
+              data: [],
+              buffer: Buffer.allocUnsafe(0),
+            }
+            resolveBoolean.data.forEach((d) => {
+              readResult.data.push(d ? 1 : 0)
             })
-            .catch((e) => {
-              this.setModbusTimout(reject, e)
-            })
+            let rc: IModbusResultWithDuration = {
+              data: readResult.data,
+              duration: Date.now() - start,
+            }
+            resolve(rc)
+          })
+          .catch((e) => {
+            this.setModbusTimout(reject, e)
+          })
       }
     })
     return rc
   }
-  readCoils(slaveid: number, dataaddress: number, length: number): Promise<ReadRegisterResultWithDuration> {
-    let rc = new Promise<ReadRegisterResultWithDuration>((resolve, reject) => {
+  readCoils(slaveid: number, dataaddress: number, length: number): Promise<IModbusResultWithDuration> {
+    let rc = new Promise<IModbusResultWithDuration>((resolve, reject) => {
       if (this.modbusClient == undefined) {
         log.log(LogLevelEnum.error, 'modbusClient is undefined')
         return
       } else {
         this.prepareRead(slaveid)
-          let start = Date.now()
-          this.modbusClient!.readCoils(dataaddress, length)
-            .then((resolveBoolean) => {
-              this.clearModbusTimout()
-              let readResult: ReadRegisterResult = {
-                data: [],
-                buffer: Buffer.allocUnsafe(0),
-              }
-              resolveBoolean.data.forEach((d) => {
-                readResult.data.push(d ? 1 : 0)
-              })
-              let rc: ReadRegisterResultWithDuration = {
-                result: readResult,
-                duration: Date.now() - start,
-              }
-              resolve(rc)
+        let start = Date.now()
+        this.modbusClient!.readCoils(dataaddress, length)
+          .then((resolveBoolean) => {
+            this.clearModbusTimout()
+            let readResult: ReadRegisterResult = {
+              data: [],
+              buffer: Buffer.allocUnsafe(0),
+            }
+            resolveBoolean.data.forEach((d) => {
+              readResult.data.push(d ? 1 : 0)
             })
-            .catch((e) => {
-              this.setModbusTimout(reject, e)
-            })
+            let rc: IModbusResultWithDuration = {
+              data: readResult.data,
+              duration: Date.now() - start,
+            }
+            resolve(rc)
+          })
+          .catch((e) => {
+            this.setModbusTimout(reject, e)
+          })
       }
     })
     return rc
@@ -383,15 +392,42 @@ export class Bus implements IModbusAPI {
     return (this.properties.connectionData as IRTUConnection).timeout
   }
 
-  writeHoldingRegisters(slaveid: number, dataaddress: number, data: ReadRegisterResult): Promise<void> {
+  writeHoldingRegisters(slaveid: number, dataaddress: number, data: number[]): Promise<void> {
     let rc = new Promise<void>((resolve, reject) => {
       if (this.modbusClient == undefined) {
         log.log(LogLevelEnum.error, 'modbusClient is undefined')
         return
       } else {
-          this.modbusClient!.setID(slaveid)
-          this.modbusClient!.setTimeout((this.properties.connectionData as IRTUConnection).timeout)
-          this.modbusClient!.writeRegisters(dataaddress, data.data)
+        this.modbusClient!.setID(slaveid)
+        this.modbusClient!.setTimeout((this.properties.connectionData as IRTUConnection).timeout)
+        this.modbusClient!.writeRegisters(dataaddress, data)
+          .then(() => {
+            this.modbusClientTimedOut = false
+            resolve()
+          })
+          .catch((e) => {
+            this.setModbusTimout(reject, e)
+          })
+      }
+    })
+    return rc
+  }
+  writeCoils(slaveid: number, dataaddress: number, data: number[]): Promise<void> {
+    let rc = new Promise<void>((resolve, reject) => {
+      if (this.modbusClient == undefined) {
+        log.log(LogLevelEnum.error, 'modbusClient is undefined')
+        return
+      } else {
+        this.modbusClient!.setID(slaveid)
+        this.modbusClient!.setTimeout((this.properties.connectionData as IRTUConnection).timeout)
+        let dataB: boolean[] = []
+        data.forEach((d) => {
+          dataB.push(d == 1)
+        })
+        if (dataB.length === 1) {
+          //Using writeCoil for single value in case of situation that device does not support multiple at once like
+          // LC Technology relay/input boards
+          this.modbusClient!.writeCoil(dataaddress, dataB[0])
             .then(() => {
               this.modbusClientTimedOut = false
               resolve()
@@ -399,43 +435,16 @@ export class Bus implements IModbusAPI {
             .catch((e) => {
               this.setModbusTimout(reject, e)
             })
-      }
-    })
-    return rc
-  }
-  writeCoils(slaveid: number, dataaddress: number, data: ReadRegisterResult): Promise<void> {
-    let rc = new Promise<void>((resolve, reject) => {
-      if (this.modbusClient == undefined) {
-        log.log(LogLevelEnum.error, 'modbusClient is undefined')
-        return
-      } else {
-          this.modbusClient!.setID(slaveid)
-          this.modbusClient!.setTimeout((this.properties.connectionData as IRTUConnection).timeout)
-          let dataB: boolean[] = []
-          data.data.forEach((d) => {
-            dataB.push(d == 1)
-          })
-          if (dataB.length === 1) {
-            //Using writeCoil for single value in case of situation that device does not support multiple at once like
-            // LC Technology relay/input boards
-            this.modbusClient!.writeCoil(dataaddress, dataB[0])
-              .then(() => {
-                this.modbusClientTimedOut = false
-                resolve()
-              })
-              .catch((e) => {
-                this.setModbusTimout(reject, e)
-              })
-          } else {
-            this.modbusClient!.writeCoils(dataaddress, dataB)
-              .then(() => {
-                this.modbusClientTimedOut = false
-                resolve()
-              })
-              .catch((e) => {
-                this.setModbusTimout(reject, e)
-              })
-          }
+        } else {
+          this.modbusClient!.writeCoils(dataaddress, dataB)
+            .then(() => {
+              this.modbusClientTimedOut = false
+              resolve()
+            })
+            .catch((e) => {
+              this.setModbusTimout(reject, e)
+            })
+        }
       }
     })
     return rc
@@ -500,20 +509,45 @@ export class Bus implements IModbusAPI {
     return Bus.allSpecificationsModbusAddresses!
   }
 
-  readModbusRegister( slaveId:number, addresses:Set<ImodbusAddress>, options?:IexecuteOptions):Promise<ImodbusValues>{
-    if (Config.getConfiguration().fakeModbus)
-      return submitGetHoldingRegisterRequest({ busid: this.getId(), slaveid: slaveId }, addresses)
+  readModbusRegister(slaveId: number, addresses: Set<ImodbusAddress>, options?: IexecuteOptions): Promise<ImodbusValues> {
+    if (Config.getConfiguration().fakeModbus) return submitGetHoldingRegisterRequest(slaveId, addresses)
 
-    if(this.modbusClient && this.modbusClient.isOpen)
-      return this.modbusRTUprocessor.execute(slaveId,addresses,options)
+    if (this.modbusClient && this.modbusClient.isOpen) return this.modbusRTUprocessor.execute(slaveId, addresses, options)
     else
-      
-      return new Promise<ImodbusValues>((resolve, reject)=>{
-        this.connectRTU("InitialConnect").then(()=>{
-          return this.modbusRTUprocessor.execute(slaveId,addresses,options).then(resolve).catch(reject)
-        }).catch(reject)
+      return new Promise<ImodbusValues>((resolve, reject) => {
+        this.connectRTU('InitialConnect')
+          .then(() => {
+            return this.modbusRTUprocessor.execute(slaveId, addresses, options).then(resolve).catch(reject)
+          })
+          .catch(reject)
       })
   }
+
+  writeModbusRegister(
+    slaveId: number,
+    address: number,
+    registerType: ModbusRegisterType,
+    data: number[],
+    options?: IexecuteOptions
+  ): Promise<void> {
+    let executeWrite = (onResolve: () => void, onReject: (e: any) => void) => {
+      let addr: ImodbusAddress = { address: address, length: data.length, registerType: registerType, write: data }
+      this.modbusRTUQueue.enqueue(slaveId, addr, onResolve, onReject)
+    }
+    if (this.modbusClient && this.modbusClient.isOpen)
+      return new Promise((onResolve, onReject) => {
+        executeWrite.bind(this)(onResolve, onReject)
+      })
+    else
+      return new Promise<void>((resolve, reject) => {
+        this.connectRTU('InitialConnect')
+          .then(() => {
+            executeWrite.bind(this)(resolve, reject)
+          })
+          .catch(reject)
+      })
+  }
+
   updateErrorsForSlaveId(slaveId: number, spec: ImodbusSpecification) {
     let slaveErrors = this.modbusErrors.get(slaveId)
     let me: ModbusErrorsForSlave | undefined = undefined
@@ -591,8 +625,8 @@ export class Bus implements IModbusAPI {
         reject(new Error('RTU is configured, but device is not available'))
         return
       }
-      
-      this.readModbusRegister(  slaveid, addresses, { task:'getAvailableSpecs',printLogs: false, split:true })
+
+      this.readModbusRegister(slaveid, addresses, { task: 'getAvailableSpecs', printLogs: false, split: true })
         .then((values) => {
           // Add not available addresses to the values
           let noData = { error: new Error('No data available') }

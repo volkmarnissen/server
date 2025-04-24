@@ -1,11 +1,11 @@
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU'
-import { Bus, ReadRegisterResultWithDuration } from './bus'
+import { Bus, IModbusResultWithDuration } from './bus'
 import { ModbusRTUQueue, IQueueEntry } from './ModbusRTUQueue'
 import { IFunctionCode, ModbusRegisterType } from '@modbus2mqtt/specification.shared'
 import ModbusRTU from 'modbus-serial'
 
-type TModbusReadFunction = (slaveid: number, dataaddress: number, length: number) => Promise<ReadRegisterResultWithDuration>
-type TModbusWriteFunction = (slaveid: number, dataaddress: number, data: ReadRegisterResult) => Promise<void>
+type TModbusReadFunction = (slaveid: number, dataaddress: number, length: number) => Promise<IModbusResultWithDuration>
+type TModbusWriteFunction = (slaveid: number, dataaddress: number, data: number[]) => Promise<void>
 
 export interface IModbusAPI {
   readHoldingRegisters: TModbusReadFunction
@@ -14,7 +14,7 @@ export interface IModbusAPI {
   readInputRegisters: TModbusReadFunction
   writeHoldingRegisters: TModbusWriteFunction
   writeCoils: TModbusWriteFunction
-  reconnectRTU: (task: string)=> Promise<void> 
+  reconnectRTU: (task: string) => Promise<void>
 }
 export class ModbusWorker {
   protected functionCodeReadMap: Map<ModbusRegisterType, TModbusReadFunction>
@@ -44,7 +44,7 @@ export class ModbusWorker {
       // TODO not implemented
     }
     // not found in cache
-    this.queue.retry(entry)
+    this.queue.enqueueEntry(entry)
   }
 
   run(): void {
@@ -69,7 +69,7 @@ export class ModbusWorker {
           current.address.length == undefined ? 1 : current.address.length
         )
           .then((result) => {
-            current!.onResolve(result)
+            current!.onResolve(result.data)
           })
           .catch((e) => {
             current!.onError(current!, e)

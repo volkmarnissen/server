@@ -2,13 +2,13 @@ import { ImodbusSpecification, Ispecification } from '@modbus2mqtt/specification
 import { ConfigSpecification, ConverterMap, ImodbusValues, M2mSpecification, emptyModbusValues } from '@modbus2mqtt/specification'
 import { Ientity, ImodbusEntity } from '@modbus2mqtt/specification.shared'
 import { Config } from './config'
-import { ImodbusAddress, ModbusCache } from './modbuscache'
 import { Observable, Subject } from 'rxjs'
 import { Bus } from './bus'
 import { submitGetHoldingRegisterRequest } from './submitRequestMock'
 import { IfileSpecification } from '@modbus2mqtt/specification'
 import { LogLevelEnum, Logger } from '@modbus2mqtt/specification'
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU'
+import { ImodbusAddress } from './ModbusRTUQueue'
 const debug = require('debug')('modbus')
 const debugAction = require('debug')('actions')
 
@@ -16,20 +16,9 @@ const log = new Logger('modbus')
 export class Modbus {
   constructor() {}
 
-  static writeEntityModbus(bus: Bus, slaveid: number, entity: Ientity, modbusValue: ReadRegisterResult): Promise<void> {
-    // this.modbusClient.setID(device.slaveid);
-    if (Config.getConfiguration().fakeModbus) {
-      return new Promise<void>((resolve) => {
-        debug('Fake ModbusWrite')
-        resolve()
-      })
-    } else if (entity.modbusAddress && entity.registerType) {
-      return new ModbusCache('write', true).writeRegisters(
-        { busid: bus.getId(), slaveid: slaveid },
-        entity.modbusAddress,
-        entity.registerType,
-        modbusValue
-      )
+  static writeEntityModbus(bus: Bus, slaveid: number, entity: Ientity, modbusValue: number[]): Promise<void> {
+    if (entity.modbusAddress && entity.registerType) {
+      return bus.writeModbusRegister(slaveid, entity.modbusAddress, entity.registerType, modbusValue)
     }
     throw new Error('No modbusaddress or registerType passed')
   }
@@ -46,13 +35,9 @@ export class Modbus {
       let converter = ConverterMap.getConverter(entity)
       if (entity.modbusAddress !== undefined && entity.registerType && converter) {
         let modbusValue = converter?.mqtt2modbus(spec, entityid, mqttValue)
-        if (modbusValue && modbusValue.data.length > 0) {
-          return new ModbusCache('write', true).writeRegisters(
-            { busid: bus.getId(), slaveid: slaveid },
-            entity.modbusAddress,
-            entity.registerType,
-            modbusValue
-          )
+        if (modbusValue && modbusValue.length > 0) {
+          return bus.writeModbusRegister(slaveid, entity.modbusAddress, entity.registerType, modbusValue)
+          // TODO:Migrate converter
         } else throw new Error('No modbus address or function code or converter not found for entity ' + entityid + ' ')
       } else throw new Error('No modbus address or function code for entity ' + entityid + ' ')
     } else throw new Error('Entity not found in Specification entityid: ' + entityid + JSON.stringify(spec))
@@ -73,9 +58,8 @@ export class Modbus {
             if (em) resolve(em)
             else reject(new Error('Unable to copy ModbusData to Entity'))
           }
-          if (Config.getConfiguration().fakeModbus)
-            submitGetHoldingRegisterRequest({ busid: bus.getId(), slaveid: slaveid }, addresses).then(rcf).catch(reject)
-          else bus.readModbusRegister( slaveid, addresses,{task: 'readEntity'}).then(rcf).catch(reject)
+          if (Config.getConfiguration().fakeModbus) submitGetHoldingRegisterRequest(slaveid, addresses).then(rcf).catch(reject)
+          else bus.readModbusRegister(slaveid, addresses, { task: 'readEntity' }).then(rcf).catch(reject)
         }
       } else {
         let msg = 'Bus ' + bus.properties.busId + ' has no configured Specification'
@@ -115,7 +99,7 @@ export class Modbus {
 
     debugAction('getModbusSpecificationFromData start read from modbus')
     bus
-      .readModbusRegister(slaveid, addresses, {task:task})
+      .readModbusRegister(slaveid, addresses, { task: task })
       .then((values) => {
         debugAction('getModbusSpecificationFromData end read from modbus')
         Modbus.populateEntitiesForSpecification(specification!, values, sub)
