@@ -27,7 +27,7 @@ on:
       min_versions_to_keep:
         required: false
         type: number
-        default: 30
+        default: 4
 
 jobs:
   delete_versions:
