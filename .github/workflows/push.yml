@@ -21,6 +21,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          repository: modbus2mqtt/modbus2mqtt.dev
+          path: .
+      - uses: actions/checkout@v4
+        with:
           path: server
       - name: '✏️ Generate changelog'
         uses: heinrichreimer/action-github-changelog-generator@v2.4
@@ -33,11 +37,6 @@ jobs:
         with:
           repository: ./server
           commit_message: Update CHANGELOG.md
-
-      - uses: actions/checkout@v4
-        with:
-          repository: modbus2mqtt/modbus2mqtt.dev
-          path: .
       - name: Wait for other workflow run or continue
         id: init
         run: |
