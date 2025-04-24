@@ -33,7 +33,9 @@ jobs:
           output: server/CHANGELOG.md
           headerLabel: '# Changelog for ${{github.event.repository.name}}'
       - name: Update sha in package-lock.json
-        run: npm update @modbus2mqtt/specification.shared @modbus2mqtt/server.shared @modbus2mqtt/angular @modbus2mqtt/specification
+        run: |
+          cd server
+          npm update @modbus2mqtt/specification.shared @modbus2mqtt/server.shared @modbus2mqtt/angular @modbus2mqtt/specification
       - name: Checkin CHANGELOG.md and package-lock.json 
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
