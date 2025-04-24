@@ -7,22 +7,22 @@ jobs:
   delete-container-versions:
     runs-on: ubuntu-latest
     steps:
-      - uses: .github/workflows/deletecontainer.yml@latest
+      - uses: modbus2mqtt/server/.github/workflows/deletecontainer.yml@latest
         with:
           package_name: 'modbus2mqtt.latest-arm64'
-      - uses: .github/workflows/deletecontainer.yml@latest
+      - uses: modbus2mqtt/server/.github/workflows/deletecontainer.yml@latest
         with:
           package_name: 'modbus2mqtt-arm64'
-      - uses: .github/workflows/deletecontainer.yml@latest
+      - uses: modbus2mqtt/server/.github/workflows/deletecontainer.yml@latest
         with:
           package_name: 'modbus2mqtt.latest-amd64'
-      - uses: .github/workflows/deletecontainer.yml@latest
+      - uses: modbus2mqtt/server/.github/workflows/deletecontainer.yml@latest
         with:
           package_name: 'modbus2mqtt-amd64'
-      - uses: .github/workflows/deletecontainer.yml@latest
+      - uses: modbus2mqtt/server/.github/workflows/deletecontainer.yml@latest
         with:
           package_name: 'modbus2mqtt'
-      - uses: .github/workflows/deletecontainer.yml@latest
+      - uses: modbus2mqtt/server/.github/workflows/deletecontainer.yml@latest
         with:
           package_name: 'modbus2mqtt-latest'
         
