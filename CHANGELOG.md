@@ -15,6 +15,7 @@
 
 **Merged pull requests:**
 
+- Fix Modbuscache, Add caching for modbusRTU [\#108](https://github.com/modbus2mqtt/server/pull/108) ([volkmarnissen](https://github.com/volkmarnissen))
 - Modbuscache [\#106](https://github.com/modbus2mqtt/server/pull/106) ([modbus2mqtt](https://github.com/modbus2mqtt))
 
 ## [v0.16.26](https://github.com/modbus2mqtt/server/tree/v0.16.26) (2025-04-14)
