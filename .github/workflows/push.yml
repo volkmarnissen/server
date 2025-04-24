@@ -156,12 +156,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
         env:
           BUILDX_NO_DEFAULT_ATTESTATIONS: 1    
-      - name: Delete latest packages
-        uses: actions/delete-package-versions@v5
-        with:
-            package-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{steps.releasecheck.outputs.latest}}-${{steps.platformcheck.outputs.platform}}
-            package-type: 'container'
-            min-versions-to-keep: 4
       - name: Copy CHANGELOG.mds
         run: |
           cd hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}
@@ -173,13 +167,20 @@ jobs:
           done 
           cd -
       - name: Checkin hassio-addon-repository
-        if: ${{steps.platformcheck.outputs.platform == 'arm64' }}
+        if: ${{steps.platformcheck.outputs.platform == 'arm64' }} 
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           repository: ./hassio-addon-repository
           tagging_message: ${{steps.prepareAddonDirectory.outputs.TAG_NAME}}
           commit_message: ${{steps.prepareAddonDirectory.outputs.TAG_NAME}}
+      - name: Delete latest packages
+        uses: actions/delete-package-versions@v5
+        with:
+            package-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{steps.releasecheck.outputs.latest}}-${{steps.platformcheck.outputs.platform}}
+            package-type: 'container'
+            min-versions-to-keep: 4          
   docker-tag:
+    if: always()
     runs-on: ubuntu-latest
     permissions:
       contents: read
