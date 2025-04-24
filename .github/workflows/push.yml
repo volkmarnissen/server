@@ -62,6 +62,7 @@ jobs:
           #git config --global url."https://".insteadOf git://
           npm init -y
           # HEAD of release or main branch 
+          echo "npm install github:modbus2mqtt/server#${{github.ref_name}}"
           npm install --omit=dev "github:modbus2mqtt/server#${{github.ref_name}}"
       - name: Archive node_modules directory artifacts
         uses: actions/upload-artifact@v4
