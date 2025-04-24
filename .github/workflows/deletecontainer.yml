@@ -1,6 +1,20 @@
 name: Delete Untagged Container Versions
 
 on:
+  workflow_dispatch:
+    inputs:
+      package_name:
+        required: true
+        type: string
+      package_type:
+        required: true
+        type: string
+        default: container
+      min_versions_to_keep:
+        required: false
+        type: number
+        default: 30
+  
   workflow_call:
     inputs:
       package_name:
