@@ -9,7 +9,7 @@ jobs:
       packages: write
     strategy:
       matrix:
-        package: [ modbus2mqtt.latest-arm64, modbus2mqtt.latest-amd64, modbus2mqtt-amd64,modbus2mqtt-arm64, modbus2mqtt]
+        package: [ modbus2mqtt.latest-arm64, modbus2mqtt.latest-amd64, modbus2mqtt.latest, modbus2mqtt-amd64,modbus2mqtt-arm64, modbus2mqtt]
     steps:
       - name: Delete all untagged container versions
         uses: actions/delete-package-versions@v5
