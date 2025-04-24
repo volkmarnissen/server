@@ -1,0 +1,26 @@
+name: Delete Modbus2mqtt Container Versions
+
+on:
+  workflow_dispatch:
+
+jobs:
+  delete-container-versions:
+  - uses: .github/workflows/deletecontainer.yml
+    with:
+      package_name: 'modbus2mqtt.latest-arm64'
+  - uses: .github/workflows/deletecontainer.yml
+    with:
+      package_name: 'modbus2mqtt-arm64'
+  - uses: .github/workflows/deletecontainer.yml
+    with:
+      package_name: 'modbus2mqtt.latest-amd64'
+  - uses: .github/workflows/deletecontainer.yml
+    with:
+      package_name: 'modbus2mqtt-amd64'
+  - uses: .github/workflows/deletecontainer.yml
+    with:
+      package_name: 'modbus2mqtt'
+  - uses: .github/workflows/deletecontainer.yml
+    with:
+      package_name: 'modbus2mqtt-latest'
+        
