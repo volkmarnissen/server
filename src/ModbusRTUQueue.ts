@@ -2,20 +2,9 @@ import { IFunctionCode, ModbusRegisterType } from '@modbus2mqtt/specification.sh
 import { Bus, IModbusResultWithDuration } from './bus'
 import EventEmitter from 'events'
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU'
+import { ImodbusAddress, ModbusErrorStates, ModbusTasks } from '@modbus2mqtt/server.shared'
 const EventNewEntry = 'newEntry'
 const EventCachedEntry = 'cachedEntry'
-export interface ImodbusAddress {
-  address: number
-  registerType: ModbusRegisterType
-  write?: number[]
-  length?: number
-}
-export enum ModbusErrorStates {
-  noerror,
-  timeout,
-  crc,
-  other,
-}
 export enum ModbusErrorActions {
   notHandled,
   handledReconnect,
@@ -25,15 +14,20 @@ export enum ModbusErrorActions {
 export interface IQueueEntry {
   slaveId: number
   address: ImodbusAddress
-  onResolve: (result?: number[]) => void
+  onResolve: (queueEntry:IQueueEntry, result?: number[]) => void
   onError: (queueEntry: IQueueEntry, e: any) => void
+  options: IQueueOptions
   errorState?: ModbusErrorStates
   errorCount?: number
   error?: any
-  options?: IQueueOptions
 }
 export interface IQueueOptions {
   useCache?: boolean
+  task: ModbusTasks
+  errorHandling:{
+    split?:boolean,
+    retry?:boolean
+  }
 }
 export class ModbusRTUQueue {
   private eventEmitter = new EventEmitter()
@@ -48,9 +42,9 @@ export class ModbusRTUQueue {
   enqueue(
     slaveId: number,
     address: ImodbusAddress,
-    onResolve: (result?: number[]) => void,
+    onResolve: (queueEntry:IQueueEntry,result?: number[]) => void,
     onError: (queueEntry: IQueueEntry, e: any) => void,
-    options?: IQueueOptions
+    options: IQueueOptions
   ) {
     let entry: IQueueEntry = {
       slaveId: slaveId,

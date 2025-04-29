@@ -1,7 +1,7 @@
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU'
 import { ModbusRegisterType } from '@modbus2mqtt/specification.shared'
 import { IModbusResultOrError, ImodbusValues, emptyModbusValues } from '@modbus2mqtt/specification'
-import { ImodbusAddress } from './ModbusRTUQueue'
+import { ImodbusAddress } from '@modbus2mqtt/server.shared'
 
 export function getReadRegisterResult(n: number): IModbusResultOrError {
   let one: IModbusResultOrError = {

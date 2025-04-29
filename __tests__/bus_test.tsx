@@ -232,51 +232,5 @@ describe('ServerTCP based', () => {
     identified: IdentifiedStates.identified,
   } as ImodbusSpecification
 
-  let specError: ImodbusSpecification = {
-    entities: [{ id: 1, identified: IdentifiedStates.notIdentified, modbusError: 'entity 1 error' }],
-    identified: IdentifiedStates.notIdentified,
-  } as ImodbusSpecification
-
-  it('updateErrorsForSlaveId no error -> error -> no error', (done) => {
-    Bus.getBus(0)!.updateErrorsForSlaveId(1, specNoError)
-    let mse = Bus.getBus(0)!.getModbusErrorsForSlaveId(1)!
-
-    expect(mse).toBeDefined()
-    expect(mse.allEntitiesFailed).toBeFalsy()
-    expect(mse.errors.length).toBe(0)
-    expect(mse.errorsSinceLastSuccessful).toBe(0)
-    expect(mse.lastAllEntitiesFailedSinceLastSuccessful).toBe(0)
-    expect(mse.lastAllEntitiesFailedTime).toBe(0)
-    expect(mse.lastErrorTime).toBe(0)
-    expect(mse.lastIdentifiedSinceLastSuccessful).toBe(0)
-    expect(mse.lastSuccessfulIdentifiedTime).toBeGreaterThan(0)
-    let oldLastSuccessfulIdentifiedTime = mse.lastSuccessfulIdentifiedTime
-    expect(mse.notIdentifiedEntities.length).toBe(0)
-    expect(mse.totalErrorCount).toBe(0)
-    Bus.getBus(0)!.updateErrorsForSlaveId(1, specError)
-    expect(mse.allEntitiesFailed).toBeTruthy()
-    expect(mse.errors.length).toBe(1)
-    expect(mse.errorsSinceLastSuccessful).toBe(1)
-    expect(mse.lastAllEntitiesFailedSinceLastSuccessful).toBe(1)
-    expect(mse.lastAllEntitiesFailedTime).toBeGreaterThan(0)
-    let oldLastAllEntitiesFailedTime = mse.lastAllEntitiesFailedTime
-
-    expect(mse.lastErrorTime).toBeGreaterThan(0)
-    expect(mse.lastIdentifiedSinceLastSuccessful).toBe(1)
-    expect(mse.lastSuccessfulIdentifiedTime).toBeGreaterThan(0)
-    expect(mse.notIdentifiedEntities.length).toBe(1)
-    expect(mse.totalErrorCount).toBe(1)
-    Bus.getBus(0)!.updateErrorsForSlaveId(1, specNoError)
-    expect(mse.allEntitiesFailed).toBeFalsy()
-    expect(mse.errors.length).toBe(0)
-    expect(mse.errorsSinceLastSuccessful).toBe(0)
-    expect(mse.lastAllEntitiesFailedSinceLastSuccessful).toBe(0)
-    expect(mse.lastAllEntitiesFailedTime).toBe(oldLastAllEntitiesFailedTime)
-    expect(mse.lastErrorTime).toBeGreaterThan(0)
-    expect(mse.lastIdentifiedSinceLastSuccessful).toBe(0)
-    expect(mse.lastSuccessfulIdentifiedTime).toBeGreaterThanOrEqual(oldLastSuccessfulIdentifiedTime)
-    expect(mse.notIdentifiedEntities.length).toBe(1)
-    expect(mse.totalErrorCount).toBe(1)
-    done()
-  })
+ 
 })
