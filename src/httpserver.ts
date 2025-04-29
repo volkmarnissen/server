@@ -25,7 +25,7 @@ import { LogLevelEnum, Logger } from '@modbus2mqtt/specification'
 
 import { TranslationServiceClient } from '@google-cloud/translate'
 import { M2mSpecification as M2mSpecification } from '@modbus2mqtt/specification'
-import { IUserAuthenticationStatus, IBus, Islave, apiUri, PollModes } from '@modbus2mqtt/server.shared'
+import { IUserAuthenticationStatus, IBus, Islave, apiUri, PollModes, ModbusTasks } from '@modbus2mqtt/server.shared'
 import { ConfigSpecification } from '@modbus2mqtt/specification'
 import { HttpServerBase } from './httpServerBase'
 import { MqttDiscover } from './mqttdiscover'
@@ -345,7 +345,7 @@ export class HttpServer extends HttpServerBase {
         return
       }
       let slaveid = Number.parseInt(req.query.slaveid)!
-      Modbus.getModbusSpecification('http', bus, slaveid, req.query.spec, (e: any) => {
+      Modbus.getModbusSpecification(ModbusTasks.specification, bus, slaveid, req.query.spec, (e: any) => {
         log.log(LogLevelEnum.error, 'http: get /specification ' + e.message)
         this.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, JSON.stringify('read specification ' + e.message))
       }).subscribe((result) => {
@@ -518,7 +518,7 @@ export class HttpServer extends HttpServerBase {
             return
           }
         })
-        Modbus.getModbusSpecificationFromData('http', bus, Number.parseInt(req.query.slaveid), req.body, sub)
+        Modbus.getModbusSpecificationFromData(ModbusTasks.entity, bus, Number.parseInt(req.query.slaveid), req.body, sub)
       }
     })
     this.post(apiUri.writeEntity, (req: GetRequestWithParameter, res: http.ServerResponse) => {

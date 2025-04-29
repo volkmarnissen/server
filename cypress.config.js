@@ -31,13 +31,13 @@ function logServer(msg) {
   if (logStartupFlag) console.log(msg)
 }
 function stopChildProcess(c) {
-  logStartup('stopChildProcess ' + c.command + ' ' + c.child_process.pid + ' ' + ( c.killpid?c.killpid:'no killpid'))
+  logStartup('stopChildProcess ' + c.command + ' ' + c.child_process.pid + ' ' + (c.killpid ? c.killpid : 'no killpid'))
   c.child_process.on('SIGINT', (err) => {
     logStartup('Aborted: ' + JSON.stringify(err))
   })
   if (c.killpid > 0 && c.child_process.pid != c.killpid) {
     logStartup('Killing ' + c.killpid)
-    process.kill(c.killpid,"SIGINT")
+    process.kill(c.killpid, 'SIGINT')
   }
   c.child_process.kill('SIGINT')
 }
@@ -54,7 +54,7 @@ function startProcesses(command, args, ports, controllerArray) {
         args.forEach((arg) => {
           let cmd = command + ' ' + arg
           logStartup('starting ' + cmd)
-          let child_process = spawn(path.join(execFile, command), arg.split(' '), {detached:true})
+          let child_process = spawn(path.join(execFile, command), arg.split(' '), { detached: true })
           child_process.unref()
           const cmdObj = {
             command: cmd,
