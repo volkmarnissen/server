@@ -1,6 +1,7 @@
 import Debug from 'debug'
 import { Subject } from 'rxjs'
-import { ImodbusEntity, ImodbusSpecification, ModbusRegisterType, SpecificationStatus } from '@modbus2mqtt/specification.shared'
+import { ImodbusEntity,  ImodbusSpecification,  ModbusRegisterType, SpecificationStatus } from '@modbus2mqtt/specification.shared'
+import { ImodbusAddress, ModbusErrorStates, ModbusTasks } from '@modbus2mqtt/server.shared'
 import { IdentifiedStates } from '@modbus2mqtt/specification.shared'
 import { ConverterMap, ImodbusValues, M2mSpecification, emptyModbusValues } from '@modbus2mqtt/specification'
 import { ConfigBus } from './configbus'
@@ -17,13 +18,12 @@ import {
   IRTUConnection,
   ITCPConnection,
   IidentificationSpecification,
-  ImodbusErrorsForSlave,
-  ModbusErrorsForSlave,
+  ImodbusErrorsForSlave
 } from '@modbus2mqtt/server.shared'
 import { ConfigSpecification } from '@modbus2mqtt/specification'
 import { Config } from './config'
 import { ModbusRTUWorker } from './ModbusRTUWorker'
-import { ImodbusAddress, IQueueEntry, ModbusRTUQueue } from './ModbusRTUQueue'
+import { ModbusRTUQueue } from './ModbusRTUQueue'
 import { IexecuteOptions, ModbusRTUProcessor } from './ModbusRTUProcessor'
 import { IModbusAPI } from './ModbusWorker'
 const debug = Debug('bus')
@@ -36,8 +36,7 @@ export interface IModbusResultWithDuration {
 export class Bus implements IModbusAPI {
   private static busses: Bus[] | undefined = undefined
   private static allSpecificationsModbusAddresses: Set<ImodbusAddress> | undefined = undefined
-  private modbusErrors = new Map<number, ImodbusErrorsForSlave>()
-  static readBussesFromConfig(): Promise<void[]> {
+  static readBussesFromConfig(): Promise<PromiseSettledResult<void>[]> {
     let promisses: Promise<void>[] = []
     let ibs = ConfigBus.getBussesProperties()
     if (!Bus.busses) Bus.busses = []
@@ -57,7 +56,14 @@ export class Bus implements IModbusAPI {
     for (let idx = 0; idx < Bus.busses!.length; idx++) {
       if (!ibs.find((ib) => ib.busId == Bus.busses![idx].properties.busId)) Bus.busses!.splice(idx, 1)
     }
-    return Promise.all(promisses)
+    return Promise.allSettled(promisses)
+  }
+  getName(): string {
+    let rtu = this.properties.connectionData as IRTUConnection
+    let tcp = this.properties.connectionData as ITCPConnection
+    if (undefined != rtu.serialport) return rtu.serialport
+    if (undefined != tcp.host) return tcp.host + ':' + tcp.port
+    return 'unknown'
   }
   static getBusses(): Bus[] {
     //if (!Bus.busses || Bus.busses.length != ConfigBus.getBussesProperties().length) {
@@ -71,22 +77,24 @@ export class Bus implements IModbusAPI {
       debug('addBus()')
       let busP = ConfigBus.addBusProperties(connection)
       let b = Bus.getBusses().find((b) => b.getId() == busP.busId)
-      if( b == undefined )
-        Bus.readBussesFromConfig().then(()=>{
-          let b = Bus.getBusses().find((b) => b.getId() == busP.busId)
-          if(b != undefined )
-            b.connectRTU('InitialConnect')
-            .then(() => {
-              resolve(b!)
-            })
-            .catch(reject)
-        }).catch(reject)
+      if (b == undefined)
+        Bus.readBussesFromConfig()
+          .then(() => {
+            let b = Bus.getBusses().find((b) => b.getId() == busP.busId)
+            if (b != undefined)
+              b.connectRTU('InitialConnect')
+                .then(() => {
+                  resolve(b!)
+                })
+                .catch(reject)
+          })
+          .catch(reject)
       else
         b.connectRTU('InitialConnect')
-        .then(() => {
-          resolve(b!)
-        })
-        .catch(reject)
+          .then(() => {
+            resolve(b!)
+          })
+          .catch(reject)
     })
   }
 
@@ -118,7 +126,6 @@ export class Bus implements IModbusAPI {
           b.properties = busP
           // Change of bus properties can influence the modbus data
           // E.g. set of lower timeout can lead to error messages
-          b.slaves.clear()
           b.reconnectRTU('updateBus')
             .then(() => {
               Bus.getAllAvailableModusData()
@@ -165,7 +172,6 @@ export class Bus implements IModbusAPI {
     })
   }
 
-  slaves = new Map<number, ImodbusValues>()
   properties: IBus
   private modbusClient: ModbusRTU | undefined
   private modbusClientTimedOut: boolean = false
@@ -235,7 +241,7 @@ export class Bus implements IModbusAPI {
       this.connectRTUClient()
         .then(resolve)
         .catch((e) => {
-          log.log(LogLevelEnum.error, task + ' connection failed ')
+          log.log(LogLevelEnum.error, task + ' ' + this.getName() + ': ' + e.message)
           reject(e)
         })
     })
@@ -450,18 +456,9 @@ export class Bus implements IModbusAPI {
     return rc
   }
 
-  private setModbusAddressesForSlave(slaveid: number, addresses: ImodbusValues) {
-    if (this.slaves) this.slaves!.set(slaveid, addresses)
-  }
-  getModbusAddressesForSlave(slaveid: number): ImodbusValues | undefined {
-    if (this.slaves) return this.slaves!.get(slaveid)
-    return undefined
-  }
 
   deleteSlave(slaveid: number) {
     ConfigBus.deleteSlave(this.properties.busId, slaveid)
-    if (this.slaves) this.slaves!.delete(slaveid)
-    if (this.modbusErrors.get(slaveid)) this.modbusErrors.delete(slaveid)
   }
   static getModbusAddressesForSpec(spec: IfileSpecification, addresses: Set<ImodbusAddress>): void {
     for (let ent of spec.entities) {
@@ -509,7 +506,7 @@ export class Bus implements IModbusAPI {
     return Bus.allSpecificationsModbusAddresses!
   }
 
-  readModbusRegister(slaveId: number, addresses: Set<ImodbusAddress>, options?: IexecuteOptions): Promise<ImodbusValues> {
+  readModbusRegister(slaveId: number, addresses: Set<ImodbusAddress>, options: IexecuteOptions): Promise<ImodbusValues> {
     if (Config.getConfiguration().fakeModbus) return submitGetHoldingRegisterRequest(slaveId, addresses)
 
     if (this.modbusClient && this.modbusClient.isOpen) return this.modbusRTUprocessor.execute(slaveId, addresses, options)
@@ -519,7 +516,17 @@ export class Bus implements IModbusAPI {
           .then(() => {
             return this.modbusRTUprocessor.execute(slaveId, addresses, options).then(resolve).catch(reject)
           })
-          .catch(reject)
+          .catch((e)=>{
+            let addr= addresses.values().next().value
+            if(addr)
+            {
+              let date =new Date()
+              this._modbusRTUWorker.addError(
+                {slaveId: slaveId,address: addr, onResolve:(qe)=>{}, onError:(e)=>{}, options:{task:ModbusTasks.initialConnect, errorHandling:{}}}, 
+                ModbusErrorStates.initialConnect,date)
+            }
+            reject(e)
+          })
       })
   }
 
@@ -528,11 +535,11 @@ export class Bus implements IModbusAPI {
     address: number,
     registerType: ModbusRegisterType,
     data: number[],
-    options?: IexecuteOptions
+    options: IexecuteOptions
   ): Promise<void> {
     let executeWrite = (onResolve: () => void, onReject: (e: any) => void) => {
       let addr: ImodbusAddress = { address: address, length: data.length, registerType: registerType, write: data }
-      this.modbusRTUQueue.enqueue(slaveId, addr, onResolve, onReject)
+      this.modbusRTUQueue.enqueue(slaveId, addr, onResolve, onReject, options)
     }
     if (this.modbusClient && this.modbusClient.isOpen)
       return new Promise((onResolve, onReject) => {
@@ -548,18 +555,6 @@ export class Bus implements IModbusAPI {
       })
   }
 
-  updateErrorsForSlaveId(slaveId: number, spec: ImodbusSpecification) {
-    let slaveErrors = this.modbusErrors.get(slaveId)
-    let me: ModbusErrorsForSlave | undefined = undefined
-    if (!slaveErrors) {
-      me = new ModbusErrorsForSlave(slaveId)
-      this.modbusErrors.set(slaveId, (slaveErrors = me.get()))
-    } else me = new ModbusErrorsForSlave(slaveId, slaveErrors)
-    me.setErrors(spec)
-  }
-  getModbusErrorsForSlaveId(slaveId: number): ImodbusErrorsForSlave | undefined {
-    return this.modbusErrors.get(slaveId)
-  }
 
   /*
    * getAvailableSpecs uses bus.slaves cache if possible
@@ -588,36 +583,6 @@ export class Bus implements IModbusAPI {
         resolve(iSpecs)
       }
       let iSpecs: IidentificationSpecification[] = []
-      // try to find the result in cache
-      let values = this.slaves.get(slaveid)
-      if (values) {
-        let addrs: number[] = []
-        let cacheFailed = false
-        addresses.forEach((address) => {
-          if (address.length) for (let a = address.address; a < address.address + address.length; a++) addrs.push(a)
-          else addrs.push(address.address)
-          addrs.forEach((a) => {
-            switch (address.registerType) {
-              case ModbusRegisterType.HoldingRegister:
-                if (!values!.holdingRegisters.has(address.address)) cacheFailed = true
-                break
-              case ModbusRegisterType.AnalogInputs:
-                if (!values!.analogInputs.has(address.address)) cacheFailed = true
-                break
-              case ModbusRegisterType.Coils:
-                if (!values!.coils.has(address.address)) cacheFailed = true
-                break
-              case ModbusRegisterType.DiscreteInputs:
-                if (!values!.discreteInputs.has(address.address)) cacheFailed = true
-                break
-            }
-          })
-        })
-        if (!cacheFailed) {
-          rcf(values)
-          return
-        }
-      }
       // no result in cache, read from modbus
       // will be called once (per slave)
       let usbPort = (this.properties.connectionData as IRTUConnection).serialport
@@ -626,7 +591,7 @@ export class Bus implements IModbusAPI {
         return
       }
 
-      this.readModbusRegister(slaveid, addresses, { task: 'getAvailableSpecs', printLogs: false, split: true })
+      this.readModbusRegister(slaveid, addresses, { task: ModbusTasks.deviceDetection, printLogs: false, errorHandling:{split: true },useCache:true})
         .then((values) => {
           // Add not available addresses to the values
           let noData = { error: new Error('No data available') }
@@ -647,7 +612,6 @@ export class Bus implements IModbusAPI {
             }
           })
           // Store it for cache
-          this.setModbusAddressesForSlave(slaveid, values)
           rcf(values)
         })
         .catch(reject)
@@ -706,45 +670,13 @@ export class Bus implements IModbusAPI {
     else this.properties.slaves.push(slave)
     return slave
   }
-  getCachedValues(slaveid: number, addresses: Set<ImodbusAddress>): ImodbusValues | null {
-    let rc = emptyModbusValues()
-    if (this.slaves) {
-      let saddresses = this.slaves.get(slaveid)
-      if (saddresses)
-        for (let address of addresses) {
-          let value = saddresses!.holdingRegisters.get(address.address)
-          let m = saddresses!.holdingRegisters
-          let r = rc.holdingRegisters
-          switch (address.registerType) {
-            case ModbusRegisterType.AnalogInputs:
-              m = saddresses!.analogInputs
-              r = rc.analogInputs
-              break
-            case ModbusRegisterType.Coils:
-              m = saddresses!.coils
-              r = rc.coils
-              break
-            case ModbusRegisterType.DiscreteInputs:
-              m = saddresses!.discreteInputs
-              r = rc.discreteInputs
-              break
-          }
-          value = m.get(address.address)
-
-          if (value == undefined || value == null) return null
-          r.set(address.address, value)
-        }
-    }
-    return rc
-  }
-
   getSlaves(): Islave[] {
     this.properties.slaves.forEach((s) => {
       if (s && s.specificationid) {
         let ispec = ConfigSpecification.getSpecificationByFilename(s.specificationid)
         if (ispec) s.specification = ispec
       }
-      s.modbusErrorsForSlave = this.getModbusErrorsForSlaveId(s.slaveid)
+      s.modbusErrorsForSlave = this._modbusRTUWorker.getErrors(s.slaveid)
     })
     return this.properties.slaves
   }
@@ -754,8 +686,11 @@ export class Bus implements IModbusAPI {
     if (slave && slave.specificationid) {
       let ispec = ConfigSpecification.getSpecificationByFilename(slave.specificationid)
       if (ispec) slave.specification = ispec
-      slave.modbusErrorsForSlave = this.getModbusErrorsForSlaveId(slave.slaveid)
+      slave.modbusErrorsForSlave = this._modbusRTUWorker.getErrors(slave.slaveid)
     }
     return slave
+  }
+  public static cleanupCaches(){
+    Bus.getBusses().forEach(bus=>bus._modbusRTUWorker.cleanupCache())
   }
 }

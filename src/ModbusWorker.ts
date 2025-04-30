@@ -57,7 +57,7 @@ export class ModbusWorker {
           current.address.write
         )
           .then(() => {
-            current!.onResolve()
+            current!.onResolve(current!,[])
           })
           .catch((e) => {
             current!.onError(current!, e)
@@ -69,7 +69,7 @@ export class ModbusWorker {
           current.address.length == undefined ? 1 : current.address.length
         )
           .then((result) => {
-            current!.onResolve(result.data)
+            current!.onResolve(current!,result.data)
           })
           .catch((e) => {
             current!.onError(current!, e)

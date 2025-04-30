@@ -15,7 +15,7 @@ import {
 import { Modbus, ModbusForTest } from '../src/modbus'
 import { getReadRegisterResult } from '../src/submitRequestMock'
 import { initBussesForTest, yamlDir } from './configsbase'
-import { Islave } from '@modbus2mqtt/server.shared'
+import { Islave, ModbusTasks } from '@modbus2mqtt/server.shared'
 import { ConfigSpecification, IfileSpecification, emptyModbusValues } from '@modbus2mqtt/specification'
 import { expect, xit, it, describe, beforeEach, jest, beforeAll } from '@jest/globals'
 import Debug from 'debug'
@@ -136,7 +136,7 @@ describe('Modbus read', () => {
     new ConfigSpecification().readYaml()
     let dev = ConfigBus.getSlave(0, 1)!
     expect(dev).toBeDefined
-    Modbus.getModbusSpecification('test', Bus.getBus(0)!, 1, dev!.specificationid!, (_e) => {
+    Modbus.getModbusSpecification(ModbusTasks.specification, Bus.getBus(0)!, 1, dev!.specificationid!, (_e) => {
       expect(false).toBeTruthy()
       done()
     }).subscribe((spec1) => {

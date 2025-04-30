@@ -5,6 +5,7 @@ import { IModbusResultWithDuration } from '../src/bus'
 import { IQueueEntry, ModbusErrorActions, ModbusRTUQueue } from '../src/ModbusRTUQueue'
 import { ModbusRegisterType } from '@modbus2mqtt/specification.shared'
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU'
+import { ModbusTasks } from '@modbus2mqtt/server.shared'
 let data = 198
 class FakeBus implements IModbusAPI {
   reconnected: boolean = false
@@ -65,15 +66,28 @@ class FakeBus implements IModbusAPI {
             }
             break
           case 199:
-            let e1: any = new Error('Error')
-            e1.modbusCode = 4 // CRC?
+            let e1: any = new Error('CRC error')
             reject(e1)
             break
-          case 200:
+          case 202:
+              let e2: any = new Error('CRC error')
+              reject(e2)
+          break
+            case 200:
             let e = new Error('Error')
             ;(e as any).errno = 'ETIMEDOUT'
             reject(e)
-        }
+            break
+          default:
+            let r: IModbusResultWithDuration = {
+              data: [1],
+              duration: 100,
+            }
+            if( length >1)
+              for ( let l = 1; l < length; l++)
+                  r.data.push(1)
+            resolve(r)
+          }
       }
     })
   }
@@ -113,7 +127,7 @@ function enqueue(queue: ModbusRTUQueue, num: number, test: Itest) {
   queue.enqueue(
     1,
     { registerType: ModbusRegisterType.HoldingRegister, address: num },
-    (data) => {
+    (qe,data) => {
       // validate no paralell processing
       expect(test.worker!.isRunningForTest).toBeFalsy()
       test.worker!.isRunningForTest = true
@@ -124,7 +138,7 @@ function enqueue(queue: ModbusRTUQueue, num: number, test: Itest) {
     },
     (e) => {
       return ModbusErrorActions.handledNoReconnect
-    }
+    }, { task:ModbusTasks.specification,errorHandling:{}}
   )
 }
 function enqueueWrite(queue: ModbusRTUQueue, num: number, test: Itest) {
@@ -139,7 +153,8 @@ function enqueueWrite(queue: ModbusRTUQueue, num: number, test: Itest) {
     },
     (e) => {
       return ModbusErrorActions.handledNoReconnect
-    }
+    },
+    { task:ModbusTasks.specification,errorHandling:{}}
   )
 }
 describe('ModbusRTUWorker read', () => {
@@ -162,24 +177,26 @@ describe('ModbusRTUWorker read', () => {
     queue.enqueue(
       1,
       { registerType: ModbusRegisterType.Coils, address: 199 },
-      (result) => {
+      (qe,result) => {
         expect(result![0]).toBe(1)
       },
       (e) => {
         // This should not happen
         expect(true).toBeFalsy()
-      }
+      },
+      { task:ModbusTasks.specification,errorHandling:{retry:true}}
     )
     queue.enqueue(
       1,
       { registerType: ModbusRegisterType.Coils, address: 200 },
-      (result) => {
+      (qe,result) => {
         expect(result![0]).toBe(1)
       },
-      (e) => {
+      (qe,e) => {
         // This should not happen
         expect(true).toBeFalsy()
-      }
+      },
+      { task:ModbusTasks.specification,errorHandling:{retry:true}}
     )
 
     test.worker = new ModbusRTUWorkerForTest(new FakeBus(), queue, done, 'read')
@@ -194,12 +211,13 @@ describe('ModbusRTUWorker read', () => {
     queue.enqueue(
       1,
       { registerType: ModbusRegisterType.Coils, address: 198 },
-      (result) => {
+      (qe,result) => {
         expect(true).toBeFalsy()
       },
-      (e) => {
+      (qe,e) => {
         fb.callCount = 199 // unique identifier to validate in onFinish()
-      }
+      },
+      { task:ModbusTasks.specification,errorHandling:{}}
     )
     test.worker = new ModbusRTUWorkerForTest(fb, queue, done, 'read')
     test.worker.expectedReconnected = false
@@ -213,13 +231,36 @@ describe('ModbusRTUWorker read', () => {
     queue.enqueue(
       1,
       { registerType: ModbusRegisterType.Coils, address: 199 },
-      (result) => {
+      (qe,result) => {
         expect(result![0]).toBe(1)
       },
-      (e) => {
+      (qe,e) => {
         // This should not happen
         expect(true).toBeFalsy()
-      }
+      },
+      { task:ModbusTasks.specification,errorHandling:{retry:true}}
+    )
+
+    test.worker = new ModbusRTUWorkerForTest(new FakeBus(), queue, done, 'read')
+    test.worker.expectedReconnected = true
+    test.worker.expectedAPIcallCount = 0
+    test.worker.run()
+  })
+
+  it('Sequential read error processing with split', (done) => {
+    let queue = new ModbusRTUQueue()
+    let test: Itest = {}
+    queue.enqueue(
+      1,
+      { registerType: ModbusRegisterType.Coils, address: 202, length: 3 },
+      (qe,result) => {
+        expect(result![0]).toBe(1)
+      },
+      (qe,e) => {
+        // This should not happen
+        expect(true).toBeFalsy()
+      },
+      { task:ModbusTasks.specification,errorHandling:{retry:true, split:true}}
     )
 
     test.worker = new ModbusRTUWorkerForTest(new FakeBus(), queue, done, 'read')
@@ -234,14 +275,15 @@ describe('ModbusRTUWorker read', () => {
     queue.enqueue(
       1,
       { registerType: ModbusRegisterType.Coils, address: 200 },
-      (result) => {
+      (qe,result) => {
         // should not be called, because of error
         expect(result![0]).toBe(1)
       },
-      (e) => {
+      (qe,e) => {
         // This should not happen
         expect(true).toBeFalsy()
-      }
+      },
+      { task:ModbusTasks.specification,errorHandling:{retry:true}}
     )
 
     test.worker = new ModbusRTUWorkerForTest(new FakeBus(), queue, done, 'readExcpetion')
@@ -252,37 +294,89 @@ describe('ModbusRTUWorker read', () => {
 })
 function genCacheEntry(
   address: number,
-  onResult: (result: number[] | undefined) => void,
-  onError: (error: any) => void
+  onResult: (queueEntry:IQueueEntry,result: number[] | undefined) => void,
+  onError: (queueEntry:IQueueEntry,error: any) => void
 ): IQueueEntry {
   return {
     slaveId: 1,
     address: { address: address, length: 1, registerType: ModbusRegisterType.HoldingRegister },
-    options: { useCache: true },
+    options: { useCache: true, task:ModbusTasks.specification,errorHandling:{} },
     onResolve: onResult,
-    onError: onError,
+    onError: onError
   }
 }
 class RTUWorkerCached extends ModbusRTUWorker {
   constructor(
     api: IModbusAPI,
     queue: ModbusRTUQueue,
-    private onFinishP: () => void
+    private onFinishP: () => void,
+    public currentDate:Date = new Date(2025,1,1,5,0,0,0)
   ) {
     super(api, queue)
   }
+  
+  protected override getCurrentDate(): Date {
+    return new Date(this.currentDate.getTime());
+  } 
   override onFinish(): void {
     this.onFinishP()
   }
 }
 describe('ModbusRTUWorker Cache', () => {
+  it('updateCacheError', () => {
+    let queue = new ModbusRTUQueue()
+    let worker = new RTUWorkerCached(new FakeBus(), queue, () => {})
+      let e199 = genCacheEntry(
+        199,
+        (qe,result) => {},
+        () => {}
+      )
+
+    worker['updateCache'](e199, [-199])
+    expect(worker['cache'].get(1)!.holdingRegisters.get(199)!.data![0]).toBe(-199)
+    worker['updateCache'](e199, [-201])
+    expect(worker['cache'].get(1)!.holdingRegisters.get(199)!.data![0]).toBe(-201)
+    worker['updateCacheError'](e199, new Error("Error"))
+    // Cache Entry is "new"
+    expect(worker['cache'].get(1)!.holdingRegisters.get(199)!.data![0]).toBe(-201)
+    expect(worker['cache'].get(1)!.holdingRegisters.get(199)!.error).toBeUndefined()
+    worker.currentDate = new Date(2025,1,1,13,0,0,0)
+    // Entry is "old"
+    worker['updateCacheError'](e199, new Error("Error"))
+    expect(worker['cache'].get(1)!.holdingRegisters.get(199)!.data).toBeUndefined()
+    expect(worker['cache'].get(1)!.holdingRegisters.get(199)!.error).toBeDefined()
+
+  })
+  it('cleanupCache', () => {
+    let queue = new ModbusRTUQueue()
+    let worker = new RTUWorkerCached(new FakeBus(), queue, () => {})
+      let e199 = genCacheEntry(
+        199,
+        (qe,result) => {},
+        () => {}
+      )
+    // expired entry
+    let e200 = genCacheEntry(
+      200,
+      (qe,result) => {},
+      () => {}
+    )
+    worker['updateCache'](e199, [-199])
+    let cd = worker.currentDate
+    worker.currentDate = new Date(2025,1,1,5 - 13,0,0,0)
+    worker['updateCache'](e200, [-200])
+    worker.currentDate = cd
+    worker['cleanupCache']()
+    expect(worker['cache'].get(1)!.holdingRegisters.get(199)!.data).toBeDefined()
+    expect(worker['cache'].get(1)!.holdingRegisters.get(200)).toBeUndefined()
+  })
   it('Read from cache', (done) => {
     let queue = new ModbusRTUQueue()
     let onResultCallCount = 0
     let onErrorCallCount = 0
     let e199 = genCacheEntry(
       199,
-      (result) => {
+      (qe,result) => {
         onResultCallCount++
         expect(result![0]).toBe(2)
       },
@@ -292,7 +386,7 @@ describe('ModbusRTUWorker Cache', () => {
     )
     let e200 = genCacheEntry(
       200,
-      (result) => {
+      (qe,result) => {
         onResultCallCount++
         expect(result![0]).toBe(2)
       },
@@ -302,7 +396,7 @@ describe('ModbusRTUWorker Cache', () => {
     )
     let e201 = genCacheEntry(
       201,
-      (result) => {
+      (qe,result) => {
         onResultCallCount++
         expect(result![0]).toBe(3)
       },

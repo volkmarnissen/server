@@ -19,7 +19,7 @@ import { Bus } from './bus'
 import { ConfigBus } from './configbus'
 import Debug from 'debug'
 import { LogLevelEnum, Logger } from '@modbus2mqtt/specification'
-import { ImqttClient, Islave, PollModes, Slave } from '@modbus2mqtt/server.shared'
+import { ImqttClient, Islave, ModbusTasks, PollModes, Slave } from '@modbus2mqtt/server.shared'
 import { Mutex } from 'async-mutex'
 import { QoS } from 'mqtt-packet'
 
@@ -691,7 +691,7 @@ export class MqttDiscover {
   static readModbus(slave: Slave): Observable<ImodbusSpecification> | undefined {
     let bus = Bus.getBus(slave.getBusId())
     if (bus)
-      return Modbus.getModbusSpecification('poll', bus, slave.getSlaveId(), slave.getSpecificationId(), (e) => {
+      return Modbus.getModbusSpecification(ModbusTasks.poll, bus, slave.getSlaveId(), slave.getSpecificationId(), (e) => {
         log.log(LogLevelEnum.error, 'reading spec failed' + e.message)
         //Ignore this error continue with next
       })
@@ -787,12 +787,11 @@ export class MqttDiscover {
           ) {
             let bus = Bus.getBus(bs.slave.getBusId())
             if (bus)
-              Modbus.getModbusSpecification('poll', bus, bs.slave.getSlaveId(), bs.slave.getSpecificationId(), (e) => {
+              Modbus.getModbusSpecification(ModbusTasks.poll, bus, bs.slave.getSlaveId(), bs.slave.getSpecificationId(), (e) => {
                 log.log(LogLevelEnum.error, 'reading spec failed' + e.message)
               }).subscribe((spec) => {
                 tAndP.push({ topic: bs.slave.getStateTopic(), payload: bs.slave.getStatePayload(spec.entities), entityid: 0 })
                 tAndP.push({ topic: bs.slave.getAvailabilityTopic(), payload: 'online', entityid: 0 })
-                bus.updateErrorsForSlaveId(bs.slave.getSlaveId(), spec)
                 pollDeviceCount++
                 if (pollDeviceCount == needPolls.length)
                   this.getMqttClient((mqttClient) => {

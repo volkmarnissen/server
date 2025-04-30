@@ -10,6 +10,7 @@ import {
   Iconverter,
   HttpErrorsEnum,
   FileLocation,
+  IbaseSpecification,
 } from '@modbus2mqtt/specification.shared'
 import { Config } from '../src/config'
 import { FakeMqtt, FakeModes, initBussesForTest } from './configsbase'
@@ -484,21 +485,16 @@ describe('http POST', () => {
       })
       .then((_response) => {
         // expect((response as any as Response).status).toBe(HttpErrorsEnum.ErrBadRequest)
-        let testdata: ImodbusValues = {
-          holdingRegisters: new Map<number, IModbusResultOrError>(),
-          analogInputs: new Map<number, IModbusResultOrError>(),
-          coils: new Map<number, IModbusResultOrError>(),
-          discreteInputs: new Map<number, IModbusResultOrError>(),
-        }
-        testdata.holdingRegisters.set(100, { error: new Error('failed!!!') })
-        Bus.getBus(0)!['setModbusAddressesForSlave'](2, testdata)
+        let ev = Bus.getBus(0)!['_modbusRTUWorker']!['createEmptyIModbusValues']()
+        ev.holdingRegisters.set(100, { error: new Error('failed!!!'),date:new Date() })
+        Bus.getBus(0)!['_modbusRTUWorker']!['cache'].set(2,ev)
         supertest(httpServer['app'])
           .post(url)
           .accept('application/json')
           .send(spec1)
           .expect(HttpErrorsEnum.OkCreated)
           .then((response) => {
-            var found = ConfigSpecification.getSpecificationByFilename(spec1.filename)!
+            var found = ConfigSpecification.getSpecificationByFilename(spec1.filename)! as any
             let newFilename = ConfigSpecification['getSpecificationPath'](response.body)
             expect(fs.existsSync(newFilename)).toBeTruthy()
             expect(getSpecificationI18nName(found!, 'en')).toBe('Water Level Transmitter')
