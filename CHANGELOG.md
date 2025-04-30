@@ -15,6 +15,7 @@
 
 **Merged pull requests:**
 
+- Modbus Error Handling and Monitoring/tree/modbuscache [\#110](https://github.com/modbus2mqtt/server/pull/110) ([volkmarnissen](https://github.com/volkmarnissen))
 - Fix Modbuscache, Add caching for modbusRTU [\#108](https://github.com/modbus2mqtt/server/pull/108) ([volkmarnissen](https://github.com/volkmarnissen))
 - Modbuscache [\#106](https://github.com/modbus2mqtt/server/pull/106) ([modbus2mqtt](https://github.com/modbus2mqtt))
 
