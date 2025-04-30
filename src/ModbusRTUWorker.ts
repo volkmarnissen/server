@@ -12,13 +12,14 @@ const logNoticeMaxWaitTime = 1000 * 60 * 30 // 30 minutes
 const maxErrorRetriesCrc = 4
 const maxErrorRetriesTimeout = 1
 const maxErrorRetriesOther = 1
+const errorCleanTimeout = 60 * 60 *1 * 1000 // 1 hour
 const errorTimeout = 60 * 60 *5 * 1000 // 5 hours
 const dataTimeout = 60 * 60 *10 * 1000 // 10 hours
 interface IModbusResultCache extends IModbusResultOrError{
   date: Date
 }
 class ModbusErrorDescription {
-  constructor(private queueEntry: IQueueEntry, private state:ModbusErrorStates, private date:Date = new Date()){}
+  constructor(private queueEntry: IQueueEntry, private state:ModbusErrorStates, public date:Date = new Date()){}
   getModbusErorForSlave():ImodbusErrorsForSlave{
     return {
       date: this.date.getTime(),
@@ -348,12 +349,18 @@ export class ModbusRTUWorker extends ModbusWorker {
         table.delete(key)
     })
   }
-  private cleanupCache():void{
+  public cleanupCache():void{
     this.cache.forEach((v)=>{
       this.cleanCacheTable(v.holdingRegisters)
       this.cleanCacheTable(v.analogInputs)
       this.cleanCacheTable(v.discreteInputs)
       this.cleanCacheTable(v.coils)
+      let notExpired:Date = this.getCurrentDate()
+      notExpired.setTime(notExpired.getTime() - errorCleanTimeout)
+        v.errors.forEach((e, idx)=>{
+          if(e.date < notExpired)
+            v.errors.splice(idx,1)
+        })
     })
   }
   public addError(queueEntry:IQueueEntry,state: ModbusErrorStates, date:Date= new Date()){

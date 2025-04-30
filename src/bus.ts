@@ -690,4 +690,7 @@ export class Bus implements IModbusAPI {
     }
     return slave
   }
+  public static cleanupCaches(){
+    Bus.getBusses().forEach(bus=>bus._modbusRTUWorker.cleanupCache())
+  }
 }
