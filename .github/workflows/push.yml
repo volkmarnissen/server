@@ -21,6 +21,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          repository: modbus2mqtt/modbus2mqtt.dev
+          path: .
+      - uses: actions/checkout@v4
+        with:
           path: server
       - name: '✏️ Generate changelog'
         uses: heinrichreimer/action-github-changelog-generator@v2.4
@@ -28,16 +32,15 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           output: server/CHANGELOG.md
           headerLabel: '# Changelog for ${{github.event.repository.name}}'
-      - name: Checkin CHANGELOG.md
+      - name: Update sha in package-lock.json
+        run: |
+          cd server
+          npm update @modbus2mqtt/specification.shared @modbus2mqtt/server.shared @modbus2mqtt/angular @modbus2mqtt/specification
+      - name: Checkin CHANGELOG.md and package-lock.json 
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           repository: ./server
           commit_message: Update CHANGELOG.md
-
-      - uses: actions/checkout@v4
-        with:
-          repository: modbus2mqtt/modbus2mqtt.dev
-          path: .
       - name: Wait for other workflow run or continue
         id: init
         run: |
@@ -63,6 +66,7 @@ jobs:
           #git config --global url."https://".insteadOf git://
           npm init -y
           # HEAD of release or main branch 
+          echo "npm install github:modbus2mqtt/server#${{github.ref_name}}"
           npm install --omit=dev "github:modbus2mqtt/server#${{github.ref_name}}"
       - name: Archive node_modules directory artifacts
         uses: actions/upload-artifact@v4
@@ -152,12 +156,6 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
         env:
           BUILDX_NO_DEFAULT_ATTESTATIONS: 1    
-      - name: Delete latest packages
-        uses: actions/delete-package-versions@v5
-        with:
-            package-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{steps.releasecheck.outputs.latest}}-${{steps.platformcheck.outputs.platform}}
-            package-type: 'container'
-            min-versions-to-keep: 4
       - name: Copy CHANGELOG.mds
         run: |
           cd hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}
@@ -169,13 +167,14 @@ jobs:
           done 
           cd -
       - name: Checkin hassio-addon-repository
-        if: ${{steps.platformcheck.outputs.platform == 'arm64' }}
+        if: ${{steps.platformcheck.outputs.platform == 'arm64' }} 
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           repository: ./hassio-addon-repository
           tagging_message: ${{steps.prepareAddonDirectory.outputs.TAG_NAME}}
-          commit_message: ${{steps.prepareAddonDirectory.outputs.TAG_NAME}}
+          commit_message: ${{steps.prepareAddonDirectory.outputs.TAG_NAME}}  
   docker-tag:
+    if: always()
     runs-on: ubuntu-latest
     permissions:
       contents: read
