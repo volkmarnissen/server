@@ -125,7 +125,8 @@ export class Modbus2Mqtt {
                       `modbus2mqtt listening on  ${os.hostname()}: ${Config.getConfiguration().httpport}`
                     )
                     new ConfigSpecification().deleteNewSpecificationFiles()
-                    Bus.getAllAvailableModusData()
+                    // clean cache once per hour
+                    setInterval(()=>{Bus.cleanupCaches()},1000*60*60)
                     if (process.env.MODBUS_NOPOLL == undefined) {
                       md.startPolling()
                     } else {
