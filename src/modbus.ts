@@ -1,4 +1,4 @@
-import { ImodbusSpecification, Ispecification } from '@modbus2mqtt/specification.shared'
+import { Iidentification, ImodbusSpecification, Ispecification } from '@modbus2mqtt/specification.shared'
 import { ConfigSpecification, ConverterMap, ImodbusValues, M2mSpecification, emptyModbusValues } from '@modbus2mqtt/specification'
 import { Ientity, ImodbusEntity } from '@modbus2mqtt/specification.shared'
 import { Config } from './config'
@@ -8,7 +8,7 @@ import { submitGetHoldingRegisterRequest } from './submitRequestMock'
 import { IfileSpecification } from '@modbus2mqtt/specification'
 import { LogLevelEnum, Logger } from '@modbus2mqtt/specification'
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU'
-import { ImodbusAddress, ModbusTasks } from '@modbus2mqtt/server.shared'
+import { IidentificationSpecification, ImodbusAddress, ModbusTasks } from '@modbus2mqtt/server.shared'
 const debug = require('debug')('modbus')
 const debugAction = require('debug')('actions')
 
