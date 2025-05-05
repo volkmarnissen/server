@@ -1,9 +1,9 @@
 import Debug from 'debug'
 import { Subject } from 'rxjs'
-import { getSpecificationI18nEntityName, getSpecificationI18nName, ImodbusEntity,  ImodbusSpecification,  Ispecification,  ModbusRegisterType, setSpecificationI18nEntityName, SpecificationStatus } from '@modbus2mqtt/specification.shared'
-import { IidentEntity, ImodbusAddress, ModbusErrorStates, ModbusTasks } from '@modbus2mqtt/server.shared'
+import { getSpecificationI18nName, ImodbusEntity,  ImodbusSpecification,  ModbusRegisterType, SpecificationStatus } from '@modbus2mqtt/specification.shared'
+import { ImodbusAddress, ModbusErrorStates, ModbusTasks } from '@modbus2mqtt/server.shared'
 import { IdentifiedStates } from '@modbus2mqtt/specification.shared'
-import { ConverterMap, ImodbusValues, M2mSpecification, emptyModbusValues } from '@modbus2mqtt/specification'
+import { ConverterMap, ImodbusValues, M2mSpecification } from '@modbus2mqtt/specification'
 import { ConfigBus } from './configbus'
 import * as fs from 'fs'
 import { submitGetHoldingRegisterRequest } from './submitRequestMock'
@@ -17,9 +17,7 @@ import {
   IBus,
   IRTUConnection,
   ITCPConnection,
-  IidentificationSpecification,
-  ImodbusErrorsForSlave
-} from '@modbus2mqtt/server.shared'
+  IidentificationSpecification} from '@modbus2mqtt/server.shared'
 import { ConfigSpecification } from '@modbus2mqtt/specification'
 import { Config } from './config'
 import { ModbusRTUWorker } from './ModbusRTUWorker'

@@ -65,7 +65,7 @@ let selectTest: ImodbusEntity = {
   modbusAddress: 7,
   registerType: ModbusRegisterType.HoldingRegister,
   readonly: true,
-  converter: { name: 'select', registerTypes: [] },
+  converter: 'select',
   modbusValue: [],
   mqttValue: '300',
   identified: 1,
@@ -78,7 +78,7 @@ let selectTestWritable: ImodbusEntity = {
   modbusAddress: 1,
   registerType: ModbusRegisterType.HoldingRegister,
   readonly: false,
-  converter: { name: 'select', registerTypes: [] },
+  converter: 'select',
   modbusValue: [],
   mqttValue: '300',
   identified: 1,
@@ -119,7 +119,7 @@ beforeAll((done) => {
       variableConfiguration: {
         targetParameter: VariableTargetParameters.deviceIdentifiers,
       },
-      converter: { name: 'text', registerTypes: [] },
+      converter: 'text',
       modbusValue: [],
       mqttValue: '123456',
       identified: 1,
@@ -131,7 +131,7 @@ beforeAll((done) => {
     let currentSolarPower: ImodbusEntity = {
       id: 1,
       mqttname: 'currentpower',
-      converter: { name: 'number', registerTypes: [] },
+      converter: 'number',
       modbusValue: [],
       mqttValue: '300',
       identified: 1,
@@ -173,7 +173,7 @@ let numberTest: ImodbusEntity = {
   modbusAddress: 2,
   registerType: ModbusRegisterType.HoldingRegister,
   readonly: true,
-  converter: { name: 'number', registerTypes: [] },
+  converter: 'number',
   modbusValue: [],
   mqttValue: '300',
   identified: 1,
@@ -307,10 +307,7 @@ test('selectConverter adds modbusValue to statePayload', () => {
     mqttValue: 'Some Text',
     identified: 1,
     mqttname: 'selectTest',
-    converter: {
-      name: 'select',
-      registerTypes: [],
-    },
+    converter: 'select',
     readonly: false,
     registerType: ModbusRegisterType.HoldingRegister,
     modbusAddress: 44,
@@ -419,7 +416,7 @@ function copySubscribedSlaves(toA: Slave[], fromA: Slave[]) {
     ConfigBus.addIdentitySpecification(s['slave']);
     if(s['slave'] && s['slave'].specification && s['slave'].specification.entities)
     s['slave'].specification.entities.forEach((e:any)=>{
-       e.converter = {name: "select"}
+       e.converter = "select"
     })
     toA.push(s.clone())
   })
@@ -436,7 +433,7 @@ test('onMessage SendEntityCommandTopic from this app', (done) => {
   let bus = Bus.getBus(0)
   let slave = structuredClone(bus!.getSlaveBySlaveId(1))
   ConfigBus.addIdentitySpecification(slave!);
-  (slave!.specification?.entities[2] as any).converter={ name: "select"}
+  (slave!.specification?.entities[2] as any).converter="select"
   let spec = slave!.specification!
   let sl = new Slave(0, slave!, Config.getConfiguration().mqttbasetopic)
   slave!.specification!.entities[2].readonly = false

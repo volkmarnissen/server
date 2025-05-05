@@ -7,10 +7,10 @@ import {
   ModbusRegisterType,
   IimageAndDocumentUrl,
   IdentifiedStates,
-  Iconverter,
   HttpErrorsEnum,
   FileLocation,
   IbaseSpecification,
+  Converters,
 } from '@modbus2mqtt/specification.shared'
 import { Config } from '../src/config'
 import { FakeMqtt, FakeModes, initBussesForTest } from './configsbase'
@@ -80,7 +80,7 @@ let spec: ImodbusSpecification = {
     {
       id: 1,
       mqttname: 'waterleveltransmitter',
-      converter: { name: 'number', registerTypes: [] },
+      converter: 'number',
       modbusAddress: 3,
       registerType: ModbusRegisterType.HoldingRegister,
       readonly: true,
@@ -108,7 +108,7 @@ let spec2: IfileSpecification = { ...spec, version: VERSION, testdata: {} }
 spec2.entities.push({
   id: 2,
   mqttname: '',
-  converter: { name: 'number', registerTypes: [] },
+  converter: 'number',
   modbusAddress: 4,
   registerType: ModbusRegisterType.HoldingRegister,
   readonly: true,
@@ -346,10 +346,8 @@ test('GET /converters', (done) => {
     .expect(200)
     .then((response) => {
       let sensorExist = false
-      response.body.forEach((element: Iconverter) => {
-        if (element.name == 'number') {
-          expect(element.registerTypes).toBeDefined()
-          expect(element.registerTypes.length).toBe(2)
+      response.body.forEach((element: Converters) => {
+        if (element == 'number') {
           sensorExist = true
         }
       })
