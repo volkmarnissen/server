@@ -346,9 +346,8 @@ export class MqttDiscover {
   }
   private sendCommandModbus(slave: Slave, entity: Ientity, modbus: boolean, payload: string): Promise<void> {
     let cnv: Converter | undefined = undefined
-    if (entity.converter) cnv = ConverterMap['getConverterMap']().get(entity.converter)
-    //const cnv = ConverterMap.getConverter(entity)
-    if (cnv) {
+    if (entity.converter) cnv = ConverterMap.getConverter(entity)
+     if (cnv) {
       if (modbus)
         return Modbus.writeEntityModbus(Bus.getBus(slave.getBusId())!, slave.getSlaveId(), entity, [Number.parseInt(payload)])
       else {
