@@ -1,6 +1,6 @@
-import { IBus, IidentEntity, IidentificationSpecification, IModbusConnection, Islave, Slave } from '@modbus2mqtt/server.shared'
+import { IBus, IModbusConnection, Islave, Slave } from '@modbus2mqtt/server.shared'
 import { ConfigSpecification, Logger, LogLevelEnum } from '@modbus2mqtt/specification'
-import { BUS_TIMEOUT_DEFAULT, getSpecificationI18nEntityName, getSpecificationI18nName, IbaseSpecification, IdentifiedStates, Ispecification, SpecificationStatus } from '@modbus2mqtt/specification.shared'
+import { getSpecificationI18nEntityName, IdentifiedStates, IidentEntity, Ispecification } from '@modbus2mqtt/specification.shared'
 import { parse, stringify } from 'yaml'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -8,7 +8,6 @@ import * as path from 'path'
 import Debug from 'debug'
 import { join } from 'path'
 import { Config, ConfigListenerEvent } from './config'
-import { MqttDiscover } from './mqttdiscover'
 import { SerialPort } from 'serialport/dist/serialport'
 const log = new Logger('config')
 const debug = Debug('configbus')

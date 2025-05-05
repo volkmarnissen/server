@@ -1,5 +1,5 @@
 import { Config, ConfigListenerEvent } from './config'
-import { ConfigSpecification, ConverterMap, M2mSpecification } from '@modbus2mqtt/specification'
+import { ConfigSpecification, ConverterMap } from '@modbus2mqtt/specification'
 import { format } from 'util'
 import {
   Inumber,
@@ -11,6 +11,7 @@ import {
   EnumStateClasses,
   Itext,
   Ispecification,
+  Converters,
 } from '@modbus2mqtt/specification.shared'
 import { Ientity, ImodbusEntity, VariableTargetParameters, getSpecificationI18nEntityName } from '@modbus2mqtt/specification.shared'
 import { IClientOptions, IClientPublishOptions, MqttClient, connect } from 'mqtt'
@@ -19,12 +20,12 @@ import { Bus } from './bus'
 import { ConfigBus } from './configbus'
 import Debug from 'debug'
 import { LogLevelEnum, Logger } from '@modbus2mqtt/specification'
-import { IidentEntity, ImqttClient, Islave, ModbusTasks, PollModes, Slave } from '@modbus2mqtt/server.shared'
+import {  ImqttClient, Islave, ModbusTasks, PollModes, Slave } from '@modbus2mqtt/server.shared'
 import { Mutex } from 'async-mutex'
 import { QoS } from 'mqtt-packet'
 
 import { Observable } from 'rxjs'
-import { ClientOptions } from 'ws'
+import { Converter } from '@modbus2mqtt/specification/dist/converter'
 const debug = Debug('mqttdiscover')
 const debugAction = Debug('actions')
 const debugMqttClient = Debug('mqttclient')
@@ -104,18 +105,18 @@ export class MqttDiscover {
   private generateEntityConfigurationTopic(slave: Slave, ent: Ientity): string {
     let haType = 'sensor'
     if (ent.readonly)
-      switch (ent.converter.name) {
+      switch (ent.converter) {
         case 'binary':
           haType = 'binary_sensor'
           break
       }
     else
-      switch (ent.converter.name) {
+      switch (ent.converter) {
         case 'binary':
           haType = 'switch'
           break
         default:
-          haType = ent.converter.name
+          haType = ent.converter
       }
 
     return (
@@ -204,7 +205,7 @@ export class MqttDiscover {
                   case 'Iselect':
                     if (!e.readonly) {
                       let ns = e.converterParameters as Iselect
-                      if (e.converter.name === 'select' && ns && ns.optionModbusValues && ns.optionModbusValues.length) {
+                      if (e.converter === 'select' && ns && ns.optionModbusValues && ns.optionModbusValues.length) {
                         obj.options = []
                         for (let modbusValue of ns.optionModbusValues)
                           obj.options.push(getSpecificationI18nEntityOptionName(spec, language, e.id, modbusValue))
@@ -217,7 +218,7 @@ export class MqttDiscover {
                           })
                       }
                       obj.device_class = 'enum'
-                      if (e.converter.name === 'binary' && ns.device_class) obj.device_class = ns.device_class
+                      if (e.converter === 'binary' && ns.device_class) obj.device_class = ns.device_class
                     }
                     break
                   case 'Inumber':
@@ -225,7 +226,7 @@ export class MqttDiscover {
                     if (!obj.unit_of_measurement && nn && nn.uom) obj.unit_of_measurement = nn.uom
                     if (nn && nn.device_class && nn.device_class.toLowerCase() != 'none') obj.device_class = nn.device_class
                     if (nn && nn.state_class && nn.state_class) obj.state_class = MqttDiscover.getStateClass(nn.state_class)
-                    if (e.converter.name === 'number' && !e.readonly) {
+                    if (e.converter === 'number' && !e.readonly) {
                       if (nn.step) obj.step = nn.step
                       if (nn.identification) {
                         if (nn.identification.min != undefined) obj.min = nn.identification.min
@@ -344,7 +345,9 @@ export class MqttDiscover {
     return 'unknown issue'
   }
   private sendCommandModbus(slave: Slave, entity: Ientity, modbus: boolean, payload: string): Promise<void> {
-    const cnv = ConverterMap.getConverter(entity)
+    let cnv: Converter | undefined = undefined
+    if (entity.converter) cnv = ConverterMap['getConverterMap']().get(entity.converter)
+    //const cnv = ConverterMap.getConverter(entity)
     if (cnv) {
       if (modbus)
         return Modbus.writeEntityModbus(Bus.getBus(slave.getBusId())!, slave.getSlaveId(), entity, [Number.parseInt(payload)])
