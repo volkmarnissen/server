@@ -196,7 +196,7 @@ it('GET /nextCheck', (done) => {
 
 it('GET /specsForSlave', (done) => {
   supertest(httpServer['app'])
-    .get(apiUri.specsForSlaveId + '?busid=0&slaveid=1')
+    .get(apiUri.specsDetection + '?busid=0&slaveid=1&language=en')
     .expect(200)
     .then((response) => {
       expect(response.body.length).toBeGreaterThan(0)

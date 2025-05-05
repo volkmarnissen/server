@@ -19,7 +19,7 @@ import { Bus } from './bus'
 import { ConfigBus } from './configbus'
 import Debug from 'debug'
 import { LogLevelEnum, Logger } from '@modbus2mqtt/specification'
-import { ImqttClient, Islave, ModbusTasks, PollModes, Slave } from '@modbus2mqtt/server.shared'
+import { IidentEntity, ImqttClient, Islave, ModbusTasks, PollModes, Slave } from '@modbus2mqtt/server.shared'
 import { Mutex } from 'async-mutex'
 import { QoS } from 'mqtt-packet'
 
@@ -82,15 +82,7 @@ export class MqttDiscover {
 
     return MqttDiscover.instance
   }
-  static addSpecificationToSlave(slave: Slave): Slave {
-    let rc = slave.clone()
-    let specificationId = rc.getSpecificationId()
-    if (specificationId) {
-      let spec = ConfigSpecification.getSpecificationByFilename(specificationId)
-      rc.setSpecification(spec)
-    }
-    return rc
-  }
+
   constructor() {
     this.onConnectCallbacks = []
 
@@ -357,7 +349,7 @@ export class MqttDiscover {
       if (modbus)
         return Modbus.writeEntityModbus(Bus.getBus(slave.getBusId())!, slave.getSlaveId(), entity, [Number.parseInt(payload)])
       else {
-        let spec = slave.getSpecification()
+        let spec = ConfigSpecification.getSpecificationByFilename(slave.getSpecificationId())
         if (spec)
           return Modbus.writeEntityMqtt(Bus.getBus(slave.getBusId())!, slave.getSlaveId(), spec, entity.id, payload.toString())
       }
@@ -411,6 +403,13 @@ export class MqttDiscover {
     })
   }
 
+  private getEntityFromSlave(slave:Slave, mqttname:string):Ientity|undefined{
+    let spec = slave.getSpecification()
+          let entity:Ientity|undefined 
+          if( spec) 
+             entity = spec.entities.find((e) => e.mqttname == mqttname)
+          return entity
+  }
   sendCommand(slave: Slave, payload: string): Promise<ImodbusSpecification> {
     return new Promise<ImodbusSpecification>((resolve, reject) => {
       let p = JSON.parse(payload)
@@ -419,17 +418,17 @@ export class MqttDiscover {
         reject(new Error('Send Command failed: payload is an object ' + payload))
         return
       }
-
+      slave.setSpecification( ConfigSpecification.getSpecificationByFilename(slave.getSpecificationId()))
       if (p.modbusValues) {
         Object.getOwnPropertyNames(p.modbusValues).forEach((propName) => {
-          let entity = slave.getSpecification()?.entities.find((e) => e.mqttname == propName)
+          let entity:Ientity|undefined = this.getEntityFromSlave(slave, propName)
           if (entity && !entity.readonly)
             promisses.push(this.sendCommandModbus(slave, entity, true, p.modbusValues[propName].toString()))
         })
       }
       Object.getOwnPropertyNames(p).forEach((propName) => {
         let value = p[propName].toString()
-        let entity = slave.getSpecification()?.entities.find((e) => e.mqttname == propName)
+        let entity:Ientity|undefined = this.getEntityFromSlave(slave, propName)
         if (entity && !entity.readonly && (p.modbusValues == undefined || p.modbusValues[propName] == undefined))
           promisses.push(this.sendCommandModbus(slave, entity, false, value))
       })
@@ -449,7 +448,7 @@ export class MqttDiscover {
     let tAndPs: ItopicAndPayloads[] = []
     let subscribedSlave = this.subscribedSlaves.find((s) => 0 == Slave.compareSlaves(s, slave))
     let newSpec = slave.getSpecification()
-    let oldSpec = subscribedSlave ? subscribedSlave?.getSpecification() : undefined
+    let oldSpec = subscribedSlave ? subscribedSlave.getSpecification() : undefined
     if (oldSpec && oldSpec.entities) {
       oldSpec.entities.forEach((oldEnt) => {
         let newEnt = newSpec?.entities.find((newE) => newE.id == oldEnt.id)
@@ -757,7 +756,7 @@ export class MqttDiscover {
 
             if (pc == undefined || pc > (slave.pollInterval != undefined ? slave.pollInterval / 100 : defaultPollCount)) pc = 0
             if (pc == 0 || trigger != undefined) {
-              let s = MqttDiscover.addSpecificationToSlave(new Slave(bus.getId(), slave, Config.getConfiguration().mqttbasetopic))
+              let s = new Slave(bus.getId(), slave, Config.getConfiguration().mqttbasetopic)
               if (slave.specification) {
                 needPolls.push({ slave: s, pollMode: trigger == undefined ? PollModes.intervall : PollModes.trigger })
               } else {
