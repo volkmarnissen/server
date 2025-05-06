@@ -420,7 +420,6 @@ export class MqttDiscover {
         reject(new Error('Send Command failed: payload is an object ' + payload))
         return
       }
-      slave.setSpecification( ConfigSpecification.getSpecificationByFilename(slave.getSpecificationId()))
       if (p.modbusValues) {
         Object.getOwnPropertyNames(p.modbusValues).forEach((propName) => {
           let entity:Ientity|undefined = this.getEntityFromSlave(slave, propName)

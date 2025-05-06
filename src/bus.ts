@@ -658,7 +658,7 @@ export class Bus implements IModbusAPI {
             identified: IdentifiedStates.unknown,
             entities:ConfigBus.getIdentityEntities(spec, language)
           }
-          properties.specification = iident
+          properties.specification = spec
     }
     properties.modbusErrorsForSlave = this._modbusRTUWorker.getErrors(properties.slaveid)
    }

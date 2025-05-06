@@ -413,7 +413,7 @@ class FakeMqttSendCommandTopic extends FakeMqtt {
 }
 function copySubscribedSlaves(toA: Slave[], fromA: Slave[]) {
   fromA.forEach((s) => {
-    ConfigBus.addIdentitySpecification(s['slave']);
+    ConfigBus.addSpecification(s['slave']);
     if(s['slave'] && s['slave'].specification && s['slave'].specification.entities)
     s['slave'].specification.entities.forEach((e:any)=>{
        e.converter = "select"
@@ -432,7 +432,7 @@ test('onMessage SendEntityCommandTopic from this app', (done) => {
   }
   let bus = Bus.getBus(0)
   let slave = structuredClone(bus!.getSlaveBySlaveId(1))
-  ConfigBus.addIdentitySpecification(slave!);
+  ConfigBus.addSpecification(slave!);
   (slave!.specification?.entities[2] as any).converter="select"
   let spec = slave!.specification!
   let sl = new Slave(0, slave!, Config.getConfiguration().mqttbasetopic)
@@ -469,7 +469,7 @@ test('onMessage SendCommandTopic from this app', (done) => {
   }
   let bus = Bus.getBus(0)
   let slave = structuredClone(bus!.getSlaveBySlaveId(1))
-  ConfigBus.addIdentitySpecification(slave!);
+  ConfigBus.addSpecification(slave!);
   copySubscribedSlaves(mdl['subscribedSlaves'], md['subscribedSlaves'])
  
   let sl = new Slave(0, slave!, Config.getConfiguration().mqttbasetopic)
@@ -603,21 +603,22 @@ test('onAddSlave/onUpdateSlave/onDeleteSlave', (done) => {
       // delete an entity
 
       let s3 = s1.clone()
-      ConfigBus.addIdentitySpecification(s3['slave'])
+      ConfigBus.addSpecification(s3['slave'])
       s3['slave'].specification.entities.splice(0, 1)
       fake = new FakeMqttDeleteEntitySlave(mdl, FakeModes.Poll)
       mdl['client'] = fake as any as MqttClient
       // onUpdateSlave with removed entity
       mdl['onUpdateSlave'](s3).then(() => {
         expect(fake.isAsExpected).toBeTruthy()
-        expect(mdl['subscribedSlaves'].find((s) => s.getSlaveId() == 7)!.getIdentSpecification()!.entities.length).toBe(1)
+        expect(mdl['subscribedSlaves'].find((s) => s.getSlaveId() == 7)!.getSpecification()!.entities.length).toBe(1)
         // onUpdateSlave with added entity
         let s2 = s3.clone()
+        s2.getSpecification()!.entities.push(numberTest)
         fake = new FakeMqttAddEntitySlave(mdl, FakeModes.Poll)
         mdl['client'] = fake as any as MqttClient
         mdl['onUpdateSlave'](s2).then(() => {
           expect(fake.isAsExpected).toBeTruthy()
-          expect(mdl['subscribedSlaves'].find((s) => s.getSlaveId() == 7)!.getIdentSpecification()!.entities.length).toBe(2)
+          expect(mdl['subscribedSlaves'].find((s) => s.getSlaveId() == 7)!.getSpecification()!.entities.length).toBe(2)
           fake = new FakeMqttDeleteSlaveTopic(mdl, FakeModes.Poll)
           mdl['client'] = fake as any as MqttClient
           mdl['onDeleteSlave'](new Slave(0, slave, Config.getConfiguration().mqttbasetopic))
