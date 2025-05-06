@@ -19,7 +19,7 @@ export class ConfigBus {
     ConfigBus.listeners.push({ event: event, listener: listener })
   }
   private static emitSlaveEvent(event: ConfigListenerEvent, arg: Slave, spec:Ispecification|undefined) {
-    arg.setSpecification(spec)
+    //TODO arg.specification(spec)
     ConfigBus.listeners.forEach((eventListener) => {
       if (eventListener.event == event)
         (eventListener.listener as (arg: Slave) => Promise<void>)(arg)
@@ -75,7 +75,7 @@ export class ConfigBus {
                   var o: Islave = parse(src)
                   if (o.specificationid && o.specificationid.length) {
                     ConfigBus.busses[ConfigBus.busses.length - 1].slaves.push(o)
-                    ConfigBus.addIdentitySpecification(o)
+                    ConfigBus.addSpecification(o)
                     ConfigBus.emitSlaveEvent(
                       ConfigListenerEvent.addSlave,
                       new Slave(busid, o, Config.getConfiguration().mqttbasetopic),
@@ -172,15 +172,9 @@ export class ConfigBus {
   
     }
 
-  static addIdentitySpecification(slave:Islave):void{
+  static addSpecification(slave:Islave):void{
     let spec = ConfigSpecification.getSpecificationByFilename(slave.specificationid)
-    if( spec)
-          slave.specification = {
-            filename: spec.filename,
-            status: spec.status,
-            identified: IdentifiedStates.unknown,
-            entities: ConfigBus.getIdentityEntities(spec)
-          }
+    slave.specification = spec
   }
   static writeslave(busid: number, slave: Islave):void {
     // Make sure slaveid is unique
@@ -213,7 +207,7 @@ export class ConfigBus {
       })
     let spec:Ispecification| undefined = undefined
     if (slave.specificationid) {
-      ConfigBus.addIdentitySpecification(slave)
+      ConfigBus.addSpecification(slave)
       let spec = ConfigSpecification.getSpecificationByFilename(slave.specificationid)
       let o = new Slave(busid, slave, Config.getConfiguration().mqttbasetopic)
       ConfigBus.emitSlaveEvent(ConfigListenerEvent.updateSlave, o , spec)
@@ -255,7 +249,7 @@ export class ConfigBus {
             fs.unlink(ConfigBus.getslavePath(busid, slave), (err) => {
               if (err) debug(err)
             })
-          ConfigBus.addIdentitySpecification(slave)
+          ConfigBus.addSpecification(slave)
           let spec:Ispecification|undefined  = undefined
           if( slave.specificationid)
             spec = ConfigSpecification.getSpecificationByFilename(slave.specificationid)

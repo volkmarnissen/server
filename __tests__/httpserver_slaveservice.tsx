@@ -85,7 +85,7 @@ class MockMqttDiscover {
       let sub = new Subject<ImodbusSpecification>()
       let f = async function (sub: Subject<ImodbusSpecification>) {
         setTimeout(() => {
-          sub.next( slave.getIdentSpecification() as ImodbusSpecification)
+          sub.next( slave.getSpecification() as ImodbusSpecification)
         }, 20)
       }
       f(sub)
@@ -130,8 +130,8 @@ it('GET state topic', (done) => {
 
 test('GET command Entity topic', (done) => {
   let mockDiscover = prepareMqttDiscover()
-  ConfigBus.addIdentitySpecification(mockDiscover.slave['slave'])
-  let spec = mockDiscover.slave.getIdentSpecification()
+  ConfigBus.addSpecification(mockDiscover.slave['slave'])
+  let spec = mockDiscover.slave.getSpecification()
   let en:any = spec!.entities[2] as any 
   en.converter = {name: "doesntmatter"}
   let url = '/' + mockDiscover.slave.getEntityCommandTopic(spec!.entities[2] as any)!.commandTopic
