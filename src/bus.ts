@@ -562,20 +562,22 @@ export class Bus implements IModbusAPI {
       let addresses = Bus.getModbusAddressesForAllSpecs()
 
       let rcf = (modbusData: ImodbusValues): void => {
+        let slave = this.getSlaveBySlaveId(slaveid)
         let cfg = new ConfigSpecification()
         cfg.filterAllSpecifications((spec) => {
           let mspec = M2mSpecification.fileToModbusSpecification(spec, modbusData)
           debug('getAvailableSpecs')
           if (mspec) {
-            // list only identified public specs, but all local specs
+            // list only identified public specs, but all local specs 
+            // Make sure the current configured specification is in the list
             if (
               [SpecificationStatus.published, SpecificationStatus.contributed].includes(mspec.status) &&
-              (showAllPublicSpecs || mspec.identified == IdentifiedStates.identified)
+              (showAllPublicSpecs || (slave && slave.specificationid == mspec.filename)|| mspec.identified == IdentifiedStates.identified)
             )
               iSpecs.push(this.convert2IidentificationSpecification(slaveid, mspec, language))
             else if (![SpecificationStatus.published, SpecificationStatus.contributed].includes(mspec.status))
               iSpecs.push(this.convert2IidentificationSpecification(slaveid, mspec,language))
-          } else if (![SpecificationStatus.published, SpecificationStatus.contributed].includes(spec.status))
+          } else if (![SpecificationStatus.published, SpecificationStatus.contributed].includes(spec.status)|| (slave && slave.specificationid == spec.filename))
             iSpecs.push(this.convert2IidentificationSpecificationFromSpec(slaveid, spec, language,IdentifiedStates.notIdentified))
         })
         resolve(iSpecs)
@@ -588,7 +590,6 @@ export class Bus implements IModbusAPI {
         reject(new Error('RTU is configured, but device is not available'))
         return
       }
-
       this.readModbusRegister(slaveid, addresses, { task: ModbusTasks.deviceDetection, printLogs: false, errorHandling:{split: true },useCache:true})
         .then((values) => {
           // Add not available addresses to the values
