@@ -83,8 +83,10 @@ it('getMultipleHoldingRegisters', () => {
 })
 it('getMultipleInputRegisters', (done) => {
   let queue = new ModbusRTUQueue()
-  let bridge = new ModbusTcpRtuBridge(queue);
-  bridge['vector']!.getMultipleInputRegisters!(1, 3, 2,()=>{done()})
+  let bridge = new ModbusTcpRtuBridge(queue)
+  bridge['vector']!.getMultipleInputRegisters!(1, 3, 2, () => {
+    done()
+  })
 
   expect(queue.getLength()).toBe(1)
   expect(queue.getEntries()[0].address.address).toBe(1)
@@ -92,14 +94,13 @@ it('getMultipleInputRegisters', (done) => {
   expect(queue.getEntries()[0].address.length).toBe(3)
   expect(queue.getEntries()[0].address.registerType).toBe(ModbusRegisterType.AnalogInputs)
   expect(queue.getEntries()[0].address.write).not.toBeDefined()
-  queue.getEntries()[0].onResolve(queue.getEntries()[0],[198,198,198])
-  
+  queue.getEntries()[0].onResolve(queue.getEntries()[0], [198, 198, 198])
 })
 
 it('start/stop live test', (done) => {
   let queue = new ModbusRTUQueue()
   let fakeBus = new FakeBus()
-  let worker = new ModbusRTUWorkerForTest(fakeBus, queue, ()=>{}, 'start/stop')
+  let worker = new ModbusRTUWorkerForTest(fakeBus, queue, () => {}, 'start/stop')
   worker.run()
   let bridge = new ModbusTcpRtuBridge(queue)
   const client = new ModbusRTU()
@@ -111,12 +112,15 @@ it('start/stop live test', (done) => {
     .then(() => {
       client.connectTCP('localhost', { port: 3010 }).then(() => {
         // submit a request
-        client.readHoldingRegisters(2, 4).then((value) => {
-          expect(value.data.length).toBe(4)
-          bridge.stopServer(done)
-        }).catch(e=>{
+        client
+          .readHoldingRegisters(2, 4)
+          .then((value) => {
+            expect(value.data.length).toBe(4)
+            bridge.stopServer(done)
+          })
+          .catch((e) => {
             expect(false).toBeTruthy()
-        })
+          })
       })
     })
     .catch((e) => {
