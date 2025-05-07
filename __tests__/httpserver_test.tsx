@@ -484,8 +484,8 @@ describe('http POST', () => {
       .then((_response) => {
         // expect((response as any as Response).status).toBe(HttpErrorsEnum.ErrBadRequest)
         let ev = Bus.getBus(0)!['_modbusRTUWorker']!['createEmptyIModbusValues']()
-        ev.holdingRegisters.set(100, { error: new Error('failed!!!'),date:new Date() })
-        Bus.getBus(0)!['_modbusRTUWorker']!['cache'].set(2,ev)
+        ev.holdingRegisters.set(100, { error: new Error('failed!!!'), date: new Date() })
+        Bus.getBus(0)!['_modbusRTUWorker']!['cache'].set(2, ev)
         supertest(httpServer['app'])
           .post(url)
           .accept('application/json')

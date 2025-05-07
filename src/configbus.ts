@@ -14,11 +14,14 @@ const debug = Debug('configbus')
 
 export class ConfigBus {
   private static busses: IBus[]
-  private static listeners: { event: ConfigListenerEvent; listener: ((arg: Slave, spec:Ispecification|undefined) => void) | ((arg: number) => void) }[] = []
+  private static listeners: {
+    event: ConfigListenerEvent
+    listener: ((arg: Slave, spec: Ispecification | undefined) => void) | ((arg: number) => void)
+  }[] = []
   static addListener(event: ConfigListenerEvent, listener: ((arg: Slave) => void) | ((arg: number) => void)) {
     ConfigBus.listeners.push({ event: event, listener: listener })
   }
-  private static emitSlaveEvent(event: ConfigListenerEvent, arg: Slave, spec:Ispecification|undefined) {
+  private static emitSlaveEvent(event: ConfigListenerEvent, arg: Slave, spec: Ispecification | undefined) {
     //TODO arg.specification(spec)
     ConfigBus.listeners.forEach((eventListener) => {
       if (eventListener.event == event)
@@ -79,7 +82,7 @@ export class ConfigBus {
                     ConfigBus.emitSlaveEvent(
                       ConfigListenerEvent.addSlave,
                       new Slave(busid, o, Config.getConfiguration().mqttbasetopic),
-                      ConfigSpecification.getSpecificationByFilename( o.specificationid)
+                      ConfigSpecification.getSpecificationByFilename(o.specificationid)
                     )
                   }
                 }
@@ -152,31 +155,28 @@ export class ConfigBus {
   private static getslavePath(busid: number, slave: Islave): string {
     return Config.yamlDir + '/local/busses/bus.' + busid + '/s' + slave.slaveid + '.yaml'
   }
-  static getIdentityEntities(spec:Ispecification, language?:string):IidentEntity[]{
-  
-      return spec.entities.map(se=>{
-        let name:string|undefined = undefined
-        if(language){
-          let n = getSpecificationI18nEntityName(spec,language, se.id)
-          if( n == null)
-            name = undefined
-          else
-            name = n
-        }
-        return {
-        id:se.id,
-        readonly:se.readonly,
+  static getIdentityEntities(spec: Ispecification, language?: string): IidentEntity[] {
+    return spec.entities.map((se) => {
+      let name: string | undefined = undefined
+      if (language) {
+        let n = getSpecificationI18nEntityName(spec, language, se.id)
+        if (n == null) name = undefined
+        else name = n
+      }
+      return {
+        id: se.id,
+        readonly: se.readonly,
         name: name,
-        mqttname:se.mqttname?se.mqttname:'unknown'
-      } })
-  
-    }
+        mqttname: se.mqttname ? se.mqttname : 'unknown',
+      }
+    })
+  }
 
-  static addSpecification(slave:Islave):void{
+  static addSpecification(slave: Islave): void {
     let spec = ConfigSpecification.getSpecificationByFilename(slave.specificationid)
     slave.specification = spec
   }
-  static writeslave(busid: number, slave: Islave):void {
+  static writeslave(busid: number, slave: Islave): void {
     // Make sure slaveid is unique
     let oldFilePath = ConfigBus.getslavePath(busid, slave)
     let filename = Config.getFileNameFromSlaveId(slave.slaveid)
@@ -205,14 +205,14 @@ export class ConfigBus {
       fs.unlink(oldFilePath, (err: any) => {
         debug('writeslave: Unable to delete ' + oldFilePath + ' ' + err)
       })
-    let spec:Ispecification| undefined = undefined
+    let spec: Ispecification | undefined = undefined
     if (slave.specificationid) {
       ConfigBus.addSpecification(slave)
       let spec = ConfigSpecification.getSpecificationByFilename(slave.specificationid)
       let o = new Slave(busid, slave, Config.getConfiguration().mqttbasetopic)
-      ConfigBus.emitSlaveEvent(ConfigListenerEvent.updateSlave, o , spec)
+      ConfigBus.emitSlaveEvent(ConfigListenerEvent.updateSlave, o, spec)
     } else debug('No Specification found for slave: ' + filename + ' specification: ' + slave.specificationid)
-   }
+  }
 
   static getSlave(busid: number, slaveid: number): Islave | undefined {
     if (ConfigBus.busses.length <= busid) {
@@ -250,10 +250,9 @@ export class ConfigBus {
               if (err) debug(err)
             })
           ConfigBus.addSpecification(slave)
-          let spec:Ispecification|undefined  = undefined
-          if( slave.specificationid)
-            spec = ConfigSpecification.getSpecificationByFilename(slave.specificationid)
-          let o = new Slave(busid, slave, Config.getConfiguration().mqttbasetopic)         
+          let spec: Ispecification | undefined = undefined
+          if (slave.specificationid) spec = ConfigSpecification.getSpecificationByFilename(slave.specificationid)
+          let o = new Slave(busid, slave, Config.getConfiguration().mqttbasetopic)
           ConfigBus.emitSlaveEvent(ConfigListenerEvent.deleteSlave, o, spec)
           bus.slaves.splice(idx, 1)
           debug('DELETE /slave finished ' + slaveid + ' number of slaves: ' + bus.slaves.length)

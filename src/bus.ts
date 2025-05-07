@@ -1,6 +1,12 @@
 import Debug from 'debug'
 import { Subject } from 'rxjs'
-import { getSpecificationI18nName, ImodbusEntity,  ImodbusSpecification,  ModbusRegisterType, SpecificationStatus } from '@modbus2mqtt/specification.shared'
+import {
+  getSpecificationI18nName,
+  ImodbusEntity,
+  ImodbusSpecification,
+  ModbusRegisterType,
+  SpecificationStatus,
+} from '@modbus2mqtt/specification.shared'
 import { ImodbusAddress, ModbusErrorStates, ModbusTasks } from '@modbus2mqtt/server.shared'
 import { IdentifiedStates } from '@modbus2mqtt/specification.shared'
 import { ConverterMap, ImodbusValues, M2mSpecification } from '@modbus2mqtt/specification'
@@ -17,7 +23,8 @@ import {
   IBus,
   IRTUConnection,
   ITCPConnection,
-  IidentificationSpecification} from '@modbus2mqtt/server.shared'
+  IidentificationSpecification,
+} from '@modbus2mqtt/server.shared'
 import { ConfigSpecification } from '@modbus2mqtt/specification'
 import { Config } from './config'
 import { ModbusRTUWorker } from './ModbusRTUWorker'
@@ -159,7 +166,7 @@ export class Bus implements IModbusAPI {
     Bus.getBusses().forEach((bus) => {
       bus.properties.slaves.forEach((slave) => {
         bus
-          .getAvailableSpecs(slave.slaveid, true,'en')
+          .getAvailableSpecs(slave.slaveid, true, 'en')
           .then(() => {
             debug('Specs for ' + bus.getId() + '/' + slave.slaveid + ' cached')
           })
@@ -454,7 +461,6 @@ export class Bus implements IModbusAPI {
     return rc
   }
 
-
   deleteSlave(slaveid: number) {
     ConfigBus.deleteSlave(this.properties.busId, slaveid)
   }
@@ -514,14 +520,21 @@ export class Bus implements IModbusAPI {
           .then(() => {
             return this.modbusRTUprocessor.execute(slaveId, addresses, options).then(resolve).catch(reject)
           })
-          .catch((e)=>{
-            let addr= addresses.values().next().value
-            if(addr)
-            {
-              let date =new Date()
+          .catch((e) => {
+            let addr = addresses.values().next().value
+            if (addr) {
+              let date = new Date()
               this._modbusRTUWorker.addError(
-                {slaveId: slaveId,address: addr, onResolve:(qe)=>{}, onError:(e)=>{}, options:{task:ModbusTasks.initialConnect, errorHandling:{}}}, 
-                ModbusErrorStates.initialConnect,date)
+                {
+                  slaveId: slaveId,
+                  address: addr,
+                  onResolve: (qe) => {},
+                  onError: (e) => {},
+                  options: { task: ModbusTasks.initialConnect, errorHandling: {} },
+                },
+                ModbusErrorStates.initialConnect,
+                date
+              )
             }
             reject(e)
           })
@@ -553,11 +566,10 @@ export class Bus implements IModbusAPI {
       })
   }
 
-
   /*
    * getAvailableSpecs uses bus.slaves cache if possible
    */
-  getAvailableSpecs(slaveid: number, showAllPublicSpecs: boolean, language:string): Promise<IidentificationSpecification[]> {
+  getAvailableSpecs(slaveid: number, showAllPublicSpecs: boolean, language: string): Promise<IidentificationSpecification[]> {
     return new Promise<IidentificationSpecification[]>((resolve, reject) => {
       let addresses = Bus.getModbusAddressesForAllSpecs()
 
@@ -568,17 +580,22 @@ export class Bus implements IModbusAPI {
           let mspec = M2mSpecification.fileToModbusSpecification(spec, modbusData)
           debug('getAvailableSpecs')
           if (mspec) {
-            // list only identified public specs, but all local specs 
+            // list only identified public specs, but all local specs
             // Make sure the current configured specification is in the list
             if (
               [SpecificationStatus.published, SpecificationStatus.contributed].includes(mspec.status) &&
-              (showAllPublicSpecs || (slave && slave.specificationid == mspec.filename)|| mspec.identified == IdentifiedStates.identified)
+              (showAllPublicSpecs ||
+                (slave && slave.specificationid == mspec.filename) ||
+                mspec.identified == IdentifiedStates.identified)
             )
               iSpecs.push(this.convert2IidentificationSpecification(slaveid, mspec, language))
             else if (![SpecificationStatus.published, SpecificationStatus.contributed].includes(mspec.status))
-              iSpecs.push(this.convert2IidentificationSpecification(slaveid, mspec,language))
-          } else if (![SpecificationStatus.published, SpecificationStatus.contributed].includes(spec.status)|| (slave && slave.specificationid == spec.filename))
-            iSpecs.push(this.convert2IidentificationSpecificationFromSpec(slaveid, spec, language,IdentifiedStates.notIdentified))
+              iSpecs.push(this.convert2IidentificationSpecification(slaveid, mspec, language))
+          } else if (
+            ![SpecificationStatus.published, SpecificationStatus.contributed].includes(spec.status) ||
+            (slave && slave.specificationid == spec.filename)
+          )
+            iSpecs.push(this.convert2IidentificationSpecificationFromSpec(slaveid, spec, language, IdentifiedStates.notIdentified))
         })
         resolve(iSpecs)
       }
@@ -590,7 +607,12 @@ export class Bus implements IModbusAPI {
         reject(new Error('RTU is configured, but device is not available'))
         return
       }
-      this.readModbusRegister(slaveid, addresses, { task: ModbusTasks.deviceDetection, printLogs: false, errorHandling:{split: true },useCache:true})
+      this.readModbusRegister(slaveid, addresses, {
+        task: ModbusTasks.deviceDetection,
+        printLogs: false,
+        errorHandling: { split: true },
+        useCache: true,
+      })
         .then((values) => {
           // Add not available addresses to the values
           // Store it for cache
@@ -600,36 +622,43 @@ export class Bus implements IModbusAPI {
     })
   }
 
-  private convert2IidentificationSpecification(slaveid: number, mspec: ImodbusSpecification, language:string): IidentificationSpecification {
+  private convert2IidentificationSpecification(
+    slaveid: number,
+    mspec: ImodbusSpecification,
+    language: string
+  ): IidentificationSpecification {
     // for each spec
     let entityIdentifications: ImodbusEntity[] = []
     for (let ment of mspec.entities) {
       entityIdentifications.push(ment)
     }
     let configuredslave = this.properties.slaves.find((dev) => dev.specificationid === mspec.filename && dev.slaveid == slaveid)
-    let name:string|undefined|null = getSpecificationI18nName(mspec,language)
-    if(name == null)
-      name = undefined
+    let name: string | undefined | null = getSpecificationI18nName(mspec, language)
+    if (name == null) name = undefined
     return {
       filename: mspec.filename,
       name: name,
       status: mspec.status!,
       identified: mspec.identified,
-      entities:ConfigBus.getIdentityEntities(mspec,language)
+      entities: ConfigBus.getIdentityEntities(mspec, language),
     }
   }
-  private convert2IidentificationSpecificationFromSpec(slaveid: number, spec: IfileSpecification, language:string, identified:IdentifiedStates): IidentificationSpecification {
+  private convert2IidentificationSpecificationFromSpec(
+    slaveid: number,
+    spec: IfileSpecification,
+    language: string,
+    identified: IdentifiedStates
+  ): IidentificationSpecification {
     // for each spec
-    let name:string|undefined|null = getSpecificationI18nName(spec,language)
-    if(name == null)
-      name = undefined
+    let name: string | undefined | null = getSpecificationI18nName(spec, language)
+    if (name == null) name = undefined
     let configuredslave = this.properties.slaves.find((dev) => dev.specificationid === spec.filename && dev.slaveid == slaveid)
     return {
       filename: spec.filename,
       name: name,
-      identified:identified,
+      identified: identified,
       status: spec.status!,
-      entities:ConfigBus.getIdentityEntities(spec,language)
+      entities: ConfigBus.getIdentityEntities(spec, language),
     }
   }
 
@@ -645,39 +674,37 @@ export class Bus implements IModbusAPI {
     return slave
   }
 
-  private getISlave(properties:Islave, language?:string):Islave{
+  private getISlave(properties: Islave, language?: string): Islave {
     if (properties && properties.specificationid) {
       let spec = ConfigSpecification.getSpecificationByFilename(properties.specificationid)
-       if( spec){
+      if (spec) {
         let name = null
-        if( language)
-          name = getSpecificationI18nName(spec, language)
-        let iident:IidentificationSpecification = {
-            filename:spec.filename,
-            name:name?name:undefined,
-            status: spec.status,
-            identified: IdentifiedStates.unknown,
-            entities:ConfigBus.getIdentityEntities(spec, language)
-          }
-          properties.specification = spec
+        if (language) name = getSpecificationI18nName(spec, language)
+        let iident: IidentificationSpecification = {
+          filename: spec.filename,
+          name: name ? name : undefined,
+          status: spec.status,
+          identified: IdentifiedStates.unknown,
+          entities: ConfigBus.getIdentityEntities(spec, language),
+        }
+        properties.specification = spec
+      }
+      properties.modbusErrorsForSlave = this._modbusRTUWorker.getErrors(properties.slaveid)
     }
-    properties.modbusErrorsForSlave = this._modbusRTUWorker.getErrors(properties.slaveid)
-   }
-   return properties
- }
-  getSlaves(language?:string): Islave[] {
+    return properties
+  }
+  getSlaves(language?: string): Islave[] {
     this.properties.slaves.forEach((s) => {
       s = this.getISlave(s, language)
     })
     return this.properties.slaves
   }
-  getSlaveBySlaveId(slaveid: number,language?:string): Islave | undefined {
+  getSlaveBySlaveId(slaveid: number, language?: string): Islave | undefined {
     let slave = this.properties.slaves.find((dev) => dev.slaveid == slaveid)
-    if( slave)
-        slave = this.getISlave(slave, language)
+    if (slave) slave = this.getISlave(slave, language)
     return slave
   }
-  public static cleanupCaches(){
-    Bus.getBusses().forEach(bus=>bus._modbusRTUWorker.cleanupCache())
+  public static cleanupCaches() {
+    Bus.getBusses().forEach((bus) => bus._modbusRTUWorker.cleanupCache())
   }
 }

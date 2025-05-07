@@ -413,11 +413,11 @@ class FakeMqttSendCommandTopic extends FakeMqtt {
 }
 function copySubscribedSlaves(toA: Slave[], fromA: Slave[]) {
   fromA.forEach((s) => {
-    ConfigBus.addSpecification(s['slave']);
-    if(s['slave'] && s['slave'].specification && s['slave'].specification.entities)
-    s['slave'].specification.entities.forEach((e:any)=>{
-       e.converter = "select"
-    })
+    ConfigBus.addSpecification(s['slave'])
+    if (s['slave'] && s['slave'].specification && s['slave'].specification.entities)
+      s['slave'].specification.entities.forEach((e: any) => {
+        e.converter = 'select'
+      })
     toA.push(s.clone())
   })
 }
@@ -432,15 +432,15 @@ test('onMessage SendEntityCommandTopic from this app', (done) => {
   }
   let bus = Bus.getBus(0)
   let slave = structuredClone(bus!.getSlaveBySlaveId(1))
-  ConfigBus.addSpecification(slave!);
-  (slave!.specification?.entities[2] as any).converter="select"
+  ConfigBus.addSpecification(slave!)
+  ;(slave!.specification?.entities[2] as any).converter = 'select'
   let spec = slave!.specification!
   let sl = new Slave(0, slave!, Config.getConfiguration().mqttbasetopic)
   slave!.specification!.entities[2].readonly = false
   let oldwriteEntityMqtt = Modbus.writeEntityMqtt
   let writeEntityMqttMock = jest.fn().mockImplementation(() => Promise.resolve())
   Modbus.writeEntityMqtt = writeEntityMqttMock as any
-  let en:any = spec!.entities[2]
+  let en: any = spec!.entities[2]
   mdl['onMqttMessage'](sl.getEntityCommandTopic(en)!.commandTopic!, Buffer.from('20.2'))
     .then(() => {
       expect(fake.isAsExpected).toBeTruthy()
@@ -469,9 +469,9 @@ test('onMessage SendCommandTopic from this app', (done) => {
   }
   let bus = Bus.getBus(0)
   let slave = structuredClone(bus!.getSlaveBySlaveId(1))
-  ConfigBus.addSpecification(slave!);
+  ConfigBus.addSpecification(slave!)
   copySubscribedSlaves(mdl['subscribedSlaves'], md['subscribedSlaves'])
- 
+
   let sl = new Slave(0, slave!, Config.getConfiguration().mqttbasetopic)
   slave!.specification!.entities[2].readonly = false
   mdl['onMqttMessage'](sl.getCommandTopic()!, Buffer.from('{ "hotwatertargettemperature": 20.2 }'))
@@ -503,7 +503,7 @@ test('onMessage SendCommand with modbusValues', (done) => {
   }
   let bus = Bus.getBus(0)
   let slave = structuredClone(bus!.getSlaveBySlaveId(1))
-   let sl = new Slave(0, slave!, Config.getConfiguration().mqttbasetopic)
+  let sl = new Slave(0, slave!, Config.getConfiguration().mqttbasetopic)
   mdl['onMqttMessage'](sl.getCommandTopic()!, Buffer.from('{ "modbusValues": { "operatingmode": 2 }}'))
     .then(() => {
       expect(writeEntityModbusMock).toHaveBeenCalled()

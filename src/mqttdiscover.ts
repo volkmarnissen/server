@@ -20,7 +20,7 @@ import { Bus } from './bus'
 import { ConfigBus } from './configbus'
 import Debug from 'debug'
 import { LogLevelEnum, Logger } from '@modbus2mqtt/specification'
-import {  ImqttClient, Islave, ModbusTasks, PollModes, Slave } from '@modbus2mqtt/server.shared'
+import { ImqttClient, Islave, ModbusTasks, PollModes, Slave } from '@modbus2mqtt/server.shared'
 import { Mutex } from 'async-mutex'
 import { QoS } from 'mqtt-packet'
 
@@ -347,7 +347,7 @@ export class MqttDiscover {
   private sendCommandModbus(slave: Slave, entity: Ientity, modbus: boolean, payload: string): Promise<void> {
     let cnv: Converter | undefined = undefined
     if (entity.converter) cnv = ConverterMap.getConverter(entity)
-     if (cnv) {
+    if (cnv) {
       if (modbus)
         return Modbus.writeEntityModbus(Bus.getBus(slave.getBusId())!, slave.getSlaveId(), entity, [Number.parseInt(payload)])
       else {
@@ -405,12 +405,11 @@ export class MqttDiscover {
     })
   }
 
-  private getEntityFromSlave(slave:Slave, mqttname:string):Ientity|undefined{
+  private getEntityFromSlave(slave: Slave, mqttname: string): Ientity | undefined {
     let spec = slave.getSpecification()
-          let entity:Ientity|undefined 
-          if( spec) 
-             entity = spec.entities.find((e) => e.mqttname == mqttname)
-          return entity
+    let entity: Ientity | undefined
+    if (spec) entity = spec.entities.find((e) => e.mqttname == mqttname)
+    return entity
   }
   sendCommand(slave: Slave, payload: string): Promise<ImodbusSpecification> {
     return new Promise<ImodbusSpecification>((resolve, reject) => {
@@ -422,14 +421,14 @@ export class MqttDiscover {
       }
       if (p.modbusValues) {
         Object.getOwnPropertyNames(p.modbusValues).forEach((propName) => {
-          let entity:Ientity|undefined = this.getEntityFromSlave(slave, propName)
+          let entity: Ientity | undefined = this.getEntityFromSlave(slave, propName)
           if (entity && !entity.readonly)
             promisses.push(this.sendCommandModbus(slave, entity, true, p.modbusValues[propName].toString()))
         })
       }
       Object.getOwnPropertyNames(p).forEach((propName) => {
         let value = p[propName].toString()
-        let entity:Ientity|undefined = this.getEntityFromSlave(slave, propName)
+        let entity: Ientity | undefined = this.getEntityFromSlave(slave, propName)
         if (entity && !entity.readonly && (p.modbusValues == undefined || p.modbusValues[propName] == undefined))
           promisses.push(this.sendCommandModbus(slave, entity, false, value))
       })

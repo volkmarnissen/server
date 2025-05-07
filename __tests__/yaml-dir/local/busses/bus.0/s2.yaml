@@ -1,3 +1,4 @@
-specificationid: deye
+specificationid: waterleveltransmitter
 slaveid: 2
 pollInterval: 100
+modbusErrorsForSlave: []
