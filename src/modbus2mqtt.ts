@@ -21,6 +21,7 @@ process.on('unhandledRejection', (reason, p) => {
 })
 process.on('SIGINT', () => {
   if (httpServer) httpServer.close()
+  Bus.stopBridgeServers()
   process.exit(1)
 })
 

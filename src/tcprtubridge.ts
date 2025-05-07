@@ -51,20 +51,30 @@ export class ModbusTcpRtuBridge {
       1
     )
   }
-  queueMultipleRegister(registerType: ModbusRegisterType, addr: number, length: number, unitID: number, cb: FCallbackVal<number[]>): void{
+  queueMultipleRegister(
+    registerType: ModbusRegisterType,
+    addr: number,
+    length: number,
+    unitID: number,
+    cb: FCallbackVal<number[]>
+  ): void {
     this.queueRegister<number[]>(
       registerType,
       (value?: number[]): number[] => {
-        if (value == undefined ) throw new Error('No value returned')
+        if (value == undefined) throw new Error('No value returned')
         else return value!
       },
       addr,
       undefined,
       unitID,
       length
-    ).then((value)=>{
-        cb(null,value)
-    }).catch(e=>{cb(e,[])})
+    )
+      .then((value) => {
+        cb(null, value)
+      })
+      .catch((e) => {
+        cb(e, [])
+      })
   }
   queueOneBoolRegister(
     registerType: ModbusRegisterType,

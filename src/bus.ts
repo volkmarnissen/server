@@ -31,6 +31,7 @@ import { ModbusRTUWorker } from './ModbusRTUWorker'
 import { ModbusRTUQueue } from './ModbusRTUQueue'
 import { IexecuteOptions, ModbusRTUProcessor } from './ModbusRTUProcessor'
 import { IModbusAPI } from './ModbusWorker'
+import { ModbusTcpRtuBridge } from './tcprtubridge'
 const debug = Debug('bus')
 const log = new Logger('bus')
 
@@ -41,6 +42,11 @@ export interface IModbusResultWithDuration {
 export class Bus implements IModbusAPI {
   private static busses: Bus[] | undefined = undefined
   private static allSpecificationsModbusAddresses: Set<ImodbusAddress> | undefined = undefined
+  static stopBridgeServers(): void {
+    Bus.getBusses().forEach((bus) => {
+      if (bus.tcprtuBridge) bus.tcprtuBridge.stopServer()
+    })
+  }
   static readBussesFromConfig(): Promise<PromiseSettledResult<void>[]> {
     let promisses: Promise<void>[] = []
     let ibs = ConfigBus.getBussesProperties()
@@ -180,6 +186,7 @@ export class Bus implements IModbusAPI {
   properties: IBus
   private modbusClient: ModbusRTU | undefined
   private modbusClientTimedOut: boolean = false
+  private tcprtuBridge: ModbusTcpRtuBridge | undefined
   constructor(
     ibus: IBus,
     private modbusRTUQueue = new ModbusRTUQueue(),
@@ -187,6 +194,10 @@ export class Bus implements IModbusAPI {
     private _modbusRTUWorker = new ModbusRTUWorker(this, modbusRTUQueue)
   ) {
     this.properties = ibus
+    if (ibus.tcpBridgePort) {
+      this.tcprtuBridge = new ModbusTcpRtuBridge(this.modbusRTUQueue)
+      this.tcprtuBridge.startServer(ibus.tcpBridgePort)
+    }
   }
   getId(): number {
     return this.properties.busId
