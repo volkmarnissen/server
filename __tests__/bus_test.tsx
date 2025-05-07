@@ -5,7 +5,13 @@ import { Bus } from '../src/bus'
 import { initBussesForTest, yamlDir } from './configsbase'
 import { ModbusServer, XYslaveid } from './../src/modbusTCPserver'
 import { IdentifiedStates, ImodbusEntity, ImodbusSpecification } from '@modbus2mqtt/specification.shared'
-import { ConfigSpecification, emptyModbusValues, IModbusResultOrError, ImodbusValues, LogLevelEnum } from '@modbus2mqtt/specification'
+import {
+  ConfigSpecification,
+  emptyModbusValues,
+  IModbusResultOrError,
+  ImodbusValues,
+  LogLevelEnum,
+} from '@modbus2mqtt/specification'
 import { singleMutex } from './configsbase'
 import { Iconfiguration, PollModes } from '@modbus2mqtt/server.shared'
 import { ConfigBus } from '../src/configbus'
@@ -152,23 +158,23 @@ function prepareIdentification() {
     readConfig.readYaml()
   }
 }
-function readModbusRegisterFake():Promise<ImodbusValues>{
-  return new Promise<ImodbusValues>((resolve,reject)=>{
+function readModbusRegisterFake(): Promise<ImodbusValues> {
+  return new Promise<ImodbusValues>((resolve, reject) => {
     let ev = emptyModbusValues()
-    ev.holdingRegisters.set(3,{ data:[40]})
-    ev.holdingRegisters.set(4,{ data:[40]})
-    ev.holdingRegisters.set(5,{ data:[2]})
+    ev.holdingRegisters.set(3, { data: [40] })
+    ev.holdingRegisters.set(4, { data: [40] })
+    ev.holdingRegisters.set(5, { data: [2] })
     resolve(ev)
   })
 }
 it('Bus getSpecsForDevice', (done) => {
   prepareIdentification()
   if (Config.getConfiguration().fakeModbus) debug(LogLevelEnum.notice, 'Fakemodbus')
-  let bus =   Bus.getBus(0)
-  expect( bus).toBeDefined()
+  let bus = Bus.getBus(0)
+  expect(bus).toBeDefined()
   bus!.readModbusRegister = readModbusRegisterFake
   bus!
-    .getAvailableSpecs(1, false,'en')
+    .getAvailableSpecs(1, false, 'en')
     .then((ispec) => {
       let wlt = false
       let other = 0
@@ -178,20 +184,21 @@ it('Bus getSpecsForDevice', (done) => {
       ispec.forEach((spec) => {
         if (spec!.filename === 'waterleveltransmitter') {
           wlt = true
-          expect(spec!.identified).toBe( IdentifiedStates.identified)
-        } else if( spec.identified == IdentifiedStates.unknown){
+          expect(spec!.identified).toBe(IdentifiedStates.identified)
+        } else if (spec.identified == IdentifiedStates.unknown) {
           unknown++
-        }else {
+        } else {
           other++
-          expect(spec!.identified).toBe(  IdentifiedStates.notIdentified)
+          expect(spec!.identified).toBe(IdentifiedStates.notIdentified)
         }
       })
       expect(unknown).toBe(3)
       expect(other).toBeGreaterThan(0)
       expect(wlt).toBeTruthy()
       done()
-    }).catch(e=>{
-       debug(e.message)
+    })
+    .catch((e) => {
+      debug(e.message)
     })
 })
 
@@ -200,7 +207,7 @@ it('Modbus getAvailableSpecs with specific slaveId no results 0-3', (done) => {
   Config['config'].fakeModbus = true
   if (Config.getConfiguration().fakeModbus) debug('Fakemodbus')
   Bus.getBus(0)!
-    .getAvailableSpecs(1, false,'en')
+    .getAvailableSpecs(1, false, 'en')
     .then((ispec) => {
       expect(ispec).toBeDefined()
       expect(ispec.length).toBeGreaterThan(0)
@@ -250,6 +257,4 @@ describe('ServerTCP based', () => {
     entities: [{ id: 1, identified: IdentifiedStates.identified } as ImodbusEntity],
     identified: IdentifiedStates.identified,
   } as ImodbusSpecification
-
- 
 })

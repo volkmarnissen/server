@@ -126,7 +126,12 @@ export class Modbus2Mqtt {
                     )
                     new ConfigSpecification().deleteNewSpecificationFiles()
                     // clean cache once per hour
-                    setInterval(()=>{Bus.cleanupCaches()},1000*60*60)
+                    setInterval(
+                      () => {
+                        Bus.cleanupCaches()
+                      },
+                      1000 * 60 * 60
+                    )
                     if (process.env.MODBUS_NOPOLL == undefined) {
                       md.startPolling()
                     } else {

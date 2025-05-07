@@ -77,11 +77,10 @@ export class HttpServer extends HttpServerBase {
       }
     super.returnResult(req, res, code, message, object)
   }
-  getLanguageFromQuery(req: GetRequestWithParameter, res: http.ServerResponse):string{
-    if( req.query.language == undefined){
-      throw new Error("language was not passed")
-    }
-    else return req.query.language
+  getLanguageFromQuery(req: GetRequestWithParameter, res: http.ServerResponse): string {
+    if (req.query.language == undefined) {
+      throw new Error('language was not passed')
+    } else return req.query.language
   }
   handleSlaveTopics(req: Request, res: http.ServerResponse, next: any): any {
     let md = MqttDiscover.getInstance()
@@ -215,7 +214,7 @@ export class HttpServer extends HttpServerBase {
       } else {
         let slaveId = Number.parseInt(req.query.slaveid)
         let busid = Number.parseInt(req.query.busid)
-        try{
+        try {
           let language = this.getLanguageFromQuery(req, res)
           let bus = Bus.getBus(busid)
           if (bus) {
@@ -229,11 +228,10 @@ export class HttpServer extends HttpServerBase {
                 this.returnResult(req, res, HttpErrorsEnum.ErrNotFound, 'specsDetection: ' + e.message)
               })
           }
-        }
-        catch(e:any){
+        } catch (e: any) {
           this.returnResult(req, res, HttpErrorsEnum.ErrInvalidParameter, 'specsDetection ' + e.message)
         }
-      }   
+      }
     })
 
     this.get(apiUri.sslFiles, (req: GetRequestWithParameter, res: http.ServerResponse) => {
@@ -313,7 +311,7 @@ export class HttpServer extends HttpServerBase {
         let busid = Number.parseInt(req.query.busid)
         let bus = Bus.getBus(busid)
         if (bus) {
-          let slaves = bus.getSlaves( req.query.language)
+          let slaves = bus.getSlaves(req.query.language)
           this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(slaves))
           return
         } else invParam()

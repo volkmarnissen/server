@@ -74,7 +74,6 @@ beforeAll(() => {
 })
 
 class MockMqttDiscover {
-  
   slave: Slave = new Slave(0, Bus.getBus(0)!.getSlaveBySlaveId(1)!, Config.getConfiguration().mqttbasetopic)
   getSlave(url: string): Slave | undefined {
     return this.slave
@@ -85,7 +84,7 @@ class MockMqttDiscover {
       let sub = new Subject<ImodbusSpecification>()
       let f = async function (sub: Subject<ImodbusSpecification>) {
         setTimeout(() => {
-          sub.next( slave.getSpecification() as ImodbusSpecification)
+          sub.next(slave.getSpecification() as ImodbusSpecification)
         }, 20)
       }
       f(sub)
@@ -132,8 +131,8 @@ test('GET command Entity topic', (done) => {
   let mockDiscover = prepareMqttDiscover()
   ConfigBus.addSpecification(mockDiscover.slave['slave'])
   let spec = mockDiscover.slave.getSpecification()
-  let en:any = spec!.entities[2] as any 
-  en.converter = {name: "doesntmatter"}
+  let en: any = spec!.entities[2] as any
+  en.converter = { name: 'doesntmatter' }
   let url = '/' + mockDiscover.slave.getEntityCommandTopic(spec!.entities[2] as any)!.commandTopic
   url = url + '20.2'
   supertest(httpServer['app'])
