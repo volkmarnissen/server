@@ -1,4 +1,4 @@
-import { ModbusRTUQueue, IQueueEntry } from './ModbusRTUQueue'
+import { ModbusRTUQueue, IQueueEntry, IQueueOptions } from './ModbusRTUQueue'
 import { IModbusAPI, ModbusWorker } from './ModbusWorker'
 import { IModbusResultOrError, Logger, LogLevelEnum } from '@modbus2mqtt/specification'
 import Debug from 'debug'
@@ -44,10 +44,16 @@ export class ModbusRTUWorker extends ModbusWorker {
   private isRunning = false
   private static lastNoticeMessageTime: number
   private static lastNoticeMessage: string
-  private cache = new Map<number, ImodbusValuesCache>()
+  private static caches = new Map<number, Map<number, ImodbusValuesCache>>()
+  private cache:Map<number, ImodbusValuesCache>
 
   constructor(modbusAPI: IModbusAPI, queue: ModbusRTUQueue) {
     super(modbusAPI, queue)
+    let c = ModbusRTUWorker.caches.get(modbusAPI.getCacheId())
+    if(c)
+      this.cache = c
+    else
+      ModbusRTUWorker.caches.set(modbusAPI.getCacheId(), this.cache = new Map<number, ImodbusValuesCache>())
   }
   debugMessage(currentEntry: IQueueEntry, msg: string) {
     let id =
@@ -94,7 +100,7 @@ export class ModbusRTUWorker extends ModbusWorker {
     let maxErrors = 0
     switch (current.errorState) {
       case ModbusErrorStates.crc:
-        if (current.errorCount > maxErrorRetriesCrc)
+        if (current.errorCount >= maxErrorRetriesCrc)
           return new Promise((resolve, reject) => {
             reject(new Error('Too many retries crc'))
           })
@@ -118,7 +124,7 @@ export class ModbusRTUWorker extends ModbusWorker {
     }
     if (current.errorCount > maxErrors)
       return new Promise((resolve, reject) => {
-        reject(new Error('Too many retries crc'))
+        reject(new Error('Too many retries: ' + (current.errorState== ModbusErrorStates.timeout? 'timeout':'other')))
       })
     else {
       this.debugMessage(current, 'Retrying ...')
@@ -138,8 +144,9 @@ export class ModbusRTUWorker extends ModbusWorker {
       for (let l = 0; l < length; l++) {
         this.queue.enqueue(entry.slaveId, structuredClone(address), entry.onResolve, entry.onError, {
           task: ModbusTasks.splitted,
-          errorHandling: { retry: true },
-        })
+          errorHandling: {},
+          useCache: entry.options.useCache
+        }as IQueueOptions)
         address.address++
       }
     } else throw e
@@ -407,6 +414,9 @@ export class ModbusRTUWorker extends ModbusWorker {
             this.isRunning = false
             this.run()
           }
+        }).catch(e=>{
+            log.log(LogLevelEnum.error, "Modbus RTU worker: " + e.message)
+            this.isRunning = false
         })
     }
   }
