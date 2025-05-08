@@ -213,16 +213,21 @@ export class Bus implements IModbusAPI {
   private modbusClient: ModbusRTU | undefined
   private modbusClientTimedOut: boolean = false
   private tcprtuBridge: ModbusTcpRtuBridge | undefined
+  private _modbusRTUWorker:ModbusRTUWorker
   constructor(
     ibus: IBus,
     private modbusRTUQueue = new ModbusRTUQueue(),
-    private modbusRTUprocessor = new ModbusRTUProcessor(modbusRTUQueue),
-    private _modbusRTUWorker = new ModbusRTUWorker(this, modbusRTUQueue)
+    private modbusRTUprocessor = new ModbusRTUProcessor(modbusRTUQueue)
+     
   ) {
     this.properties = ibus
+    this._modbusRTUWorker = new ModbusRTUWorker(this, modbusRTUQueue)
     if ((ibus.connectionData as IRTUConnection).tcpBridgePort) {
       this.startTcpRtuBridge( (ibus.connectionData as IRTUConnection).tcpBridgePort!)
     }
+  }
+  getCacheId():number{
+    return this.getId()
   }
   getId(): number {
     return this.properties.busId
