@@ -221,7 +221,7 @@ export class HttpServer extends HttpServerBase {
             bus
               .getAvailableSpecs(slaveId, req.query.showAllPublicSpecs != undefined, language)
               .then((result) => {
-                debug('getAvailableSpecs  succeeded')
+                debug('getAvailableSpecs  succeeded ' + slaveId)
                 this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(result))
               })
               .catch((e) => {

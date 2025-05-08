@@ -116,7 +116,7 @@ export class Bus implements IModbusAPI {
       if (!connectionRtu.serialport || connectionRtu.serialport !== rtu.serialport) return true
       if (!connectionRtu.baudrate || connectionRtu.baudrate !== rtu.baudrate) return true
       if (!connectionRtu.timeout || connectionRtu.timeout !== rtu.timeout) return true
-      if (!connectionRtu.tcpBridgePort || connectionRtu.tcpBridgePort !== rtu.tcpBridgePort) return true
+      if (!(connectionRtu.tcpBridgePort == undefined && rtu.tcpBridgePort == undefined)|| connectionRtu.tcpBridgePort !== rtu.tcpBridgePort) return true
       return false
     } else {
       let tcp = this.properties.connectionData as ITCPConnection
@@ -614,7 +614,7 @@ export class Bus implements IModbusAPI {
     return new Promise<IidentificationSpecification[]>((resolve, reject) => {
       let addresses = Bus.getModbusAddressesForAllSpecs()
 
-      let rcf = (modbusData: ImodbusValues): void => {
+      let rcf = (ispecs:IidentificationSpecification[],modbusData: ImodbusValues): void => {
         let slave = this.getSlaveBySlaveId(slaveid)
         let cfg = new ConfigSpecification()
         cfg.filterAllSpecifications((spec) => {
@@ -638,7 +638,6 @@ export class Bus implements IModbusAPI {
           )
             iSpecs.push(this.convert2IidentificationSpecificationFromSpec(slaveid, spec, language, IdentifiedStates.notIdentified))
         })
-        resolve(iSpecs)
       }
       let iSpecs: IidentificationSpecification[] = []
       // no result in cache, read from modbus
@@ -657,7 +656,9 @@ export class Bus implements IModbusAPI {
         .then((values) => {
           // Add not available addresses to the values
           // Store it for cache
-          rcf(values)
+          rcf(iSpecs, values)
+          resolve(iSpecs)
+
         })
         .catch(reject)
     })
