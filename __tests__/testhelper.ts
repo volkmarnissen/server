@@ -11,12 +11,16 @@ export class FakeBus implements IModbusAPI {
   constructor() {
     data = 198
   }
+  getCacheId(): number {
+    return 1;
+  }
   reconnectRTU(task: string) {
     return new Promise<void>((resolve) => {
       this.reconnected = true
       resolve()
     })
   }
+  
   writeHoldingRegisters(slaveid: number, dataaddress: number, data: number[]): Promise<void> {
     return new Promise<void>((resolve) => {
       this.wroteDataCount++
