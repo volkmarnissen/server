@@ -116,6 +116,7 @@ export class Bus implements IModbusAPI {
       if (!connectionRtu.serialport || connectionRtu.serialport !== rtu.serialport) return true
       if (!connectionRtu.baudrate || connectionRtu.baudrate !== rtu.baudrate) return true
       if (!connectionRtu.timeout || connectionRtu.timeout !== rtu.timeout) return true
+      if (!connectionRtu.tcpBridgePort || connectionRtu.tcpBridgePort !== rtu.tcpBridgePort) return true
       return false
     } else {
       let tcp = this.properties.connectionData as ITCPConnection
@@ -126,11 +127,36 @@ export class Bus implements IModbusAPI {
       return false
     }
   }
+  private startTcpRtuBridge(port:number){
+    this.tcprtuBridge = new ModbusTcpRtuBridge(this.modbusRTUQueue)
+    this.tcprtuBridge.startServer(port)
 
+  }
+  private restartTcpRtuBridge(oldPort:number| undefined, newPort:number|undefined ){
+    if( this.tcprtuBridge){
+      //restart tcpRtuBridge if neccessary
+      if( oldPort && oldPort != newPort)
+        this.tcprtuBridge.stopServer(()=>{
+          if(newPort)
+            this.tcprtuBridge?.startServer( newPort!)
+        })
+    }else{
+      if(newPort)
+        this.startTcpRtuBridge(newPort)
+    }
+  }
   updateBus(connection: IModbusConnection): Promise<Bus> {
     return new Promise<Bus>((resolve, reject) => {
       debug('updateBus()')
       if (this.connectionChanged(connection)) {
+          let oldTcpBrigdePort = (this.properties.connectionData as IRTUConnection).tcpBridgePort
+          let newTcpBrigdePort = (connection as IRTUConnection).tcpBridgePort        
+          if( this.tcprtuBridge){
+            this.restartTcpRtuBridge(oldTcpBrigdePort,newTcpBrigdePort)
+          }
+          else
+            if(newTcpBrigdePort)
+              this.startTcpRtuBridge(newTcpBrigdePort)            
         let busP = ConfigBus.updateBusProperties(this.properties, connection)
         let b = Bus.getBusses().find((b) => b.getId() == busP.busId)
         if (b) {
@@ -194,9 +220,8 @@ export class Bus implements IModbusAPI {
     private _modbusRTUWorker = new ModbusRTUWorker(this, modbusRTUQueue)
   ) {
     this.properties = ibus
-    if (ibus.tcpBridgePort) {
-      this.tcprtuBridge = new ModbusTcpRtuBridge(this.modbusRTUQueue)
-      this.tcprtuBridge.startServer(ibus.tcpBridgePort)
+    if ((ibus.connectionData as IRTUConnection).tcpBridgePort) {
+      this.startTcpRtuBridge( (ibus.connectionData as IRTUConnection).tcpBridgePort!)
     }
   }
   getId(): number {
