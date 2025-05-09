@@ -165,7 +165,6 @@ export class Bus implements IModbusAPI {
           // E.g. set of lower timeout can lead to error messages
           b.reconnectRTU('updateBus')
             .then(() => {
-              Bus.getAllAvailableModusData()
               resolve(b)
             })
             .catch(reject)
@@ -184,29 +183,6 @@ export class Bus implements IModbusAPI {
     // debug("getBus()")
     if (Bus.getBusses() == undefined) return undefined
     return Bus.getBusses().find((b) => b.properties.busId == busid)
-  }
-
-  //Runs in background only no feedback
-  static getAllAvailableModusData(): void {
-    debug('getAllAvailableModusData')
-    let subject = new Subject<void>()
-    let busCount = Bus.getBusses().length
-    if (busCount == 0)
-      setTimeout(() => {
-        subject.next()
-      }, 2)
-    Bus.getBusses().forEach((bus) => {
-      bus.properties.slaves.forEach((slave) => {
-        bus
-          .getAvailableSpecs(slave.slaveid, true, 'en')
-          .then(() => {
-            debug('Specs for ' + bus.getId() + '/' + slave.slaveid + ' cached')
-          })
-          .catch((e) => {
-            log.log(LogLevelEnum.error, 'getAllAvailableModusData failed: ' + e.message)
-          })
-      })
-    })
   }
 
   properties: IBus
