@@ -193,7 +193,7 @@ export class ModbusRTUProcessor {
 
             let valueCount = this.countResults(values)
             if (valueCount == addressCount) {
-              debug('Finished slaveId: ' + slaveId + ' addresses.length:' + preparedAddresses.addresses.length)
+              debug('Finished ' + id)
               resolve(values)
             }
           },

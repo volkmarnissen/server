@@ -172,17 +172,18 @@ export class ModbusRTUWorker extends ModbusWorker {
         return this.modbusAPI.reconnectRTU('ReconnectOnError')
       } else return this.retry(current, error)
     } else if (error.errno == 'ETIMEDOUT')
-      if (current.address.length == undefined || current.address.length == 1) {
-        current.errorState = ModbusErrorStates.timeout
-        this.addError(current, ModbusErrorStates.timeout, new Date())
-        return this.retry(current, error)
-      } else {
-        this.splitAddresses(current, error)
-        // New entries are queued. Nothing more to do
-        return new Promise((resolve) => {
-          resolve()
-        })
-      }
+      if (current.options.errorHandling.split&&current.address.length != undefined && current.address.length > 1) 
+        {
+          this.splitAddresses(current, error)
+          // New entries are queued. Nothing more to do
+          return new Promise((resolve) => {
+            resolve()
+          })
+        } else {
+            current.errorState = ModbusErrorStates.timeout
+            this.addError(current, ModbusErrorStates.timeout, new Date())
+            return this.retry(current, error)
+          }
     else {
       let modbusCode = error.modbusCode
       if (modbusCode == undefined)
@@ -371,11 +372,16 @@ export class ModbusRTUWorker extends ModbusWorker {
     c = this.cache.get(queueEntry.slaveId)
     c?.errors.push(new ModbusErrorDescription(queueEntry, state, date))
   }
+  private compareEntities(a: IQueueEntry, b: IQueueEntry):number{
+    return  a.options.task - b.options.task
+  }
+
   override run() {
     if (!this.isRunning && this.queue.getLength() > 0) {
       this.isRunning = true
       let processing = this.queue.getEntries()
       this.queue.clear()
+      processing.sort(this.compareEntities)
       // process all queue entries sequentially:
       processing
         .reduce<Promise<void>>(
@@ -398,8 +404,10 @@ export class ModbusRTUWorker extends ModbusWorker {
                 else
                   return this.executeModbusFunctionCodeRead(current).then(() => {
                     resolve()
+                  }).catch(e=>{
+                    log.log(LogLevelEnum.error, "Unexpected catch in ModbusRTUWorker")
                   })
-              })
+              }).catch(reject)
             })
           },
           new Promise<void>((resolve) => {
