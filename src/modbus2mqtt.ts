@@ -103,7 +103,6 @@ export class Modbus2Mqtt {
           join(ConfigSpecification.yamlDir, 'public')
         )
         let startServer = () => {
-          let md = MqttDiscover.getInstance()
           ConfigBus.readBusses()
           Bus.readBussesFromConfig().then(() => {
             this.pollTasks()
@@ -134,7 +133,9 @@ export class Modbus2Mqtt {
                       1000 * 60 * 60
                     )
                     if (process.env.MODBUS_NOPOLL == undefined) {
-                      md.startPolling()
+                      Bus.getBusses().forEach((bus) => {
+                        bus.startPolling()
+                      })
                     } else {
                       log.log(LogLevelEnum.notice, 'Poll disabled by environment variable MODBUS_POLL')
                     }

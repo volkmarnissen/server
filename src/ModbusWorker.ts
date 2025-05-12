@@ -15,7 +15,7 @@ export interface IModbusAPI {
   writeHoldingRegisters: TModbusWriteFunction
   writeCoils: TModbusWriteFunction
   reconnectRTU: (task: string) => Promise<void>
-  getCacheId():number
+  getCacheId(): number
 }
 export class ModbusWorker {
   protected functionCodeReadMap: Map<ModbusRegisterType, TModbusReadFunction>

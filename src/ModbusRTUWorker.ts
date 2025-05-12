@@ -42,18 +42,17 @@ interface ImodbusValuesCache {
 }
 export class ModbusRTUWorker extends ModbusWorker {
   private isRunning = false
+  private queuePromise: Promise<void> | undefined = undefined
   private static lastNoticeMessageTime: number
   private static lastNoticeMessage: string
   private static caches = new Map<number, Map<number, ImodbusValuesCache>>()
-  private cache:Map<number, ImodbusValuesCache>
+  private cache: Map<number, ImodbusValuesCache>
 
   constructor(modbusAPI: IModbusAPI, queue: ModbusRTUQueue) {
     super(modbusAPI, queue)
     let c = ModbusRTUWorker.caches.get(modbusAPI.getCacheId())
-    if(c)
-      this.cache = c
-    else
-      ModbusRTUWorker.caches.set(modbusAPI.getCacheId(), this.cache = new Map<number, ImodbusValuesCache>())
+    if (c) this.cache = c
+    else ModbusRTUWorker.caches.set(modbusAPI.getCacheId(), (this.cache = new Map<number, ImodbusValuesCache>()))
   }
   debugMessage(currentEntry: IQueueEntry, msg: string) {
     let id =
@@ -124,7 +123,7 @@ export class ModbusRTUWorker extends ModbusWorker {
     }
     if (current.errorCount > maxErrors)
       return new Promise((resolve, reject) => {
-        reject(new Error('Too many retries: ' + (current.errorState== ModbusErrorStates.timeout? 'timeout':'other')))
+        reject(new Error('Too many retries: ' + (current.errorState == ModbusErrorStates.timeout ? 'timeout' : 'other')))
       })
     else {
       this.debugMessage(current, 'Retrying ...')
@@ -145,8 +144,8 @@ export class ModbusRTUWorker extends ModbusWorker {
         this.queue.enqueue(entry.slaveId, structuredClone(address), entry.onResolve, entry.onError, {
           task: ModbusTasks.splitted,
           errorHandling: {},
-          useCache: entry.options.useCache
-        }as IQueueOptions)
+          useCache: entry.options.useCache,
+        } as IQueueOptions)
         address.address++
       }
     } else throw e
@@ -172,18 +171,17 @@ export class ModbusRTUWorker extends ModbusWorker {
         return this.modbusAPI.reconnectRTU('ReconnectOnError')
       } else return this.retry(current, error)
     } else if (error.errno == 'ETIMEDOUT')
-      if (current.options.errorHandling.split&&current.address.length != undefined && current.address.length > 1) 
-        {
-          this.splitAddresses(current, error)
-          // New entries are queued. Nothing more to do
-          return new Promise((resolve) => {
-            resolve()
-          })
-        } else {
-            current.errorState = ModbusErrorStates.timeout
-            this.addError(current, ModbusErrorStates.timeout, new Date())
-            return this.retry(current, error)
-          }
+      if (current.options.errorHandling.split && current.address.length != undefined && current.address.length > 1) {
+        this.splitAddresses(current, error)
+        // New entries are queued. Nothing more to do
+        return new Promise((resolve) => {
+          resolve()
+        })
+      } else {
+        current.errorState = ModbusErrorStates.timeout
+        this.addError(current, ModbusErrorStates.timeout, new Date())
+        return this.retry(current, error)
+      }
     else {
       let modbusCode = error.modbusCode
       if (modbusCode == undefined)
@@ -296,7 +294,8 @@ export class ModbusRTUWorker extends ModbusWorker {
     return undefined
   }
 
-  private executeModbusFunctionCodeRead(current: IQueueEntry): Promise<void> {
+  private executeModbusFunctionCodeRead(current: IQueueEntry | undefined): Promise<void> {
+    if (!current) return Promise.resolve()
     let mp = this.isInCacheMap(current)
     if (mp != undefined) {
       return new Promise<void>((resolve, reject) => {
@@ -314,8 +313,8 @@ export class ModbusRTUWorker extends ModbusWorker {
           if (rc != undefined && rc.data != undefined) tmpEntry.onResolve(tmpEntry, rc.data)
           else if (rc!.error != undefined) tmpEntry.onError(tmpEntry, rc!.error)
           else tmpEntry.onError(tmpEntry, new Error('Unknown error when reading from cache'))
+          resolve()
         }
-        resolve()
       })
     } else
       return new Promise<void>((resolve, reject) => {
@@ -372,62 +371,44 @@ export class ModbusRTUWorker extends ModbusWorker {
     c = this.cache.get(queueEntry.slaveId)
     c?.errors.push(new ModbusErrorDescription(queueEntry, state, date))
   }
-  private compareEntities(a: IQueueEntry, b: IQueueEntry):number{
-    return  a.options.task - b.options.task
+  private compareEntities(a: IQueueEntry, b: IQueueEntry): number {
+    return a.options.task - b.options.task
   }
-
-  override run() {
-    if (!this.isRunning && this.queue.getLength() > 0) {
-      this.isRunning = true
-      let processing = this.queue.getEntries()
-      this.queue.clear()
-      processing.sort(this.compareEntities)
-      // process all queue entries sequentially:
-      processing
-        .reduce<Promise<void>>(
-          (promise, current): Promise<void> => {
-            return new Promise<void>((resolve, reject) => {
-              promise.then(() => {
-                if (current.address.write)
-                  return this.functionCodeWriteMap.get(current.address.registerType)!(
-                    current.slaveId,
-                    current.address.address,
-                    current.address.write
-                  )
-                    .then(() => {
-                      resolve()
-                    })
-                    .catch((e) => {
-                      current.onError(current, e)
-                      resolve()
-                    })
-                else
-                  return this.executeModbusFunctionCodeRead(current).then(() => {
-                    resolve()
-                  }).catch(e=>{
-                    log.log(LogLevelEnum.error, "Unexpected catch in ModbusRTUWorker")
-                  })
-              }).catch(reject)
-            })
-          },
-          new Promise<void>((resolve) => {
-            resolve()
-          })
+  private processOneEntry(): Promise<void> | undefined {
+    let current = this.queue.dequeue()
+    if (current)
+      if (current.address.write)
+        return this.functionCodeWriteMap.get(current.address.registerType)!(
+          current.slaveId,
+          current.address.address,
+          current.address.write
         )
-        .then(() => {
-          if (this.queue.getLength() == 0) {
-            this.isRunning = false
-            this.onFinish()
-          } else {
-            this.isRunning = false
-            this.run()
-          }
-        }).catch(e=>{
-            log.log(LogLevelEnum.error, "Modbus RTU worker: " + e.message)
-            this.isRunning = false
-        })
+          .then(() => this.processOneEntry())
+          .catch((e) => this.processOneEntry())
+      else
+        return this.executeModbusFunctionCodeRead(current)
+          .then(() => this.processOneEntry())
+          .catch((e) => this.processOneEntry())
+    else {
+      this.queuePromise = undefined
+      this.onFinish()
+      return undefined
     }
   }
+  override run() {
+    if (this.queue.getLength() == 0) return // nothing to do
+    this.queue.getEntries().sort(this.compareEntities)
+    // process all queue entries sequentially:
+    if (this.queuePromise) return
+    this.queuePromise = new Promise<void>((resolve) => {
+      resolve()
+    })
+    this.queuePromise = Promise.resolve()
+    this.queuePromise = this.queuePromise!.then(() => {
+      return this.processOneEntry()
+    })
+  }
+
   onFinish() {}
   getErrors(slaveid: number): ImodbusErrorsForSlave[] {
     let cache = this.cache.get(slaveid)

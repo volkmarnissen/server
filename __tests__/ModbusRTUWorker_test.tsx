@@ -43,21 +43,22 @@ function enqueueWrite(queue: ModbusRTUQueue, num: number, test: Itest) {
     { task: ModbusTasks.specification, errorHandling: {} }
   )
 }
-describe('ModbusRTUWorker read', () => {
-  it('Sequential read successful processing', (done) => {
-    let queue = new ModbusRTUQueue()
-    let test: Itest = {}
-    enqueue(queue, 199, test) //CRC
-    enqueue(queue, 200, test) //Timeout
+it('Sequential read successful processing', (done) => {
+  let queue = new ModbusRTUQueue()
+  let test: Itest = {}
+  enqueue(queue, 199, test) //CRC
+  enqueue(queue, 200, test) //Timeout
 
-    test.worker = new ModbusRTUWorkerForTest(new FakeBus(), queue, done, 'read')
-    test.worker.expectedReconnected = false
-    test.worker.expectedAPIcallCount = 1
-    test.worker.expectedAPIwroteDataCount = 0
-    test.worker.run()
-    // Hopefully, the run process resetted the queue before next queue entry is added
-    enqueue(queue, 201, test)
-  })
+  test.worker = new ModbusRTUWorkerForTest(new FakeBus(), queue, done, 'read')
+  test.worker.expectedReconnected = false
+  test.worker.expectedAPIcallCount = 1
+  test.worker.expectedAPIwroteDataCount = 0
+  test.worker.run()
+  // Hopefully, the run process resetted the queue before next queue entry is added
+  enqueue(queue, 201, test)
+})
+
+describe('ModbusRTUWorker read', () => {
   it('Sequential read error processing', (done) => {
     let queue = new ModbusRTUQueue()
     let test: Itest = {}
