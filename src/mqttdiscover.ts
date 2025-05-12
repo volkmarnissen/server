@@ -339,9 +339,10 @@ export class MqttDiscover {
           log.log(LogLevelEnum.notice, 'Publish Discovery: length:' + tAndPs.length)
           tAndPs.forEach((tAndP) => {
             mqttClient.publish(tAndP.topic, tAndP.payload, retain)
+            if (newSlave) this.subscriptions.resubscribe(mqttClient)
           })
         })
-        if (newSlave) this.subscriptions.resubscribe()
+        
         // Wait for discovery
         setTimeout(() => {
           this.subscriptions

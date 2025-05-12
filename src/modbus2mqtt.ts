@@ -103,6 +103,7 @@ export class Modbus2Mqtt {
           join(ConfigSpecification.yamlDir, 'public')
         )
         let startServer = () => {
+          MqttDiscover.getInstance()
           ConfigBus.readBusses()
           Bus.readBussesFromConfig().then(() => {
             this.pollTasks()

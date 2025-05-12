@@ -18,10 +18,10 @@ const modbusValues = 'modbusValues'
 export class MqttSubscriptions {
   private subscribedSlaves: Slave[] = []
   constructor(private connector: MqttConnector) {
-    this.connector.addOnConnectListener(this.resubscribe)
-    this.connector.addOnMqttMessageListener(this.onMqttMessage)
+    this.connector.addOnConnectListener(this.resubscribe.bind(this))
+    this.connector.addOnMqttMessageListener(this.onMqttMessage.bind(this))
   }
-  private static instance: MqttSubscriptions
+  private static instance: MqttSubscriptions| undefined = undefined
 
   static getInstance(): MqttSubscriptions {
     if (MqttSubscriptions.instance) return MqttSubscriptions.instance
@@ -297,8 +297,7 @@ export class MqttSubscriptions {
     })
   }
 
-  resubscribe(): void {
-    this.connector.getMqttClient((mqttClient) => {
+  resubscribe(mqttClient:MqttClient): void {
       this.subscribedSlaves.forEach((slave) => {
         let options = { qos: MqttDiscover.generateQos(slave, slave.getSpecification()) }
         mqttClient.subscribe(slave.getTriggerPollTopic(), options)
@@ -308,7 +307,6 @@ export class MqttSubscriptions {
           mqttClient.subscribe(slave.getEntityCommandTopicFilter(), options)
         }
       })
-    })
   }
 
   private getSubscribedSlaveFromDiscoveryTopic(topic: string): { slave?: Slave; entityId?: number } {
