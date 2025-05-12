@@ -50,7 +50,7 @@ export class MqttConnector {
   private onConnect(mqttClient: MqttClient) {
     debug('reconnecting MQTT')
     this.onConnectListener.forEach((listener) => {
-      listener(mqttClient)
+      listener.bind(this)(mqttClient)
     })
     this.executeActions(this.client!)
   }

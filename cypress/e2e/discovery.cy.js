@@ -200,7 +200,7 @@ describe('MQTT Discovery Tests', () => {
           addEntity(2, 3, false)
           saveSpecification(true)
           //Homeassistant needs time between discovery and state sending
-          cy.wait(10000)
+          cy.wait(1000)
             .task('mqttGetTopicAndPayloads')
             .then((tAndP) => {
               //expect(tAndP.length).to.eq(2)
