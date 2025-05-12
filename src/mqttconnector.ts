@@ -18,7 +18,7 @@ export class MqttConnector {
   private onMqttMessageListeners: ((topic: string, payload: Buffer) => Promise<void>)[] = []
   private onConnectListener: ((mqttClient: MqttClient) => void)[] = []
   onConnectCallbacks: ((connection: MqttClient) => void)[]
-  private static instance: MqttConnector
+  private static instance: MqttConnector |  undefined = undefined
   static getInstance(): MqttConnector {
     if (MqttConnector.instance) return MqttConnector.instance
 

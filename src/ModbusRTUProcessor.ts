@@ -172,7 +172,7 @@ export class ModbusRTUProcessor {
 
             let id =
               ModbusTasks[options.task] +
-              'slave: ' +
+              ' slave: ' +
               currentEntry.slaveId +
               ' Reg: ' +
               currentEntry.address.registerType +

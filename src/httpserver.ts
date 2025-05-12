@@ -47,7 +47,7 @@ interface GetRequestWithParameter extends Request {
     slaveid: string
     spec: string
     filter: string
-    discover: string
+    deviceDetection: string
     entityid: string
     language: string
     originalFilename: string
@@ -356,8 +356,11 @@ export class HttpServer extends HttpServerBase {
         this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, 'Bus not found. Id: ' + req.query.busid)
         return
       }
+      let modbusTask = ModbusTasks.specification  
+      if( req.query.deviceDetection )
+        modbusTask = ModbusTasks.deviceDetection
       let slaveid = Number.parseInt(req.query.slaveid)!
-      Modbus.getModbusSpecification(ModbusTasks.specification, bus, slaveid, req.query.spec, (e: any) => {
+      Modbus.getModbusSpecification(modbusTask, bus, slaveid, req.query.spec, (e: any) => {
         log.log(LogLevelEnum.error, 'http: get /specification ' + e.message)
         this.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, JSON.stringify('read specification ' + e.message))
       }).subscribe((result) => {

@@ -47,7 +47,7 @@ export class ModbusRTUWorker extends ModbusWorker {
   private static lastNoticeMessage: string
   private static caches = new Map<number, Map<number, ImodbusValuesCache>>()
   private cache: Map<number, ImodbusValuesCache>
-
+  private running:boolean = false
   constructor(modbusAPI: IModbusAPI, queue: ModbusRTUQueue) {
     super(modbusAPI, queue)
     let c = ModbusRTUWorker.caches.get(modbusAPI.getCacheId())
@@ -56,7 +56,7 @@ export class ModbusRTUWorker extends ModbusWorker {
   }
   debugMessage(currentEntry: IQueueEntry, msg: string) {
     let id =
-      'slave: ' +
+      ' slave: ' +
       currentEntry.slaveId +
       ' Reg: ' +
       currentEntry.address.registerType +
@@ -372,7 +372,7 @@ export class ModbusRTUWorker extends ModbusWorker {
     c?.errors.push(new ModbusErrorDescription(queueEntry, state, date))
   }
   private compareEntities(a: IQueueEntry, b: IQueueEntry): number {
-    return a.options.task - b.options.task
+    return b.options.task - a.options.task 
   }
   private processOneEntry(): Promise<void> | undefined {
     let current = this.queue.dequeue()
@@ -390,7 +390,7 @@ export class ModbusRTUWorker extends ModbusWorker {
           .then(() => this.processOneEntry())
           .catch((e) => this.processOneEntry())
     else {
-      this.queuePromise = undefined
+      this.running = false
       this.onFinish()
       return undefined
     }
@@ -399,14 +399,9 @@ export class ModbusRTUWorker extends ModbusWorker {
     if (this.queue.getLength() == 0) return // nothing to do
     this.queue.getEntries().sort(this.compareEntities)
     // process all queue entries sequentially:
-    if (this.queuePromise) return
-    this.queuePromise = new Promise<void>((resolve) => {
-      resolve()
-    })
-    this.queuePromise = Promise.resolve()
-    this.queuePromise = this.queuePromise!.then(() => {
-      return this.processOneEntry()
-    })
+    if (this.running) return
+    this.running = true
+    this.processOneEntry()
   }
 
   onFinish() {}

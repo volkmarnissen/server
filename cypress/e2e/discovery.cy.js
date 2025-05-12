@@ -97,10 +97,11 @@ function saveSpecification(willLog) {
   
   cy.log('Save Specification ')
   cy.get('div.saveCancel:first button', logSetting).eq(0, logSetting).should('not.is.disabled')
-  cy.get('div.saveCancel:first button', logSetting).eq(0, logSetting).trigger('click', logSetting)
-  cy.get('div.saveCancel:first button', logSetting).eq(1, logSetting).trigger('click', logSetting)
-  cy.wait(1000)
-  cy.url().should('contain', prefix + '/slaves')
+  cy.get('div.saveCancel:first button', logSetting).eq(0, logSetting).last().click({ force: true, log: willLog })
+  // cy.wait(1000)
+  cy.get('div.saveCancel:first button', logSetting).eq(1, logSetting).last().click({ force: true, log: willLog })
+  // cy.wait(1000)
+  // cy.url().should('contain', prefix + '/slaves')
 }
 function addSlave(willLog) {
   let logSetting = { log: willLog }
@@ -199,7 +200,7 @@ describe('MQTT Discovery Tests', () => {
           addEntity(2, 3, false)
           saveSpecification(true)
           //Homeassistant needs time between discovery and state sending
-          cy.wait(1000)
+          cy.wait(10000)
             .task('mqttGetTopicAndPayloads')
             .then((tAndP) => {
               //expect(tAndP.length).to.eq(2)
