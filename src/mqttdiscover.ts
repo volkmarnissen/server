@@ -324,9 +324,6 @@ export class MqttDiscover {
       let oldSlave = this.subscriptions.getSubscribedSlave(slave)
       if (oldSlave == undefined) newSlave = this.subscriptions.addSubscribedSlave(slave)
 
-      let busId = slave.getBusId()
-      let bus: Bus | undefined = busId != undefined ? Bus.getBus(busId) : undefined
-      if (bus) {
         let tAndPs = this.generateDiscoveryEntities(slave)
         if (tAndPs.length == 0) {
           let message = 'No entities found for discovery slave: ' + slave.getSlaveId()
@@ -354,7 +351,6 @@ export class MqttDiscover {
             })
             .catch(reject)
         }, 500)
-      }
     })
   }
 

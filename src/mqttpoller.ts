@@ -10,12 +10,14 @@ import { MqttConnector } from './mqttconnector'
 const debug = Debug('mqttpoller')
 const defaultPollCount = 50 // 5 seconds
 const log = new Logger('mqttpoller')
-
+interface IslavePollInfo{
+  count:number, 
+  processing:boolean
+}
 export class MqttPoller {
   interval: NodeJS.Timeout | undefined
   private lastMessage: string = ''
-  private isPolling: boolean = false
-  private pollCounts: Map<string, number> = new Map<string, number>()
+  private slavePollInfo: Map<number, IslavePollInfo> = new Map<number, IslavePollInfo>()
 
   constructor(private connector: MqttConnector) {}
 
@@ -23,10 +25,6 @@ export class MqttPoller {
   // Depending on the pollinterval of the slaves it triggers publication of the current state of the slave
   private poll(bus: Bus): Promise<void> {
     return new Promise<void>((resolve, error) => {
-      if (this.isPolling) {
-        resolve()
-      }
-      this.isPolling = true
       let needPolls: {
         slave: Slave
         pollMode: PollModes
@@ -35,12 +33,13 @@ export class MqttPoller {
       bus.getSlaves().forEach((slave) => {
         if (slave.pollMode != PollModes.noPoll) {
           let sl = new Slave(bus.getId(), slave, Config.getConfiguration().mqttbasetopic)
-          let pc: number | undefined = this.pollCounts.get(sl.getKey())
+          let pc: IslavePollInfo | undefined = this.slavePollInfo.get(sl.getSlaveId())
 
-          if (pc == undefined || pc > (slave.pollInterval != undefined ? slave.pollInterval / 100 : defaultPollCount)) pc = 0
-          if (pc == 0) {
+          if (pc == undefined || pc.count > (slave.pollInterval != undefined ? slave.pollInterval / 100 : defaultPollCount)) pc ={count:0, processing:false} 
+          if (pc.count == 0 && !pc.processing) {
             let s = new Slave(bus.getId(), slave, Config.getConfiguration().mqttbasetopic)
             if (slave.specification) {
+              pc.processing = true
               needPolls.push({ slave: s, pollMode: PollModes.intervall })
             } else {
               if (slave.specificationid)
@@ -50,7 +49,7 @@ export class MqttPoller {
                 )
             }
           }
-          this.pollCounts.set(sl.getKey(), ++pc)
+          this.slavePollInfo.set(sl.getSlaveId(), { count:++pc.count, processing: pc.processing})
         }
       })
       if (needPolls.length > 0) {
@@ -60,7 +59,6 @@ export class MqttPoller {
           // Trigger state only if it's configured to do so
           let spMode = bs.slave.getPollMode()
           if (spMode == undefined || [PollModes.intervall, PollModes.intervallAndTrigger].includes(spMode)) {
-            let bus = Bus.getBus(bs.slave.getBusId())
             if (bus)
               Modbus.getModbusSpecification(ModbusTasks.poll, bus, bs.slave.getSlaveId(), bs.slave.getSpecificationId(), (e) => {
                 log.log(LogLevelEnum.error, 'reading spec failed' + e.message)
@@ -74,12 +72,19 @@ export class MqttPoller {
                     tAndP.forEach((tAndP) => {
                       mqttClient.publish(tAndP.topic, tAndP.payload)
                     })
+                    needPolls.forEach((v)=>{
+                      let si =this.slavePollInfo.get(v.slave.getSlaveId())
+                      if( si)
+                        si.processing = false
+                    })
                     resolve()
                   })
               })
           }
         })
       }
+      else
+        resolve()
     })
   }
 
@@ -96,29 +101,5 @@ export class MqttPoller {
     let message = "MQTT: Can't connect to " + Config.getConfiguration().mqttconnect.mqttserverurl + ' ' + msg.toString()
     if (message !== this.lastMessage) log.log(LogLevelEnum.error, message)
     this.lastMessage = message
-  }
-
-  private static getBusAndSlaveFromTopic(topic: string): { bus: Bus; slave: Islave } {
-    let parts = topic.split('/')
-    let msg = ''
-
-    if (parts.length > 2) {
-      let busid = Number.parseInt(parts[2].substring(0, 1))
-      let slaveid = Number.parseInt(parts[2].substring(2))
-      let bus = Bus.getBus(busid)
-      if (!bus) {
-        log.log(LogLevelEnum.error, 'getBusAndSlaveFromTopic: invalid busid ' + busid)
-        throw new Error('getBusAndSlaveFromTopic' + busid)
-      }
-
-      const device = bus!.getSlaveBySlaveId(slaveid)
-      if (device)
-        return {
-          bus: bus,
-          slave: device,
-        }
-      else throw new Error('device ' + slaveid + 'not found for Bus' + busid)
-    }
-    throw new Error('Invalid topic. No bus and slave information: ' + topic)
   }
 }

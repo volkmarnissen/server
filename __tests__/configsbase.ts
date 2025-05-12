@@ -7,6 +7,7 @@ import { ImqttClient } from '@modbus2mqtt/server.shared'
 import { ConfigBus } from '../src/configbus'
 import { Bus } from '../src/bus'
 import { MqttSubscriptions } from '../src/mqttsubscriptions'
+import { ConfigSpecification } from '@modbus2mqtt/specification'
 
 export const yamlDir = '__tests__/yaml-dir'
 export const backendTCPDir = '__tests__/backendTCP'
@@ -63,7 +64,8 @@ export class FakeMqtt {
 }
 
 export function initBussesForTest() {
-  ConfigBus.readBusses()
+  new ConfigSpecification().readYaml()
+  ConfigBus.readBusses()     
   let ibs = ConfigBus.getBussesProperties()
   if (!Bus['busses']) Bus['busses'] = []
   ibs.forEach((ib) => {
