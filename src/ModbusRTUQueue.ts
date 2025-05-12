@@ -36,6 +36,9 @@ export class ModbusRTUQueue {
     this.list = []
   }
   enqueueEntry(entry: IQueueEntry) {
+    //TODO find similar entry in queue
+    // if found concat methods to on resolve and onError
+    // else push this entry
     this.list.push(entry)
     this.eventEmitter.emit(EventNewEntry)
   }

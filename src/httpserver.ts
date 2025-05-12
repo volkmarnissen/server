@@ -31,6 +31,8 @@ import { HttpServerBase } from './httpServerBase'
 import { MqttDiscover } from './mqttdiscover'
 import { Writable } from 'stream'
 import { ConfigBus } from './configbus'
+import { MqttConnector } from './mqttconnector'
+import { MqttSubscriptions } from './mqttsubscriptions'
 const debug = Debug('httpserver')
 const log = new Logger('httpserver')
 // import cors from 'cors';
@@ -83,13 +85,13 @@ export class HttpServer extends HttpServerBase {
     } else return req.query.language
   }
   handleSlaveTopics(req: Request, res: http.ServerResponse, next: any): any {
-    let md = MqttDiscover.getInstance()
+    let msub = MqttSubscriptions.getInstance()
     let url = req.url.substring(1)
-    let slave = md.getSlave(url)
+    let slave = msub.getSlave(url)
     if (slave) {
       if (req.method == 'GET' && url.endsWith('/state/')) {
         let md = new Modbus()
-        MqttDiscover.readModbus(slave)?.subscribe((spec) => {
+        MqttSubscriptions.readModbus(slave)?.subscribe((spec) => {
           let payload = slave.getStatePayload(spec.entities)
           this.returnResult(req, res, HttpErrorsEnum.OK, payload)
           return
@@ -102,7 +104,8 @@ export class HttpServer extends HttpServerBase {
           postLength = 11
         }
         if (idx == -1) return next() //should not happen
-        md.sendEntityCommandWithPublish(slave, url, url.substring(idx + postLength))
+        msub
+          .sendEntityCommandWithPublish(slave, url, url.substring(idx + postLength))
           .then(() => {
             this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify({ result: 'OK' }))
           })
@@ -110,7 +113,8 @@ export class HttpServer extends HttpServerBase {
             this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify({ result: e.message }))
           })
       } else if (req.method == 'POST' && url.indexOf('/set/') != -1) {
-        md.sendCommand(slave, JSON.stringify(req.body))
+        msub
+          .sendCommand(slave, JSON.stringify(req.body))
           .then(() => {
             this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify({ result: 'OK' }))
           })
@@ -461,7 +465,7 @@ export class HttpServer extends HttpServerBase {
           this.validateMqttConnectionResult(req, res, false, 'No parameters configured')
           return
         }
-        let mqttdiscover = MqttDiscover.getInstance()
+        let mqttdiscover = MqttConnector.getInstance()
         let client = req.body.mqttconnect.mqttserverurl ? req.body.mqttconnect : undefined
 
         mqttdiscover.validateConnection(client, (valid, message) => {

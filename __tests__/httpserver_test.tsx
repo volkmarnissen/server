@@ -45,6 +45,9 @@ import { join } from 'path'
 import { MqttDiscover } from '../src/mqttdiscover'
 import { MqttClient } from 'mqtt'
 import { ConfigBus } from '../src/configbus'
+import { MqttConnector } from '../src/mqttconnector'
+import { MqttPoller } from '../src/mqttpoller'
+import { MqttSubscriptions } from '../src/mqttsubscriptions'
 let mockReject = false
 let debug = Debug('testhttpserver')
 const mqttService = {
@@ -136,6 +139,15 @@ beforeAll(() => {
     let cfg = new Config()
     cfg.readYamlAsync().then(() => {
       ConfigBus.readBusses()
+      let conn = new MqttConnector()
+      let msub = new MqttSubscriptions(conn)
+      let md = new MqttDiscover(conn, msub)
+
+      let fake = new FakeMqtt(msub, FakeModes.Poll)
+      conn.getMqttClient = function (onConnectCallback: (connection: MqttClient) => void) {
+        onConnectCallback(fake as any as MqttClient)
+      }
+
       initBussesForTest()
       fs.copyFileSync(lspec + 'waterleveltransmitter.yaml', lspec + 'waterleveltransmitter.bck', undefined)
       ;(Config as any)['fakeModbusCache'] = true
@@ -143,15 +155,6 @@ beforeAll(() => {
       // FIx text ModbusCache.prototype.submitGetHoldingRegisterRequest = submitGetHoldingRegisterRequest
       HttpServer.prototype.authenticate = (req, res, next) => {
         next()
-      }
-      let mdl = MqttDiscover.getInstance()
-      mdl['equalConnectionData'] = () => {
-        return true
-      }
-      let fake = new FakeMqtt(mdl, FakeModes.Poll)
-      mdl['client'] = fake as any as MqttClient
-      mdl['equalConnectionData'] = () => {
-        return true
       }
       httpServer = new HttpServer(join(yamlDir, 'angular'))
 
@@ -459,11 +462,16 @@ describe('http POST', () => {
   })
 
   test('POST /specification: add new Specification rename device.specification', (done) => {
-    let md = (MqttDiscover['instance'] = new MqttDiscover())
+    let conn = new MqttConnector()
+    let msub = new MqttSubscriptions(conn)
+    let md = new MqttDiscover(conn, msub)
+
+    let fake = new FakeMqtt(msub, FakeModes.Poll)
+    conn.getMqttClient = function (onConnectCallback: (connection: MqttClient) => void) {
+      onConnectCallback(fake as any as MqttClient)
+    }
+    initBussesForTest()
     ConfigBus['listeners'] = []
-    let fake = new FakeMqtt(md, FakeModes.Poll)
-    md['client'] = fake as any as MqttClient
-    md['connectMqtt'] = function (undefined) {}
 
     let spec1: ImodbusSpecification = Object.assign(spec)
 

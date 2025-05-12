@@ -100,8 +100,7 @@ it('getMultipleInputRegisters', (done) => {
 it('start/stop live test', (done) => {
   let queue = new ModbusRTUQueue()
   let fakeBus = new FakeBus()
-  let worker = new ModbusRTUWorkerForTest(fakeBus, queue, () => {}, 'start/stop')
-  worker.run()
+  new ModbusRTUWorkerForTest(fakeBus, queue, () => {}, 'start/stop')
   let bridge = new ModbusTcpRtuBridge(queue)
   const client = new ModbusRTU()
 

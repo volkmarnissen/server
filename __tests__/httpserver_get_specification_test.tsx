@@ -12,17 +12,22 @@ import { MqttClient } from 'mqtt'
 import { join } from 'path'
 import { MqttDiscover } from '../src/mqttdiscover'
 import { ConfigSpecification } from '@modbus2mqtt/specification/dist/configspec'
+import { MqttSubscriptions } from '../src/mqttsubscriptions'
+import { MqttConnector } from '../src/mqttconnector'
+import { MqttPoller } from '../src/mqttpoller'
 var httpServer: HttpServer
 
 beforeAll(() => {
   return new Promise<void>((resolve, reject) => {
-    let mdl = MqttDiscover.getInstance()
     // fake MQTT: avoid reconnect
-    mdl['equalConnectionData'] = () => {
-      return true
+
+    let conn = new MqttConnector()
+    let msub = new MqttSubscriptions(conn)
+
+    let fake = new FakeMqtt(msub, FakeModes.Poll)
+    conn.getMqttClient = function (onConnectCallback: (connection: MqttClient) => void) {
+      onConnectCallback(fake as any as MqttClient)
     }
-    let fake = new FakeMqtt(mdl, FakeModes.Poll)
-    mdl['client'] = fake as any as MqttClient
     Config['yamlDir'] = backendTCPDir
     Config['sslDir'] = backendTCPDir
     ConfigSpecification.yamlDir = backendTCPDir
