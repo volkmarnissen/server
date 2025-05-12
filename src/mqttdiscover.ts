@@ -72,7 +72,7 @@ export class MqttDiscover {
   private onDestroy(this: MqttDiscover) {
     if (this.client) this.client.end()
   }
-  private static instance: MqttDiscover
+  private static instance: MqttDiscover| undefined = undefined
 
   static getInstance(): MqttDiscover {
     if (MqttDiscover.instance) return MqttDiscover.instance
