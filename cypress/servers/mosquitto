@@ -20,6 +20,5 @@ then
 fi
 $EXEC -c $TMPDIR/mosquitto.conf &
 MPID=$!  
-KILLPID=$$
-echo KILLPID=$KILLPID
+
 wait $MPID

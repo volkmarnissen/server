@@ -21,7 +21,7 @@ function runConfig(authentication) {
     cy.get('[formcontrolname="mqttpassword"]').type('homeassistant', { force: true })
     cy.get('[formcontrolname="mqttpassword"]').trigger('change')
   }
-  cy.get('div.saveCancel button:first').click()
+  cy.get('div.saveCancel button:first').click({ force: true })
   cy.url().should('contain', prefix + '/busses')
 }
 
@@ -37,12 +37,35 @@ function runBusses() {
   cy.get('div.card-header-buttons:first button').eq(1).click()
 }
 
-function runSlaves(willLog) {
+function addSlave(willLog) {
   let logSetting = { log: willLog }
+  cy.log('Add Slave ')
+  cy.task('log','Add Slave' )
+  cy.url().then((url)=>{
+  cy.task('log',url )
+
+  })
   cy.url().should('contain', prefix + '/slaves')
-  cy.get('[formcontrolname="slaveId"]').type('3{enter}', { force: true })
+  cy.get('[formcontrolname="detectSpec"]', logSetting).click(logSetting)
+  cy.get('[formcontrolname="slaveId"]', logSetting).type('3{enter}', { force: true, log: willLog })
+  cy.get('app-select-slave:first mat-expansion-panel-header[aria-expanded=false]', logSetting).then((elements) => {
+    if (elements.length >= 1) {
+      elements[0].click(logSetting)
+    }
+    if (elements.length >= 2) {
+      elements[1].click(logSetting)
+    }
+  })
+
+  cy.get('app-select-slave:first mat-select[formControlName="pollMode"]', logSetting)
+    .click()
+    .get('mat-option')
+    .contains('No polling')
+    .click(logSetting)
+  cy.get('div.card-header-buttons:first button:contains("check_circle")', logSetting).eq(0, logSetting).click(logSetting)
   // Show specification third header button on first card
-  cy.get('div.card-header-buttons:first button', logSetting).eq(1, logSetting).click(logSetting)
+  cy.get('div.card-header-buttons:first button:contains("add_box")', logSetting).eq(0, logSetting).click(logSetting)
+
   cy.url().should('contain', prefix + '/specification')
 }
 function e2eReset(willLog){
@@ -71,11 +94,11 @@ describe('End to End Tests', () => {
     },
     () => {
 
-      e2eReset(true)
+      e2eReset(false)
       runRegister(true)
       runConfig(true)
       runBusses()
-      runSlaves(true)
+      addSlave(true)
     }
   )
   it(
