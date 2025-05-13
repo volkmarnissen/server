@@ -72,7 +72,7 @@ export class MqttDiscover {
   private onDestroy(this: MqttDiscover) {
     if (this.client) this.client.end()
   }
-  private static instance: MqttDiscover| undefined = undefined
+  private static instance: MqttDiscover | undefined = undefined
 
   static getInstance(): MqttDiscover {
     if (MqttDiscover.instance) return MqttDiscover.instance
@@ -324,34 +324,34 @@ export class MqttDiscover {
       let oldSlave = this.subscriptions.getSubscribedSlave(slave)
       if (oldSlave == undefined) newSlave = this.subscriptions.addSubscribedSlave(slave)
 
-        let tAndPs = this.generateDiscoveryEntities(slave)
-        if (tAndPs.length == 0) {
-          let message = 'No entities found for discovery slave: ' + slave.getSlaveId()
-          log.log(LogLevelEnum.error, message)
-          reject(new Error(message))
-          return
-        }
-        if (oldSlave)
-          // delete after generateDiscoveryEntities, because entity deletions need to be recognized
-          this.subscriptions.updateSubscribedSlave(oldSlave, slave)
+      let tAndPs = this.generateDiscoveryEntities(slave)
+      if (tAndPs.length == 0) {
+        let message = 'No entities found for discovery slave: ' + slave.getSlaveId()
+        log.log(LogLevelEnum.error, message)
+        reject(new Error(message))
+        return
+      }
+      if (oldSlave)
+        // delete after generateDiscoveryEntities, because entity deletions need to be recognized
+        this.subscriptions.updateSubscribedSlave(oldSlave, slave)
 
-        this.connector.getMqttClient((mqttClient) => {
-          log.log(LogLevelEnum.notice, 'Publish Discovery: length:' + tAndPs.length)
-          tAndPs.forEach((tAndP) => {
-            mqttClient.publish(tAndP.topic, tAndP.payload, retain)
-            if (newSlave) this.subscriptions.resubscribe(mqttClient)
-          })
+      this.connector.getMqttClient((mqttClient) => {
+        log.log(LogLevelEnum.notice, 'Publish Discovery: length:' + tAndPs.length)
+        tAndPs.forEach((tAndP) => {
+          mqttClient.publish(tAndP.topic, tAndP.payload, retain)
+          if (newSlave) this.subscriptions.resubscribe(mqttClient)
         })
-        
-        // Wait for discovery
-        setTimeout(() => {
-          this.subscriptions
-            .publishState(slave)
-            .then(() => {
-              resolve()
-            })
-            .catch(reject)
-        }, 500)
+      })
+
+      // Wait for discovery
+      setTimeout(() => {
+        this.subscriptions
+          .publishState(slave)
+          .then(() => {
+            resolve()
+          })
+          .catch(reject)
+      }, 500)
     })
   }
 

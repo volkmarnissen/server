@@ -86,30 +86,30 @@ let selectTestWritable: ImodbusEntity = {
   converterParameters: { optionModbusValues: [1, 2, 3] },
 }
 
-interface IfakeDiscovery{
-  conn:MqttConnector
-  mdl:MqttPoller
-  msub:MqttSubscriptions
-  md:MqttDiscover
-  fake:FakeMqtt
+interface IfakeDiscovery {
+  conn: MqttConnector
+  mdl: MqttPoller
+  msub: MqttSubscriptions
+  md: MqttDiscover
+  fake: FakeMqtt
 }
 
-function getFakeDiscovery():IfakeDiscovery{
-   let conn = new MqttConnector()
-   let msub = new MqttSubscriptions(conn)
-   let rc:IfakeDiscovery =  {
-    conn : conn,
-    mdl : new MqttPoller(conn),
-    msub :  msub,
-    md : new MqttDiscover(conn, msub),
-    fake : new FakeMqtt(msub, FakeModes.Poll),
+function getFakeDiscovery(): IfakeDiscovery {
+  let conn = new MqttConnector()
+  let msub = new MqttSubscriptions(conn)
+  let rc: IfakeDiscovery = {
+    conn: conn,
+    mdl: new MqttPoller(conn),
+    msub: msub,
+    md: new MqttDiscover(conn, msub),
+    fake: new FakeMqtt(msub, FakeModes.Poll),
   }
   rc.conn.getMqttClient = function (onConnectCallback: (connection: MqttClient) => void) {
-      onConnectCallback(rc.fake as any as MqttClient)
+    onConnectCallback(rc.fake as any as MqttClient)
   }
   return rc
 }
-let fakeDiscovery:IfakeDiscovery
+let fakeDiscovery: IfakeDiscovery
 
 function copySubscribedSlaves(toA: Slave[], fromA: Slave[]) {
   fromA.forEach((s) => {
@@ -135,7 +135,6 @@ beforeAll((done) => {
   })
 })
 
-
 test('poll', (done) => {
   let fd = getFakeDiscovery()
   copySubscribedSlaves(fd.msub['subscribedSlaves'], fakeDiscovery.msub['subscribedSlaves'])
@@ -157,7 +156,7 @@ test('poll', (done) => {
     fd.mdl!['poll'](Bus.getBus(0)!).then(() => {
       expect(fd.fake.isAsExpected).toBeTruthy()
       let c = fd.mdl!['slavePollInfo'].values().next()
-      fd.mdl!['slavePollInfo'].set( 1 , {count:10000, processing:false})
+      fd.mdl!['slavePollInfo'].set(1, { count: 10000, processing: false })
       expect(c.value!.count).toBeGreaterThan(1)
       //call discovery explicitely
       // Expectation: It should not publish anything, because this has happened already
@@ -173,30 +172,29 @@ test('poll', (done) => {
   })
 })
 
-
 test('poll with processing=true for all slaves', (done) => {
   let fd = getFakeDiscovery()
   initBussesForTest()
-  fd.mdl!['slavePollInfo'].set(1,{count:0, processing:true })
-  fd.mdl!['slavePollInfo'].set(2,{count:0, processing:true })
-  fd.mdl!['slavePollInfo'].set(3,{count:0, processing:true })
+  fd.mdl!['slavePollInfo'].set(1, { count: 0, processing: true })
+  fd.mdl!['slavePollInfo'].set(2, { count: 0, processing: true })
+  fd.mdl!['slavePollInfo'].set(3, { count: 0, processing: true })
   fd.fake.isAsExpected = false
   fd.mdl!['poll']!(Bus.getBus(0)!).then(() => {
-    expect( fd.mdl!['slavePollInfo'].get(1)!.processing ) .toBeTruthy()
+    expect(fd.mdl!['slavePollInfo'].get(1)!.processing).toBeTruthy()
     expect(fd.fake.isAsExpected).toBeFalsy()
     done()
-    })
   })
+})
 
-  test('poll with processing= true for first Slave', (done) => {
+test('poll with processing= true for first Slave', (done) => {
   let fd = getFakeDiscovery()
-  fd.mdl!['slavePollInfo'].set(1,{count:0, processing:true })
-  fd.mdl!['slavePollInfo'].set(2,{count:0, processing:false })
-  fd.mdl!['slavePollInfo'].set(3,{count:0, processing:false })
+  fd.mdl!['slavePollInfo'].set(1, { count: 0, processing: true })
+  fd.mdl!['slavePollInfo'].set(2, { count: 0, processing: false })
+  fd.mdl!['slavePollInfo'].set(3, { count: 0, processing: false })
   fd.fake.isAsExpected = false
   fd.mdl!['poll']!(Bus.getBus(0)!).then(() => {
-    expect( fd.mdl!['slavePollInfo'].get(1)!.processing ) .toBeTruthy()
+    expect(fd.mdl!['slavePollInfo'].get(1)!.processing).toBeTruthy()
     expect(fd.fake.isAsExpected).toBeTruthy()
     done()
-    })
   })
+})

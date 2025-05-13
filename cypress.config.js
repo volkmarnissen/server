@@ -3,14 +3,14 @@ const EventEmitter = require('node:events')
 
 const MqttHelper = require('./cypress/functions/mqtt')
 const waitOn = require('wait-on')
-const net = require('net');
+const net = require('net')
 const spawn = require('child_process').spawn
 const execFileSync = require('child_process').execFileSync
 const path = require('path')
 const fs = require('fs')
 const { exec } = require('child_process')
-const { clearTimeout } = require('node:timers');
-const { execSync } = require('node:child_process');
+const { clearTimeout } = require('node:timers')
+const { execSync } = require('node:child_process')
 
 const stopServiceTimeout = 20000
 var initControllers = []
@@ -49,55 +49,56 @@ let stoppedTimer = {}
 let tmpdirs = []
 let onAllProcessesStopped = new EventEmitter()
 
-
-function startProcesses( args, ports) {
+function startProcesses(args, ports) {
   return new Promise((resolve, reject) => {
-        args.forEach((arg) => {
-          logStartup('starting ' + arg)
-          let child_process = spawn('/bin/sh', arg.split(' '), { detached: true , encoding:'utf-8'})
-          child_process.unref()
-          child_process.stdout.on('data',function(data) {
-                 data.toString()
-                .split('\n')
-                .forEach((line) => {
-                  if (line.startsWith('TMPDIR=')) {
-                    let t = tmpdirs.find((tc) => tc.args == this.args)
-                    let tmp = line.substring('TMPDIR='.length).trim()
+    args.forEach((arg) => {
+      logStartup('starting ' + arg)
+      let child_process = spawn('/bin/sh', arg.split(' '), { detached: true, encoding: 'utf-8' })
+      child_process.unref()
+      child_process.stdout.on('data', function (data) {
+        data
+          .toString()
+          .split('\n')
+          .forEach((line) => {
+            if (line.startsWith('TMPDIR=')) {
+              let t = tmpdirs.find((tc) => tc.args == this.args)
+              let tmp = line.substring('TMPDIR='.length).trim()
 
-                    if (t) t.tmpdir = tmp
-                    else tmpdirs.push({ args: arg, tmpdir: tmp })
-                  }
-                })
-
-                logStartup( data.toString());
+              if (t) t.tmpdir = tmp
+              else tmpdirs.push({ args: arg, tmpdir: tmp })
+            }
           })
-          child_process.stderr.on('data', function(data) {logStartup(data.toString());})
-        })
-          waitForPorts(args,  ports)
-            .then(() => {
-              logStartup('Processes started')
-              resolve('OK')
-            })
-            .catch(reject)
+
+        logStartup(data.toString())
+      })
+      child_process.stderr.on('data', function (data) {
+        logStartup(data.toString())
+      })
+    })
+    waitForPorts(args, ports)
+      .then(() => {
+        logStartup('Processes started')
+        resolve('OK')
+      })
+      .catch(reject)
   })
 }
 
+function checkListeningPort(port) {
+  var server = net.createServer()
 
-function checkListeningPort(port ){
-var server = net.createServer();
+  server.once('error', function (err) {
+    if (err.code === 'EADDRINUSE') {
+      console.log('Port ' + port + ' is still listening')
+    }
+  })
 
-server.once('error', function(err) {
-  if (err.code === 'EADDRINUSE') {
-    console.log("Port " + port + " is still listening")
-  }
-});
+  server.once('listening', function () {
+    // close the server if listening doesn't fail
+    server.close()
+  })
 
-server.once('listening', function() {
-  // close the server if listening doesn't fail
-  server.close();
-});
-
-server.listen(port);
+  server.listen(port)
 }
 
 function waitForPorts(args, ports) {
@@ -125,20 +126,18 @@ function waitForPorts(args, ports) {
 function stopServices() {
   return new Promise((resolve, reject) => {
     exec('cypress/servers/killTestServers', (error, stdout, stderr) => {
-    if (error) {
-      console.error(`exec error: ${error}`);
-      reject()
-    return;
-    }
-    console.log( "stopServices: success ")
-    tmpdirs = []
-    if( stdout.length )
-      console.log(`stdout: ${stdout}`);
+      if (error) {
+        console.error(`exec error: ${error}`)
+        reject()
+        return
+      }
+      console.log('stopServices: success ')
+      tmpdirs = []
+      if (stdout.length) console.log(`stdout: ${stdout}`)
 
-    if( stderr.length )
-      console.error(`stderr: ${stderr}`);
-    resolve('OK')
-  });
+      if (stderr.length) console.error(`stderr: ${stderr}`)
+      resolve('OK')
+    })
   })
 }
 
@@ -219,7 +218,7 @@ module.exports = defineConfig({
         getTempDir(args) {
           return new Promise((resolve, reject) => {
             let tmp = tmpdirs.find((t) => t.args.indexOf(args) >= 0)
-            console.log(" args: " + args + " " + JSON.stringify(tmpdirs) + (tmp? "found": "not found"))
+            console.log(' args: ' + args + ' ' + JSON.stringify(tmpdirs) + (tmp ? 'found' : 'not found'))
             if (!tmp) reject(new Error('getTempDir: args not found  ' + args + ' ' + tmpdirs.length))
             else if (tmp.tmpdir) resolve(tmp.tmpdir)
             else reject(new Error('getTempDir: tmpdir not defined  ' + command))

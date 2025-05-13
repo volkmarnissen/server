@@ -10,9 +10,9 @@ import { MqttConnector } from './mqttconnector'
 const debug = Debug('mqttpoller')
 const defaultPollCount = 50 // 5 seconds
 const log = new Logger('mqttpoller')
-interface IslavePollInfo{
-  count:number, 
-  processing:boolean
+interface IslavePollInfo {
+  count: number
+  processing: boolean
 }
 export class MqttPoller {
   interval: NodeJS.Timeout | undefined
@@ -35,7 +35,8 @@ export class MqttPoller {
           let sl = new Slave(bus.getId(), slave, Config.getConfiguration().mqttbasetopic)
           let pc: IslavePollInfo | undefined = this.slavePollInfo.get(sl.getSlaveId())
 
-          if (pc == undefined || pc.count > (slave.pollInterval != undefined ? slave.pollInterval / 100 : defaultPollCount)) pc ={count:0, processing:false} 
+          if (pc == undefined || pc.count > (slave.pollInterval != undefined ? slave.pollInterval / 100 : defaultPollCount))
+            pc = { count: 0, processing: false }
           if (pc.count == 0 && !pc.processing) {
             let s = new Slave(bus.getId(), slave, Config.getConfiguration().mqttbasetopic)
             if (slave.specification) {
@@ -49,7 +50,7 @@ export class MqttPoller {
                 )
             }
           }
-          this.slavePollInfo.set(sl.getSlaveId(), { count:++pc.count, processing: pc.processing})
+          this.slavePollInfo.set(sl.getSlaveId(), { count: ++pc.count, processing: pc.processing })
         }
       })
       if (needPolls.length > 0) {
@@ -72,19 +73,16 @@ export class MqttPoller {
                     tAndP.forEach((tAndP) => {
                       mqttClient.publish(tAndP.topic, tAndP.payload)
                     })
-                    needPolls.forEach((v)=>{
-                      let si =this.slavePollInfo.get(v.slave.getSlaveId())
-                      if( si)
-                        si.processing = false
+                    needPolls.forEach((v) => {
+                      let si = this.slavePollInfo.get(v.slave.getSlaveId())
+                      if (si) si.processing = false
                     })
                     resolve()
                   })
               })
           }
         })
-      }
-      else
-        resolve()
+      } else resolve()
     })
   }
 

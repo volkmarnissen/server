@@ -36,6 +36,10 @@ export class ModbusTcpRtuBridge {
       )
     })
   }
+  static getDefaultPort(): number {
+    return 502
+  }
+
   queueOneRegister(registerType: ModbusRegisterType, addr: number, write: number | undefined, unitID: number): Promise<number> {
     let w: number[] | undefined = undefined
     if (write != undefined) w = [write]
@@ -115,7 +119,7 @@ export class ModbusTcpRtuBridge {
       this.queueOneBoolRegister.bind(this, ModbusRegisterType.Coils)(addr, undefined, unit)
     },
   }
-  async startServer(port: number): Promise<ServerTCP> {
+  async startServer(port: number = ModbusTcpRtuBridge.getDefaultPort()): Promise<ServerTCP> {
     let rc = new Promise<ServerTCP>((resolve, reject) => {
       this.serverTCP = new ServerTCP(this.vector, {
         host: '0.0.0.0',

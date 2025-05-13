@@ -192,7 +192,13 @@ export class ConfigBus {
     let o = structuredClone(slave)
     for (var prop in o) {
       if (Object.prototype.hasOwnProperty.call(o, prop)) {
-        let deletables: string[] = ['specification', 'durationOfLongestModbusCall', 'triggerPollTopic', 'modbusErrorStatistic', 'modbusErrorsForSlave']
+        let deletables: string[] = [
+          'specification',
+          'durationOfLongestModbusCall',
+          'triggerPollTopic',
+          'modbusErrorStatistic',
+          'modbusErrorsForSlave',
+        ]
         if (deletables.includes(prop)) delete (o as any)[prop]
       }
     }
