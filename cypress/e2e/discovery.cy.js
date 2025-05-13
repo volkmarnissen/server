@@ -6,6 +6,8 @@ let mqttUnAuthorizedPort = 3003
 function runBusses(willLog) {
   let logSetting = { log: willLog }
   cy.log('Configure Bus')
+  cy.task('log','Configure Bus')
+
   cy.url().should('contain', prefix + '/busses')
   cy.get('[role="tab"] ', logSetting).eq(1, logSetting).click(logSetting)
   cy.get('[formcontrolname="host"]', logSetting).type(backspaces(10) + 'localhost', { force: true, log: willLog })
@@ -14,9 +16,9 @@ function runBusses(willLog) {
     .eq(0, logSetting)
     .type(backspaces(10) + '500', { force: true, log: willLog })
   cy.get('[formcontrolname="host"]', logSetting).trigger('change', logSetting)
-  cy.get('div.card-header-buttons button:first', logSetting).eq(0).click(logSetting)
+  cy.get('div.card-header-buttons button:first', logSetting).eq(0).click({ force: true, log: willLog })
   // List slaves second header button on first card
-  cy.get('div.card-header-buttons:first button').eq(1, logSetting).click(logSetting)
+  cy.get('div.card-header-buttons:first button').eq(1, logSetting).click({ force: true, log: willLog })
 }
 
 function runSlaves(willLog) {
@@ -96,6 +98,7 @@ function saveSpecification(willLog) {
   let logSetting = { log: willLog }
   
   cy.log('Save Specification ')
+  cy.task('log','Save Specification ' )
   cy.get('div.saveCancel:first button', logSetting).eq(0, logSetting).should('not.is.disabled')
   cy.get('div.saveCancel:first button', logSetting).eq(0, logSetting).last().click({ force: true, log: willLog })
   // cy.wait(1000)
@@ -106,6 +109,11 @@ function saveSpecification(willLog) {
 function addSlave(willLog) {
   let logSetting = { log: willLog }
   cy.log('Add Slave ')
+  cy.task('log','Add Slave' )
+  cy.url().then((url)=>{
+  cy.task('log',url )
+
+  })
   cy.url().should('contain', prefix + '/slaves')
   cy.get('[formcontrolname="detectSpec"]', logSetting).click(logSetting)
   cy.get('[formcontrolname="slaveId"]', logSetting).type('3{enter}', { force: true, log: willLog })
@@ -145,7 +153,7 @@ function backspaces(num) {
   for (let a = 0; a < num; a++) rc = rc + '{backspace}'
   return rc
 }
-function e2eReset(log){
+function e2eReset(log){ 
   cy.task("e2eServicesStop", log)
   cy.task("e2eServicesStart", log)
 
@@ -153,12 +161,12 @@ function e2eReset(log){
 let logSetting = { log: true }
 
 describe('MQTT Discovery Tests', () => {
-  before(() => {
+  // before(() => {
     // wait for all tests then 
     //cy.task('e2eInitServicesStop', logSetting)
     //cy.task('e2eInitServicesStart', logSetting)
 
-  })
+  // })
   after(() => {
     // wait for all tests then 
     //cy.task('e2eInitServicesStop', logSetting)
