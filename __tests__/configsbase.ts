@@ -6,6 +6,8 @@ import { Config } from '../src/config'
 import { ImqttClient } from '@modbus2mqtt/server.shared'
 import { ConfigBus } from '../src/configbus'
 import { Bus } from '../src/bus'
+import { MqttSubscriptions } from '../src/mqttsubscriptions'
+import { ConfigSpecification } from '@modbus2mqtt/specification'
 
 export const yamlDir = '__tests__/yaml-dir'
 export const backendTCPDir = '__tests__/backendTCP'
@@ -26,7 +28,7 @@ export class FakeMqtt {
     password: 'modbus2mqtt',
   }
   constructor(
-    protected md: MqttDiscover,
+    protected md: MqttSubscriptions,
     public fakeMode: FakeModes
   ) {}
   public subscribe(topic: string | string[]): void {
@@ -62,6 +64,7 @@ export class FakeMqtt {
 }
 
 export function initBussesForTest() {
+  new ConfigSpecification().readYaml()
   ConfigBus.readBusses()
   let ibs = ConfigBus.getBussesProperties()
   if (!Bus['busses']) Bus['busses'] = []

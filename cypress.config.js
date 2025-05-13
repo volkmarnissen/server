@@ -3,12 +3,14 @@ const EventEmitter = require('node:events')
 
 const MqttHelper = require('./cypress/functions/mqtt')
 const waitOn = require('wait-on')
+const net = require('net')
 const spawn = require('child_process').spawn
 const execFileSync = require('child_process').execFileSync
 const path = require('path')
 const fs = require('fs')
 const { exec } = require('child_process')
 const { clearTimeout } = require('node:timers')
+const { execSync } = require('node:child_process')
 
 const stopServiceTimeout = 20000
 var initControllers = []
@@ -32,11 +34,13 @@ function logServer(msg) {
 }
 function stopChildProcess(c) {
   logStartup('stopChildProcess ' + c.command + ' ' + c.child_process.pid + ' ' + (c.killpid ? c.killpid : 'no killpid'))
+  console.log('stopChildProcess ' + c.command + ' ' + c.child_process.pid + ' ' + (c.killpid ? c.killpid : 'no killpid'))
   c.child_process.on('SIGINT', (err) => {
     logStartup('Aborted: ' + JSON.stringify(err))
   })
   if (c.killpid > 0 && c.child_process.pid != c.killpid) {
     logStartup('Killing ' + c.killpid)
+    console.log('killing ' + c.command + ' ' + c.child_process.pid + ' ' + (c.killpid ? c.killpid : 'no killpid'))
     process.kill(c.killpid, 'SIGINT')
   }
   c.child_process.kill('SIGINT')
@@ -44,88 +48,61 @@ function stopChildProcess(c) {
 let stoppedTimer = {}
 let tmpdirs = []
 let onAllProcessesStopped = new EventEmitter()
-function startProcesses(command, args, ports, controllerArray) {
+
+function startProcesses(args, ports) {
   return new Promise((resolve, reject) => {
-    if (controllerArray.length == 0) {
-      let pathes = process.env.PATH.split(path.delimiter)
-      pathes.unshift('')
-      let execFile = pathes.find((dir) => fs.existsSync(path.join(dir, command)))
-      if (execFile) {
-        args.forEach((arg) => {
-          let cmd = command + ' ' + arg
-          logStartup('starting ' + cmd)
-          let child_process = spawn(path.join(execFile, command), arg.split(' '), { detached: true })
-          child_process.unref()
-          const cmdObj = {
-            command: cmd,
-            prefix: arg,
-            child_process: child_process,
-            onData: function (data) {
-              logServer(this.prefix + ':' + data)
+    args.forEach((arg) => {
+      logStartup('starting ' + arg)
+      let child_process = spawn('/bin/sh', arg.split(' '), { detached: true, encoding: 'utf-8' })
+      child_process.unref()
+      child_process.stdout.on('data', function (data) {
+        data
+          .toString()
+          .split('\n')
+          .forEach((line) => {
+            if (line.startsWith('TMPDIR=')) {
+              let t = tmpdirs.find((tc) => tc.args == this.args)
+              let tmp = line.substring('TMPDIR='.length).trim()
 
-              data
-                .toString()
-                .split('\n')
-                .forEach((line) => {
-                  if (line.startsWith('TMPDIR=')) {
-                    let t = tmpdirs.find((tc) => tc.command == this.command)
-                    let tmp = line.substring('TMPDIR='.length).trim()
+              if (t) t.tmpdir = tmp
+              else tmpdirs.push({ args: arg, tmpdir: tmp })
+            }
+          })
 
-                    if (t) t.tmpdir = tmp
-                    else tmpdirs.push({ command: this.command, tmpdir: tmp })
-                  }
-                  if (line.startsWith('KILLPID=')) {
-                    cmdObj.killpid = Number.parseInt(line.substring('KILLPID='.length))
-                  }
-                })
-            },
-            onClose: function (controllerArray, code) {
-              logStartup(`${cmd} exited with code ${code}`)
-              const findCommand = (c) => c.command == cmd
-              let l = controllerArray.length
-              if (controllerArray && controllerArray.length) {
-                let idx = controllerArray.findIndex(findCommand)
-                if (idx >= 0) {
-                  controllerArray.splice(idx, 1)
-                  if (controllerArray.length == 0) {
-                    logStartup('All Processes stopped ' + stoppedTimer.timer)
-                    onAllProcessesStopped.emit('stopped')
-                  } else {
-                    controllerArray.forEach((c) => logStartup('Living ' + c.command))
-                  }
-                } else logStartup('Command not found ' + cmd)
-              }
-              logStartup('onClose Living processes ' + controllerArray.length)
-            },
-          }
-          controllerArray.push(cmdObj)
-          child_process.stdout.on('data', cmdObj.onData.bind(cmdObj))
-          child_process.stderr.on('data', cmdObj.onData.bind(cmdObj))
-          child_process.on('close', cmdObj.onClose.bind(cmdObj, controllerArray))
-        })
-        if (args.length == controllerArray.length) {
-          waitForPorts(args, controllerArray, ports)
-            .then(() => {
-              logStartup('Processes started')
-              resolve('OK')
-            })
-            .catch(reject)
-        }
-      }
-    } else {
-      reject(new Error('There are running processes'))
-    }
+        logStartup(data.toString())
+      })
+      child_process.stderr.on('data', function (data) {
+        logStartup(data.toString())
+      })
+    })
+    waitForPorts(args, ports)
+      .then(() => {
+        logStartup('Processes started')
+        resolve('OK')
+      })
+      .catch(reject)
   })
 }
-function waitForPorts(args, controllerArray, ports) {
-  return new Promise((resolve, reject) => {
-    if (!args || !controllerArray || args.length != controllerArray.length) {
-      logStartup('Not all Processes started')
-      reject('Processes not started correctly')
-      return
-    }
-    logStartup('opts')
 
+function checkListeningPort(port) {
+  var server = net.createServer()
+
+  server.once('error', function (err) {
+    if (err.code === 'EADDRINUSE') {
+      console.log('Port ' + port + ' is still listening')
+    }
+  })
+
+  server.once('listening', function () {
+    // close the server if listening doesn't fail
+    server.close()
+  })
+
+  server.listen(port)
+}
+
+function waitForPorts(args, ports) {
+  return new Promise((resolve, reject) => {
     let opts = {
       resources: [],
       timeout: 20000,
@@ -140,77 +117,27 @@ function waitForPorts(args, controllerArray, ports) {
       .then(() => {
         logStartup('WaitThen')
         let rc = []
-        logStartup('waitSuccess ' + args[0])
+        logStartup('waitSuccess ' + ' '.concat(args))
         resolve('Process started')
       })
       .catch(reject)
   })
 }
-function stopServices(controllerArray) {
+function stopServices() {
   return new Promise((resolve, reject) => {
-    if (controllerArray.length == 0) resolve('OK')
-    else {
-      let interv = setInterval(() => {
-        controllerArray.forEach((c, idx) => {
-          // Sometimes the processes are dead,
-          // but there is no close event in this case
-          // delete the controllerArray entry
-          let killpid = c.killpid
-          if (!c.killpid) killpid = c.child_process.pid
-          logStartup('pid ' + killpid)
-          if (killpid && !pidIsRunning(killpid)) {
-            controllerArray.splice(idx, 1)
-          }
-        })
-        if (controllerArray.length == 0) {
-          logStartup('All processes stopped by process kill')
-          clearInterval(interv)
-          interv = 0
-          onAllProcessesStopped.emit('stopped')
-        } else logStartup('process kill has still ' + controllerArray.length)
-      }, 500)
-      stoppedTimer.timer = setTimeout(() => {
-        logStartup('Stopping Services timeout')
-        reject('Stopping processes timed out')
-        if (interv) clearInterval(interv)
-      }, stopServiceTimeout)
-      onAllProcessesStopped.on('stopped', () => {
-        if (stoppedTimer.timer != undefined) clearTimeout(stoppedTimer.timer)
-        stoppedTimer.timer = undefined
-        if (interv) clearInterval(interv)
-        interv = 0
-        resolve('OK')
-      })
-      controllerArray.forEach(stopChildProcess)
-    }
-  })
-}
-
-function restartServers(command, args, ports, controllerArray) {
-  return new Promise((resolve, reject) => {
-    logStartup('RestartServers')
-    let pathes = process.env.PATH.split(path.delimiter)
-    pathes.unshift('')
-    let execFile = pathes.find((dir) => fs.existsSync(path.join(dir, command)))
-    if (execFile) {
-      if (controllerArray.length) {
-        stoppedTimer.timer = setTimeout(() => {
-          logStartup('Stopping timeout ' + args[0] + ' ' + stoppedTimer.timer)
-          reject('Stopping processes timed out ')
-        }, stopServiceTimeout)
-        controllerArray.forEach(stopChildProcess)
+    exec('cypress/servers/killTestServers', (error, stdout, stderr) => {
+      if (error) {
+        console.error(`exec error: ${error}`)
+        reject()
+        return
       }
-      logStartup('Restart:StartProcess ' + stoppedTimer.timer)
-      startProcesses(execFile, command, args, controllerArray, stoppedTimer, ports, () => {
-        logStartup('RestartServer resolvedXX')
-        resolve('OK')
-      })
-        .then(() => {
-          logStartup('RestartServers resolved')
-          resolve('OK')
-        })
-        .catch(reject)
-    } else reject('exec file for ' + command + ' not found')
+      console.log('stopServices: success ')
+      tmpdirs = []
+      if (stdout.length) console.log(`stdout: ${stdout}`)
+
+      if (stderr.length) console.error(`stderr: ${stderr}`)
+      resolve('OK')
+    })
   })
 }
 
@@ -264,7 +191,6 @@ module.exports = defineConfig({
         e2eServicesStart() {
           logStartup('e2eServicesStart')
           return startProcesses(
-            'sh',
             [
               'cypress/servers/mosquitto',
               'cypress/servers/modbus2mqtt ' + config.env.modbus2mqttE2eHttpPort,
@@ -275,31 +201,12 @@ module.exports = defineConfig({
               config.env.mosquittoNoAuthMqttPort,
               config.env.modbus2mqttAddonHttpPort,
               config.env.modbus2mqttE2eHttpPort,
-            ],
-            resetControllers
+            ]
           )
         },
         e2eServicesStop() {
-          logStartup('e2eStop number of controllers: ' + resetControllers.length)
-          return stopServices(resetControllers)
-        },
-        e2eServicesStart() {
-          logStartup('e2eServicesStart')
-          return startProcesses(
-            'sh',
-            [
-              'cypress/servers/mosquitto',
-              'cypress/servers/modbus2mqtt ' + config.env.modbus2mqttE2eHttpPort,
-              'cypress/servers/modbus2mqtt ' + config.env.modbus2mqttAddonHttpPort + ' localhost:' + config.env.nginxAddonHttpPort,
-            ],
-            [
-              config.env.mosquittoAuthMqttPort,
-              config.env.mosquittoNoAuthMqttPort,
-              config.env.modbus2mqttAddonHttpPort,
-              config.env.modbus2mqttE2eHttpPort,
-            ],
-            resetControllers
-          )
+          logStartup('e2eServicesStop')
+          return stopServices()
         },
         testWait() {
           return new Promise((resolve) => {
@@ -308,12 +215,11 @@ module.exports = defineConfig({
             }, 30000)
           })
         },
-        getTempDir(command) {
+        getTempDir(args) {
           return new Promise((resolve, reject) => {
-            let parts = command.split(':')
-
-            let tmp = tmpdirs.find((t) => t.command.indexOf(command) >= 0)
-            if (!tmp) reject(new Error('getTempDir: command not found  ' + command + ' ' + tmpdirs.length))
+            let tmp = tmpdirs.find((t) => t.args.indexOf(args) >= 0)
+            console.log(' args: ' + args + ' ' + JSON.stringify(tmpdirs) + (tmp ? 'found' : 'not found'))
+            if (!tmp) reject(new Error('getTempDir: args not found  ' + args + ' ' + tmpdirs.length))
             else if (tmp.tmpdir) resolve(tmp.tmpdir)
             else reject(new Error('getTempDir: tmpdir not defined  ' + command))
           })

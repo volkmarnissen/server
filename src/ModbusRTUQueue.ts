@@ -14,7 +14,7 @@ export enum ModbusErrorActions {
 export interface IQueueEntry {
   slaveId: number
   address: ImodbusAddress
-  onResolve: (queueEntry:IQueueEntry, result?: number[]) => void
+  onResolve: (queueEntry: IQueueEntry, result?: number[]) => void
   onError: (queueEntry: IQueueEntry, e: any) => void
   options: IQueueOptions
   errorState?: ModbusErrorStates
@@ -24,9 +24,9 @@ export interface IQueueEntry {
 export interface IQueueOptions {
   useCache?: boolean
   task: ModbusTasks
-  errorHandling:{
-    split?:boolean,
-    retry?:boolean
+  errorHandling: {
+    split?: boolean
+    retry?: boolean
   }
 }
 export class ModbusRTUQueue {
@@ -36,13 +36,16 @@ export class ModbusRTUQueue {
     this.list = []
   }
   enqueueEntry(entry: IQueueEntry) {
+    //TODO find similar entry in queue
+    // if found concat methods to on resolve and onError
+    // else push this entry
     this.list.push(entry)
     this.eventEmitter.emit(EventNewEntry)
   }
   enqueue(
     slaveId: number,
     address: ImodbusAddress,
-    onResolve: (queueEntry:IQueueEntry,result?: number[]) => void,
+    onResolve: (queueEntry: IQueueEntry, result?: number[]) => void,
     onError: (queueEntry: IQueueEntry, e: any) => void,
     options: IQueueOptions
   ) {

@@ -14,6 +14,7 @@ import { MqttDiscover } from '../src/mqttdiscover'
 import { ConfigBus } from '../src/configbus'
 import { Observable, Subject } from 'rxjs'
 import { initBussesForTest } from './configsbase'
+import { MqttSubscriptions } from '../src/mqttsubscriptions'
 let mockReject = false
 let debug = Debug('testhttpserver')
 const mqttService = {
@@ -73,7 +74,7 @@ beforeAll(() => {
   })
 })
 
-class MockMqttDiscover {
+class MockMqttSubsctription {
   slave: Slave = new Slave(0, Bus.getBus(0)!.getSlaveBySlaveId(1)!, Config.getConfiguration().mqttbasetopic)
   getSlave(url: string): Slave | undefined {
     return this.slave
@@ -106,9 +107,9 @@ class MockMqttDiscover {
     })
   }
 }
-function prepareMqttDiscover(): MockMqttDiscover {
-  let mockDiscover = new MockMqttDiscover()
-  MqttDiscover['instance'] = mockDiscover as any as MqttDiscover
+function prepareMqttDiscover(): MockMqttSubsctription {
+  let mockDiscover = new MockMqttSubsctription()
+  MqttSubscriptions['instance'] = mockDiscover as any as MqttSubscriptions
   return mockDiscover
 }
 it('GET state topic', (done) => {
@@ -129,7 +130,11 @@ it('GET state topic', (done) => {
 
 test('GET command Entity topic', (done) => {
   let mockDiscover = prepareMqttDiscover()
-  let url = '/' + mockDiscover.slave.getEntityCommandTopic(mockDiscover.slave.getSpecification()!.entities[2])!.commandTopic
+  ConfigBus.addSpecification(mockDiscover.slave['slave'])
+  let spec = mockDiscover.slave.getSpecification()
+  let en: any = spec!.entities[2] as any
+  en.converter = { name: 'doesntmatter' }
+  let url = '/' + mockDiscover.slave.getEntityCommandTopic(spec!.entities[2] as any)!.commandTopic
   url = url + '20.2'
   supertest(httpServer['app'])
     .get(url)

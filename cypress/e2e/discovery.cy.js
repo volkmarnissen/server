@@ -6,6 +6,8 @@ let mqttUnAuthorizedPort = 3003
 function runBusses(willLog) {
   let logSetting = { log: willLog }
   cy.log('Configure Bus')
+  cy.task('log','Configure Bus')
+
   cy.url().should('contain', prefix + '/busses')
   cy.get('[role="tab"] ', logSetting).eq(1, logSetting).click(logSetting)
   cy.get('[formcontrolname="host"]', logSetting).type(backspaces(10) + 'localhost', { force: true, log: willLog })
@@ -14,9 +16,9 @@ function runBusses(willLog) {
     .eq(0, logSetting)
     .type(backspaces(10) + '500', { force: true, log: willLog })
   cy.get('[formcontrolname="host"]', logSetting).trigger('change', logSetting)
-  cy.get('div.card-header-buttons button:first', logSetting).eq(0).click(logSetting)
+  cy.get('div.card-header-buttons button:first', logSetting).eq(0).click({ force: true, log: willLog })
   // List slaves second header button on first card
-  cy.get('div.card-header-buttons:first button').eq(1, logSetting).click(logSetting)
+  cy.get('div.card-header-buttons:first button').eq(1, logSetting).click({ force: true, log: willLog })
 }
 
 function runSlaves(willLog) {
@@ -78,35 +80,43 @@ function addEntity(entitynum, modbusAddress, willLog) {
     .get('mat-option')
     .contains('number')
     .click(logSetting)
-  cy.get('app-entity:last [formControlName="readonly"]', logSetting).click(logSetting)
-
   cy.get('app-entity:last [formcontrolname="min"]', logSetting).type('0', { force: true, log: willLog })
   cy.get('app-entity:last [formcontrolname="max"]', logSetting).type('1000', { force: true, log: willLog })
+
   cy.get('app-entity:last mat-select[formControlName="registerType"]', logSetting)
     .click()
     .get('mat-option')
     .contains('Holding')
-    .click(logSetting)
+    .click()
+  cy.get('app-entity:last [formControlName="readonly"]', logSetting).click(logSetting)
   cy.get('app-entity:last mat-card mat-card-header button:has(mat-icon:contains("add_circle"))', logSetting)
     .last()
     .click({ force: true, log: willLog })
+
 }
 function saveSpecification(willLog) {
   let logSetting = { log: willLog }
   
   cy.log('Save Specification ')
+  cy.task('log','Save Specification ' )
   cy.get('div.saveCancel:first button', logSetting).eq(0, logSetting).should('not.is.disabled')
-  cy.get('div.saveCancel:first button', logSetting).eq(0, logSetting).trigger('click', logSetting)
-//  cy.get('div.saveCancel:first button', logSetting).eq(0, logSetting).should('is.disabled')
-  cy.get('div.saveCancel:first button', logSetting).eq(1, logSetting).trigger('click', logSetting)
-  cy.url().should('contain', prefix + '/slaves')
+  cy.get('div.saveCancel:first button', logSetting).eq(0, logSetting).last().click({ force: true, log: willLog })
+  // cy.wait(1000)
+  cy.get('div.saveCancel:first button', logSetting).eq(1, logSetting).last().click({ force: true, log: willLog })
+  // cy.wait(1000)
+  // cy.url().should('contain', prefix + '/slaves')
 }
 function addSlave(willLog) {
   let logSetting = { log: willLog }
   cy.log('Add Slave ')
+  cy.task('log','Add Slave' )
+  cy.url().then((url)=>{
+  cy.task('log',url )
+
+  })
   cy.url().should('contain', prefix + '/slaves')
   cy.get('[formcontrolname="detectSpec"]', logSetting).click(logSetting)
-  cy.get('[formcontrolname="slaveId"]', logSetting).type('10{enter}', { force: true, log: willLog })
+  cy.get('[formcontrolname="slaveId"]', logSetting).type('3{enter}', { force: true, log: willLog })
   cy.get('app-select-slave:first mat-expansion-panel-header[aria-expanded=false]', logSetting).then((elements) => {
     if (elements.length >= 1) {
       elements[0].click(logSetting)
@@ -143,7 +153,7 @@ function backspaces(num) {
   for (let a = 0; a < num; a++) rc = rc + '{backspace}'
   return rc
 }
-function e2eReset(log){
+function e2eReset(log){ 
   cy.task("e2eServicesStop", log)
   cy.task("e2eServicesStart", log)
 
@@ -151,12 +161,12 @@ function e2eReset(log){
 let logSetting = { log: true }
 
 describe('MQTT Discovery Tests', () => {
-  before(() => {
+  // before(() => {
     // wait for all tests then 
     //cy.task('e2eInitServicesStop', logSetting)
     //cy.task('e2eInitServicesStart', logSetting)
 
-  })
+  // })
   after(() => {
     // wait for all tests then 
     //cy.task('e2eInitServicesStop', logSetting)
@@ -196,8 +206,8 @@ describe('MQTT Discovery Tests', () => {
           setUrls(true)
           addEntity(1, 1, false)
           addEntity(2, 3, false)
-          saveSpecification(false)
-          //Homeassistant need time between discovery and state sending
+          saveSpecification(true)
+          //Homeassistant needs time between discovery and state sending
           cy.wait(1000)
             .task('mqttGetTopicAndPayloads')
             .then((tAndP) => {

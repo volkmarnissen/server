@@ -31,5 +31,4 @@ else
   node dist/modbus2mqtt.js -y $TMPDIR -s $TMPDIR &
   MPID=$!  
 fi
-echo KILLPID=$$
 wait $MPID

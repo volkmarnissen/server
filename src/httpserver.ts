@@ -31,6 +31,8 @@ import { HttpServerBase } from './httpServerBase'
 import { MqttDiscover } from './mqttdiscover'
 import { Writable } from 'stream'
 import { ConfigBus } from './configbus'
+import { MqttConnector } from './mqttconnector'
+import { MqttSubscriptions } from './mqttsubscriptions'
 const debug = Debug('httpserver')
 const log = new Logger('httpserver')
 // import cors from 'cors';
@@ -45,7 +47,7 @@ interface GetRequestWithParameter extends Request {
     slaveid: string
     spec: string
     filter: string
-    discover: string
+    deviceDetection: string
     entityid: string
     language: string
     originalFilename: string
@@ -77,14 +79,19 @@ export class HttpServer extends HttpServerBase {
       }
     super.returnResult(req, res, code, message, object)
   }
+  getLanguageFromQuery(req: GetRequestWithParameter, res: http.ServerResponse): string {
+    if (req.query.language == undefined) {
+      throw new Error('language was not passed')
+    } else return req.query.language
+  }
   handleSlaveTopics(req: Request, res: http.ServerResponse, next: any): any {
-    let md = MqttDiscover.getInstance()
+    let msub = MqttSubscriptions.getInstance()
     let url = req.url.substring(1)
-    let slave = md.getSlave(url)
+    let slave = msub.getSlave(url)
     if (slave) {
       if (req.method == 'GET' && url.endsWith('/state/')) {
         let md = new Modbus()
-        MqttDiscover.readModbus(slave)?.subscribe((spec) => {
+        MqttSubscriptions.readModbus(slave)?.subscribe((spec) => {
           let payload = slave.getStatePayload(spec.entities)
           this.returnResult(req, res, HttpErrorsEnum.OK, payload)
           return
@@ -97,7 +104,8 @@ export class HttpServer extends HttpServerBase {
           postLength = 11
         }
         if (idx == -1) return next() //should not happen
-        md.sendEntityCommandWithPublish(slave, url, url.substring(idx + postLength))
+        msub
+          .sendEntityCommandWithPublish(slave, url, url.substring(idx + postLength))
           .then(() => {
             this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify({ result: 'OK' }))
           })
@@ -105,7 +113,8 @@ export class HttpServer extends HttpServerBase {
             this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify({ result: e.message }))
           })
       } else if (req.method == 'POST' && url.indexOf('/set/') != -1) {
-        md.sendCommand(slave, JSON.stringify(req.body))
+        msub
+          .sendCommand(slave, JSON.stringify(req.body))
           .then(() => {
             this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify({ result: 'OK' }))
           })
@@ -201,7 +210,7 @@ export class HttpServer extends HttpServerBase {
         this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, JSON.stringify({ result: 'Invalid Parameter' }))
       }
     })
-    this.get(apiUri.specsForSlaveId, (req: GetRequestWithParameter, res: http.ServerResponse) => {
+    this.get(apiUri.specsDetection, (req: GetRequestWithParameter, res: http.ServerResponse) => {
       debug(req.url)
       let msg = this.checkBusidSlaveidParameter(req)
       if (msg !== '') {
@@ -209,17 +218,22 @@ export class HttpServer extends HttpServerBase {
       } else {
         let slaveId = Number.parseInt(req.query.slaveid)
         let busid = Number.parseInt(req.query.busid)
-        let bus = Bus.getBus(busid)
-        if (bus) {
-          bus
-            .getAvailableSpecs(slaveId, req.query.showAllPublicSpecs != undefined)
-            .then((result) => {
-              debug('getAvailableSpecs  succeeded')
-              this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(result))
-            })
-            .catch((e) => {
-              this.returnResult(req, res, HttpErrorsEnum.ErrNotFound, 'specsForSlaveId: ' + e.message)
-            })
+        try {
+          let language = this.getLanguageFromQuery(req, res)
+          let bus = Bus.getBus(busid)
+          if (bus) {
+            bus
+              .getAvailableSpecs(slaveId, req.query.showAllPublicSpecs != undefined, language)
+              .then((result) => {
+                debug('getAvailableSpecs  succeeded ' + slaveId)
+                this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(result))
+              })
+              .catch((e) => {
+                this.returnResult(req, res, HttpErrorsEnum.ErrNotFound, 'specsDetection: ' + e.message)
+              })
+          }
+        } catch (e: any) {
+          this.returnResult(req, res, HttpErrorsEnum.ErrInvalidParameter, 'specsDetection ' + e.message)
         }
       }
     })
@@ -293,7 +307,6 @@ export class HttpServer extends HttpServerBase {
     })
 
     this.get(apiUri.slaves, (req: GetRequestWithParameter, res: http.ServerResponse) => {
-      debug('listDevices')
       let invParam = () => {
         this.returnResult(req, res, HttpErrorsEnum.ErrInvalidParameter, 'Invalid parameter')
         return
@@ -302,18 +315,17 @@ export class HttpServer extends HttpServerBase {
         let busid = Number.parseInt(req.query.busid)
         let bus = Bus.getBus(busid)
         if (bus) {
-          let slaves = bus.getSlaves()
+          let slaves = bus.getSlaves(req.query.language)
           this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(slaves))
           return
         } else invParam()
       } else invParam()
     })
     this.get(apiUri.slave, (req: GetRequestWithParameter, res: http.ServerResponse) => {
-      debug('listDevice')
       if (req.query.busid !== undefined && req.query.slaveid !== undefined) {
         let busid = Number.parseInt(req.query.busid)
         let slaveid = Number.parseInt(req.query.slaveid)
-        let slave = Bus.getBus(busid)?.getSlaveBySlaveId(slaveid)
+        let slave = Bus.getBus(busid)?.getSlaveBySlaveId(slaveid, req.query.language)
         this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify(slave))
       } else {
         this.returnResult(req, res, HttpErrorsEnum.ErrInvalidParameter, 'Invalid parameter')
@@ -344,8 +356,10 @@ export class HttpServer extends HttpServerBase {
         this.returnResult(req, res, HttpErrorsEnum.ErrBadRequest, 'Bus not found. Id: ' + req.query.busid)
         return
       }
+      let modbusTask = ModbusTasks.specification
+      if (req.query.deviceDetection) modbusTask = ModbusTasks.deviceDetection
       let slaveid = Number.parseInt(req.query.slaveid)!
-      Modbus.getModbusSpecification(ModbusTasks.specification, bus, slaveid, req.query.spec, (e: any) => {
+      Modbus.getModbusSpecification(modbusTask, bus, slaveid, req.query.spec, (e: any) => {
         log.log(LogLevelEnum.error, 'http: get /specification ' + e.message)
         this.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, JSON.stringify('read specification ' + e.message))
       }).subscribe((result) => {
@@ -453,7 +467,7 @@ export class HttpServer extends HttpServerBase {
           this.validateMqttConnectionResult(req, res, false, 'No parameters configured')
           return
         }
-        let mqttdiscover = MqttDiscover.getInstance()
+        let mqttdiscover = MqttConnector.getInstance()
         let client = req.body.mqttconnect.mqttserverurl ? req.body.mqttconnect : undefined
 
         mqttdiscover.validateConnection(client, (valid, message) => {
@@ -580,14 +594,14 @@ export class HttpServer extends HttpServerBase {
         originalFilename
       )
 
-      bus
-        ?.getAvailableSpecs(Number.parseInt(req.query.slaveid), false)
-        .then(() => {
-          debug('Cache updated')
-        })
-        .catch((e) => {
-          debug('getAvailableModbusData failed:' + e.message)
-        })
+      // bus
+      //   ?.getAvailableSpecs(Number.parseInt(req.query.slaveid), false)
+      //   .then(() => {
+      //     debug('Cache updated')
+      //   })
+      //   .catch((e) => {
+      //     debug('getAvailableModbusData failed:' + e.message)
+      //   })
 
       this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify(rc))
     })

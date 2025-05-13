@@ -7,10 +7,10 @@ import {
   ModbusRegisterType,
   IimageAndDocumentUrl,
   IdentifiedStates,
-  Iconverter,
   HttpErrorsEnum,
   FileLocation,
   IbaseSpecification,
+  Converters,
 } from '@modbus2mqtt/specification.shared'
 import { Config } from '../src/config'
 import { FakeMqtt, FakeModes, initBussesForTest } from './configsbase'
@@ -45,6 +45,9 @@ import { join } from 'path'
 import { MqttDiscover } from '../src/mqttdiscover'
 import { MqttClient } from 'mqtt'
 import { ConfigBus } from '../src/configbus'
+import { MqttConnector } from '../src/mqttconnector'
+import { MqttPoller } from '../src/mqttpoller'
+import { MqttSubscriptions } from '../src/mqttsubscriptions'
 let mockReject = false
 let debug = Debug('testhttpserver')
 const mqttService = {
@@ -80,7 +83,7 @@ let spec: ImodbusSpecification = {
     {
       id: 1,
       mqttname: 'waterleveltransmitter',
-      converter: { name: 'number', registerTypes: [] },
+      converter: 'number',
       modbusAddress: 3,
       registerType: ModbusRegisterType.HoldingRegister,
       readonly: true,
@@ -108,7 +111,7 @@ let spec2: IfileSpecification = { ...spec, version: VERSION, testdata: {} }
 spec2.entities.push({
   id: 2,
   mqttname: '',
-  converter: { name: 'number', registerTypes: [] },
+  converter: 'number',
   modbusAddress: 4,
   registerType: ModbusRegisterType.HoldingRegister,
   readonly: true,
@@ -136,6 +139,15 @@ beforeAll(() => {
     let cfg = new Config()
     cfg.readYamlAsync().then(() => {
       ConfigBus.readBusses()
+      let conn = new MqttConnector()
+      let msub = new MqttSubscriptions(conn)
+      let md = new MqttDiscover(conn, msub)
+
+      let fake = new FakeMqtt(msub, FakeModes.Poll)
+      conn.getMqttClient = function (onConnectCallback: (connection: MqttClient) => void) {
+        onConnectCallback(fake as any as MqttClient)
+      }
+
       initBussesForTest()
       fs.copyFileSync(lspec + 'waterleveltransmitter.yaml', lspec + 'waterleveltransmitter.bck', undefined)
       ;(Config as any)['fakeModbusCache'] = true
@@ -143,15 +155,6 @@ beforeAll(() => {
       // FIx text ModbusCache.prototype.submitGetHoldingRegisterRequest = submitGetHoldingRegisterRequest
       HttpServer.prototype.authenticate = (req, res, next) => {
         next()
-      }
-      let mdl = MqttDiscover.getInstance()
-      mdl['equalConnectionData'] = () => {
-        return true
-      }
-      let fake = new FakeMqtt(mdl, FakeModes.Poll)
-      mdl['client'] = fake as any as MqttClient
-      mdl['equalConnectionData'] = () => {
-        return true
       }
       httpServer = new HttpServer(join(yamlDir, 'angular'))
 
@@ -196,7 +199,7 @@ it('GET /nextCheck', (done) => {
 
 it('GET /specsForSlave', (done) => {
   supertest(httpServer['app'])
-    .get(apiUri.specsForSlaveId + '?busid=0&slaveid=1')
+    .get(apiUri.specsDetection + '?busid=0&slaveid=1&language=en')
     .expect(200)
     .then((response) => {
       expect(response.body.length).toBeGreaterThan(0)
@@ -346,10 +349,8 @@ test('GET /converters', (done) => {
     .expect(200)
     .then((response) => {
       let sensorExist = false
-      response.body.forEach((element: Iconverter) => {
-        if (element.name == 'number') {
-          expect(element.registerTypes).toBeDefined()
-          expect(element.registerTypes.length).toBe(2)
+      response.body.forEach((element: Converters) => {
+        if (element == 'number') {
           sensorExist = true
         }
       })
@@ -461,11 +462,16 @@ describe('http POST', () => {
   })
 
   test('POST /specification: add new Specification rename device.specification', (done) => {
-    let md = (MqttDiscover['instance'] = new MqttDiscover())
+    let conn = new MqttConnector()
+    let msub = new MqttSubscriptions(conn)
+    let md = new MqttDiscover(conn, msub)
+
+    let fake = new FakeMqtt(msub, FakeModes.Poll)
+    conn.getMqttClient = function (onConnectCallback: (connection: MqttClient) => void) {
+      onConnectCallback(fake as any as MqttClient)
+    }
+    initBussesForTest()
     ConfigBus['listeners'] = []
-    let fake = new FakeMqtt(md, FakeModes.Poll)
-    md['client'] = fake as any as MqttClient
-    md['connectMqtt'] = function (undefined) {}
 
     let spec1: ImodbusSpecification = Object.assign(spec)
 
@@ -486,8 +492,8 @@ describe('http POST', () => {
       .then((_response) => {
         // expect((response as any as Response).status).toBe(HttpErrorsEnum.ErrBadRequest)
         let ev = Bus.getBus(0)!['_modbusRTUWorker']!['createEmptyIModbusValues']()
-        ev.holdingRegisters.set(100, { error: new Error('failed!!!'),date:new Date() })
-        Bus.getBus(0)!['_modbusRTUWorker']!['cache'].set(2,ev)
+        ev.holdingRegisters.set(100, { error: new Error('failed!!!'), date: new Date() })
+        Bus.getBus(0)!['_modbusRTUWorker']!['cache'].set(2, ev)
         supertest(httpServer['app'])
           .post(url)
           .accept('application/json')

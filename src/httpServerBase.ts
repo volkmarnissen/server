@@ -13,6 +13,7 @@ import { LogLevelEnum, Logger } from '@modbus2mqtt/specification'
 import { apiUri } from '@modbus2mqtt/server.shared'
 import { AddressInfo } from 'net'
 import { MqttDiscover } from './mqttdiscover'
+import { MqttSubscriptions } from './mqttsubscriptions'
 
 interface IAddonInfo {
   slug: string
@@ -138,7 +139,7 @@ export class HttpServerBase {
     else token = HttpServerBase.getAuthTokenFromHeader(req)
     let slaveTopicFound =
       null !=
-      MqttDiscover.getInstance()
+      MqttSubscriptions.getInstance()
         .getSlaveBaseTopics()
         .find((tp) => tp.startsWith(req.url.substring(1)))
     if (
