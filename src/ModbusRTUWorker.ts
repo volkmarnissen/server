@@ -47,7 +47,7 @@ export class ModbusRTUWorker extends ModbusWorker {
   private static lastNoticeMessage: string
   private static caches = new Map<number, Map<number, ImodbusValuesCache>>()
   private cache: Map<number, ImodbusValuesCache>
-  private running:boolean = false
+  private running: boolean = false
   constructor(modbusAPI: IModbusAPI, queue: ModbusRTUQueue) {
     super(modbusAPI, queue)
     let c = ModbusRTUWorker.caches.get(modbusAPI.getCacheId())
@@ -372,7 +372,7 @@ export class ModbusRTUWorker extends ModbusWorker {
     c?.errors.push(new ModbusErrorDescription(queueEntry, state, date))
   }
   private compareEntities(a: IQueueEntry, b: IQueueEntry): number {
-    return b.options.task - a.options.task 
+    return b.options.task - a.options.task
   }
   private processOneEntry(): Promise<void> | undefined {
     let current = this.queue.dequeue()

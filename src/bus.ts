@@ -36,7 +36,6 @@ import { MqttPoller } from './mqttpoller'
 import { MqttConnector } from './mqttconnector'
 const debug = Debug('bus')
 const log = new Logger('bus')
-
 export interface IModbusResultWithDuration {
   data: number[]
   duration?: number
@@ -118,10 +117,7 @@ export class Bus implements IModbusAPI {
       if (!connectionRtu.serialport || connectionRtu.serialport !== rtu.serialport) return true
       if (!connectionRtu.baudrate || connectionRtu.baudrate !== rtu.baudrate) return true
       if (!connectionRtu.timeout || connectionRtu.timeout !== rtu.timeout) return true
-      if (
-        !(connectionRtu.tcpBridgePort == undefined && rtu.tcpBridgePort == undefined) ||
-        connectionRtu.tcpBridgePort !== rtu.tcpBridgePort
-      )
+      if (!(connectionRtu.tcpBridge == undefined && rtu.tcpBridge == undefined) || connectionRtu.tcpBridge !== rtu.tcpBridge)
         return true
       return false
     } else {
@@ -133,30 +129,26 @@ export class Bus implements IModbusAPI {
       return false
     }
   }
-  private startTcpRtuBridge(port: number) {
+  private startTcpRtuBridge(port: number = ModbusTcpRtuBridge.getDefaultPort()) {
     this.tcprtuBridge = new ModbusTcpRtuBridge(this.modbusRTUQueue)
-    this.tcprtuBridge.startServer(port)
+    this.tcprtuBridge.startServer()
   }
-  private restartTcpRtuBridge(oldPort: number | undefined, newPort: number | undefined) {
+  private restartTcpRtuBridge() {
     if (this.tcprtuBridge) {
-      //restart tcpRtuBridge if neccessary
-      if (oldPort && oldPort != newPort)
-        this.tcprtuBridge.stopServer(() => {
-          if (newPort) this.tcprtuBridge?.startServer(newPort!)
-        })
-    } else {
-      if (newPort) this.startTcpRtuBridge(newPort)
-    }
+      this.tcprtuBridge?.stopServer(() => {
+        this.tcprtuBridge?.startServer(ModbusTcpRtuBridge.getDefaultPort())
+      })
+    } else this.startTcpRtuBridge()
   }
   updateBus(connection: IModbusConnection): Promise<Bus> {
     return new Promise<Bus>((resolve, reject) => {
       debug('updateBus()')
       if (this.connectionChanged(connection)) {
-        let oldTcpBrigdePort = (this.properties.connectionData as IRTUConnection).tcpBridgePort
-        let newTcpBrigdePort = (connection as IRTUConnection).tcpBridgePort
+        let oldTcpBrigde = (this.properties.connectionData as IRTUConnection).tcpBridge
+        let newTcpBrigde = (connection as IRTUConnection).tcpBridge
         if (this.tcprtuBridge) {
-          this.restartTcpRtuBridge(oldTcpBrigdePort, newTcpBrigdePort)
-        } else if (newTcpBrigdePort) this.startTcpRtuBridge(newTcpBrigdePort)
+          this.restartTcpRtuBridge()
+        } else if (newTcpBrigde) this.startTcpRtuBridge()
         let busP = ConfigBus.updateBusProperties(this.properties, connection)
         let b = Bus.getBusses().find((b) => b.getId() == busP.busId)
         if (b) {
@@ -197,8 +189,8 @@ export class Bus implements IModbusAPI {
   ) {
     this.properties = ibus
     this._modbusRTUWorker = new ModbusRTUWorker(this, modbusRTUQueue)
-    if ((ibus.connectionData as IRTUConnection).tcpBridgePort) {
-      this.startTcpRtuBridge((ibus.connectionData as IRTUConnection).tcpBridgePort!)
+    if ((ibus.connectionData as IRTUConnection).tcpBridge) {
+      this.startTcpRtuBridge()
     }
   }
   getCacheId(): number {

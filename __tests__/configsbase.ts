@@ -65,7 +65,7 @@ export class FakeMqtt {
 
 export function initBussesForTest() {
   new ConfigSpecification().readYaml()
-  ConfigBus.readBusses()     
+  ConfigBus.readBusses()
   let ibs = ConfigBus.getBussesProperties()
   if (!Bus['busses']) Bus['busses'] = []
   ibs.forEach((ib) => {

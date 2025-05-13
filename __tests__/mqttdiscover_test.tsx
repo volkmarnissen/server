@@ -263,7 +263,6 @@ xtest('validateConnection invalid port', (done) => {
   })
 })
 
-
 test('selectConverter adds modbusValue to statePayload', () => {
   expect(msub1['subscribedSlaves'].length).toBeGreaterThan(3)
   let specEntity: ImodbusEntity = {
