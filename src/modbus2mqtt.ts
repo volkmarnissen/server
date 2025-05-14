@@ -150,10 +150,7 @@ export class Modbus2Mqtt {
         httpServer = new HttpServer(angulardir)
         debugAction('readBussesFromConfig starts')
         gh.init()
-          .then(startServer)
-          .catch((e) => {
-            startServer()
-          })
+          .finally(startServer)
       })
   }
 }
