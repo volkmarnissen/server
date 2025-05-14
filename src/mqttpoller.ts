@@ -25,10 +25,7 @@ export class MqttPoller {
   // Depending on the pollinterval of the slaves it triggers publication of the current state of the slave
   private poll(bus: Bus): Promise<void> {
     return new Promise<void>((resolve, error) => {
-      let needPolls: {
-        slave: Slave
-        pollMode: PollModes
-      }[] = []
+      let needPolls: Slave[] = []
 
       bus.getSlaves().forEach((slave) => {
         if (slave.pollMode != PollModes.noPoll) {
@@ -41,7 +38,7 @@ export class MqttPoller {
             let s = new Slave(bus.getId(), slave, Config.getConfiguration().mqttbasetopic)
             if (slave.specification) {
               pc.processing = true
-              needPolls.push({ slave: s, pollMode: PollModes.intervall })
+              needPolls.push(  s)
             } else {
               if (slave.specificationid)
                 log.log(
@@ -58,14 +55,14 @@ export class MqttPoller {
         let pollDeviceCount = 0
         needPolls.forEach((bs) => {
           // Trigger state only if it's configured to do so
-          let spMode = bs.slave.getPollMode()
+          let spMode = bs.getPollMode()
           if (spMode == undefined || [PollModes.intervall, PollModes.intervallAndTrigger].includes(spMode)) {
             if (bus)
-              Modbus.getModbusSpecification(ModbusTasks.poll, bus, bs.slave.getSlaveId(), bs.slave.getSpecificationId(), (e) => {
+              Modbus.getModbusSpecification(ModbusTasks.poll, bus, bs.getSlaveId(), bs.getSpecificationId(), (e) => {
                 log.log(LogLevelEnum.error, 'reading spec failed' + e.message)
               }).subscribe((spec) => {
-                tAndP.push({ topic: bs.slave.getStateTopic(), payload: bs.slave.getStatePayload(spec.entities), entityid: 0 })
-                tAndP.push({ topic: bs.slave.getAvailabilityTopic(), payload: 'online', entityid: 0 })
+                tAndP.push({ topic: bs.getStateTopic(), payload: bs.getStatePayload(spec.entities), entityid: 0 })
+                tAndP.push({ topic: bs.getAvailabilityTopic(), payload: 'online', entityid: 0 })
                 pollDeviceCount++
                 if (pollDeviceCount == needPolls.length)
                   this.connector.getMqttClient((mqttClient) => {
@@ -74,7 +71,7 @@ export class MqttPoller {
                       mqttClient.publish(tAndP.topic, tAndP.payload)
                     })
                     needPolls.forEach((v) => {
-                      let si = this.slavePollInfo.get(v.slave.getSlaveId())
+                      let si = this.slavePollInfo.get(v.getSlaveId())
                       if (si) si.processing = false
                     })
                     resolve()
