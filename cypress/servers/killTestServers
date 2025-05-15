@@ -16,6 +16,8 @@ do
      then
         kill -2 $PPID
         echo killed SIGINT $NAME 1>&2
+        sleep 0.1
+        kill $PID        
      else
        if [ $OWNER -eq `id -u` ]
        then
@@ -26,4 +28,5 @@ do
   fi
 done
 done
+netstat -pl | grep -e ":3001" -e ":3003" -e ":3004" -e ":3005"
 exit 0
