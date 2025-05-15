@@ -54,7 +54,6 @@ jobs:
             owner="-o ${{github.repository_owner}}"
           fi
           echo "owner=$owner" >> "$GITHUB_OUTPUT"
-          echo bin/pulls.py $owner execorwait --noexec "${{github.event.repository.name}}:${{github.event.number}}" "${{github.event.push.body}}" merge >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Node.js
