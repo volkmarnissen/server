@@ -10,7 +10,6 @@
 
 **Closed issues:**
 
-- \[bug\]Modbus Error Handling, Slave Specification Detection, TCP RTU bridge, Fixes [\#111](https://github.com/modbus2mqtt/server/issues/111)
 - Timeout after docker restart [\#107](https://github.com/modbus2mqtt/server/issues/107)
 - Error on starting the add-on [\#89](https://github.com/modbus2mqtt/server/issues/89)
 - \[BUG\] Variable Properties -\> Unit of Measurement -\> Referenced Entity not selectable [\#87](https://github.com/modbus2mqtt/server/issues/87)
@@ -18,6 +17,7 @@
 
 **Merged pull requests:**
 
+- \[bug\]Modbus Error Handling, Slave Specification Detection, TCP RTU bridge, Fixes [\#114](https://github.com/modbus2mqtt/server/pull/114) ([volkmarnissen](https://github.com/volkmarnissen))
 - No Internet access, Poll [\#113](https://github.com/modbus2mqtt/server/pull/113) ([volkmarnissen](https://github.com/volkmarnissen))
 - \[bug\]Modbus Error Handling, Slave Specification Detection, TCP RTU bridge, Fixes [\#112](https://github.com/modbus2mqtt/server/pull/112) ([volkmarnissen](https://github.com/volkmarnissen))
 - Modbus Error Handling and Monitoring/tree/modbuscache [\#110](https://github.com/modbus2mqtt/server/pull/110) ([volkmarnissen](https://github.com/volkmarnissen))
