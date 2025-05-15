@@ -99,7 +99,7 @@ export class ModbusRTUWorker extends ModbusWorker {
     let maxErrors = 0
     switch (current.errorState) {
 
-      case ModbusErrorStates.crc,ModbusErrorStates.illegaladdress:
+      case ModbusErrorStates.crc||ModbusErrorStates.illegaladdress:
         if (current.errorCount >= maxErrorRetriesCrc)
           return new Promise((resolve, reject) => {
             reject(new Error('Too many retries ' + (current.errorState == ModbusErrorStates.crc?"crc": "illegal address")))
