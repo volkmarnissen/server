@@ -369,6 +369,7 @@ export class ModbusRTUWorker extends ModbusWorker {
     let c = this.cache.get(queueEntry.slaveId)
     if (this.cache.get(queueEntry.slaveId) == undefined) this.cache.set(queueEntry.slaveId, this.createEmptyIModbusValues())
     c = this.cache.get(queueEntry.slaveId)
+    c?.errors.splice(0, c.errors.length - 50)
     c?.errors.push(new ModbusErrorDescription(queueEntry, state, date))
   }
   private compareEntities(a: IQueueEntry, b: IQueueEntry): number {
