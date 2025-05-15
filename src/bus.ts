@@ -131,12 +131,12 @@ export class Bus implements IModbusAPI {
   }
   private startTcpRtuBridge(port: number = ModbusTcpRtuBridge.getDefaultPort()) {
     this.tcprtuBridge = new ModbusTcpRtuBridge(this.modbusRTUQueue)
-    this.tcprtuBridge.startServer()
+    this.tcprtuBridge.startServer().catch( e=>{log.log(LogLevelEnum.error, "Unable to start Server : " + e.message)})
   }
   private restartTcpRtuBridge() {
     if (this.tcprtuBridge) {
       this.tcprtuBridge?.stopServer(() => {
-        this.tcprtuBridge?.startServer(ModbusTcpRtuBridge.getDefaultPort())
+        this.tcprtuBridge?.startServer(ModbusTcpRtuBridge.getDefaultPort()).catch( e=>{log.log(LogLevelEnum.error, "Unable to start Server : " + e.message)})
       })
     } else this.startTcpRtuBridge()
   }
