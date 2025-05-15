@@ -41,6 +41,7 @@ jobs:
         with:
           repository: ./server
           commit_message: Update CHANGELOG.md
+          add_options: '-u'
       - name: Wait for other workflow run or continue
         id: init
         run: |
