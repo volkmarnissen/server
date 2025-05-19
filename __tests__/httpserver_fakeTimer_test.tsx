@@ -72,7 +72,6 @@ it('GET download/local', (done) => {
       done()
     })
     .catch((_e: any) => {
-      console.log(JSON.stringify(_e))
       expect(true).toBeFalsy()
       done()
     })

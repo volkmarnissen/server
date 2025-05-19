@@ -398,7 +398,7 @@ export class ModbusRTUWorker extends ModbusWorker {
     if (this.queue.getLength() == 0) return // nothing to do
     this.queue.getEntries().sort(this.compareEntities)
     let ql = this.queue.getLength()
-    if (ql % 10) debug('Number of queue entries: ' + ql)
+    if (!(ql % 10)) debug('Number of queue entries: ' + ql)
     // process all queue entries sequentially:
     if (this.running) return
     this.running = true
