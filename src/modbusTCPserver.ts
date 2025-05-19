@@ -258,7 +258,6 @@ export function startModbusTCPserver(yamlDir: string, busId: number) {
         log.log(LogLevelEnum.error, 'Unable to start TCP server: Bus directory not found ' + directoryBus)
         return
       }
-      console.log('read bus' + directoryBus)
       let files = fs.readdirSync(directoryBus)
       files.forEach((slaveFileName) => {
         if (slaveFileName == 'bus.yaml') {
@@ -271,7 +270,6 @@ export function startModbusTCPserver(yamlDir: string, busId: number) {
 
         if (slaveFileName.startsWith('s'))
           try {
-            console.log('read slave' + slaveFileName)
             let content = fs.readFileSync(join(directoryBus, slaveFileName), {
               encoding: 'utf8',
             })

@@ -26,7 +26,7 @@ it.skip('For hardware test only modbus write', () => {
     client
       .readHoldingRegisters(123, 1)
       .then((data) => {
-        console.log('read: ' + data.data)
+        // console.log('read: ' + data.data)
       })
       .catch((err: any) => {
         console.log(err)
