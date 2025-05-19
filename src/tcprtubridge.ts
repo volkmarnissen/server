@@ -128,15 +128,15 @@ export class ModbusTcpRtuBridge {
 
       this.serverTCP.on('socketError', function (err: any) {
         // Handle socket error if needed, can be ignored
-        log.log(LogLevelEnum.error, 'TCP bridge: socket error: ' + err!.message)
+        log.log(LogLevelEnum.error, 'TCP bridge' + err!.message + ' (Continue w/o TCP bridge)')
       })
       this.serverTCP.on('serverError', function (err) {
         // Handle socket error if needed, can be ignored
-        log.log(LogLevelEnum.error, 'TCP bridge: server error: ' + err!.message)
+        log.log(LogLevelEnum.error, 'TCP bridge: ' + err!.message + ' (Continue w/o TCP bridge)')
       })
       this.serverTCP.on('error', function (err) {
         // Handle socket error if needed, can be ignored
-        log.log(LogLevelEnum.error, 'TCP bridge: error: ' + err!.message)
+        log.log(LogLevelEnum.error, 'TCP bridge error: ' + err!.message + ' (Continue w/o TCP bridge)')
       })
       this.serverTCP.on('initialized', () => {
         log.log(LogLevelEnum.notice, 'TCP bridge: listening on modbus://0.0.0.0:' + port)
@@ -151,5 +151,6 @@ export class ModbusTcpRtuBridge {
         if (cb) cb()
         this.serverTCP = undefined
       })
+    else if (cb) cb()
   }
 }

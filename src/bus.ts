@@ -34,6 +34,7 @@ import { IModbusAPI } from './ModbusWorker'
 import { ModbusTcpRtuBridge } from './tcprtubridge'
 import { MqttPoller } from './mqttpoller'
 import { MqttConnector } from './mqttconnector'
+import { Mutex } from 'async-mutex'
 const debug = Debug('bus')
 const log = new Logger('bus')
 export interface IModbusResultWithDuration {
@@ -117,8 +118,7 @@ export class Bus implements IModbusAPI {
       if (!connectionRtu.serialport || connectionRtu.serialport !== rtu.serialport) return true
       if (!connectionRtu.baudrate || connectionRtu.baudrate !== rtu.baudrate) return true
       if (!connectionRtu.timeout || connectionRtu.timeout !== rtu.timeout) return true
-      if (!(connectionRtu.tcpBridge == undefined && rtu.tcpBridge == undefined) || connectionRtu.tcpBridge !== rtu.tcpBridge)
-        return true
+      if (connectionRtu.tcpBridge !== rtu.tcpBridge) return true
       return false
     } else {
       let tcp = this.properties.connectionData as ITCPConnection
@@ -131,24 +131,21 @@ export class Bus implements IModbusAPI {
   }
   private startTcpRtuBridge(port: number = ModbusTcpRtuBridge.getDefaultPort()) {
     this.tcprtuBridge = new ModbusTcpRtuBridge(this.modbusRTUQueue)
-    this.tcprtuBridge.startServer().catch( e=>{log.log(LogLevelEnum.error, "Unable to start Server : " + e.message)})
+    this.tcprtuBridge.startServer().catch((e) => {
+      log.log(LogLevelEnum.error, 'Unable to start Server : ' + e.message)
+    })
   }
-  private restartTcpRtuBridge() {
-    if (this.tcprtuBridge) {
-      this.tcprtuBridge?.stopServer(() => {
-        this.tcprtuBridge?.startServer(ModbusTcpRtuBridge.getDefaultPort()).catch( e=>{log.log(LogLevelEnum.error, "Unable to start Server : " + e.message)})
-      })
-    } else this.startTcpRtuBridge()
-  }
+
   updateBus(connection: IModbusConnection): Promise<Bus> {
     return new Promise<Bus>((resolve, reject) => {
       debug('updateBus()')
       if (this.connectionChanged(connection)) {
-        let oldTcpBrigde = (this.properties.connectionData as IRTUConnection).tcpBridge
-        let newTcpBrigde = (connection as IRTUConnection).tcpBridge
-        if (this.tcprtuBridge) {
-          this.restartTcpRtuBridge()
-        } else if (newTcpBrigde) this.startTcpRtuBridge()
+        let fct = () => {
+          if ((connection as IRTUConnection).tcpBridge) this.startTcpRtuBridge()
+        }
+        if (this.tcprtuBridge && this.tcprtuBridge.serverTCP) this.tcprtuBridge.stopServer(fct)
+        else fct()
+
         let busP = ConfigBus.updateBusProperties(this.properties, connection)
         let b = Bus.getBusses().find((b) => b.getId() == busP.busId)
         if (b) {
@@ -199,24 +196,36 @@ export class Bus implements IModbusAPI {
   getId(): number {
     return this.properties.busId
   }
+  private connectMutex = new Mutex()
   private connectRTUClient(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-      if (this.modbusClient == undefined) this.modbusClient = new ModbusRTU()
-      if (this.modbusClient.isOpen) {
-        resolve()
-        return
+      let resolveRelease= ()=>{
+          this.connectMutex.release()
+          resolve()
       }
+      let rejectRelease= (e:any)=>{
+          this.connectMutex.release()
+          reject(e)
+      }
+      // Make sure, this modbusClient get's initialized only once. Even if called in paralell
+      this.connectMutex.acquire().then(()=>{
+        if (this.modbusClient == undefined) this.modbusClient = new ModbusRTU()
+        if (this.modbusClient.isOpen) {
+          resolveRelease()
+          return
+        }
 
-      // debug("connectRTUBuffered")
-      let port = (this.properties.connectionData as IRTUConnection).serialport
-      let baudrate = (this.properties.connectionData as IRTUConnection).baudrate
-      if (port && baudrate) {
-        this.modbusClient.connectRTUBuffered(port, { baudRate: baudrate }).then(resolve).catch(reject)
-      } else {
-        let host = (this.properties.connectionData as ITCPConnection).host
-        let port = (this.properties.connectionData as ITCPConnection).port
-        this.modbusClient.connectTCP(host, { port: port }).then(resolve).catch(reject)
-      }
+        // debug("connectRTUBuffered")
+        let port = (this.properties.connectionData as IRTUConnection).serialport
+        let baudrate = (this.properties.connectionData as IRTUConnection).baudrate
+        if (port && baudrate) {
+          this.modbusClient.connectRTUBuffered(port, { baudRate: baudrate }).then(resolveRelease).catch(rejectRelease)
+        } else {
+          let host = (this.properties.connectionData as ITCPConnection).host
+          let port = (this.properties.connectionData as ITCPConnection).port
+          this.modbusClient.connectTCP(host, { port: port }).then(resolveRelease).catch(rejectRelease)
+        }
+      })
     })
   }
   reconnectRTU(task: string): Promise<void> {

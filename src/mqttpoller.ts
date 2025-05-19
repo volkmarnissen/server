@@ -28,18 +28,16 @@ export class MqttPoller {
       let needPolls: Slave[] = []
 
       bus.getSlaves().forEach((slave) => {
-        if (slave.pollMode != PollModes.noPoll) {
+        if (slave.pollMode != undefined && ![PollModes.noPoll, PollModes.trigger].includes(slave.pollMode)) {
           let sl = new Slave(bus.getId(), slave, Config.getConfiguration().mqttbasetopic)
           let pc: IslavePollInfo | undefined = this.slavePollInfo.get(sl.getSlaveId())
-          if (pc == undefined)
-            pc = { count: 0, processing: false }
-          if ( pc.count > (slave.pollInterval != undefined ? slave.pollInterval / 100 : defaultPollCount))
-            pc.count = 0
+          if (pc == undefined) pc = { count: 0, processing: false }
+          if (pc.count > (slave.pollInterval != undefined ? slave.pollInterval / 100 : defaultPollCount)) pc.count = 0
           if (pc.count == 0 && !pc.processing) {
             let s = new Slave(bus.getId(), slave, Config.getConfiguration().mqttbasetopic)
             if (slave.specification) {
               pc.processing = true
-              needPolls.push(  s)
+              needPolls.push(s)
             } else {
               if (slave.specificationid)
                 log.log(
