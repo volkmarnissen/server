@@ -706,7 +706,7 @@ export class Bus implements IModbusAPI {
         }
         properties.specification = spec
       }
-      properties.modbusErrorsForSlave = this._modbusRTUWorker.getErrors(properties.slaveid)
+      properties.modbusStatusForSlave = this._modbusRTUWorker.getErrors(properties.slaveid)
     }
     return properties
   }

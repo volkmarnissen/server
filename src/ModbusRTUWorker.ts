@@ -4,7 +4,8 @@ import { IModbusResultOrError, Logger, LogLevelEnum } from '@modbus2mqtt/specifi
 import Debug from 'debug'
 import { IexecuteOptions } from './ModbusRTUProcessor'
 import { ModbusRegisterType } from '@modbus2mqtt/specification.shared'
-import { ImodbusAddress, ImodbusErrorsForSlave, ModbusErrorStates, ModbusTasks } from '@modbus2mqtt/server.shared'
+import { ImodbusAddress, ImodbusErrorsForSlave, ImodbusStatusForSlave, ModbusErrorStates, ModbusTasks } from '@modbus2mqtt/server.shared'
+import { TupleType } from 'typescript'
 
 const debug = Debug('modbusrtuworker')
 const log = new Logger('modbusrtuworker')
@@ -29,16 +30,18 @@ class ModbusErrorDescription {
       date: this.date.getTime(),
       task: this.queueEntry.options.task,
       address: this.queueEntry.address,
-      state: this.state,
+      state: this.state
     }
   }
 }
+
 interface ImodbusValuesCache {
   holdingRegisters: Map<number, IModbusResultCache>
   analogInputs: Map<number, IModbusResultCache>
   coils: Map<number, IModbusResultCache>
   discreteInputs: Map<number, IModbusResultCache>
   errors: ModbusErrorDescription[]
+  requestCount: number[][]
 }
 export class ModbusRTUWorker extends ModbusWorker {
   private isRunning = false
@@ -162,6 +165,7 @@ export class ModbusRTUWorker extends ModbusWorker {
       return this.modbusAPI.reconnectRTU('ReconnectOnError')
     } else return this.retry(current, error)
   }
+
   private handleErrors(current: IQueueEntry, error: any): Promise<void> {
     if (error == undefined)
       return new Promise((resolve, reject) => {
@@ -208,6 +212,19 @@ export class ModbusRTUWorker extends ModbusWorker {
       }
     }
   }
+  private createQueueRequestCountArray():number[][]{
+    let minutes:number[] = []
+    for(let idx2=0; idx2 < 60; idx2++)
+        minutes.push(0)
+
+    let rc:number[][] = []
+    
+    for(let idx=0; idx < Object.keys(ModbusTasks).length/2; idx++)
+      rc.push( structuredClone(minutes))
+    
+    return rc;
+  }
+
   private createEmptyIModbusValues(): ImodbusValuesCache {
     return {
       holdingRegisters: new Map<number, IModbusResultCache>(),
@@ -215,6 +232,7 @@ export class ModbusRTUWorker extends ModbusWorker {
       coils: new Map<number, IModbusResultCache>(),
       discreteInputs: new Map<number, IModbusResultCache>(),
       errors: [],
+      requestCount: this.createQueueRequestCountArray()
     }
   }
 
@@ -361,6 +379,15 @@ export class ModbusRTUWorker extends ModbusWorker {
       v.errors.forEach((e, idx) => {
         if (e.date < notExpired) v.errors.splice(idx, 1)
       })
+      let currentMinute = new Date().getMinutes()
+      // reset current minute counter
+      v.requestCount.forEach((type)=>{type.forEach((count, minute)=>{
+        if(minute == currentMinute -1|| (minute == 0 && currentMinute == 59))
+          type[minute] = 0
+        })
+      })
+
+
     })
   }
   public addError(queueEntry: IQueueEntry, state: ModbusErrorStates, date: Date = new Date()) {
@@ -375,7 +402,11 @@ export class ModbusRTUWorker extends ModbusWorker {
   }
   private processOneEntry(): Promise<void> | undefined {
     let current = this.queue.dequeue()
-    if (current)
+    if (current){
+      let dt = new Date()
+      if (this.cache.get(current.slaveId) == undefined) this.cache.set(current.slaveId, this.createEmptyIModbusValues())
+      let cacheEntry = this.cache.get(current.slaveId)      
+      cacheEntry!.requestCount[current.options.task][dt.getMinutes()]++
       if (current.address.write)
         return this.functionCodeWriteMap.get(current.address.registerType)!(
           current.slaveId,
@@ -388,11 +419,14 @@ export class ModbusRTUWorker extends ModbusWorker {
         return this.executeModbusFunctionCodeRead(current)
           .then(() => this.processOneEntry())
           .catch((e) => this.processOneEntry())
+    }
     else {
       this.running = false
       this.onFinish()
       return undefined
     }
+
+      
   }
   override run() {
     if (this.queue.getLength() == 0) return // nothing to do
@@ -406,15 +440,20 @@ export class ModbusRTUWorker extends ModbusWorker {
   }
 
   onFinish() {}
-  getErrors(slaveid: number): ImodbusErrorsForSlave[] {
+  getErrors(slaveid: number): ImodbusStatusForSlave{
     let cache = this.cache.get(slaveid)
-    let rc: ImodbusErrorsForSlave[] = []
     cache?.errors
     if (cache) {
-      return cache.errors.map((d) => {
+      return {
+        errors: cache.errors.map((d) => {
         return d.getModbusErorForSlave()
-      })
+      }),
+      requestCount:cache.requestCount.map((d) => {
+        return d.reduce((sum,count)=>{ return sum += count},0)
+      }),
+      queueLength: this.queue.getLength()
+      }
     }
-    return []
+    return {errors:[], requestCount:[0,0,0,0,0,0,0,0], queueLength: 0} as ImodbusStatusForSlave
   }
 }
