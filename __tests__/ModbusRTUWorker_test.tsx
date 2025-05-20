@@ -53,6 +53,7 @@ it('Sequential read successful processing', (done) => {
   test.worker.expectedReconnected = false
   test.worker.expectedAPIcallCount = 1
   test.worker.expectedAPIwroteDataCount = 0
+  test.worker.expectedRequestCountSpecification = 3
   test.worker.run()
   // Hopefully, the run process resetted the queue before next queue entry is added
   enqueue(queue, 201, test)

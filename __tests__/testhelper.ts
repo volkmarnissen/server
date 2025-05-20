@@ -3,6 +3,7 @@ import { IModbusResultWithDuration } from '../src/bus'
 import { ModbusRTUQueue } from '../src/ModbusRTUQueue'
 import { ModbusRTUWorker } from '../src/ModbusRTUWorker'
 import { IModbusAPI } from '../src/ModbusWorker'
+import { ModbusTasks } from '@modbus2mqtt/server.shared'
 let data = 198
 export class FakeBus implements IModbusAPI {
   reconnected: boolean = false
@@ -108,6 +109,7 @@ export class ModbusRTUWorkerForTest extends ModbusRTUWorker {
   public expectedReconnected: boolean = false
   public expectedAPIcallCount: number = 1
   public expectedAPIwroteDataCount: number = 0
+  public expectedRequestCountSpecification = 0
   constructor(
     modbusAPI: IModbusAPI,
     queue: ModbusRTUQueue,
@@ -122,6 +124,10 @@ export class ModbusRTUWorkerForTest extends ModbusRTUWorker {
     expect(fakeBus.callCount).toBe(this.expectedAPIcallCount)
     expect((this.modbusAPI as FakeBus).reconnected).toBe(this.expectedReconnected)
     expect(fakeBus.wroteDataCount).toBe(this.expectedAPIwroteDataCount)
+    if(this.expectedRequestCountSpecification > 0){
+      let min = new Date().getMinutes()
+      expect( this['cache'].get(1)!.requestCount[ModbusTasks.specification][min]).toBe(this.expectedRequestCountSpecification)
+    }
     this.done()
   }
 }

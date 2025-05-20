@@ -197,7 +197,7 @@ export class ConfigBus {
           'durationOfLongestModbusCall',
           'triggerPollTopic',
           'modbusErrorStatistic',
-          'modbusErrorsForSlave',
+          'modbusStatusForSlave',
         ]
         if (deletables.includes(prop)) delete (o as any)[prop]
       }
