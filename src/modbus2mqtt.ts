@@ -131,7 +131,7 @@ export class Modbus2Mqtt {
                       () => {
                         Bus.cleanupCaches()
                       },
-                      1000 * 60 * 60
+                      1000 * 60  // 1 minute
                     )
                     if (process.env.MODBUS_NOPOLL == undefined) {
                       Bus.getBusses().forEach((bus) => {
