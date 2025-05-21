@@ -6,6 +6,8 @@ import Debug from 'debug'
 import { ImodbusAddress, ModbusTasks } from '@modbus2mqtt/server.shared'
 
 const debug = Debug('modbusrtuprocessor')
+const debugRequest = Debug('modbusrtuprocessor:request')
+const debugResult = Debug('modbusrtuprocessor:result')
 const debugLog = Debug('modbusrtuprocessor.log')
 const log = new Logger('modbusrtuprocessor')
 
@@ -163,7 +165,7 @@ export class ModbusRTUProcessor {
                 data[0]
             )
             if (valueCount == addressCount) {
-              debug(ModbusTasks[options.task] + ': slaveId: ' + slaveId + ' addresses.length:' + preparedAddresses.addresses.length)
+              debugResult(ModbusTasks[options.task] + ': slaveId: ' + slaveId + ' addresses.length:' + preparedAddresses.addresses.length)
               resolve(values)
             }
           },
@@ -193,7 +195,7 @@ export class ModbusRTUProcessor {
 
             let valueCount = this.countResults(values)
             if (valueCount == addressCount) {
-              debug('Finished ' + id)
+              debugResult('Finished ' + id)
               resolve(values)
             }
           },
