@@ -48,7 +48,7 @@ import { ConfigBus } from '../src/configbus'
 import { MqttConnector } from '../src/mqttconnector'
 import { MqttPoller } from '../src/mqttpoller'
 import { MqttSubscriptions } from '../src/mqttsubscriptions'
-import { ModbusAPI } from '../src/ModbusAPI'
+import { ModbusAPI } from '../src/modbusAPI'
 let mockReject = false
 let debug = Debug('testhttpserver')
 const mqttService = {

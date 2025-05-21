@@ -1,8 +1,8 @@
 import { jest, expect, it } from '@jest/globals'
 import { ModbusRegisterType } from '@modbus2mqtt/specification.shared'
 import test from 'node:test'
-import { ModbusRTUProcessor } from '../src/ModbusRTUProcessor'
-import { IQueueEntry, ModbusErrorActions, ModbusRTUQueue } from '../src/ModbusRTUQueue'
+import { ModbusRTUProcessor } from '../src/modbusRTUprocessor'
+import { IQueueEntry, ModbusErrorActions, ModbusRTUQueue } from '../src/modbusRTUqueue'
 import { ImodbusAddress, ModbusTasks } from '@modbus2mqtt/server.shared'
 function addAddresses(addresses: Set<ImodbusAddress>, registerType: ModbusRegisterType, startAddress: number, endAddress: number) {
   for (let idx = startAddress; idx < endAddress; idx++)

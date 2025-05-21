@@ -15,8 +15,8 @@ import {
 import { singleMutex } from './configsbase'
 import { Iconfiguration, PollModes } from '@modbus2mqtt/server.shared'
 import { ConfigBus } from '../src/configbus'
-import { IModbusAPI } from '../src/ModbusWorker'
-import { ModbusAPI } from '../src/ModbusAPI'
+import { IModbusAPI } from '../src/modbusWorker'
+import { ModbusAPI } from '../src/modbusAPI'
 import { Modbus } from '../src/modbus'
 
 const debug = Debug('bustest')

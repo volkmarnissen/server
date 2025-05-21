@@ -1,5 +1,5 @@
 import { FCallbackVal, IServiceVector, ServerTCP } from 'modbus-serial'
-import { IQueueEntry, ModbusRTUQueue } from './ModbusRTUQueue'
+import { IQueueEntry, ModbusRTUQueue } from './modbusRTUqueue'
 import { ImodbusAddress, ModbusTasks } from '@modbus2mqtt/server.shared'
 import { ModbusRegisterType } from '@modbus2mqtt/specification.shared'
 import { Logger, LogLevelEnum } from '@modbus2mqtt/specification'

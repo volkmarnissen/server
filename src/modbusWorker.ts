@@ -1,9 +1,9 @@
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU'
 import { Bus, IModbusResultWithDuration } from './bus'
-import { ModbusRTUQueue, IQueueEntry, IQueueOptions } from './ModbusRTUQueue'
+import { ModbusRTUQueue, IQueueEntry, IQueueOptions } from './modbusRTUqueue'
 import { IFunctionCode, ModbusRegisterType } from '@modbus2mqtt/specification.shared'
 import ModbusRTU from 'modbus-serial'
-import { IexecuteOptions } from './ModbusRTUProcessor'
+import { IexecuteOptions } from './modbusRTUprocessor'
 import { ImodbusAddress } from '@modbus2mqtt/server.shared'
 import { ImodbusValues } from '@modbus2mqtt/specification'
 
