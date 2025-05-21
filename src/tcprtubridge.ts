@@ -4,7 +4,10 @@ import { ImodbusAddress, ModbusTasks } from '@modbus2mqtt/server.shared'
 import { ModbusRegisterType } from '@modbus2mqtt/specification.shared'
 import { Logger, LogLevelEnum } from '@modbus2mqtt/specification'
 import { Config } from './config'
+import Debug from 'debug'
+
 const log = new Logger('tcprtubridge')
+let debug = Debug('tcprtubridge')
 
 export class ModbusTcpRtuBridge {
   serverTCP: ServerTCP | undefined = undefined
@@ -63,6 +66,7 @@ export class ModbusTcpRtuBridge {
     unitID: number,
     cb: FCallbackVal<number[]>
   ): void {
+    debug("queueing: %d %d" , addr, length)
     this.queueRegister<number[]>(
       registerType,
       (value?: number[]): number[] => {
@@ -75,10 +79,17 @@ export class ModbusTcpRtuBridge {
       length
     )
       .then((value) => {
+        debug("success: %d %d" , addr, length)
         cb(null, value)
       })
       .catch((e) => {
-        cb(e, [])
+        // Timeout must be ignored. It will be handled on client side
+        if ( e.errno && e.errno != 'ETIMEDOUT'){
+            debug("error: %d %d %s" , addr, length, e.message)
+            cb(e, [])
+        }else
+            debug("Ignoring timeout: %d %d %s" , addr, length, e.message)
+        
       })
   }
   queueOneBoolRegister(
