@@ -69,7 +69,6 @@ it('read slaves/delete slave/addSlave/read slave', () => {
 //    })
 // })
 
-
 var readConfig = new Config()
 var prepared: boolean = false
 function prepareIdentification() {
@@ -138,4 +137,3 @@ it('Modbus getAvailableSpecs with specific slaveId no results 0-3', (done) => {
       Config['config'].fakeModbus = true
     })
 })
-

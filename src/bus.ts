@@ -1,22 +1,17 @@
 import Debug from 'debug'
-import { Subject } from 'rxjs'
 import {
   getSpecificationI18nName,
   ImodbusEntity,
   ImodbusSpecification,
-  ModbusRegisterType,
   SpecificationStatus,
 } from '@modbus2mqtt/specification.shared'
-import { ImodbusAddress, ModbusErrorStates, ModbusTasks } from '@modbus2mqtt/server.shared'
+import { ImodbusAddress, ModbusTasks } from '@modbus2mqtt/server.shared'
 import { IdentifiedStates } from '@modbus2mqtt/specification.shared'
 import { ConverterMap, ImodbusValues, M2mSpecification } from '@modbus2mqtt/specification'
 import { ConfigBus } from './configbus'
 import * as fs from 'fs'
-import { submitGetHoldingRegisterRequest } from './submitRequestMock'
 import { IfileSpecification } from '@modbus2mqtt/specification'
 import { LogLevelEnum, Logger } from '@modbus2mqtt/specification'
-import ModbusRTU from 'modbus-serial'
-import { ReadRegisterResult } from 'modbus-serial/ModbusRTU'
 import {
   Islave,
   IModbusConnection,
@@ -27,14 +22,9 @@ import {
 } from '@modbus2mqtt/server.shared'
 import { ConfigSpecification } from '@modbus2mqtt/specification'
 import { Config } from './config'
-import { ModbusRTUWorker } from './ModbusRTUWorker'
-import { ModbusRTUQueue } from './ModbusRTUQueue'
-import { IexecuteOptions, ModbusRTUProcessor } from './ModbusRTUProcessor'
-import { IModbusAPI } from './ModbusWorker'
 import { ModbusTcpRtuBridge } from './tcprtubridge'
 import { MqttPoller } from './mqttpoller'
 import { MqttConnector } from './mqttconnector'
-import { Mutex } from 'async-mutex'
 import { IconsumerModbusAPI, IModbusConfiguration, ModbusAPI } from './ModbusAPI'
 const debug = Debug('bus')
 const log = new Logger('bus')
@@ -96,7 +86,8 @@ export class Bus implements IModbusConfiguration {
           .then(() => {
             let b = Bus.getBusses().find((b) => b.getId() == busP.busId)
             if (b != undefined)
-              b.modbusAPI.initialConnect()
+              b.modbusAPI
+                .initialConnect()
                 .then(() => {
                   resolve(b!)
                 })
@@ -104,7 +95,8 @@ export class Bus implements IModbusConfiguration {
           })
           .catch(reject)
       else
-        b.modbusAPI.initialConnect()
+        b.modbusAPI
+          .initialConnect()
           .then(() => {
             resolve(b!)
           })
@@ -153,7 +145,8 @@ export class Bus implements IModbusConfiguration {
           b.properties = busP
           // Change of bus properties can influence the modbus data
           // E.g. set of lower timeout can lead to error messages
-          b.modbusAPI.reconnectRTU('updateBus')
+          b.modbusAPI
+            .reconnectRTU('updateBus')
             .then(() => {
               resolve(b)
             })
@@ -178,26 +171,22 @@ export class Bus implements IModbusConfiguration {
   properties: IBus
   private tcprtuBridge: ModbusTcpRtuBridge | undefined
   private modbusAPI: ModbusAPI
-  constructor(
-    ibus: IBus
-  ) {
+  constructor(ibus: IBus) {
     this.properties = ibus
     this.modbusAPI = new ModbusAPI(this)
     if ((ibus.connectionData as IRTUConnection).tcpBridge) {
       this.startTcpRtuBridge()
     }
   }
-  getModbusAPI():IconsumerModbusAPI{
+  getModbusAPI(): IconsumerModbusAPI {
     return this.modbusAPI
   }
-  getSlaveTimeoutBySlaveId(slaveid: number):number{
+  getSlaveTimeoutBySlaveId(slaveid: number): number {
     let slave = this.getSlaveBySlaveId(slaveid)
-    if( slave )
-      if( slave.modbusTimout != undefined )
-        return slave.modbusTimout
+    if (slave) if (slave.modbusTimout != undefined) return slave.modbusTimout
     return this.properties.connectionData.timeout
   }
-  getModbusConnection ():IModbusConnection{
+  getModbusConnection(): IModbusConnection {
     return this.properties.connectionData
   }
   getId(): number {
@@ -252,7 +241,6 @@ export class Bus implements IModbusConfiguration {
     return Bus.allSpecificationsModbusAddresses!
   }
 
-  
   /*
    * getAvailableSpecs uses bus.slaves cache if possible
    */
@@ -293,12 +281,13 @@ export class Bus implements IModbusConfiguration {
         reject(new Error('RTU is configured, but device is not available'))
         return
       }
-      this.modbusAPI.readModbusRegister(slaveid, addresses, {
-        task: ModbusTasks.deviceDetection,
-        printLogs: false,
-        errorHandling: { split: true },
-        useCache: true,
-      })
+      this.modbusAPI
+        .readModbusRegister(slaveid, addresses, {
+          task: ModbusTasks.deviceDetection,
+          printLogs: false,
+          errorHandling: { split: true },
+          useCache: true,
+        })
         .then((values) => {
           // Add not available addresses to the values
           // Store it for cache
@@ -386,7 +375,7 @@ export class Bus implements IModbusConfiguration {
     })
     return this.properties.slaves
   }
-  getSlaveBySlaveId(slaveid: number| undefined, language?: string): Islave | undefined {
+  getSlaveBySlaveId(slaveid: number | undefined, language?: string): Islave | undefined {
     let slave = this.properties.slaves.find((dev) => dev.slaveid == slaveid)
     if (slave) slave = this.getISlave(slave, language)
     return slave

@@ -13,7 +13,7 @@ export class FakeBus implements IModbusAPI {
     data = 198
   }
   getCacheId(): string {
-    return "1"
+    return '1'
   }
   reconnectRTU(task: string) {
     return new Promise<void>((resolve) => {
@@ -124,9 +124,9 @@ export class ModbusRTUWorkerForTest extends ModbusRTUWorker {
     expect(fakeBus.callCount).toBe(this.expectedAPIcallCount)
     expect((this.modbusAPI as FakeBus).reconnected).toBe(this.expectedReconnected)
     expect(fakeBus.wroteDataCount).toBe(this.expectedAPIwroteDataCount)
-    if(this.expectedRequestCountSpecification > 0){
+    if (this.expectedRequestCountSpecification > 0) {
       let min = new Date().getMinutes()
-      expect( this['cache'].get(1)!.requestCount[ModbusTasks.specification][min]).toBe(this.expectedRequestCountSpecification)
+      expect(this['cache'].get(1)!.requestCount[ModbusTasks.specification][min]).toBe(this.expectedRequestCountSpecification)
     }
     this.done()
   }

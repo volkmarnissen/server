@@ -28,7 +28,13 @@ export class Modbus {
     throw new Error('No modbusaddress or registerType passed')
   }
 
-  static writeEntityMqtt(modbusAPI: IconsumerModbusAPI, slaveid: number, spec: Ispecification, entityid: number, mqttValue: string): Promise<void> {
+  static writeEntityMqtt(
+    modbusAPI: IconsumerModbusAPI,
+    slaveid: number,
+    spec: Ispecification,
+    entityid: number,
+    mqttValue: string
+  ): Promise<void> {
     // this.modbusClient.setID(device.slaveid);
     let entity = spec.entities.find((ent) => ent.id == entityid)
     if (Config.getConfiguration().fakeModbus) {
@@ -51,7 +57,12 @@ export class Modbus {
     } else throw new Error('Entity not found in Specification entityid: ' + entityid + JSON.stringify(spec))
   }
 
-  readEntityFromModbus(modbusAPI:IconsumerModbusAPI, slaveid: number, spec: Ispecification, entityId: number): Promise<ImodbusEntity> {
+  readEntityFromModbus(
+    modbusAPI: IconsumerModbusAPI,
+    slaveid: number,
+    spec: Ispecification,
+    entityId: number
+  ): Promise<ImodbusEntity> {
     return new Promise((resolve, reject) => {
       let entity = spec.entities.find((ent) => ent.id == entityId)
       if (entity && entity.modbusAddress && entity.registerType) {

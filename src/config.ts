@@ -153,7 +153,7 @@ export class Config {
     },
     httpport: 3000,
     fakeModbus: false,
-    noAuthentication: false
+    noAuthentication: false,
   }
 
   static yamlDir: string = ''
@@ -222,7 +222,7 @@ export class Config {
       Config.config.fakeModbus = Config.config.fakeModbus ? Config.config.fakeModbus : false
       Config.config.noAuthentication = Config.config.noAuthentication ? Config.config.noAuthentication : false
       Config.config.filelocation = Config.config.filelocation ? Config.config.filelocation : Config.yamlDir
-      Config.config.tcpBridgePort = Config.config.tcpBridgePort ? Config.config.tcpBridgePort: 502
+      Config.config.tcpBridgePort = Config.config.tcpBridgePort ? Config.config.tcpBridgePort : 502
       process.env.HASSIO_TOKEN && process.env.HASSIO_TOKEN.length ? process.env.HASSIO_TOKEN : undefined
       Config.config.mqttusehassio =
         Config.config.mqttusehassio && process.env.HASSIO_TOKEN && process.env.HASSIO_TOKEN.length
