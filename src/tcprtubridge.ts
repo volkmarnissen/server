@@ -38,7 +38,7 @@ export class ModbusTcpRtuBridge {
     })
   }
   static getDefaultPort(): number {
-    return Config.getConfiguration().tcpBridgePort! 
+    return Config.getConfiguration().tcpBridgePort!
   }
 
   queueOneRegister(registerType: ModbusRegisterType, addr: number, write: number | undefined, unitID: number): Promise<number> {

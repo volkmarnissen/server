@@ -60,7 +60,14 @@ export class MqttSubscriptions {
                   entity,
                   JSON.parse(payload.toString())
                 )
-              else promise = Modbus.writeEntityMqtt(busAndSlave.bus.getModbusAPI(), busAndSlave.slave.slaveid, spec, entity.id, payload.toString())
+              else
+                promise = Modbus.writeEntityMqtt(
+                  busAndSlave.bus.getModbusAPI(),
+                  busAndSlave.slave.slaveid,
+                  spec,
+                  entity.id,
+                  payload.toString()
+                )
             } // for Testing
             else return (modbus ? 'Modbus ' : 'MQTT ') + payload.toString()
           }
@@ -77,11 +84,19 @@ export class MqttSubscriptions {
     if (entity.converter) cnv = ConverterMap.getConverter(entity)
     if (cnv) {
       if (modbus)
-        return Modbus.writeEntityModbus(Bus.getBus(slave.getBusId())!.getModbusAPI(), slave.getSlaveId(), entity, [Number.parseInt(payload)])
+        return Modbus.writeEntityModbus(Bus.getBus(slave.getBusId())!.getModbusAPI(), slave.getSlaveId(), entity, [
+          Number.parseInt(payload),
+        ])
       else {
         let spec = ConfigSpecification.getSpecificationByFilename(slave.getSpecificationId())
         if (spec)
-          return Modbus.writeEntityMqtt(Bus.getBus(slave.getBusId())!.getModbusAPI(), slave.getSlaveId(), spec, entity.id, payload.toString())
+          return Modbus.writeEntityMqtt(
+            Bus.getBus(slave.getBusId())!.getModbusAPI(),
+            slave.getSlaveId(),
+            spec,
+            entity.id,
+            payload.toString()
+          )
       }
     }
     return new Promise<void>((_resolve, reject) => {
@@ -127,13 +142,12 @@ export class MqttSubscriptions {
   }
   static readModbus(slave: Slave): Observable<ImodbusSpecification> | undefined {
     let bus = Bus.getBus(slave.getBusId())
-    if (bus){
+    if (bus) {
       let s = bus.getSlaveBySlaveId(slave.getSlaveId()!)
       return Modbus.getModbusSpecification(ModbusTasks.poll, bus.getModbusAPI(), s!, slave.getSpecificationId(), (e) => {
         log.log(LogLevelEnum.error, 'reading spec failed' + e.message)
         //Ignore this error continue with next
       })
-
     }
     return undefined
   }

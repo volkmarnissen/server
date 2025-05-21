@@ -64,8 +64,8 @@ function testRead(
     let bus = Bus.getBus(1)
     if (bus) {
       tcpServer.startServer((bus.properties.connectionData as any)['port']).then(() => {
-        debug('Connected to TCP server');
-        let modbusAPI = new ModbusAPI(bus!);
+        debug('Connected to TCP server')
+        let modbusAPI = new ModbusAPI(bus!)
         modbusAPI.initialConnect().then(() => {
           fc.bind(modbusAPI)(XYslaveid, address, 2)
             .then((value) => {
@@ -76,15 +76,15 @@ function testRead(
                   expect(true).toBeFalsy()
                 })
                 .catch((e) => {
-                  expect(e.modbusCode).toBe(2);
+                  expect(e.modbusCode).toBe(2)
                   modbusAPI['closeRTU']('test', () => {
                     tcpServer.stopServer(resolve)
                   })
                 })
             })
             .catch((e) => {
-              console.error(e);
-              (bus!.getModbusAPI as any as ModbusAPI)['closeRTU']('test', () => {
+              console.error(e)
+              ;(bus!.getModbusAPI as any as ModbusAPI)['closeRTU']('test', () => {
                 tcpServer.stopServer(resolve)
               })
             })
@@ -105,30 +105,30 @@ function testWrite(
     if (bus) {
       tcpServer.startServer((bus.properties.connectionData as any)['port']).then(() => {
         let bus = Bus.getBus(1)
-        let modbusAPI = new ModbusAPI(bus!);
+        let modbusAPI = new ModbusAPI(bus!)
         modbusAPI.initialConnect().then(() => {
-            fc.bind(modbusAPI)(XYslaveid, address, { data: [value], buffer: [0] })
-              .then(() => {
-                fc.bind(bus)(XYslaveid, address2, {
-                  data: [value],
-                  buffer: [0],
-                })
-                  .then(() => {
-                    expect(true).toBeFalsy()
-                  })
-                  .catch((e) => {
-                    expect(e.modbusCode).toBe(2);
-                  modbusAPI['closeRTU']('test', () => {
-                      tcpServer.stopServer(resolve)
-                    })
-                  })
+          fc.bind(modbusAPI)(XYslaveid, address, { data: [value], buffer: [0] })
+            .then(() => {
+              fc.bind(bus)(XYslaveid, address2, {
+                data: [value],
+                buffer: [0],
               })
-              .catch((e) => {
-                  modbusAPI['closeRTU']('test', () => {
-                  tcpServer.stopServer(resolve)
+                .then(() => {
+                  expect(true).toBeFalsy()
                 })
+                .catch((e) => {
+                  expect(e.modbusCode).toBe(2)
+                  modbusAPI['closeRTU']('test', () => {
+                    tcpServer.stopServer(resolve)
+                  })
+                })
+            })
+            .catch((e) => {
+              modbusAPI['closeRTU']('test', () => {
+                tcpServer.stopServer(resolve)
               })
-          })
+            })
+        })
       })
     }
   })

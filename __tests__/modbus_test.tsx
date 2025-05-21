@@ -136,10 +136,16 @@ describe('Modbus read', () => {
     new ConfigSpecification().readYaml()
     let dev = ConfigBus.getSlave(0, 1)!
     expect(dev).toBeDefined
-    Modbus.getModbusSpecification(ModbusTasks.specification, Bus.getBus(0)!.getModbusAPI(), Bus.getBus(0)!.getSlaveBySlaveId(1)!, dev!.specificationid!, (_e) => {
-      expect(false).toBeTruthy()
-      done()
-    }).subscribe((spec1) => {
+    Modbus.getModbusSpecification(
+      ModbusTasks.specification,
+      Bus.getBus(0)!.getModbusAPI(),
+      Bus.getBus(0)!.getSlaveBySlaveId(1)!,
+      dev!.specificationid!,
+      (_e) => {
+        expect(false).toBeTruthy()
+        done()
+      }
+    ).subscribe((spec1) => {
       let spec = ConfigSpecification.getSpecificationByFilename(dev!.specificationid!)!
       expect(spec).toBeDefined()
       expect((spec1?.entities[0] as ImodbusEntity).mqttValue).toBe((spec1?.entities[0] as ImodbusEntity).mqttValue)

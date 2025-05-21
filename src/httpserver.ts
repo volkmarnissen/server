@@ -358,11 +358,11 @@ export class HttpServer extends HttpServerBase {
       }
       let modbusTask = ModbusTasks.specification
       if (req.query.deviceDetection) modbusTask = ModbusTasks.deviceDetection
-      let slaveid:number| undefined  = undefined 
-      let slave = bus.getSlaveBySlaveId( Number.parseInt(req.query.slaveid))
-      if( slave == undefined){
-          this.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, JSON.stringify('invalid slaveid '))
-          return
+      let slaveid: number | undefined = undefined
+      let slave = bus.getSlaveBySlaveId(Number.parseInt(req.query.slaveid))
+      if (slave == undefined) {
+        this.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, JSON.stringify('invalid slaveid '))
+        return
       }
       Modbus.getModbusSpecification(modbusTask, bus.getModbusAPI(), slave, req.query.spec, (e: any) => {
         log.log(LogLevelEnum.error, 'http: get /specification ' + e.message)
@@ -537,7 +537,13 @@ export class HttpServer extends HttpServerBase {
             return
           }
         })
-        Modbus.getModbusSpecificationFromData(ModbusTasks.entity, bus.getModbusAPI(), Number.parseInt(req.query.slaveid!), req.body, sub)
+        Modbus.getModbusSpecificationFromData(
+          ModbusTasks.entity,
+          bus.getModbusAPI(),
+          Number.parseInt(req.query.slaveid!),
+          req.body,
+          sub
+        )
       }
     })
     this.post(apiUri.writeEntity, (req: GetRequestWithParameter, res: http.ServerResponse) => {

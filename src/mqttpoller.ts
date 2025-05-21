@@ -56,9 +56,9 @@ export class MqttPoller {
           // Trigger state only if it's configured to do so
           let spMode = bs.getPollMode()
           if (spMode == undefined || [PollModes.intervall, PollModes.intervallAndTrigger].includes(spMode)) {
-            if (bus){
+            if (bus) {
               let slave = bus.getSlaveBySlaveId(bs.getSlaveId())!
-              Modbus.getModbusSpecification(ModbusTasks.poll, bus.getModbusAPI(),slave, bs.getSpecificationId(), (e) => {
+              Modbus.getModbusSpecification(ModbusTasks.poll, bus.getModbusAPI(), slave, bs.getSpecificationId(), (e) => {
                 log.log(LogLevelEnum.error, 'reading spec failed' + e.message)
               }).subscribe((spec) => {
                 tAndP.push({ topic: bs.getStateTopic(), payload: bs.getStatePayload(spec.entities), entityid: 0 })
@@ -77,7 +77,6 @@ export class MqttPoller {
                     resolve()
                   })
               })
-
             }
           }
         })
