@@ -1,8 +1,11 @@
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU'
 import { Bus, IModbusResultWithDuration } from './bus'
-import { ModbusRTUQueue, IQueueEntry } from './ModbusRTUQueue'
+import { ModbusRTUQueue, IQueueEntry, IQueueOptions } from './ModbusRTUQueue'
 import { IFunctionCode, ModbusRegisterType } from '@modbus2mqtt/specification.shared'
 import ModbusRTU from 'modbus-serial'
+import { IexecuteOptions } from './ModbusRTUProcessor'
+import { ImodbusAddress } from '@modbus2mqtt/server.shared'
+import { ImodbusValues } from '@modbus2mqtt/specification'
 
 type TModbusReadFunction = (slaveid: number, dataaddress: number, length: number) => Promise<IModbusResultWithDuration>
 type TModbusWriteFunction = (slaveid: number, dataaddress: number, data: number[]) => Promise<void>
@@ -15,7 +18,7 @@ export interface IModbusAPI {
   writeHoldingRegisters: TModbusWriteFunction
   writeCoils: TModbusWriteFunction
   reconnectRTU: (task: string) => Promise<void>
-  getCacheId(): number
+  getCacheId(): string
 }
 export class ModbusWorker {
   protected functionCodeReadMap: Map<ModbusRegisterType, TModbusReadFunction>

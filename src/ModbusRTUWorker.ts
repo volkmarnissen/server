@@ -48,9 +48,8 @@ export class ModbusRTUWorker extends ModbusWorker {
   private queuePromise: Promise<void> | undefined = undefined
   private static lastNoticeMessageTime: number
   private static lastNoticeMessage: string
-  private static caches = new Map<number, Map<number, ImodbusValuesCache>>()
+  private static caches = new Map<string, Map<number, ImodbusValuesCache>>()
   private cache: Map<number, ImodbusValuesCache>
-  private running: boolean = false
   constructor(modbusAPI: IModbusAPI, queue: ModbusRTUQueue) {
     super(modbusAPI, queue)
     let c = ModbusRTUWorker.caches.get(modbusAPI.getCacheId())
@@ -343,6 +342,7 @@ export class ModbusRTUWorker extends ModbusWorker {
             current.errorState = ModbusErrorStates.noerror
             if (result.data) {
               this.updateCache(current, result.data)
+              debug("Success: " + current.address.address)
               current.onResolve(current, result.data)
             }
             resolve()
@@ -355,6 +355,7 @@ export class ModbusRTUWorker extends ModbusWorker {
               .catch((e) => {
                 this.debugMessage(current, ' failed permanently')
                 this.updateCacheError(current, e)
+                debug("Success: " + current.address.address + "e: "  + e.message)
                 current.onError(current, e)
                 resolve()
               })
@@ -403,6 +404,7 @@ export class ModbusRTUWorker extends ModbusWorker {
   private processOneEntry(): Promise<void> | undefined {
     let current = this.queue.dequeue()
     if (current){
+      debug("processOneEntry: ql:" + this.queue.getLength() + " address: " + current?.address.address)
       let dt = new Date()
       if (this.cache.get(current.slaveId) == undefined) this.cache.set(current.slaveId, this.createEmptyIModbusValues())
       let cacheEntry = this.cache.get(current.slaveId)      
@@ -421,7 +423,7 @@ export class ModbusRTUWorker extends ModbusWorker {
           .catch((e) => this.processOneEntry())
     }
     else {
-      this.running = false
+      this.isRunning = false
       this.onFinish()
       return undefined
     }
@@ -434,8 +436,8 @@ export class ModbusRTUWorker extends ModbusWorker {
     let ql = this.queue.getLength()
     if (!(ql % 10)) debug('Number of queue entries: ' + ql)
     // process all queue entries sequentially:
-    if (this.running) return
-    this.running = true
+    if (this.isRunning) return
+    this.isRunning = true
     this.processOneEntry()
   }
 

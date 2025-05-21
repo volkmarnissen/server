@@ -3,6 +3,7 @@ import { IQueueEntry, ModbusRTUQueue } from './ModbusRTUQueue'
 import { ImodbusAddress, ModbusTasks } from '@modbus2mqtt/server.shared'
 import { ModbusRegisterType } from '@modbus2mqtt/specification.shared'
 import { Logger, LogLevelEnum } from '@modbus2mqtt/specification'
+import { Config } from './config'
 const log = new Logger('tcprtubridge')
 
 export class ModbusTcpRtuBridge {
@@ -37,7 +38,7 @@ export class ModbusTcpRtuBridge {
     })
   }
   static getDefaultPort(): number {
-    return 502
+    return Config.getConfiguration().tcpBridgePort! 
   }
 
   queueOneRegister(registerType: ModbusRegisterType, addr: number, write: number | undefined, unitID: number): Promise<number> {
