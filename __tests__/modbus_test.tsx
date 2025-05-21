@@ -136,10 +136,16 @@ describe('Modbus read', () => {
     new ConfigSpecification().readYaml()
     let dev = ConfigBus.getSlave(0, 1)!
     expect(dev).toBeDefined
-    Modbus.getModbusSpecification(ModbusTasks.specification, Bus.getBus(0)!, 1, dev!.specificationid!, (_e) => {
-      expect(false).toBeTruthy()
-      done()
-    }).subscribe((spec1) => {
+    Modbus.getModbusSpecification(
+      ModbusTasks.specification,
+      Bus.getBus(0)!.getModbusAPI(),
+      Bus.getBus(0)!.getSlaveBySlaveId(1)!,
+      dev!.specificationid!,
+      (_e) => {
+        expect(false).toBeTruthy()
+        done()
+      }
+    ).subscribe((spec1) => {
       let spec = ConfigSpecification.getSpecificationByFilename(dev!.specificationid!)!
       expect(spec).toBeDefined()
       expect((spec1?.entities[0] as ImodbusEntity).mqttValue).toBe((spec1?.entities[0] as ImodbusEntity).mqttValue)
@@ -152,7 +158,7 @@ describe('Modbus read', () => {
     prepareIdentification()
     expect(dev).toBeDefined
     spec.entities = ents
-    mr.readEntityFromModbus(Bus.getBus(0)!, 1, spec, 1)
+    mr.readEntityFromModbus(Bus.getBus(0)!.getModbusAPI(), 1, spec, 1)
       .then((arg0: ImodbusEntity) => {
         expect(arg0!.identified).toBe(IdentifiedStates.unknown)
         done()
@@ -171,7 +177,7 @@ describe('Modbus read', () => {
         max: 0.4,
       }
     spec.entities = ents
-    mr.readEntityFromModbus(Bus.getBus(0)!, 1, spec, 1).then((arg0: ImodbusEntity) => {
+    mr.readEntityFromModbus(Bus.getBus(0)!.getModbusAPI(), 1, spec, 1).then((arg0: ImodbusEntity) => {
       expect(arg0!.identified).toBe(IdentifiedStates.identified)
       done()
     }) // unidenfified
@@ -193,7 +199,7 @@ describe('Modbus read', () => {
     }
     ent.id = 1
     spec.entities = [ent]
-    mr.readEntityFromModbus(Bus.getBus(0)!, 1, spec, 1)
+    mr.readEntityFromModbus(Bus.getBus(0)!.getModbusAPI(), 1, spec, 1)
       .then((arg0: ImodbusEntity) => {
         expect(arg0!.identified).toBe(IdentifiedStates.identified)
         Config['config'].fakeModbus = true
@@ -212,7 +218,7 @@ describe('Modbus read', () => {
     expect(dev).toBeDefined
     if (entText.converterParameters) (entText.converterParameters as Itext).identification = 'test'
     spec.entities = [entText]
-    mr.readEntityFromModbus(Bus.getBus(0)!, 2, spec, 2).then((arg0: ImodbusEntity) => {
+    mr.readEntityFromModbus(Bus.getBus(0)!.getModbusAPI(), 2, spec, 2).then((arg0: ImodbusEntity) => {
       expect(arg0!.identified).toBe(IdentifiedStates.notIdentified)
       done()
     }) // unidenfified
@@ -227,7 +233,7 @@ describe('Modbus read', () => {
     dev!.slaveid = 2
     spec.entities = [entText]
     let mb = new Modbus()
-    mb.readEntityFromModbus(Bus.getBus(1)!, 2, spec, 2).then((arg0: ImodbusEntity) => {
+    mb.readEntityFromModbus(Bus.getBus(1)!.getModbusAPI(), 2, spec, 2).then((arg0: ImodbusEntity) => {
       expect(arg0!.identified).toBe(IdentifiedStates.identified)
       done()
     }) // unidenfified
@@ -341,7 +347,7 @@ it('Modbus writeEntityMqtt', (done) => {
   let dev = ConfigBus.getSlave(0, 1)!
   expect(dev).toBeDefined
 
-  Modbus.writeEntityMqtt(Bus.getBus(0)!, 1, spec, 3, 'test')
+  Modbus.writeEntityMqtt(Bus.getBus(0)!.getModbusAPI(), 1, spec, 3, 'test')
     .catch((e) => {
       expect(`[FAIL] ${e}`.trim()).toBeFalsy()
     })

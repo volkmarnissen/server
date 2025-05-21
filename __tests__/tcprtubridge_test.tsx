@@ -1,6 +1,6 @@
 import { it, expect } from '@jest/globals'
 import { ModbusTcpRtuBridge } from '../src/tcprtubridge'
-import { ModbusRTUQueue } from '../src/ModbusRTUQueue'
+import { ModbusRTUQueue } from '../src/modbusRTUqueue'
 import { ModbusRegisterType } from '@modbus2mqtt/specification.shared'
 import { FakeBus, ModbusRTUWorkerForTest } from './testhelper'
 import ModbusRTU from 'modbus-serial'

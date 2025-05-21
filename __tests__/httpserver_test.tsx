@@ -48,6 +48,7 @@ import { ConfigBus } from '../src/configbus'
 import { MqttConnector } from '../src/mqttconnector'
 import { MqttPoller } from '../src/mqttpoller'
 import { MqttSubscriptions } from '../src/mqttsubscriptions'
+import { ModbusAPI } from '../src/modbusAPI'
 let mockReject = false
 let debug = Debug('testhttpserver')
 const mqttService = {
@@ -491,9 +492,12 @@ describe('http POST', () => {
       })
       .then((_response) => {
         // expect((response as any as Response).status).toBe(HttpErrorsEnum.ErrBadRequest)
-        let ev = Bus.getBus(0)!['_modbusRTUWorker']!['createEmptyIModbusValues']()
+        let bus = Bus.getBus(0)!
+        let modbusAPI = new ModbusAPI(bus)
+        bus['modbusAPI'] = modbusAPI
+        let ev = modbusAPI['_modbusRTUWorker']!['createEmptyIModbusValues']()
         ev.holdingRegisters.set(100, { error: new Error('failed!!!'), date: new Date() })
-        Bus.getBus(0)!['_modbusRTUWorker']!['cache'].set(2, ev)
+        modbusAPI['_modbusRTUWorker']!['cache'].set(2, ev)
         supertest(httpServer['app'])
           .post(url)
           .accept('application/json')
