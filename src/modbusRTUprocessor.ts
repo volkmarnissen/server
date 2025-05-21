@@ -1,6 +1,6 @@
 import { ImodbusValues, IModbusResultOrError, LogLevelEnum } from '@modbus2mqtt/specification'
 import { ModbusRegisterType } from '@modbus2mqtt/specification.shared'
-import { IQueueOptions, ModbusRTUQueue } from './ModbusRTUQueue'
+import { IQueueOptions, ModbusRTUQueue } from './modbusRTUqueue'
 import { Logger } from '@modbus2mqtt/specification'
 import Debug from 'debug'
 import { ImodbusAddress, ModbusTasks } from '@modbus2mqtt/server.shared'

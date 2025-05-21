@@ -9,8 +9,8 @@ import { IfileSpecification } from '@modbus2mqtt/specification'
 import { LogLevelEnum, Logger } from '@modbus2mqtt/specification'
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU'
 import { IidentificationSpecification, ImodbusAddress, Islave, ModbusTasks } from '@modbus2mqtt/server.shared'
-import { IModbusAPI } from './ModbusWorker'
-import { IconsumerModbusAPI } from './ModbusAPI'
+import { IModbusAPI } from './modbusWorker'
+import { IconsumerModbusAPI } from './modbusAPI'
 const debug = require('debug')('modbus')
 const debugAction = require('debug')('actions')
 

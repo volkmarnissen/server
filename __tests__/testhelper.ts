@@ -1,8 +1,8 @@
 import { expect } from '@jest/globals'
 import { IModbusResultWithDuration } from '../src/bus'
-import { ModbusRTUQueue } from '../src/ModbusRTUQueue'
-import { ModbusRTUWorker } from '../src/ModbusRTUWorker'
-import { IModbusAPI } from '../src/ModbusWorker'
+import { ModbusRTUQueue } from '../src/modbusRTUqueue'
+import { ModbusRTUWorker } from '../src/modbusRTUworker'
+import { IModbusAPI } from '../src/modbusWorker'
 import { ModbusTasks } from '@modbus2mqtt/server.shared'
 let data = 198
 export class FakeBus implements IModbusAPI {

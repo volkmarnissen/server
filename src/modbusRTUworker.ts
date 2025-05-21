@@ -1,8 +1,8 @@
-import { ModbusRTUQueue, IQueueEntry, IQueueOptions } from './ModbusRTUQueue'
-import { IModbusAPI, ModbusWorker } from './ModbusWorker'
+import { ModbusRTUQueue, IQueueEntry, IQueueOptions } from './modbusRTUqueue'
+import { IModbusAPI, ModbusWorker } from './modbusWorker'
 import { IModbusResultOrError, Logger, LogLevelEnum } from '@modbus2mqtt/specification'
 import Debug from 'debug'
-import { IexecuteOptions } from './ModbusRTUProcessor'
+import { IexecuteOptions } from './modbusRTUprocessor'
 import { ModbusRegisterType } from '@modbus2mqtt/specification.shared'
 import {
   ImodbusAddress,

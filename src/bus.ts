@@ -25,7 +25,7 @@ import { Config } from './config'
 import { ModbusTcpRtuBridge } from './tcprtubridge'
 import { MqttPoller } from './mqttpoller'
 import { MqttConnector } from './mqttconnector'
-import { IconsumerModbusAPI, IModbusConfiguration, ModbusAPI } from './ModbusAPI'
+import { IconsumerModbusAPI, IModbusConfiguration, ModbusAPI } from './modbusAPI'
 const debug = Debug('bus')
 const log = new Logger('bus')
 export interface IModbusResultWithDuration {
