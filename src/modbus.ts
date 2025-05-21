@@ -8,7 +8,9 @@ import { submitGetHoldingRegisterRequest } from './submitRequestMock'
 import { IfileSpecification } from '@modbus2mqtt/specification'
 import { LogLevelEnum, Logger } from '@modbus2mqtt/specification'
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU'
-import { IidentificationSpecification, ImodbusAddress, ModbusTasks } from '@modbus2mqtt/server.shared'
+import { IidentificationSpecification, ImodbusAddress, Islave, ModbusTasks } from '@modbus2mqtt/server.shared'
+import { IModbusAPI } from './ModbusWorker'
+import { IconsumerModbusAPI } from './ModbusAPI'
 const debug = require('debug')('modbus')
 const debugAction = require('debug')('actions')
 
@@ -16,9 +18,9 @@ const log = new Logger('modbus')
 export class Modbus {
   constructor() {}
 
-  static writeEntityModbus(bus: Bus, slaveid: number, entity: Ientity, modbusValue: number[]): Promise<void> {
+  static writeEntityModbus(modbusAPI: IconsumerModbusAPI, slaveid: number, entity: Ientity, modbusValue: number[]): Promise<void> {
     if (entity.modbusAddress && entity.registerType) {
-      return bus.writeModbusRegister(slaveid, entity.modbusAddress, entity.registerType, modbusValue, {
+      return modbusAPI.writeModbusRegister(slaveid, entity.modbusAddress, entity.registerType, modbusValue, {
         task: ModbusTasks.writeEntity,
         errorHandling: {},
       })
@@ -26,7 +28,7 @@ export class Modbus {
     throw new Error('No modbusaddress or registerType passed')
   }
 
-  static writeEntityMqtt(bus: Bus, slaveid: number, spec: Ispecification, entityid: number, mqttValue: string): Promise<void> {
+  static writeEntityMqtt(modbusAPI: IconsumerModbusAPI, slaveid: number, spec: Ispecification, entityid: number, mqttValue: string): Promise<void> {
     // this.modbusClient.setID(device.slaveid);
     let entity = spec.entities.find((ent) => ent.id == entityid)
     if (Config.getConfiguration().fakeModbus) {
@@ -39,7 +41,7 @@ export class Modbus {
       if (entity.modbusAddress !== undefined && entity.registerType && converter) {
         let modbusValue = converter?.mqtt2modbus(spec, entityid, mqttValue)
         if (modbusValue && modbusValue.length > 0) {
-          return bus.writeModbusRegister(slaveid, entity.modbusAddress, entity.registerType, modbusValue, {
+          return modbusAPI.writeModbusRegister(slaveid, entity.modbusAddress, entity.registerType, modbusValue, {
             task: ModbusTasks.writeEntity,
             errorHandling: {},
           })
@@ -49,7 +51,7 @@ export class Modbus {
     } else throw new Error('Entity not found in Specification entityid: ' + entityid + JSON.stringify(spec))
   }
 
-  readEntityFromModbus(bus: Bus, slaveid: number, spec: Ispecification, entityId: number): Promise<ImodbusEntity> {
+  readEntityFromModbus(modbusAPI:IconsumerModbusAPI, slaveid: number, spec: Ispecification, entityId: number): Promise<ImodbusEntity> {
     return new Promise((resolve, reject) => {
       let entity = spec.entities.find((ent) => ent.id == entityId)
       if (entity && entity.modbusAddress && entity.registerType) {
@@ -66,13 +68,13 @@ export class Modbus {
           }
           if (Config.getConfiguration().fakeModbus) submitGetHoldingRegisterRequest(slaveid, addresses).then(rcf).catch(reject)
           else
-            bus
+            modbusAPI
               .readModbusRegister(slaveid, addresses, { task: ModbusTasks.entity, errorHandling: { retry: true } })
               .then(rcf)
               .catch(reject)
         }
       } else {
-        let msg = 'Bus ' + bus.properties.busId + ' has no configured Specification'
+        let msg = 'Bus ' + modbusAPI.getName() + ' has no configured Specification'
         log.log(LogLevelEnum.notice, msg)
         reject(new Error(msg))
       }
@@ -97,18 +99,18 @@ export class Modbus {
   }
   static getModbusSpecificationFromData(
     task: ModbusTasks,
-    bus: Bus,
+    modbusAPI: IconsumerModbusAPI,
     slaveid: number,
     specification: IfileSpecification,
     sub: Subject<ImodbusSpecification>
   ): void {
     let addresses = new Set<ImodbusAddress>()
     ConfigSpecification.clearModbusData(specification)
-    let info = '(' + bus.getId() + ',' + slaveid + ')'
+    let info = '(' + modbusAPI.getName() + ',' + slaveid + ')'
     Bus.getModbusAddressesForSpec(specification, addresses)
 
     debugAction('getModbusSpecificationFromData start read from modbus')
-    bus
+    modbusAPI
       .readModbusRegister(slaveid, addresses, { task: task, errorHandling: { retry: true } })
       .then((values) => {
         debugAction('getModbusSpecificationFromData end read from modbus')
@@ -122,21 +124,20 @@ export class Modbus {
   }
   static getModbusSpecification(
     task: ModbusTasks,
-    bus: Bus,
-    slaveid: number,
+    modbusAPI: IconsumerModbusAPI,
+    slave: Islave,
     specificationFilename: string | undefined,
     failedFunction: (e: any) => void
   ): Observable<ImodbusSpecification> {
-    debugAction('getModbusSpecification starts (' + bus.getId() + ',' + slaveid + ')')
+    debugAction('getModbusSpecification starts (' + modbusAPI.getName() + ',' + slave.slaveid + ')')
     let rc = new Subject<ImodbusSpecification>()
     if (!specificationFilename || specificationFilename.length == 0) {
-      let slave = bus.getSlaveBySlaveId(slaveid)
       if (slave && slave.specificationid && slave.specificationid.length > 0) specificationFilename = slave.specificationid
     }
     if (specificationFilename) {
       let spec = ConfigSpecification.getSpecificationByFilename(specificationFilename)
       if (spec) {
-        Modbus.getModbusSpecificationFromData(task, bus, slaveid, spec, rc)
+        Modbus.getModbusSpecificationFromData(task, modbusAPI, slave.slaveid, spec, rc)
       } else {
         let msg = 'No specification passed  ' + specificationFilename
         failedFunction(new Error(msg))

@@ -12,8 +12,8 @@ export class FakeBus implements IModbusAPI {
   constructor() {
     data = 198
   }
-  getCacheId(): number {
-    return 1
+  getCacheId(): string {
+    return "1"
   }
   reconnectRTU(task: string) {
     return new Promise<void>((resolve) => {

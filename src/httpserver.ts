@@ -358,8 +358,13 @@ export class HttpServer extends HttpServerBase {
       }
       let modbusTask = ModbusTasks.specification
       if (req.query.deviceDetection) modbusTask = ModbusTasks.deviceDetection
-      let slaveid = Number.parseInt(req.query.slaveid)!
-      Modbus.getModbusSpecification(modbusTask, bus, slaveid, req.query.spec, (e: any) => {
+      let slaveid:number| undefined  = undefined 
+      let slave = bus.getSlaveBySlaveId( Number.parseInt(req.query.slaveid))
+      if( slave == undefined){
+          this.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, JSON.stringify('invalid slaveid '))
+          return
+      }
+      Modbus.getModbusSpecification(modbusTask, bus.getModbusAPI(), slave, req.query.spec, (e: any) => {
         log.log(LogLevelEnum.error, 'http: get /specification ' + e.message)
         this.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, JSON.stringify('read specification ' + e.message))
       }).subscribe((result) => {
@@ -499,7 +504,7 @@ export class HttpServer extends HttpServerBase {
               this.returnResult(req, res, HttpErrorsEnum.OkCreated, JSON.stringify({ busid: bus.properties.busId }))
             })
             .catch((e) => {
-              this.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, 'Bus not found in busses')
+              this.returnResult(req, res, HttpErrorsEnum.SrvErrInternalServerError, 'Bus: ' + e.message)
             })
       } else
         Bus.addBus(req.body)
@@ -532,7 +537,7 @@ export class HttpServer extends HttpServerBase {
             return
           }
         })
-        Modbus.getModbusSpecificationFromData(ModbusTasks.entity, bus, Number.parseInt(req.query.slaveid), req.body, sub)
+        Modbus.getModbusSpecificationFromData(ModbusTasks.entity, bus.getModbusAPI(), Number.parseInt(req.query.slaveid!), req.body, sub)
       }
     })
     this.post(apiUri.writeEntity, (req: GetRequestWithParameter, res: http.ServerResponse) => {
@@ -546,7 +551,7 @@ export class HttpServer extends HttpServerBase {
         let mqttValue = req.query.mqttValue
         let entityid = req.query.entityid ? parseInt(req.query.entityid) : undefined
         if (entityid && mqttValue)
-          Modbus.writeEntityMqtt(bus, Number.parseInt(req.query.slaveid), req.body, entityid, mqttValue)
+          Modbus.writeEntityMqtt(bus.getModbusAPI(), Number.parseInt(req.query.slaveid), req.body, entityid, mqttValue)
             .then(() => {
               this.returnResult(req, res, HttpErrorsEnum.OkCreated, '')
             })
