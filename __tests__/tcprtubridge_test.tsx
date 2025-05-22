@@ -159,7 +159,7 @@ describe('live tests', () => {
   it('live writeHoldingRegister', (done) => {
     liveMutext.runExclusive(() => {
       // submit a request
-      testWorker.expectedAPIcallCount = 0
+      testWorker.expectedAPIcallCount = 1
       testWorker.expectedAPIwroteDataCount = 1
       testWorker['done'] = done
       client
