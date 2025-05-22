@@ -24,7 +24,7 @@ import Debug from 'debug'
 const log = new Logger('bus')
 const debug = Debug('modbusapi')
 const debugMClient = Debug('modbusapi:mclient')
- 
+
 export interface IconsumerModbusAPI {
   getName(): string
   writeModbusRegister: (
@@ -116,7 +116,14 @@ export class ModbusAPI implements IModbusAPI, IconsumerModbusAPI {
           .catch(reject)
       })
   }
-  readRegisters<T>(slaveid:number, dataaddress:number, length:number, fct:(dataAddress: number, length: number)=> Promise<T>, resultMapper:(inp:T, start:number)=>IModbusResultWithDuration, fctName:string ):Promise<IModbusResultWithDuration>{
+  readRegisters<T>(
+    slaveid: number,
+    dataaddress: number,
+    length: number,
+    fct: (dataAddress: number, length: number) => Promise<T>,
+    resultMapper: (inp: T, start: number) => IModbusResultWithDuration,
+    fctName: string
+  ): Promise<IModbusResultWithDuration> {
     let rc = new Promise<IModbusResultWithDuration>((resolve, reject) => {
       if (this.modbusClient == undefined) {
         log.log(LogLevelEnum.error, 'modbusClient is undefined')
@@ -128,53 +135,81 @@ export class ModbusAPI implements IModbusAPI, IconsumerModbusAPI {
         if (slaveTimout == undefined) slaveTimout = (this.modbusConfiguration.getModbusConnection() as IRTUConnection).timeout
         this.modbusClient!.setTimeout(slaveTimout)
         let start = Date.now()
-        debugMClient("%s call: %d %d",fctName,dataaddress, length )
+        debugMClient('%s call: %d %d', fctName, dataaddress, length)
         fct(dataaddress, length)
           .then((result) => {
             this.clearModbusTimout()
             let rc = resultMapper(result, start)
-            debugMClient("%s success: %d %d %o",fctName,dataaddress, length, rc.data )            
+            debugMClient('%s success: %d %d %o', fctName, dataaddress, length, rc.data)
             resolve(rc)
           })
           .catch((e) => {
-            debugMClient("%s error: %d %d",fctName, dataaddress, length )
+            debugMClient('%s error: %d %d', fctName, dataaddress, length)
             this.setModbusTimout(reject, e, start)
           })
       }
     })
     return rc
   }
-  private static  registerResultMapper(inp:ReadRegisterResult, start:number):IModbusResultWithDuration{
+  private static registerResultMapper(inp: ReadRegisterResult, start: number): IModbusResultWithDuration {
     return {
-              data: inp.data,
-              duration: Date.now() - start,
-            }
+      data: inp.data,
+      duration: Date.now() - start,
+    }
   }
-  private static coilResultMapper(inp:ReadCoilResult, start:number):IModbusResultWithDuration{
-     let readResult: ReadRegisterResult = {
-              data: [],
-              buffer: Buffer.allocUnsafe(0),
-            }
-            inp.data.forEach((d) => {
-              readResult.data.push(d ? 1 : 0)
-            })
+  private static coilResultMapper(inp: ReadCoilResult, start: number): IModbusResultWithDuration {
+    let readResult: ReadRegisterResult = {
+      data: [],
+      buffer: Buffer.allocUnsafe(0),
+    }
+    inp.data.forEach((d) => {
+      readResult.data.push(d ? 1 : 0)
+    })
     return {
-              data: readResult.data,
-              duration: Date.now() - start,
-            }
+      data: readResult.data,
+      duration: Date.now() - start,
+    }
   }
-  
+
   readHoldingRegisters(slaveid: number, dataaddress: number, length: number): Promise<IModbusResultWithDuration> {
-      return this.readRegisters<ReadRegisterResult>(slaveid,dataaddress,length, this.modbusClient!.readHoldingRegisters.bind(this.modbusClient), ModbusAPI.registerResultMapper, "Holding" )
+    return this.readRegisters<ReadRegisterResult>(
+      slaveid,
+      dataaddress,
+      length,
+      this.modbusClient!.readHoldingRegisters.bind(this.modbusClient),
+      ModbusAPI.registerResultMapper,
+      'Holding'
+    )
   }
   readInputRegisters(slaveid: number, dataaddress: number, length: number): Promise<IModbusResultWithDuration> {
-    return this.readRegisters<ReadRegisterResult>(slaveid,dataaddress,length, this.modbusClient!.readInputRegisters.bind(this.modbusClient), ModbusAPI.registerResultMapper, "Input")
+    return this.readRegisters<ReadRegisterResult>(
+      slaveid,
+      dataaddress,
+      length,
+      this.modbusClient!.readInputRegisters.bind(this.modbusClient),
+      ModbusAPI.registerResultMapper,
+      'Input'
+    )
   }
   readDiscreteInputs(slaveid: number, dataaddress: number, length: number): Promise<IModbusResultWithDuration> {
-    return this.readRegisters<ReadCoilResult>(slaveid,dataaddress,length, this.modbusClient!.readDiscreteInputs.bind(this.modbusClient), ModbusAPI.coilResultMapper, "Discrete")
+    return this.readRegisters<ReadCoilResult>(
+      slaveid,
+      dataaddress,
+      length,
+      this.modbusClient!.readDiscreteInputs.bind(this.modbusClient),
+      ModbusAPI.coilResultMapper,
+      'Discrete'
+    )
   }
   readCoils(slaveid: number, dataaddress: number, length: number): Promise<IModbusResultWithDuration> {
-    return this.readRegisters<ReadCoilResult>(slaveid,dataaddress,length, this.modbusClient!.readDiscreteInputs.bind(this.modbusClient), ModbusAPI.coilResultMapper, "Coil")
+    return this.readRegisters<ReadCoilResult>(
+      slaveid,
+      dataaddress,
+      length,
+      this.modbusClient!.readDiscreteInputs.bind(this.modbusClient),
+      ModbusAPI.coilResultMapper,
+      'Coil'
+    )
   }
   getMaxModbusTimeout() {
     return (this.modbusConfiguration.getModbusConnection() as IRTUConnection).timeout
@@ -239,7 +274,7 @@ export class ModbusAPI implements IModbusAPI, IconsumerModbusAPI {
     })
     return rc
   }
-  setModbusTimout(reject: (e: any) => void, e: any,start:number) {
+  setModbusTimout(reject: (e: any) => void, e: any, start: number) {
     this.modbusClientTimedOut = e.errno && e.errno == 'ETIMEDOUT'
     e.duration = Date.now() - start
     reject(e)

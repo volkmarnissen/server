@@ -165,7 +165,9 @@ export class ModbusRTUProcessor {
                 data[0]
             )
             if (valueCount == addressCount) {
-              debugResult(ModbusTasks[options.task] + ': slaveId: ' + slaveId + ' addresses.length:' + preparedAddresses.addresses.length)
+              debugResult(
+                ModbusTasks[options.task] + ': slaveId: ' + slaveId + ' addresses.length:' + preparedAddresses.addresses.length
+              )
               resolve(values)
             }
           },

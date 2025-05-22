@@ -411,15 +411,14 @@ export class ModbusRTUWorker extends ModbusWorker {
       if (this.cache.get(current.slaveId) == undefined) this.cache.set(current.slaveId, this.createEmptyIModbusValues())
       let cacheEntry = this.cache.get(current.slaveId)
       cacheEntry!.requestCount[current.options.task][dt.getMinutes()]++
-      if (current.address.write)
-        return this.functionCodeWriteMap.get(current.address.registerType)!(
-          current.slaveId,
-          current.address.address,
-          current.address.write
-        )
-          .then(() => this.processOneEntry())
-          .catch((e) => this.processOneEntry())
-      else
+      if (current.address.write) {
+        let fct = this.functionCodeWriteMap.get(current.address.registerType)
+        if (fct)
+          return fct(current.slaveId, current.address.address, current.address.write)
+            .then(() => this.processOneEntry())
+            .catch((e) => this.processOneEntry())
+        else return Promise.reject(new Error('Invalid function code for write' + current.address.registerType))
+      } else
         return this.executeModbusFunctionCodeRead(current)
           .then(() => this.processOneEntry())
           .catch((e) => this.processOneEntry())
