@@ -21,6 +21,24 @@
       "type": "node"
     },
     {
+       "name": "Run TCP Bridge",
+      "preLaunchTask": "npm: build.dev",
+      "timeout": 10000,
+      "program": "${workspaceFolder}/dist/modbus2mqtt.js",
+      "args": [  "-s", "../ssl", "-y" ,"../yaml-dir-bridge"],
+      "console": "integratedTerminal",
+      "env": {
+        "DEBUG": "",
+        "NODE_OPTIONS": "--experimental-vm-modules npx jest"
+      },
+      "request": "launch",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "sourceMaps": true,  
+      "type": "node"
+    },
+    {
       "name": "Test ModbusRTU",
      "timeout": 10000,
      "program": "${workspaceFolder}/__tests__/testmodbus.js",
