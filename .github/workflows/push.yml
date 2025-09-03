@@ -88,6 +88,8 @@ jobs:
     needs: init
     outputs:
       version: ${{steps.prepareAddonDirectory.outputs.TAG_NAME}}
+      angular_version: ${{steps.prepareAddonDirectory.outputs.ANGULAR_VERSION}}
+      specification_version: ${{steps.prepareAddonDirectory.outputs.SPECIFICATION_VERSION}}
       latest: ${{steps.releasecheck.outputs.latest}}
     # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
     permissions:
