@@ -1,0 +1,55 @@
+name: Test Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      latest:
+        required: true
+        type: string
+      tag:
+        required: true
+        type: string
+      angular_tag:
+        required: true
+        type: string
+      specification_tag:
+        required: true
+        type: string
+  
+  workflow_call:
+    inputs:
+      latest:
+        required: true
+        type: string
+      tag:
+        required: true
+        type: string
+      angular_tag:
+        required: true
+        type: string
+      specification_tag:
+        required: true
+        type: string
+jobs:
+  create_release:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Release a tag
+        id: create_release
+        uses: comnoco/create-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ inputs.tag }}
+          release_name: Release ${{ inputs.tag }}
+          body: |
+            Changes: 
+            [Server ${{ inputs.tag }}](https://github.com/modbus2mqtt/server/blob/${{ inputs.tag }}/CHANGELOG.md)
+            [Angular ${{ inputs.angular_tag }}](https://github.com/modbus2mqtt/angular/blob/${{ inputs.angular_tag }}/CHANGELOG.md)
+            [Specification ${{ inputs.specification_tag }}](https://github.com/modbus2mqtt/specification/blob/${{ inputs.specification_tag }}/CHANGELOG.md)
+            
+            Docker image name: ghcr.io/modbus2mqtt/modbus2mqtt${{ inputs.latest }}:${{ inputs.tag }}
+          draft: false
+          prerelease: false
