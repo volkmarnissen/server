@@ -35,21 +35,22 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       packages: write
+      contents: write    
     steps:
+      - name: Write Release Text
+        run: |
+          echo "Changes: " >>changes.md
+          echo "[Server ${{ inputs.tag }}](https://github.com/modbus2mqtt/server/blob/${{ inputs.tag }}/CHANGELOG.md)" >>changes.md
+          echo "[Angular ${{ inputs.angular_tag }}](https://github.com/modbus2mqtt/angular/blob/${{ inputs.angular_tag }}/CHANGELOG.md)" >>changes.md
+          echo "[Specification ${{ inputs.specification_tag }}](https://github.com/modbus2mqtt/specification/blob/${{ inputs.specification_tag }}/CHANGELOG.md)" >>changes.md
+          echo "  " >>changes.md
+          echo "  Docker image name: ghcr.io/modbus2mqtt/modbus2mqtt${{ inputs.latest }}:${{ inputs.tag }}" >>changes.md
       - name: Release a tag
         id: create_release
-        uses: comnoco/create-release-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT }}
+        uses: ncipollo/release-action@v1
         with:
-          tag_name: ${{ inputs.tag }}
-          release_name: Release ${{ inputs.tag }}
-          body: |
-            Changes: 
-            [Server ${{ inputs.tag }}](https://github.com/modbus2mqtt/server/blob/${{ inputs.tag }}/CHANGELOG.md)
-            [Angular ${{ inputs.angular_tag }}](https://github.com/modbus2mqtt/angular/blob/${{ inputs.angular_tag }}/CHANGELOG.md)
-            [Specification ${{ inputs.specification_tag }}](https://github.com/modbus2mqtt/specification/blob/${{ inputs.specification_tag }}/CHANGELOG.md)
-            
-            Docker image name: ghcr.io/modbus2mqtt/modbus2mqtt${{ inputs.latest }}:${{ inputs.tag }}
+          tag: ${{ inputs.tag }}
+          name: Release ${{ inputs.tag }}
+          bodyFile: changes.md
           draft: false
           prerelease: false
