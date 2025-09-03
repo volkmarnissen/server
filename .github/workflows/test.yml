@@ -40,17 +40,17 @@ jobs:
       - name: Write Release Text
         run: |
           echo "Changes: " >>changes.md
-          echo "[Server ${{ inputs.tag }}](https://github.com/modbus2mqtt/server/blob/${{ inputs.tag }}/CHANGELOG.md)" >>changes.md
-          echo "[Angular ${{ inputs.angular_tag }}](https://github.com/modbus2mqtt/angular/blob/${{ inputs.angular_tag }}/CHANGELOG.md)" >>changes.md
-          echo "[Specification ${{ inputs.specification_tag }}](https://github.com/modbus2mqtt/specification/blob/${{ inputs.specification_tag }}/CHANGELOG.md)" >>changes.md
+          echo "[Server ${{ inputs.tag }}](https://github.com/modbus2mqtt/server/blob/v${{ inputs.tag }}/CHANGELOG.md)" >>changes.md
+          echo "[Angular ${{ inputs.angular_tag }}](https://github.com/modbus2mqtt/angular/blob/v${{ inputs.angular_tag }}/CHANGELOG.md)" >>changes.md
+          echo "[Specification ${{ inputs.specification_tag }}](https://github.com/modbus2mqtt/specification/blob/v${{ inputs.specification_tag }}/CHANGELOG.md)" >>changes.md
           echo "  " >>changes.md
-          echo "  Docker image name: ghcr.io/modbus2mqtt/modbus2mqtt${{ inputs.latest }}:${{ inputs.tag }}" >>changes.md
+          echo "  Docker image name: ghcr.io/modbus2mqtt/modbus2mqtt${{ inputs.latest }}:v${{ inputs.tag }}" >>changes.md
       - name: Release a tag
         id: create_release
         uses: ncipollo/release-action@v1
         with:
-          tag: ${{ inputs.tag }}
-          name: Release ${{ inputs.tag }}
+          tag: v${{ inputs.tag }}
+          name: Release v${{ inputs.tag }}
           bodyFile: changes.md
           draft: false
           prerelease: false
