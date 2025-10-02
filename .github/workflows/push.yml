@@ -6,6 +6,14 @@ on:
   push:
     branches: ['main', 'release']
   workflow_dispatch:
+    inputs:
+      component:
+        type: choice
+        description: Select component
+        options:
+          - server
+          - specification
+          - angular
 
 # Defines two custom environment variables for the workflow. These are used for the Container registry domain, and a name for the Docker image that this workflow builds.
 env:
@@ -36,7 +44,7 @@ jobs:
         run: |
           cd server
           npm update @modbus2mqtt/specification.shared @modbus2mqtt/server.shared @modbus2mqtt/angular @modbus2mqtt/specification
-      - name: Checkin CHANGELOG.md and package-lock.json 
+      - name: Checkin CHANGELOG.md and package-lock.json
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           repository: ./server
@@ -134,10 +142,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       # This step uses [docker/metadata-action](https://github.com/docker/metadata-action#about) to extract tags and labels that will be applied to the specified image. The `id` "meta" allows the output of this step to be referenced in a subsequent step. The `images` value provides the base name for the tags and labels.
+      - name: Set COMP onent variables
+        run: |
+          if [ "${{ inputs.component }}" != "" ];then echo "COMPONENT=${{ inputs.component }}>> $GITHUB_ENV;else  echo "COMPONENT=${{ github.event.repository.name }}" >> $GITHUB_ENV;fi
+          echo "COMPONENT = $COMP"
       - name: Prepare Addon Directory
         id: prepareAddonDirectory
         run: |
-          ./bin/releaseAddon.py --ref ${{github.ref}} --pkgjson "hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}/docker/rootfs/usr/app/node_modules/@modbus2mqtt/server" >>$GITHUB_OUTPUT
+          ./bin/releaseAddon.py --ref ${{github.ref}} --pkgjson "hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}/docker/rootfs/usr/app/node_modules/@modbus2mqtt/$COMPONENT" >>$GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up QEMU
@@ -159,7 +171,7 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{steps.releasecheck.outputs.latest}}-${{steps.platformcheck.outputs.platform}}:${{steps.prepareAddonDirectory.outputs.TAG_NAME}}
           labels: ${{ steps.meta.outputs.labels }}
         env:
-          BUILDX_NO_DEFAULT_ATTESTATIONS: 1    
+          BUILDX_NO_DEFAULT_ATTESTATIONS: 1
       - name: Copy CHANGELOG.mds
         run: |
           cd hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}
@@ -171,12 +183,12 @@ jobs:
           done 
           cd -
       - name: Checkin hassio-addon-repository
-        if: ${{steps.platformcheck.outputs.platform == 'arm64' }} 
+        if: ${{steps.platformcheck.outputs.platform == 'arm64' }}
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           repository: ./hassio-addon-repository
           tagging_message: ${{steps.prepareAddonDirectory.outputs.TAG_NAME}}
-          commit_message: ${{steps.prepareAddonDirectory.outputs.TAG_NAME}}  
+          commit_message: ${{steps.prepareAddonDirectory.outputs.TAG_NAME}}
   docker-tag:
     if: always()
     runs-on: ubuntu-latest
