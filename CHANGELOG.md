@@ -16,6 +16,11 @@
 - Add possibility to convert the byte and the word order for numbers and also for texts [\#91](https://github.com/modbus2mqtt/server/issues/91)
 - Looks like that Unsigned Int32 and Signed Int32 is mixed [\#90](https://github.com/modbus2mqtt/server/issues/90)
 
+**Merged pull requests:**
+
+- Update push.yml [\#131](https://github.com/modbus2mqtt/server/pull/131) ([volkmarnissen](https://github.com/volkmarnissen))
+- Merge pull request \#5 from modbus2mqtt/main [\#130](https://github.com/modbus2mqtt/server/pull/130) ([volkmarnissen](https://github.com/volkmarnissen))
+
 ## [0.16.27](https://github.com/modbus2mqtt/server/tree/0.16.27) (2025-09-03)
 
 [Full Changelog](https://github.com/modbus2mqtt/server/compare/v0.16.27...0.16.27)
@@ -410,7 +415,7 @@
 
 ## [0.8.0](https://github.com/modbus2mqtt/server/tree/0.8.0) (2024-06-21)
 
-[Full Changelog](https://github.com/modbus2mqtt/server/compare/e10c8d90dae26c00b0dde56c430bab4944c645de...0.8.0)
+[Full Changelog](https://github.com/modbus2mqtt/server/compare/c887779cc03ebbe51dd0b2eb0456314798829518...0.8.0)
 
 
 
