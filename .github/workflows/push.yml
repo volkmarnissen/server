@@ -43,7 +43,9 @@ jobs:
       - name: Update sha in package-lock.json
         run: |
           cd server
+          git stash
           git pull --rebase
+          git stash pop
           npm update @modbus2mqtt/specification.shared @modbus2mqtt/server.shared @modbus2mqtt/angular @modbus2mqtt/specification
       - name: Checkin CHANGELOG.md and package-lock.json
         uses: stefanzweifel/git-auto-commit-action@v5
