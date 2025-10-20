@@ -1,0 +1,32 @@
+#!/usr/bin/make -f
+%:
+	@dh $@
+
+override_dh_auto_build:
+	npm ci --prefer-offline --no-audit --no-fund
+	npm run build
+
+override_dh_auto_install:
+	# Create installation target and copy dist
+	mkdir -p debian/modbus2mqtt-server/usr/lib/node_modules/modbus2mqtt-server
+	cp -a dist/* debian/modbus2mqtt-server/usr/lib/node_modules/modbus2mqtt-server/ || true
+
+	# Install executable wrapper
+	mkdir -p debian/modbus2mqtt-server/usr/bin
+	if [ -f debian/modbus2mqtt-server/usr/lib/node_modules/modbus2mqtt-server/bin/modbus2mqtt.js ]; then \
+		# If upstream bin has no proper shebang, install a small wrapper that calls node
+		if head -n1 debian/modbus2mqtt-server/usr/lib/node_modules/modbus2mqtt-server/bin/modbus2mqtt.js | grep -q "node"; then \
+			install -m 0755 debian/modbus2mqtt-server/usr/lib/node_modules/modbus2mqtt-server/bin/modbus2mqtt.js debian/modbus2mqtt-server/usr/bin/modbus2mqtt; \
+		else \
+			cat > debian/modbus2mqtt-server/usr/bin/modbus2mqtt <<'EOF' && chmod 0755 debian/modbus2mqtt-server/usr/bin/modbus2mqtt; \
+		#!/bin/sh
+		exec /usr/bin/node /usr/lib/node_modules/modbus2mqtt-server/bin/modbus2mqtt.js "$@"
+		EOF \
+		fi; \
+	fi
+
+	# Install systemd service file
+	mkdir -p debian/modbus2mqtt-server/lib/systemd/system
+	if [ -f debian/modbus2mqtt-server.service ]; then \
+		cp -a debian/modbus2mqtt-server.service debian/modbus2mqtt-server/lib/systemd/system/modbus2mqtt-server.service; \
+	fi

@@ -1,0 +1,13 @@
+[Unit]
+Description=modbus2mqtt Server
+After=network.target
+
+[Service]
+Type=simple
+User=modbus2mqtt
+Group=modbus2mqtt
+ExecStart=/usr/bin/modbus2mqtt -s /etc/modbus2mqtt/ssl -y /etc/modbus2mqtt/yaml-dir
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

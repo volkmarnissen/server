@@ -1,0 +1,13 @@
+Source: modbus2mqtt-server
+Section: web
+Priority: optional
+Maintainer: Volkmar Nissen <volkmar.nissen@gmail.com>
+Build-Depends: debhelper-compat (= 12), nodejs, npm
+Standards-Version: 4.5.1
+Homepage: https://github.com/modbus2mqtt/server
+
+Package: modbus2mqtt-server
+Architecture: all
+Depends: ${misc:Depends}, nodejs, git
+Description: Modbus to MQTT server and REST API
+ Server component providing REST API for configuration and publishing Modbus values to MQTT.

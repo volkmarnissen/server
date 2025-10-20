@@ -1,0 +1,16 @@
+#!/bin/sh
+set -e
+# Post-install: create system user and enable/start service
+if [ "$1" = "configure" ]; then
+  if ! id -u modbus2mqtt >/dev/null 2>&1; then
+    adduser --system --uid 1001 --group --no-create-home --quiet modbus2mqtt || true
+  fi
+  # create default config dirs if not present
+  install -d -m 0755 /etc/modbus2mqtt /etc/modbus2mqtt/yaml-dir /var/lib/modbus2mqtt || true
+  if command -v systemctl >/dev/null 2>&1; then
+    systemctl daemon-reload || true
+    systemctl enable modbus2mqtt-server.service || true
+    systemctl restart modbus2mqtt-server.service || true
+  fi
+fi
+exit 0

@@ -1,0 +1,5 @@
+modbus2mqtt-server (0.16.27) unstable; urgency=medium
+
+  * Local package build
+
+ -- Volkmar Nissen <volkmar.nissen@gmail.com>  Mon, 20 Oct 2025 00:00:00 +0000
