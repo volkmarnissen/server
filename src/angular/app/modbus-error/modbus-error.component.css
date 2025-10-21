@@ -1,0 +1,26 @@
+.icon-text {
+    align-items: center;    
+    display: flex;
+
+}
+.red {
+    color: red;
+    transform: scale(0.5);
+}
+.yellow {
+    color: yellow;
+    transform: scale(0.5);
+}
+.green {
+    color: green;
+    transform: scale(0.5);
+}
+.indent {
+    text-indent: 2em;
+}
+.indent2 {
+    text-indent: 4em;
+}
+.indent3 {
+    text-indent: 6em;
+}

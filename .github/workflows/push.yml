@@ -46,7 +46,7 @@ jobs:
           git stash
           git pull --rebase
           git stash pop
-          npm update @modbus2mqtt/specification.shared @modbus2mqtt/server.shared @modbus2mqtt/angular @modbus2mqtt/specification
+          npm update ../specification.shared ../server.shared ../angular ../specification
       - name: Checkin CHANGELOG.md and package-lock.json
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
@@ -152,7 +152,7 @@ jobs:
       - name: Prepare Addon Directory
         id: prepareAddonDirectory
         run: |
-          ./bin/releaseAddon.py --ref ${{github.ref}} --pkgjson "hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}/docker/rootfs/usr/app/node_modules/@modbus2mqtt/$COMPONENT" >>$GITHUB_OUTPUT
+          ./bin/releaseAddon.py --ref ${{github.ref}} --pkgjson "hassio-addon-repository/modbus2mqtt${{steps.releasecheck.outputs.latest}}/docker/rootfs/usr/app/node_modules/../$COMPONENT" >>$GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up QEMU
@@ -182,7 +182,7 @@ jobs:
           ls -1 docker/rootfs/usr/app/node_modules/@modbus2mqtt | while read dir
           do 
             mkdir -p changes/$dir
-            cp docker/rootfs/usr/app/node_modules/@modbus2mqtt/$dir/CHANGELOG.md changes/$dir
+            cp docker/rootfs/usr/app/node_modules/../$dir/CHANGELOG.md changes/$dir
           done 
           cd -
       - name: Checkin hassio-addon-repository

@@ -1,0 +1,16 @@
+.mat-mdc-card-header {
+    font-weight: bold;
+    background-color: rgb(235, 223, 250);
+    display: flex;
+}
+
+.messages {
+    right: 0;
+    margin-left: auto;
+}
+
+.message {
+    color: red;
+    cursor: pointer;
+
+}

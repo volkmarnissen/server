@@ -130,7 +130,7 @@ else:
         StringReplacement(pattern='codenotary:.*', newValue=''),
         ]
     replacementsDocker = [
-        StringReplacement(pattern='\@modbus2mqtt/server\@\${BUILD_VERSION}', newValue="github:modbus2mqtt/server"),
+        StringReplacement(pattern='\../server\@\${BUILD_VERSION}', newValue="github:modbus2mqtt/server"),
         ]        
     updateConfigAndDockerfile(args.basedir, version, replacements,replacementsDocker)
     print("TAG_NAME=v" + version)

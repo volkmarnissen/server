@@ -29,8 +29,9 @@
       "node","jest", "debug"
     ]
   },
-  "include": ["src/*"],
+  "include": ["src/**/*"],
   "exclude":[
+    "src/angular/**/*",
     "node_modules/**/*",
     "**/testHelpers/*",
     "dist/**/*",
