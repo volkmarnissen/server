@@ -11,7 +11,7 @@ const fs = require('fs')
 const { exec } = require('child_process')
 const { clearTimeout } = require('node:timers')
 const { execSync } = require('node:child_process')
-
+const localhost='127.0.0.1'
 const stopServiceTimeout = 20000
 var initControllers = []
 var resetControllers = []
@@ -109,7 +109,7 @@ function waitForPorts(args, ports) {
     }
     if (ports && ports.length) {
       ports.forEach((port) => {
-        opts.resources.push('tcp:localhost:' + port)
+        opts.resources.push('tcp:' + localhost +':' + port)
       })
     }
 
@@ -194,7 +194,7 @@ module.exports = defineConfig({
             [
               'cypress/servers/mosquitto',
               'cypress/servers/modbus2mqtt ' + config.env.modbus2mqttE2eHttpPort,
-              'cypress/servers/modbus2mqtt ' + config.env.modbus2mqttAddonHttpPort + ' localhost:' + config.env.nginxAddonHttpPort,
+              'cypress/servers/modbus2mqtt ' + config.env.modbus2mqttAddonHttpPort + localhost + ' :' + config.env.nginxAddonHttpPort,
             ],
             [
               config.env.mosquittoAuthMqttPort,
@@ -239,7 +239,7 @@ module.exports = defineConfig({
       })
     },
     env: {
-      logstartup: false, // Set to true to log startup services messages
+      logstartup: true, // Set to true to log startup services messages
       logservers: false,
       nginxAddonHttpPort: 3006, //nginx
       modbus2mqttAddonHttpPort: 3004, //ingress port
@@ -248,7 +248,7 @@ module.exports = defineConfig({
       mosquittoAuthMqttPort: 3001,
       mosquittoNoAuthMqttPort: 3003,
       mqttconnect: {
-        mqttserverurl: 'mqtt://localhost:3001',
+        mqttserverurl: 'mqtt://127.0.0.1:3001',
         username: 'homeassistant',
         password: 'homeassistant',
       },

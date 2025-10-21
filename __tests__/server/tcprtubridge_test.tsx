@@ -117,10 +117,18 @@ describe('live tests', () => {
       bridge = new ModbusTcpRtuBridge(queue)
       // open connection to a tcp line
       client.setID(1)
+      console.log("startServer")
       bridge.startServer(3010).then(() => {
-        client.connectTCP('localhost', { port: 3010 }).then(() => {
+         console.log("server started")
+        setTimeout(() => {
+        client.connectTCP('127.0.0.1', { port: 3010 }).then(() => {
+          console.log("connected")
           resolve()
+        }).catch((e:any )=>{
+          console.log(e.message);
         })
+        }, 200);
+        
       })
     })
   })

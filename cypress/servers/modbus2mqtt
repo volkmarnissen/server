@@ -3,6 +3,7 @@ set -e
 TMPDIR=`mktemp -d -t modbus2mqttXXXXX`
 export TMPDIR
 export MPID=$$
+localhost="127.0.0.1"
 trap 'echo signal 15 $MPID $TMPDIR; rm -rf $TMPDIR; kill -15 $MPID; exit 1' 15
 trap 'echo signal 2 $MPID $TMPDIR; rm -rf $TMPDIR; kill -2 $MPID; exit 1;' 2
 
@@ -24,11 +25,11 @@ else
   echo 'httpport: '$HTTPPORT >$TMPDIR/local/modbus2mqtt.yaml
   if [ $# -ge 2 ]
   then # port 3005
-    echo "supervisor_host: localhost:3006" >>$TMPDIR/local/modbus2mqtt.yaml
+    echo "supervisor_host: $localhost:3006" >>$TMPDIR/local/modbus2mqtt.yaml
     export HASSIO_TOKEN=abcd1234
   fi
   echo "TMPDIR=$TMPDIR"
-  node dist/modbus2mqtt.js -y $TMPDIR -s $TMPDIR &
+  node dist/server/modbus2mqtt.js -y $TMPDIR -s $TMPDIR &
   MPID=$!  
 fi
 wait $MPID
