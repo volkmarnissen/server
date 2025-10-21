@@ -1,6 +1,6 @@
 import Debug from 'debug'
-import { M2mGithubValidate } from '../../src/server/m2mGithubValidate'
-import { ConfigSpecification } from '../../src/server/configspec'
+import { M2mGithubValidate } from '../../src/specification/m2mGithubValidate'
+import { ConfigSpecification } from '../../src/specification'
 import { it, expect, beforeAll, afterAll } from '@jest/globals'
 import * as fs from 'fs'
 const debug = Debug('m2mgithubvalidate')

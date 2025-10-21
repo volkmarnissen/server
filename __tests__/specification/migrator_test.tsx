@@ -1,5 +1,5 @@
 import { expect, it } from '@jest/globals'
-import { ConfigSpecification } from '../../src/server/configspec'
+import { ConfigSpecification } from '../../src/specification'
 import { yamlDir } from './configsbase'
 import { SPECIFICATION_VERSION } from '../../src/specification.shared'
 

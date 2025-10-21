@@ -1,5 +1,5 @@
 import { it, expect, jest, xit } from '@jest/globals'
-import { ConfigSpecification } from '../../src/server/configspec'
+import { ConfigSpecification } from '../../src/specification'
 import * as fs from 'fs'
 import path, { join } from 'path'
 import { singleMutex, yamlDir } from './configsbase'
@@ -12,8 +12,8 @@ import {
   getSpecificationI18nName,
   newSpecification,
 } from '../../src/specification.shared'
-import { IModbusResultOrError } from '../../src/server/m2mspecification'
-import { ImodbusValues } from '../../src/server/m2mspecification'
+import { IModbusResultOrError } from '../../src/specification'
+import { ImodbusValues } from '../../src/specification'
 import { trace } from 'console'
 
 ConfigSpecification['yamlDir'] = yamlDir

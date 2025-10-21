@@ -8,15 +8,15 @@ import {
   SpecificationFileUsage,
   SpecificationStatus,
 } from '../../src/specification.shared'
-import { ConfigSpecification } from '../../src/server/configspec'
-import { ImodbusValues, M2mSpecification, emptyModbusValues } from '../../src/server/m2mspecification'
+import { ConfigSpecification } from '../../src/specification'
+import { ImodbusValues, M2mSpecification, emptyModbusValues } from '../../src/specification'
 import { Converters, IdentifiedStates } from '../../src/specification.shared'
 import * as fs from 'fs'
 import { singleMutex, yamlDir } from './configsbase'
 import { Mutex } from 'async-mutex'
-import { IfileSpecification } from '../../src/server/ifilespecification'
+import { IfileSpecification } from '../../src/specification'
 import { it, expect, beforeAll, describe, afterAll } from '@jest/globals'
-import { IpullRequest } from '../../src/server/m2mGithubValidate'
+import { IpullRequest } from '../../src/specification/m2mGithubValidate'
 declare global {
   namespace NodeJS {
     interface ProcessEnv {

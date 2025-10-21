@@ -1,8 +1,8 @@
 import Debug from 'debug'
-import { M2mGitHub } from '../../src/server/m2mgithub'
+import { M2mGitHub } from '../../src/specification'
 import { yamlDir } from './configsbase'
 import { join } from 'path'
-import { ConfigSpecification } from '../../src/server/configspec'
+import { ConfigSpecification } from '../../src/specification'
 import { beforeAll, expect, it, describe, jest } from '@jest/globals'
 import * as fs from 'fs'
 
@@ -65,7 +65,7 @@ function testWait(github: M2mGitHub, done: any) {
   })
 }
 it('checkFiles files.yaml exists, other file is missing=> OK', () => {
-  let root = './__tests__/yaml-dir'
+  let root = yamlDir
   let github = new M2mGitHub(null, root)
   let oldFn = M2mGitHub.prototype['uploadFileAndCreateTreeParameter']
   M2mGitHub.prototype['uploadFileAndCreateTreeParameter'] = jest
