@@ -10,6 +10,7 @@ override_dh_auto_install:
 	# Create installation target and copy dist
 	mkdir -p debian/modbus2mqtt-server/usr/lib/node_modules/modbus2mqtt-server
 	cp -a dist/* debian/modbus2mqtt-server/usr/lib/node_modules/modbus2mqtt-server/ || true
+	cp -a node_modules/* debian/modbus2mqtt-server/usr/lib/node_modules/modbus2mqtt-server/ || true
 
 	# Install executable wrapper
 	mkdir -p debian/modbus2mqtt-server/usr/bin
