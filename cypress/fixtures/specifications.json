@@ -1,0 +1,50 @@
+[
+  {
+    "filename": "dimplexpco5",
+    "name": "Dimplex Heat Pump",
+    "status": 0,
+    "entities": [
+      {
+        "id": 1,
+        "name": "entity1",
+        "readonly": true,
+        "mqttname": "e1"
+      }
+    ],
+    "i18n": [
+      { "lang": "en", "texts": [{ "textId": "name", "text": "Specname" }] }
+    ]
+  },
+  {
+    "filename": "additional",
+    "name": "Additional",
+    "status": 0,
+    "entities": [
+      {
+        "id": 1,
+        "name": "entity1",
+        "readonly": true,
+        "mqttname": "e1"
+      }
+    ],
+    "i18n": [
+      { "lang": "en", "texts": [{ "textId": "name", "text": "AdditionalTxt" }] }
+    ]
+  },
+  {
+    "filename": "second",
+    "name": "Second",
+    "status": 0,
+    "entities": [
+      {
+        "id": 1,
+        "name": "second.entity1",
+        "readonly": true,
+        "mqttname": "se1"
+      }
+    ],
+    "i18n": [
+      { "lang": "en", "texts": [{ "textId": "name", "text": "Second" }] }
+    ]
+  }
+]

@@ -1,0 +1,44 @@
+.mat-mdc-header-cell {
+    border-bottom-style: none;
+}
+
+mat-header-row.mat-mdc-header-row {
+    border-bottom-style: solid;
+    border-bottom-width: 1px;
+    border: 1px solid #e7e7e7;
+}
+
+
+.mat-mdc-cell {
+    border-bottom: none;
+    display: flex;
+    flex-direction: row;
+}
+
+.mat-mdc-row {
+    border: 1px solid #e7e7e7;
+}
+
+.field {
+    height: 20pt;
+    max-height: 20pt;
+}
+
+.inline {
+    display: inline-block;
+
+}
+
+.invisible {
+    display: block;
+    visibility: hidden;
+    height: 0;
+    width: 0;
+}
+
+.mat-mdc-card-header {
+    font-weight: bold;
+    background-color: rgb(235, 235, 235);
+    display: flex;
+
+}

@@ -1,0 +1,44 @@
+filename: waterleveltransmitter
+entities:
+  - id: 1
+    mqttname: waterleveltransmitter
+    converter:
+      name: number
+      registerTypes:
+        - 3
+        - 4
+    modbusAddress: 3
+    converterParameters:
+      multiplier: 0.01
+      identification:
+        min: 0
+        max: 1
+      numberFormat: 0
+    registerType: 3
+    readonly: true
+  - id: 2
+    mqttname: ""
+    converter:
+      name: number
+      registerTypes:
+        - 3
+        - 4
+    modbusAddress: 4
+    converterParameters:
+      multiplier: 0.01
+      numberFormat: 0
+    variableConfiguration:
+      targetParameter: 2
+      entityId: 1
+    registerType: 3
+    readonly: true
+i18n:
+  - lang: en
+    texts:
+      - textId: name
+        text: Water Level Transmitter
+      - textId: e1
+        text: Water Level Transmitter
+version: "0.3"
+testdata: {}
+nextEntityId: 2

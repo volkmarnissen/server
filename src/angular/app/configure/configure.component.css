@@ -1,0 +1,7 @@
+.mat-mdc-card-header {
+    font-weight: bold;
+    background-color: rgb(207, 245, 248);
+    display: flex;
+    min-height: 4em;
+    padding-top: 1em;
+}

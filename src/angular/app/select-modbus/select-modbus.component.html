@@ -1,0 +1,111 @@
+<h1>List of Modbus Controllers</h1>
+<form [formGroup]="configureModbusFormGroup" novalidate>
+  <ng-container formArrayName="bussesFormArray">
+    <div class="flexrows">
+      <ng-container *ngFor="let bus of busses.data;let i = index">
+        <mat-card [formGroup]="getBusFormGroup(i)">
+          <mat-card-header><mat-card-title matTooltip="List or Add Slaves" (click)="listSlaves(i)"
+              class="clickable">{{getConnectionTitle(i)}}</mat-card-title>
+            <div class="card-header-buttons">
+              <ng-container *ngIf="bus != null">
+                <ng-container *ngIf="needsSaving(i)">
+                  <button mat-icon-button class="material-icons app-toolbar-menu save-button" matTooltip="Save Changes"
+                    (click)="saveBus(i)" color="primary" [disabled]="!needsSaving(i)">
+                    <mat-icon>check_circle</mat-icon>
+                  </button>
+                  <button mat-icon-button class="material-icons app-toolbar-menu cancel-button"
+                    matTooltip="Cancel Changes" color="warn" [disabled]="!needsSaving(i)" (click)="cancelBus(i)">
+                    <mat-icon>cancel</mat-icon>
+                  </button>
+                </ng-container>
+                <ng-container *ngIf="!needsSaving(i)">
+                  <button mat-icon-button type="button"
+                    class=" width100pt material-icons app-toolbar-menu delete-button" matTooltip="Delete" color="warn"
+                    (click)="deleteBus(bus)" [disabled]="needsSaving(i)">
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                  <button mat-icon-button type="submit" class="material-icons app-toolbar-menu delete-button"
+                    [disabled]="needsSaving(i)" matTooltip="List or add Slaves" color="primary" (click)="listSlaves(i)">
+                    <mat-icon> list</mat-icon>
+                  </button>
+                </ng-container>
+              </ng-container>
+              <ng-container *ngIf="bus == null">
+                <button mat-icon-button class="material-icons app-toolbar-menu cancel-button"
+                  matTooltip="Add Modbus Controller" color="primary" (click)="saveBus(i)"
+                  [disabled]="!needsSaving(i) || !addEnabled(i)" *ngIf="bus == null">
+                  <mat-icon>add_box</mat-icon>
+                </button>
+              </ng-container>
+            </div>
+          </mat-card-header>
+          <mat-card-content>
+            <mat-tab-group (selectedTabChange)="selectedTypeChanged($event,i)" [selectedIndex]="isRTU(i)?0:1">
+              <mat-tab label="RTU" formGroupName="rtu">
+                <div class="flexcolumns">
+                  <div> <ng-container *ngIf="getSerialDevices().length == 0 else supervisor">
+                      <mat-form-field>
+                        <mat-label>Modbus Serial Device</mat-label>
+                        <input #serial matInput formControlName="serial" />
+                      </mat-form-field>
+                    </ng-container>
+                    <ng-template #supervisor>
+                      <mat-form-field>
+                        <mat-label>Serial Port</mat-label>
+                        <mat-select matInput formControlName="serial">
+                          <mat-option *ngFor="let device of getSerialDevices(bus)"
+                            [value]="device">{{device}}</mat-option>
+                        </mat-select>
+                      </mat-form-field>
+                    </ng-template>
+                  </div>
+                  <div>
+                    <mat-form-field>
+                      <mat-label>Baud Rate</mat-label>
+                      <mat-select matInput formControlName="selectBaudRate">
+                        <mat-option *ngFor="let baudRate of baudRates" [value]="baudRate">{{baudRate}}</mat-option>
+                      </mat-select>
+                    </mat-form-field>
+                  </div>
+                  <div>
+                    <mat-form-field>
+                      <mat-label>Timeout</mat-label>
+                      <input type='number' matInput formControlName="timeout" />
+                    </mat-form-field>
+                  </div>
+                  <div>
+                      <mat-slide-toggle formControlName="tcpBridge" matTooltip="A Modbus TCP bridge will listen on port 502 and forwards modbus requests to this RTU connection">TCP Bridge to RTU </mat-slide-toggle>
+
+                  </div>
+
+                </div>
+              </mat-tab>
+              <mat-tab label="TCP" formGroupName="tcp">
+                <div class="flexcolumns">
+                  <div>
+                    <mat-form-field>
+                      <mat-label>Host</mat-label>
+                      <input #host matInput formControlName="host" />
+                    </mat-form-field>
+                  </div>
+                  <div>
+                    <mat-form-field>
+                      <mat-label>Port</mat-label>
+                      <input #port matInput formControlName="port" />
+                    </mat-form-field>
+                  </div>
+                  <div>
+                    <mat-form-field>
+                      <mat-label>Timeout</mat-label>
+                      <input type='number'  matInput formControlName="timeout" />
+                    </mat-form-field>
+                  </div>
+                </div>
+              </mat-tab>
+            </mat-tab-group>
+          </mat-card-content>
+        </mat-card>
+      </ng-container>
+    </div>
+  </ng-container><!-- FormArray -->
+</form>

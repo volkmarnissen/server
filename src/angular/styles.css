@@ -1,0 +1,278 @@
+@import "node_modules/@angular/material/prebuilt-themes/deeppurple-amber.css";
+@import "https://fonts.googleapis.com/icon?family=Material+Icons";
+
+
+/* You can add global styles to this file, and also import other style files */
+body {
+  margin: 10px;
+  padding: 10px;
+  width: 100%;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.full-height {
+  height: 100%;
+}
+
+.flex-auto {
+  flex: auto;
+}
+
+.flex-align {
+  align-self: stretch
+}
+
+.full-number {
+  width: 20%;
+}
+
+.width50pt {
+  width: 50px
+}
+
+.width80pt {
+  width: 80px
+}
+
+.width100pt {
+  width: 100px
+}
+
+.width130pt {
+  width: 100px
+}
+
+.width150pt {
+  width: 150px
+}
+
+.width200pt {
+  width: 200px
+}
+
+
+.width250pt {
+  width: 250px;
+}
+
+.width300pt {
+  width: 300px;
+}
+
+.width350pt {
+  width: 350px
+}
+
+.width550pt {
+  width: 550px
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.centered {
+  margin: 10pt;
+  position: relative;
+  left: 25%;
+}
+
+.field {
+  margin-left: 10pt;
+  margin-right: 10pt;
+  padding-left: 10pt;
+  padding-right: 10pt;
+  gap: unset
+}
+
+.toggleField {
+  margin-top: 10pt;
+  margin-bottom: 20pt;
+}
+
+.smallfield {
+  margin-left: 1pt;
+  margin-right: 1pt;
+  padding-left: 3pt;
+  padding-right: 3pt;
+  gap: unset
+}
+
+.nodistance {
+  margin: 0pt;
+  padding: 0pt;
+  gap: unset
+}
+
+.flexrows {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  column-gap: 10pt;
+}
+
+.flexrowsWrapWhenSmall {
+  display: flex;
+  flex-direction: row;
+}
+
+.flexrowsNoWrap {
+  display: flex;
+  flex-direction: row;
+}
+
+@media (max-width: 800pt) {
+  .flexrows {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .flexrowsWrapWhenSmall {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+}
+
+.card-header-buttons {
+  right: 0;
+  top: -1pt;
+  position: absolute;
+  z-index: 7;
+}
+
+.card {
+  column-gap: 30pt;
+  margin: 5pt;
+}
+
+.flexcolumns {
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+.flexcols {
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  width: auto;
+}
+
+.nextButton {
+  position: fixed;
+  bottom: 10pt;
+  right: 10pt;
+  z-index: 3;
+}
+
+.border {
+
+  margin:10pt;
+  height: 23pt;
+  width: 150pt;
+}
+.bordervisible{
+  border-color: lightgray;
+}
+.downloadLabel {
+  color: white;
+  width: 180pt;
+  height: 44px;
+  text-align: left;
+  border-radius: 21.5px;
+  background-color: #db202f;
+  padding: 8px 16px;
+  cursor: pointer;
+  text-align: center;
+  align-items: center;
+}
+.downloadLink{
+  margin:10pt;
+}
+.backButton {
+  position: fixed;
+  bottom: 5pt;
+  left: 10pt;
+  z-index: 3;
+}
+
+.saveCancel {
+  display: flex;
+  flex-direction: row;
+  margin-top: 1px;
+  margin-right: 2px;
+  position: fixed;
+  z-index: 11;
+  top: 0.5em;
+  right: 0;
+}
+
+.errorText {
+  color: red;
+  font-weight: bold;
+  animation: blinker 2s linear infinite;
+}
+
+.errorTextNoBlink {
+  color: red;
+  font-weight: bold;
+  overflow-wrap: anywhere;
+
+}
+
+@keyframes blinker {
+  50% {
+    opacity: 0;
+  }
+}
+
+.menuButton {
+  display: flex;
+  flex-direction: row;
+
+}
+
+.greenIcon {
+  color: green;
+  margin-right: 10pt;
+}
+
+.redIcon {
+  color: red;
+  margin-right: 10pt;
+}
+
+.waitCursor {
+  cursor: wait;
+}
+
+.inline {
+  display: inline-block;
+}
+
+.gallery {
+  width: 220pt
+}
+
+.margins {
+  margin-top: 5pt;
+  margin-bottom: 10pt;
+}
+
+.marginsall {
+  margin: 15pt;
+}
+
+.tooltip-class {
+  white-space: pre-line;
+}
+
+
