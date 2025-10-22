@@ -46,9 +46,7 @@ def checkRequiredApps():
     ngxinlib = nginxGetLibDir()
     if not os.path.isdir(ngxinlib) :
         raise repositories.SyncException( nginxGetLibDir() + " directory not found!") 
-    if not os.access(ngxinlib,os.W_OK):
-        raise repositories.SyncException( ngxinlib + " must be writable!")
-             
+            
 
 def startRequiredApps():
     checkRequiredApps()
