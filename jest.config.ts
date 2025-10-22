@@ -16,20 +16,20 @@ const config: Config = {
   // coverageDirectory: './',
   // coveragePathIgnorePatterns: ['/node_modules/', '__test__/'],
   // coverageReporters: ['json-summary'],
-  reporters: [
-    'default',
-    [
-      'jest-junit',
-      {
-        suiteName: 'jest tests',
-        outputDirectory: '.',
-        outputName: 'junit.xml',
-        uniqueOutputName: 'false',
-        classNameTemplate: '{filename}',
-        titleTemplate: '{title}',
-        suiteNameTemplate: '{filename}',
-      } as any,
-    ],
-  ],
+  // reporters: [
+  //   'default',
+  //   [
+  //     'jest-junit',
+  //     {
+  //       suiteName: 'jest tests',
+  //       outputDirectory: '.',
+  //       outputName: 'junit.xml',
+  //       uniqueOutputName: 'false',
+  //       classNameTemplate: '{filename}',
+  //       titleTemplate: '{title}',
+  //       suiteNameTemplate: '{filename}',
+  //     } as any,
+  //   ],
+  // ],
 }
 export default config

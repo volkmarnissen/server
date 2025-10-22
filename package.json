@@ -22,7 +22,7 @@
   },
   "credits": "multiple choice by Studio 365 from <a href='https://thenounproject.com/browse/icons/term/multiple-choice/' target='_blank' title='multiple choice Icons'>Noun Project</a> (CC BY 3.0)",
   "scripts": {
-    "test": "jest",
+    "test": "jest && cypress run --component",
     "build.dev": "cd ../specification.shared && npm run build && cd ../specification && tsc && cd ../server.shared && npm run build && cd ../angular && npm run build.dev && cd ../server && tsc ",
     "build.all": "cd ../specification.shared && tsc --build tsconfig.cjs.json && cd ../specification && tsc && cd ../server.shared && tsc  --build tsconfig.cjs.json && cd ../angular && npm run build && cd ../server && tsc ",
     "server": "npm run build.dev && node dist/modbus2mqtt.js -s ../ssl -y ../yaml-dir",
