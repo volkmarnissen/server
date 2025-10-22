@@ -140,3 +140,6 @@ coverage-summary.json
 coverage.txt
 cypress/servers/modbustcp.conf/yaml-dir/public/
 __tests__/backendTCP/public/**/*
+nginx.conf
+nohup.out
+.angular/**/*

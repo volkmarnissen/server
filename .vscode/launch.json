@@ -13,9 +13,9 @@
 
     {
       "name": "Run Server",
-      "preLaunchTask": "npm: build.dev",
+      "preLaunchTask": "npm: prepare",
       "timeout": 10000,
-      "program": "${workspaceFolder}/dist/modbus2mqtt.js",
+      "program": "${workspaceFolder}/dist/server/modbus2mqtt.js",
       "args": ["-s", "../ssl", "-y", "../yaml-dir"],
       "console": "integratedTerminal",
       "env": {
