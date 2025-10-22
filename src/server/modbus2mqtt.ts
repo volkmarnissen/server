@@ -86,12 +86,9 @@ export class Modbus2Mqtt {
         // hard coded workaround
         // let angulardir = require.resolve('../angular')
         // Did not work in github workflow for testing
-        let dir = dirname(argv[1])
-        while (dir.length > 0 && (!angulardir || !fs.existsSync(angulardir))) {
-          angulardir = join(dir, 'angular/dist/browser')
-          if (!fs.existsSync(angulardir)) angulardir = join(dir, 'node_modules/../angular/dist/browser')
-          dir = dirname(dir)
-        }
+        var dir= dirname(argv[1]).replace(/\/server$/g, "" );
+        angulardir = join(dir , 'angular/browser')
+        
         if (!angulardir || !fs.existsSync(angulardir)) {
           log.log(LogLevelEnum.error, 'Unable to find angular start file ' + angulardir)
           process.exit(2)
