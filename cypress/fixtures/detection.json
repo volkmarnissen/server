@@ -1,0 +1,15 @@
+[
+  {
+    "filename": "dimplexpco5",
+    "name": "Dimplex Heat Pump",
+    "status": 0,
+    "entities": [
+      {
+        "name": "entity1",
+        "readonly": true,
+        "mqttname": "e1"
+      }
+    ],
+    "identified": 1
+  }
+]

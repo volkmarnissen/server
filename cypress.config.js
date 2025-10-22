@@ -142,6 +142,13 @@ function stopServices() {
 }
 
 module.exports = defineConfig({
+  component: {
+    devServer: {
+      framework: "angular",
+      bundler: "webpack",
+    },
+    specPattern: "**/*.cy.ts",
+  },
   e2e: {
     setupNodeEvents(on, config) {
       logStartupFlag = config.env.logstartup
@@ -237,7 +244,8 @@ module.exports = defineConfig({
           return 'OK'
         },
       })
-    },
+    }
+  },
     env: {
       logstartup: true, // Set to true to log startup services messages
       logservers: false,
@@ -251,7 +259,6 @@ module.exports = defineConfig({
         mqttserverurl: 'mqtt://127.0.0.1:3001',
         username: 'homeassistant',
         password: 'homeassistant',
-      },
-    },
-  },
+      }
+    } //env
 })

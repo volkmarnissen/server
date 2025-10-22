@@ -1,0 +1,8 @@
+{
+  "busId": 1,
+  "connectionData": {
+    "baudrate": 9600,
+    "serialport": "/dev/ttytest",
+    "timeout": 100
+  }
+}

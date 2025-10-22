@@ -18,7 +18,7 @@ import {HexFormaterDirective} from './hexinputfield'
 export class HexinputfieldComponent implements OnInit{
   @Input() startValue:number = 0x1234;
   @Input() displayHex:boolean = false;
-  formGroup:FormGroup;
+  formGroup:FormGroup = undefined as any as FormGroup;
   constructor( private fb: FormBuilder){}
   ngOnInit(): void {
       this.formGroup = this.fb.group({
