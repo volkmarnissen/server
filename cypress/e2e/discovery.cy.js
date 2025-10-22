@@ -2,7 +2,7 @@ let prefix = ''
 let defaultm2mPort = 3005
 let mqttAuthorizedPort = 3001
 let mqttUnAuthorizedPort = 3003
-
+let localhost="127.0.0.1"
 function runBusses(willLog) {
   let logSetting = { log: willLog }
   cy.log('Configure Bus')
@@ -10,7 +10,7 @@ function runBusses(willLog) {
 
   cy.url().should('contain', prefix + '/busses')
   cy.get('[role="tab"] ', logSetting).eq(1, logSetting).click(logSetting)
-  cy.get('[formcontrolname="host"]', logSetting).type(backspaces(10) + 'localhost', { force: true, log: willLog })
+  cy.get('[formcontrolname="host"]', logSetting).type(backspaces(10) + localhost, { force: true, log: willLog })
   cy.get('[formcontrolname="port"]', logSetting).type(backspaces(10) + '3002', { force: true, log: willLog })
   cy.get('[formcontrolname="timeout"]', logSetting)
     .eq(0, logSetting)
@@ -39,7 +39,7 @@ function setUrls(willLog) {
   cy.get('app-upload-files:first input[type!="file"]', logSetting)
     .eq(1, logSetting)
     .focus(logSetting)
-    .type('http://localhost/test.png', { force: true, log: willLog })
+    .type('http://' + localhost + '/test.png', { force: true, log: willLog })
   cy.get('app-upload-files:first button mat-icon:contains("add")', logSetting)
     .eq(1, logSetting)
     .click({ force: true, log: willLog })
@@ -48,7 +48,7 @@ function setUrls(willLog) {
   cy.get('app-upload-files:first input[type!="file"]', logSetting)
     .eq(0, logSetting)
     .focus(logSetting)
-    .type('http://localhost/test.pdf', { force: true, log: willLog })
+    .type('http://' + localhost + '/test.pdf', { force: true, log: willLog })
   cy.get('app-upload-files:first button mat-icon:contains("add")', logSetting)
     .eq(0, logSetting)
     .click({ force: true, log: willLog })
@@ -187,7 +187,7 @@ describe('MQTT Discovery Tests', () => {
       let addonConfig = undefined;
       e2eReset( logSetting)
       prefix = 'ingress'
-      cy.visit('http://localhost:' + Cypress.env('nginxAddonHttpPort') +'/' + prefix, logSetting)
+      cy.visit('http://' + localhost + ':' + Cypress.env('nginxAddonHttpPort') +'/' + prefix, logSetting)
       // monitor discovery topics
       let mqttConnect = Cypress.env('mqttconnect')
       assert(mqttConnect != undefined)

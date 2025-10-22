@@ -4,31 +4,32 @@ const config: Config = {
   verbose: true,
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/src', '<rootDir>/__tests__', '<rootDir>/testHelpers'],
+  roots: [ '__tests__/server', '__tests__/specification','<rootDir>/testHelpers'],
   transform: {
     '^.+\\.tsx+$': 'ts-jest',
   },
-  testRegex: '/__tests__/(.*|(\\.|/)(test|spec))(\\.tsx)+$',
+  testRegex: '(.*|(\\.|/)(test|spec))(\\.tsx)+$',
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+  moduleDirectories: ['src', 'node_modules'],
   //  setupFiles: ["<rootDir>/.jest/setEnvVars.js"]
-  collectCoverage: true,
-  coverageDirectory: './',
-  coveragePathIgnorePatterns: ['/node_modules/', '__test__/'],
-  coverageReporters: ['json-summary'],
-  reporters: [
-    'default',
-    [
-      'jest-junit',
-      {
-        suiteName: 'jest tests',
-        outputDirectory: '.',
-        outputName: 'junit.xml',
-        uniqueOutputName: 'false',
-        classNameTemplate: '{filename}',
-        titleTemplate: '{title}',
-        suiteNameTemplate: '{filename}',
-      } as any,
-    ],
-  ],
+  // collectCoverage: true,
+  // coverageDirectory: './',
+  // coveragePathIgnorePatterns: ['/node_modules/', '__test__/'],
+  // coverageReporters: ['json-summary'],
+  // reporters: [
+  //   'default',
+  //   [
+  //     'jest-junit',
+  //     {
+  //       suiteName: 'jest tests',
+  //       outputDirectory: '.',
+  //       outputName: 'junit.xml',
+  //       uniqueOutputName: 'false',
+  //       classNameTemplate: '{filename}',
+  //       titleTemplate: '{title}',
+  //       suiteNameTemplate: '{filename}',
+  //     } as any,
+  //   ],
+  // ],
 }
 export default config

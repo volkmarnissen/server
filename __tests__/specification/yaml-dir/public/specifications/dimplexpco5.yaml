@@ -1,0 +1,231 @@
+identified: 0
+entities:
+  - id: 1
+    modbusAddress: 174
+    converter:
+      name: sensor
+      functionCodes: []
+    functionCode: 21
+    converterParameters:
+      multiplier: 0.1
+      offset: 0
+      device_class: temperature
+      uom: °C
+      numberFormat: 0
+      identification:
+        min: 30
+        max: 70
+    mqttname: hotwatertargettemperature
+    valid: true
+  - id: 0
+    modbusAddress: 1
+    converter:
+      name: sensor
+      functionCodes: []
+    functionCode: 21
+    converterParameters:
+      multiplier: 0.1
+      offset: 0
+      device_class: temperature
+      uom: °C
+      numberFormat: 0
+      identification:
+        min: -20
+        max: 50
+    mqttname: outertemperature
+    valid: true
+  - id: 2
+    modbusAddress: 3
+    converter:
+      name: sensor
+      functionCodes: []
+    functionCode: 21
+    converterParameters:
+      multiplier: 0.1
+      offset: 0
+      device_class: temperature
+      uom: °C
+      numberFormat: 0
+      identification:
+        min: 0
+        max: 70
+    mqttname: hotwatertemperature
+    valid: true
+  - id: 3
+    modbusAddress: 11
+    converter:
+      name: sensor
+      functionCodes: []
+    functionCode: 21
+    converterParameters:
+      multiplier: 0.1
+      offset: 0
+      device_class: temperature
+      uom: °C
+      numberFormat: 0
+      identification:
+        min: 15
+        max: 30
+    mqttname: roomtemperature
+    valid: true
+  - id: 5
+    modbusAddress: 47
+    converter:
+      name: sensor
+      functionCodes: []
+    functionCode: 21
+    converterParameters:
+      multiplier: 0.1
+      offset: 0
+      device_class: temperature
+      uom: °C
+      numberFormat: 0
+      identification:
+        min: 0.5
+        max: 5
+    mqttname: hysteresis
+    valid: true
+    icon: alarm
+  - id: 4
+    modbusAddress: 46
+    converter:
+      name: number
+      functionCodes: []
+    functionCode: 21
+    converterParameters:
+      multiplier: 0.1
+      offset: 0
+      device_class: temperature
+      uom: °C
+      numberFormat: 0
+      identification:
+        min: 15
+        max: 30
+    mqttname: targetroomtemperature
+    valid: true
+  - functionCode: 21
+    converter:
+      name: select
+      functionCodes: []
+    modbusAddress: 192
+    id: 7
+    converterParameters:
+      multiplier: 1
+      offset: 0
+      numberFormat: 0
+      optionModbusValues:
+        - 7
+        - 6
+        - 4
+        - 2
+        - 5
+        - 3
+        - 1
+        - 0
+    valid: false
+    mqttname: selecttimetable
+  - id: 6
+    modbusAddress: 3
+    converter:
+      name: binary_sensor
+      functionCodes: []
+    functionCode: 20
+    converterParameters: {}
+    mqttname: externalloack
+    valid: true
+i18n:
+  - lang: en
+    texts:
+      - textId: name
+        text: Dimplex PCO5
+      - textId: e0
+        text: Outer Temperature
+      - textId: e1
+        text: Hot Water Target Temperature
+      - textId: e2
+        text: Hot Water Temperature
+      - textId: e3
+        text: Room Temperature
+      - textId: e4
+        text: Target Room Temperature
+      - textId: e5
+        text: Hysteresis
+      - textId: e6
+        text: External Lock
+      - textId: e7
+        text: Select Timetable
+      - textId: e7o.0
+        text: Not Selected
+      - textId: e7o.1
+        text: 1.HC Subsidence
+      - textId: e7o.3
+        text: 2.HC Subsidence
+      - textId: e7o.5
+        text: 3.HC Subsidence
+      - textId: e7o.2
+        text: 1.HC Raise
+      - textId: e7o.4
+        text: 2.HC Raise
+      - textId: e7o.6
+        text: 3.HC Raise
+      - textId: e7o.7
+        text: Warm Water Lock
+  - lang: de
+    texts:
+      - textId: e7o.7
+        text: Warmes Wasserschloss
+      - textId: e7o.6
+        text: 3.HC erhöhen
+      - textId: e7o.4
+        text: 2.HC erhöhen
+      - textId: e7o.2
+        text: 1.HC erhöhen
+      - textId: e7o.5
+        text: 3.HC Senkung
+      - textId: e7o.3
+        text: 2.HC Senkung
+      - textId: e7o.1
+        text: 1.HC Senkung
+      - textId: e7o.0
+        text: Nicht ausgewählt
+      - textId: e7
+        text: Wählen Sie den Zeitplan
+      - textId: e6
+        text: Externes Schloss
+      - textId: e5
+        text: Hysterese
+      - textId: e4
+        text: Zielzimmertemperatur
+      - textId: e3
+        text: Zimmertemperatur
+      - textId: e2
+        text: Heißwassertemperatur
+      - textId: e1
+        text: Temperatur des Heißwasserziels
+      - textId: e0
+        text: Außentemperatur
+      - textId: name
+        text: Dimplex PCO5
+filename: dimplexpco5
+status: 2
+version: "0.1"
+testdata:
+  - address: 2100174
+    value: 450
+  - address: 2100001
+    value: 200
+  - address: 2100003
+    value: 480
+  - address: 2100011
+    value: 208
+  - address: 2100047
+    value: 30
+  - address: 2100046
+    value: 209
+  - address: 2000003
+    value: 0
+  - address: 2100192
+    value: 0
+model: SI 6
+manufacturer: Dimplex
+name: Dimplex PCO5

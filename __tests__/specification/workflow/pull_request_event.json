@@ -1,0 +1,32 @@
+{
+
+      "act": { 
+        "owner": "modbus2mqtt"
+      },
+      "action": "opened",
+      "number": 3,
+      "pull_request": {
+
+        "base": {
+          "label": "modbus2mqtt:main",
+
+          "ref": "main",
+          "repo": {
+            "name": "specification"
+          },
+          "owner":{
+            "login": "modbus2mqtt"
+          },
+        "closed_at": null,
+        "head": {
+          "ref": "modbuscache",
+          "name": "specification"
+         },
+        "number": 5,
+        "title": "Test Pullrequest"
+      },
+      "body": "Some Text\nrequired PRs: specification:3"
+     
+    }
+}
+  

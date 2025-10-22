@@ -132,6 +132,7 @@ dist
 .pnp.*
 **/.DS_Store
 .jest/
+.angular/
 **/secrets.txt
 e2e
 cypress/screenshots/
@@ -139,3 +140,6 @@ coverage-summary.json
 coverage.txt
 cypress/servers/modbustcp.conf/yaml-dir/public/
 __tests__/backendTCP/public/**/*
+nginx.conf
+nohup.out
+.angular/**/*

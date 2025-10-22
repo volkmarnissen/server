@@ -49,14 +49,14 @@ def updateDependencies(basedir, componentInfo, componentInfos):
         print( inFile)
         replacements = []
         for cInfo in componentInfos:
-            name='"@modbus2mqtt/' + cInfo.name + '": "'
+            name='"../' + cInfo.name + '": "'
             newValue = name + "^" + cInfo.pkgVersion + '"'
             if cInfo.name != componentInfo.name :
                 replacements.append( StringReplacement(pattern=name + '.*"' , newValue=newValue) )
         replaceStringInFile(inFile, inFile,replacements )
 
 def getNpmVersion(component):
-    return subprocess.getoutput('npm view --silent @modbus2mqtt/' + component + ' version' )
+    return subprocess.getoutput('npm view --silent ../' + component + ' version' )
 
 def getReleaseTag(basedir, component) ->int:
     pwd = os.getcwd()
@@ -295,11 +295,11 @@ def buildComponentInfo( basedir, componentName, ignoreList):
 
 
 def test():
-    name='"@modbus2mqtt/angular'  + '": "'
+    name='"../angular'  + '": "'
     newValue = name + "^" + "0.12.2" + '"'
     replacements = []
     replacements.append( StringReplacement(pattern=name + '.*"' , newValue=newValue) )
-    name='"@modbus2mqtt/specification.shared'  + '": "'
+    name='"../specification.shared'  + '": "'
     newValue = name + "^" + "0.17.2" + '"'
     replacements.append( StringReplacement(pattern=name + '.*"' , newValue=newValue) )
     replaceStringInFile("package.json", "package.json.new",replacements )

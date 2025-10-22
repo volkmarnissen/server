@@ -1,0 +1,50 @@
+<mat-expansion-panel *ngIf="mqttdiscoverylanguage != 'en'">
+  <mat-expansion-panel-header>
+    <mat-panel-title>
+      <p [ngClass]="{'errorText': !translationFormGroup.valid}">
+        Translation({{getLanguageName(translationLanguage)}})</p>
+    </mat-panel-title>
+  </mat-expansion-panel-header>
+
+  <div class="width300pt">
+    <mat-slide-toggle class="width50 toggleField" (change)="onLanguageToggle()">
+      Switch Languages: {{getLanguageName(originalLanguage) +
+      "->" + getLanguageName(translationLanguage)}}</mat-slide-toggle>
+    <form [formGroup]="translationFormGroup">
+
+      <ng-container *ngIf="!translationFormGroup.valid">
+        <button mat-button (click)="googleTranslate()" type="button" [disabled]="">Google Translate{{
+          supportsGoogleTranslate?"":"
+          URL"}}</button>
+        <mat-form-field *ngIf="!supportsGoogleTranslate">
+          <textarea matInput placeholder="Paste Translated Texts here " cdkTextareaAutosize cdkAutosizeMinRows="3"
+            (input)="translatedValuesPasted($event)"></textarea>
+        </mat-form-field>
+      </ng-container>
+      <div class="full-width flexcolumns">
+        <h2>Specification</h2>
+        <mat-form-field class="width300pt">
+          <mat-label>{{getOriginalText('name')}}({{getLanguageName(translationLanguage)}})</mat-label>
+          <input matInput class="width250pt" formControlName="name" (change)="changeText('name')" />
+        </mat-form-field>
+        <h2>Entities</h2>
+        <div class="scrollable flexcolumns ">
+          <ng-container *ngFor="let key of getAllKeys()">
+
+            <mat-form-field class="width300pt">
+              <mat-label>{{getOriginalText(key)}}({{getLanguageName(translationLanguage)}})</mat-label>
+              <input matInput [formControlName]="key" (change)="changeText(key)" />
+            </mat-form-field>
+            <ng-container *ngFor="let optionKey of getOptionKeys(key)">
+              <mat-form-field class="width250pt margin">
+                <mat-label>{{getOriginalText(optionKey)}}</mat-label>
+                <input matInput [formControlName]="optionKey" (change)="changeText(optionKey)" />
+              </mat-form-field>
+            </ng-container>
+          </ng-container>
+        </div>
+      </div>
+    </form>
+  </div>
+
+</mat-expansion-panel>

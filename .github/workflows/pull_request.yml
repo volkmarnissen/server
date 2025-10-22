@@ -21,14 +21,17 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y mosquitto mosquitto-clients
-
+      - name: Cypress run e2e test
+        uses: cypress-io/github-action@v6
+        with:
+          start: npm run e2e:start
+      - name: Run jest component tests
+        run: npx jest --reporters default --reporters github-actions
       - name: Cypress run component tests
         uses: cypress-io/github-action@v6
         with:
           component: true
       - name: Run jest component tests
         run: npx jest --reporters default --reporters github-actions
-      - name: Cypress run e2e test
-        uses: cypress-io/github-action@v6
         with:
-          start: npm run e2e:startServers
+          install: false
