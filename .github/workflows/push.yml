@@ -153,7 +153,7 @@ jobs:
       - name: Copy CHANGELOG.md
         run: |
           cd modbus2mqtt${{steps.releasecheck.outputs.latest}}
-          cp modbus2mqtt${{steps.releasecheck.outputs.latest}}/docker/rootfs/usr/app/CHANGELOG.md CHANGELOG.md
+          cp docker/rootfs/usr/app/CHANGELOG.md CHANGELOG.md
           cd -
       - name: Checkin hassio-addon-repository
         if: ${{steps.platformcheck.outputs.platform == 'arm64' }}
