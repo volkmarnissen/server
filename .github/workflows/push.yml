@@ -103,8 +103,6 @@ jobs:
           echo latest="$latest" >> $GITHUB_OUTPUT
           rm server.tgz
           rmdir package
-      - name: 'create rootfs/usr/app directory'
-        run: mkdir -p "modbus2mqtt${{steps.getversion.outputs.latest}}/docker/rootfs/usr/app"
       - name: npm ci
         run: |
           cd modbus2mqtt${{steps.getversion.outputs.latest}}/docker/rootfs/usr/app
