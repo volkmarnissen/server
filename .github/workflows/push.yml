@@ -30,7 +30,7 @@ jobs:
       - name: 'Checkout'
         uses: actions/checkout@v4
       - name: Increment patch version number
-        run: npm version patch
+        run: npm version patch  --no-git-tag-version
       - name: '✏️ Generate changelog'
         uses: heinrichreimer/action-github-changelog-generator@v2.4
         with:
