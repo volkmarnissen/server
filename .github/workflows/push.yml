@@ -48,7 +48,7 @@ jobs:
         id: npminstall
         run: |
           npm ci 
-          npm rund build
+          npm run build
           archivename=$( npm pack | tail -1)"
           echo pkgname=$(echo $archivename | sed -e 's/\(.*\)-[^-]*$/\1/g') >> $GITHUB_OUTPUT
           echo pkgversion=$(echo $archivename | sed -e 's/.*-\([^-]*\)$/\1/g' )  >> $GITHUB_OUTPUT
