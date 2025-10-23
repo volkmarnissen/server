@@ -67,30 +67,29 @@ args = parser.parse_args()
 version = repositories.readPackageJson(os.path.join(args.componentdir, 'package.json'))['version']
 print("TAG_NAME=" + version)
 
-if re.match(r'\.0$', version):
+if re.match(r'\.latest', args.componentdir):
+    replacements = [
+        StringReplacement(pattern='version: [0-9.][^\\n]*', newValue='version: ' +version  + '\n'),
+        ]
+    updateConfigAndDockerfile(modbus2mqttLatest, replacements,replacements)
+else:
     # release
     repositories.executeSyncCommand(['rsync', '-avh', modbus2mqttLatest + '/', modbus2mqtt +'/'])
     removeTag( 'v' +version)
     githuburl = 'github:modbus2mqtt/server'
     replacements = [
-        StringReplacement(pattern='version: [0-9.][^\n]*', 
+        StringReplacement(pattern='version: [0-9.][^\\n]*', 
                           newValue='version: ' +  version ),
         StringReplacement(pattern='Modbus <=> MQTT latest', 
                           newValue='Modbus <=> MQTT' ),
         StringReplacement(pattern='image: ghcr.io/modbus2mqtt/modbus2mqtt.latest', newValue= 'image: ghcr.io/modbus2mqtt/modbus2mqtt'),
         StringReplacement(pattern='slug:.*', newValue='slug: modbus2mqtt'),
-        StringReplacement(pattern='\\s*ports:\\n\\s*3000\\/tcp: 3000\n', newValue='ports:\n'),
-        StringReplacement(pattern='\\s*3000\\/tcp: 3000\\n', newValue=''),
-        StringReplacement(pattern='\\s*9229\\/tcp: null\\n', newValue=''),
+        StringReplacement(pattern='\\s*9229/tcp: null\\n', newValue='\n'),
         ]
     replacementsDocker = [
-        StringReplacement(pattern=githuburl+ '[^\n]*', newValue=githuburl + '#v' + version  )
+        StringReplacement(pattern=githuburl+ '[^\\n]*', newValue=githuburl + '#v' + version  )
         ]        
-    updateConfigAndDockerfile(modbus2mqttLatest, replacements,replacements)
-else:
-    replacements = [
-        StringReplacement(pattern='version: [0-9.][^\n]*', newValue='version: ' +version ),
-        ]
-    updateConfigAndDockerfile(modbus2mqttLatest, replacements,replacements)
-    print("TAG_NAME=" + version)
+    updateConfigAndDockerfile(modbus2mqtt, replacements,replacements)
+
+print("TAG_NAME=" + version)
 
