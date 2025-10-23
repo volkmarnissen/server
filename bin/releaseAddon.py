@@ -50,7 +50,7 @@ def updateConfigAndDockerfile(basedir, replacements,replacementsDocker=None):
     sys.stderr.write("createAddonDirectory replace in " + basedir  + " " +  "\n")
     config = os.path.join(basedir,  configYaml)
     docker = os.path.join(basedir,  dockerFile)
-    replaceStringInFile(configYaml,config, replacements)
+    replaceStringInFile(config,config, replacements)
     if replacementsDocker != None:
         replaceStringInFile(docker, docker, replacementsDocker )
  
@@ -79,17 +79,18 @@ if re.match(r'\.0$', version):
                           newValue='Modbus <=> MQTT' ),
         StringReplacement(pattern='image: ghcr.io/modbus2mqtt/modbus2mqtt.latest', newValue= 'image: ghcr.io/modbus2mqtt/modbus2mqtt'),
         StringReplacement(pattern='slug:.*', newValue='slug: modbus2mqtt'),
-        StringReplacement(pattern='\s*ports:\n\s*3000\/tcp: 3000\n', newValue='ports:\n'),
-        StringReplacement(pattern='\s*3000\/tcp: 3000\n', newValue=''),
-        StringReplacement(pattern='\s*9229\/tcp: null\n', newValue=''),
+        StringReplacement(pattern='\\s*ports:\\n\\s*3000\\/tcp: 3000\n', newValue='ports:\n'),
+        StringReplacement(pattern='\\s*3000\\/tcp: 3000\\n', newValue=''),
+        StringReplacement(pattern='\\s*9229\\/tcp: null\\n', newValue=''),
         ]
     replacementsDocker = [
         StringReplacement(pattern=githuburl+ '[^\n]*', newValue=githuburl + '#v' + version  )
         ]        
+    updateConfigAndDockerfile(modbus2mqttLatest, replacements,replacements)
 else:
     replacements = [
         StringReplacement(pattern='version: [0-9.][^\n]*', newValue='version: ' +version ),
         ]
-    updateConfigAndDockerfile(modbus2mqttLatest, version, replacements,replacements)
+    updateConfigAndDockerfile(modbus2mqttLatest, replacements,replacements)
     print("TAG_NAME=" + version)
 
