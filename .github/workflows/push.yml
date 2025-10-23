@@ -49,6 +49,7 @@ jobs:
         run: |
           npm ci 
           npm run build
+          npm shrinkwrap
           archivename=$( npm pack | tail -1)
           mv $archivename server.tgz
           echo pkgname=$(echo $archivename | sed -e 's/\(.*\)-[^-]*$/\1/g') >> $GITHUB_OUTPUT
