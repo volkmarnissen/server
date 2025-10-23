@@ -9,7 +9,7 @@ on:
     inputs:
       version_number:
         required: true
-        description: Version number (package.json)
+        description: Version number <patch|minor| version number(E.g. 1.0.0) see npm version>
 # Defines two custom environment variables for the workflow. These are used for the Container registry domain, and a name for the Docker image that this workflow builds.
 env:
   REGISTRY: ghcr.io
@@ -34,10 +34,11 @@ jobs:
           then
           echo "tag=$(npm version patch --no-git-tag-version)" >> $GITHUB_OUTPUT
           else
-          echo "tag=v${{ steps.package-version.outputs.version }}" >>$GITHUB_OUTPUT
+          echo "tag=$(npm version $VERSION --no-git-tag-version)" >>$GITHUB_OUTPUT
           fi
         env:
           EVENT: ${{ github.event_name }}
+          VERSION: ${{ steps.package-version.outputs.version }}"
       - name: '✏️ Generate changelog'
         uses: heinrichreimer/action-github-changelog-generator@v2.4
         with:
