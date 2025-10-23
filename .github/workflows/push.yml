@@ -29,7 +29,7 @@ jobs:
         id: package-version
       - name: Set package version number (increment if triggered by 'push'
         run: |
-          if [ "$EVENT" == 'push' }} ]
+          if [ "$EVENT" == 'push' ]
           then
           echo "tag=$(npm version patch --no-git-tag-version)" >> $GITHUB_OUTPUT
           else
