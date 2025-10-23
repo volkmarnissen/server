@@ -102,7 +102,7 @@ jobs:
       - name: extract server.tgz into /usr/app
         run: |
           cd modbus2mqtt${{steps.releasecheck.outputs.latest}}/docker/rootfs/usr/app
-          tar tf server.tgz
+          tar xf server.tgz
           mv package/* .
           rm server.tgz
       - name: npm ci
