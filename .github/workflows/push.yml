@@ -29,12 +29,14 @@ jobs:
         id: package-version
       - name: Set package version number (increment if triggered by 'push'
         run: |
-          if [ "${{ github.event_name}}" == 'push' }} ]
+          if [ "$EVENT" == 'push' }} ]
           then
           echo "tag=$(npm version patch --no-git-tag-version)" >> $GITHUB_OUTPUT
           else
           echo "tag=v${{ steps.package-version.outputs.version }}" >>$GITHUB_OUTPUT
           fi
+        env:
+          EVENT: ${{ github.event_name }}
       - name: '✏️ Generate changelog'
         uses: heinrichreimer/action-github-changelog-generator@v2.4
         with:
