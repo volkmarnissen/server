@@ -1,5 +1,5 @@
 {
-  "name": "modbusqmtt",
+  "name": "modbus2mqtt",
   "version": "0.16.27",
   "sshserver": "homeassistant@homeassistant.lan",
   "homepage": "https://github.com/modbus2mqtt/server/README.md",
