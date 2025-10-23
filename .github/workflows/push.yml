@@ -101,6 +101,7 @@ jobs:
           latest=.latest
           if grep -e 'version:\s*"[ 0-9.]*\.0"$' package/package.json >/dev/null ;then latest="";fi
           mkdir -p "modbus2mqtt$latest/docker/rootfs/usr/app"
+          shopt -s dotglob
           mv package/* modbus2mqtt$latest/docker/rootfs/usr/app
           echo latest="$latest" >> $GITHUB_OUTPUT
           rm server.tgz
