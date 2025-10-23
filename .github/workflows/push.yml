@@ -160,7 +160,6 @@ jobs:
         if: ${{steps.platformcheck.outputs.platform == 'arm64' }}
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          tagging_message: ${{steps.prepareAddonDirectory.outputs.TAG_NAME}}
           commit_message: ${{steps.prepareAddonDirectory.outputs.TAG_NAME}}
   docker-tag:
     if: always()
