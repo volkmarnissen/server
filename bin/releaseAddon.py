@@ -78,7 +78,7 @@ else:
     removeTag( 'v' +version)
     githuburl = 'github:modbus2mqtt/server'
     replacements = [
-        StringReplacement(pattern='version: [0-9.][^\\n]*', 
+        StringReplacement(pattern='version: [0-9.]*[^\\n]*', 
                           newValue='version: ' +  version ),
         StringReplacement(pattern='Modbus <=> MQTT latest', 
                           newValue='Modbus <=> MQTT' ),
