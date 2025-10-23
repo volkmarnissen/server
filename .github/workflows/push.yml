@@ -48,7 +48,7 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: Update CHANGELOG.md
-          tag-name: ${{steps.set-tag.outputs.tag}}
+          tagging_message: ${{steps.set-tag.outputs.tag}}
           add_options: '-u'
       - name: Set up Node.js
         uses: actions/setup-node@v1
