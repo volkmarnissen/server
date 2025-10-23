@@ -128,6 +128,7 @@ jobs:
         run: |
           componentdir="modbus2mqtt${{steps.releasecheck.outputs.latest}}/docker/rootfs/usr/app"
           "$componentdir/bin/releaseAddon.py" --componentdir "$componentdir" >>$GITHUB_OUTPUT
+          rm $componentdir/bin/*.py
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up QEMU
