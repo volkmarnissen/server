@@ -28,6 +28,7 @@ jobs:
         uses: zvonimirsun/read-package-version-actions@v2
         id: package-version
       - name: Set package version number (increment if triggered by 'push'
+        id: set-tag
         run: |
           if [ "$EVENT" == 'push' ]
           then
@@ -47,6 +48,7 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: Update CHANGELOG.md
+          tag-name: ${{steps.set-tag.outputs.tag}}
           add_options: '-u'
       - name: Set up Node.js
         uses: actions/setup-node@v1
