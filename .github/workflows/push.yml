@@ -4,17 +4,12 @@ name: Create and publish a Docker image
 # Configures this workflow to run every time a change is pushed to the branch called `release`.
 on:
   push:
-    branches: ['main', 'release']
+    branches: ['main']
   workflow_dispatch:
     inputs:
-      component:
-        type: choice
-        description: Select component
-        options:
-          - server
-          - specification
-          - angular
-
+      version_number:
+        required: true
+        description: Version number (package.json)
 # Defines two custom environment variables for the workflow. These are used for the Container registry domain, and a name for the Docker image that this workflow builds.
 env:
   REGISTRY: ghcr.io
@@ -29,8 +24,17 @@ jobs:
     steps:
       - name: 'Checkout'
         uses: actions/checkout@v4
-      - name: Increment patch version number
-        run: npm version patch  --no-git-tag-version
+      - name: Read package.json
+        uses: zvonimirsun/read-package-version-actions@v2
+        id: package-version
+      - name: Set package version number (increment if triggered by 'push'
+        run: |
+          if [ "${{ github.event_name}}" == 'push' }} ]
+          then
+          echo "tag=$(npm version patch --no-git-tag-version)" >> $GITHUB_OUTPUT
+          else
+          echo "tag=v${{ steps.package-version.outputs.version }}" >>$GITHUB_OUTPUT
+          fi
       - name: '✏️ Generate changelog'
         uses: heinrichreimer/action-github-changelog-generator@v2.4
         with:
