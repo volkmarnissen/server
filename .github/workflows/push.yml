@@ -28,28 +28,17 @@ jobs:
       - name: 'Checkout'
         uses: actions/checkout@v4
       - name: set package version number for update NPM version
-        id: npm_version_args
-        run: |
-          if [ "$EVENT" == 'push' ]
-          then
-          echo "arg=patch" >> $GITHUB_OUTPUT
-          else
-          echo "arg=$(npm version $VERSION )" >>$GITHUB_OUTPUT
-          fi
-        env:
-          EVENT: ${{ github.event_name }}
-          VERSION: ${{ inputs.version_number }}
-      - name: 'Update NPM version'
-        uses: reedyuk/npm-version@1.1.1
-        with:
-          version: ${{ steps.npm_version_args.outputs.arg }}
-          git-tag-version: 'true'        
-      - name: Read package.json
-        uses: zvonimirsun/read-package-version-actions@v2
-        id: package-version
-      - name: Set since_tag to previous release
         id: set-tag
         run: |
+          git config --global user.email "noreply@carcam360.de" 
+          git config --global user.name "Workflow User"
+          if [ "$EVENT" == 'push' ]
+          then
+          echo "tag=$(npm version patch )" >> $GITHUB_OUTPUT
+          else
+          echo "tag=$(npm version $VERSION )" >>$GITHUB_OUTPUT
+          fi
+          git push
           sinceTag=""
           if [[ "$VERSION" =~ \.0$ ]]; then  
           minor=$(echo $VERSION| sed -e 's/[0-9]*\.\([0-9]*\)\.0$/\1/g')
@@ -57,7 +46,8 @@ jobs:
           echo "since_tag=v$major.$(expr $minor - 1).0" >>$GITHUB_OUTPUT
           fi
         env:
-          VERSION: ${{ steps.package-version.outputs.version }}
+          EVENT: ${{ github.event_name }}
+          VERSION: ${{ inputs.version_number }}
       - name: '✏️ Generate changelog'
         uses: heinrichreimer/action-github-changelog-generator@v2.4
         with:
@@ -72,11 +62,6 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           sinceTag: ${{ steps.set-tag.outputs.since_tag }}
           headerLabel: Changes since Release ${{ steps.set-tag.outputs.since_tag }}
-      - name: Checkin CHANGELOG.md 
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: Update CHANGELOG.md
-          add_options: '-u'
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
