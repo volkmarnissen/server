@@ -53,7 +53,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           output: CHANGELOG.md
-          headerLabel: '# Changelog for ${{github.event.repository.name}}'
+          headerLabel: '# Changelog for Modbus <=> MQTT'
       - name: '✏️ Generate changelog for release'
         id: release_changes
         if: ${{ steps.set-tag.outputs.since_tag != '' }} 
