@@ -32,7 +32,7 @@ import {
   IidentEntity,
 } from "../../../specification.shared";
 import { Clipboard } from "@angular/cdk/clipboard";
-import { Observable, Subject, Subscription, map, of } from "rxjs";
+import { Observable, Subject, Subscription, map } from "rxjs";
 import { ActivatedRoute, Router } from "@angular/router";
 import { SessionStorage } from "../services/SessionStorage";
 import { M2mErrorStateMatcher } from "../services/M2mErrorStateMatcher";
@@ -49,8 +49,6 @@ import {
   Slave,
   Iconfiguration,
   IEntityCommandTopics,
-  ImodbusErrorsForSlave,
-  apiUri,
   ImodbusStatusForSlave,
 } from "../../../server.shared";
 import { MatInput } from "@angular/material/input";
@@ -60,7 +58,7 @@ import {
   MatExpansionPanelTitle,
 } from "@angular/material/expansion";
 import { MatOption } from "@angular/material/core";
-import { MatSelect, MatSelectChange } from "@angular/material/select";
+import { MatSelect } from "@angular/material/select";
 import { MatFormField, MatLabel, MatError } from "@angular/material/form-field";
 import { MatIcon } from "@angular/material/icon";
 import { MatIconButton } from "@angular/material/button";
@@ -76,7 +74,6 @@ import { NgFor, NgIf, AsyncPipe } from "@angular/common";
 import { MatTooltip } from "@angular/material/tooltip";
 import { MatSlideToggle } from "@angular/material/slide-toggle";
 import { ModbusErrorComponent } from "../modbus-error/modbus-error.component";
-import { isUndefined } from "cypress/types/lodash";
 
 interface IuiSlave {
   slave: Islave;
@@ -125,8 +122,8 @@ interface IuiSlave {
   ],
 })
 export class SelectSlaveComponent extends SessionStorage implements OnInit {
-  preparedIdentSpecs: IidentificationSpecification[];
-  preparedSpecs: Ispecification[];
+  preparedIdentSpecs: IidentificationSpecification[]=[];
+  preparedSpecs: Ispecification[]=[];
   getDetectSpecToolTip(): string {
     return this.slaveNewForm.get("detectSpec")?.value == true
       ? "If there is exactly one specification matching to the modbus data for this slave, " +
@@ -141,8 +138,8 @@ export class SelectSlaveComponent extends SessionStorage implements OnInit {
   getSpecIcon() {
     throw new Error("Method not implemented.");
   }
-  currentLanguage: string;
-  busname: string;
+  currentLanguage: string="";
+  busname: string="";
   constructor(
     private _formBuilder: FormBuilder,
     private route: ActivatedRoute,
@@ -151,26 +148,27 @@ export class SelectSlaveComponent extends SessionStorage implements OnInit {
     private clipboard: Clipboard,
   ) {
     super();
+    this.slaveNewForm = this._formBuilder.group({
+    slaveId: [null],
+    detectSpec: [false],
+  });
   }
   showAllPublicSpecs = new FormControl<boolean>(false);
   uiSlaves: IuiSlave[] = [];
-  config: Iconfiguration;
+  config: Iconfiguration={} as any;
   slaves: Islave[] = [];
 
   // label:string;
   // slaveForms: FormGroup[]
   // specs:Observable<IidentificationSpecification[]> []=[]
   //slavesFormArray: FormArray<FormGroup>
-  slaveNewForm: FormGroup = this._formBuilder.group({
-    slaveId: [null],
-    detectSpec: [false],
-  });
-  paramsSubscription: Subscription;
+  slaveNewForm: FormGroup;
+  paramsSubscription: Subscription={} as any;
   errorStateMatcher = new M2mErrorStateMatcher();
 
-  bus: IBus;
+  bus: IBus ={} as any;
   preselectedSlaveId: number | undefined = undefined;
-  @ViewChild("slavesBody") slavesBody: ElementRef;
+  @ViewChild("slavesBody") slavesBody: ElementRef={} as any;
   @Output() slaveidEventEmitter = new EventEmitter<number | undefined>();
   ngOnInit(): void {
     this.entityApiService.getConfiguration().subscribe((config) => {

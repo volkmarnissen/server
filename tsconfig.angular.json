@@ -9,6 +9,7 @@
     "strict": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
+    "skipLibCheck": true,
     "strictPropertyInitialization": false,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
@@ -26,14 +27,16 @@
     ],
     "paths": {
       "angular/src/*": [
-        "./src/*"
-      ]
+        "./src/angular/*"
+      ],
+      "zone.js/node": ["node_modules/zone.js/dist/zone-node.js"]
     }
   },
   "ts-node": {
     "esm": true,
     "experimentalSpecifierResolution": "node"
   },
+  "include": ["src/angular"],
   "exclude": [
     "node_modules/**/*",
     "dist/**/*",
