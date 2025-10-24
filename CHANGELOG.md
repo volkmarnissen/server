@@ -1,5 +1,9 @@
 # Changelog for server
 
+## [v0.16.44](https://github.com/volkmarnissen/server/tree/v0.16.44) (2025-10-24)
+
+[Full Changelog](https://github.com/volkmarnissen/server/compare/v0.16.43...v0.16.44)
+
 ## [v0.16.43](https://github.com/volkmarnissen/server/tree/v0.16.43) (2025-10-24)
 
 [Full Changelog](https://github.com/volkmarnissen/server/compare/v0.16.42...v0.16.43)
