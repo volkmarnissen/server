@@ -67,7 +67,7 @@ args = parser.parse_args()
 version = repositories.readPackageJson(os.path.join(args.componentdir, 'package.json'))['version']
 print("TAG_NAME=" + version)
 
-if re.match(r'\.latest', args.componentdir):
+if re.search(r'\.latest', args.componentdir):
     replacements = [
         StringReplacement(pattern='version: [0-9.][^\\n]*', newValue='version: ' +version  + '\n'),
         ]
@@ -79,7 +79,7 @@ else:
     githuburl = 'github:modbus2mqtt/server'
     replacements = [
         StringReplacement(pattern='version: [0-9.]*[^\\n]*', 
-                          newValue='version: ' +  version ),
+                          newValue='version: ' +  version +'\n'),
         StringReplacement(pattern='Modbus <=> MQTT latest', 
                           newValue='Modbus <=> MQTT' ),
         StringReplacement(pattern='image: ghcr.io/modbus2mqtt/modbus2mqtt.latest', newValue= 'image: ghcr.io/modbus2mqtt/modbus2mqtt'),
@@ -90,6 +90,3 @@ else:
         StringReplacement(pattern=githuburl+ '[^\\n]*', newValue=githuburl + '#v' + version  )
         ]        
     updateConfigAndDockerfile(modbus2mqtt, replacements,replacements)
-
-print("TAG_NAME=" + version)
-
