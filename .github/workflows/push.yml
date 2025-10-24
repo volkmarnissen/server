@@ -27,27 +27,37 @@ jobs:
     steps:
       - name: 'Checkout'
         uses: actions/checkout@v4
-      - name: Read package.json
-        uses: zvonimirsun/read-package-version-actions@v2
-        id: package-version
-      - name: Set package version number (increment if triggered by 'push'
-        id: set-tag
+      - name: set package version number for update NPM version
+        id: npm_version_args
         run: |
           if [ "$EVENT" == 'push' ]
           then
-          echo "tag=$(npm version patch )" >> $GITHUB_OUTPUT
+          echo "arg=patch" >> $GITHUB_OUTPUT
           else
-          echo "tag=$(npm version $VERSION )" >>$GITHUB_OUTPUT
+          echo "arg=$(npm version $VERSION )" >>$GITHUB_OUTPUT
           fi
+        env:
+          EVENT: ${{ github.event_name }}
+          VERSION: ${{ inputs.version_number }}
+      - name: 'Update NPM version'
+        uses: reedyuk/npm-version@1.1.1
+        with:
+          version: ${{ steps.npm_version_args.outputs.arg }}
+          git-tag-version: 'true'        
+      - name: Read package.json
+        uses: zvonimirsun/read-package-version-actions@v2
+        id: package-version
+      - name: Set since_tag to previous release
+        id: set-tag
+        run: |
           sinceTag=""
           if [[ "$VERSION" =~ \.0$ ]]; then  
           minor=$(echo $VERSION| sed -e 's/[0-9]*\.\([0-9]*\)\.0$/\1/g')
           major=$(echo $VERSION| sed -e 's/\([0-9]*\)\.[0-9]*\.0$/\1/g')
-          since_tag=v$major.$(expr $minor - 1).0 >>$GITHUB_OUTPUT
+          echo "since_tag=v$major.$(expr $minor - 1).0" >>$GITHUB_OUTPUT
           fi
         env:
-          EVENT: ${{ github.event_name }}
-          VERSION: ${{ steps.package-version.outputs.version }}"
+          VERSION: ${{ steps.package-version.outputs.version }}
       - name: '✏️ Generate changelog'
         uses: heinrichreimer/action-github-changelog-generator@v2.4
         with:
