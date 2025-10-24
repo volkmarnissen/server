@@ -178,7 +178,9 @@ jobs:
           cd modbus2mqtt${{steps.getversion.outputs.latest}}
           cp docker/rootfs/usr/app/CHANGELOG.md CHANGELOG.md
           cd -
+          git stash
           git pull --rebase
+          git stash pop
       - name: Checkin hassio-addon-repository
         if: ${{steps.platformcheck.outputs.platform == 'arm64' }}
         uses: stefanzweifel/git-auto-commit-action@v5
