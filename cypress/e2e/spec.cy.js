@@ -4,7 +4,10 @@ function runRegister(authentication, port) {
   if( prefix.length )
     cy.visit('http://localhost:' + Cypress.env('nginxAddonHttpPort') +'/' + prefix)
   else
-    cy.visit('http://localhost:' + Cypress.env('modbus2mqttE2eHttpPort'))
+    if(port != undefined )
+        cy.visit('http://localhost:' + port )
+    else
+        cy.visit('http://localhost:' + Cypress.env('modbus2mqttE2eHttpPort'))
   if (authentication) {
     cy.get('[formcontrolname="username"]').type('test')
     cy.get('[formcontrolname="password"]').type('test')
@@ -68,12 +71,6 @@ function addSlave(willLog) {
 
   cy.url().should('contain', prefix + '/specification')
 }
-function e2eReset(willLog){
-  let logSetting = { log: willLog }
-  cy.task("e2eServicesStop", logSetting)
-  cy.task("e2eServicesStart", logSetting)
-
-}
 describe('End to End Tests', () => {
   before(() => {
     let logSetting = { log: false }
@@ -81,7 +78,6 @@ describe('End to End Tests', () => {
   after(() => {
     let logSetting = { log: false }
     // wait for all tests then 
-    cy.task('e2eServicesStop', logSetting)
   })
 
   it(
@@ -94,7 +90,6 @@ describe('End to End Tests', () => {
     },
     () => {
 
-      e2eReset(false)
       runRegister(true)
       runConfig(true)
       runBusses()
@@ -110,8 +105,7 @@ describe('End to End Tests', () => {
       },
     },
     () => {
-      e2eReset(false)
-      runRegister(false, Cypress.env('modbus2mqttE2eHttpPort'))
+      runRegister(false, Cypress.env('modbus2mqttMqttNoAuthPort'))
       runConfig(false)
     }
   )
@@ -124,7 +118,6 @@ describe('End to End Tests', () => {
       },
     },
     () => {
-      e2eReset(false)
       prefix = 'ingress'
       cy.visit('http://localhost:' + Cypress.env('nginxAddonHttpPort') +'/' + prefix)
       runBusses()

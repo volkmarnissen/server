@@ -3,13 +3,35 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Launch Program test",
+      "program": "${workspaceFolder}/cypress/servers/test.js",
+      "request": "launch",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "type": "node"
+    },
+    {
+      "address": "TCP/IP address of process to be debugged",
+      "localRoot": "${workspaceFolder}",
+      "name": "cypress/servers/test.js",
+      "port": 9229,
+      "remoteRoot": "Absolute path to the remote directory containing the program",
+      "request": "attach",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "type": "node"
+    },
+    
+    {
       "name": "Python-Debugger: Aktuelle Datei mit Argumenten",
       "type": "debugpy",
       "request": "launch",
       "program": "${file}",
       "console": "integratedTerminal",
-      "args": ["--componentdir", "modbus2mqtt.latest/docker/rootfs/usr/app"],
-      "cwd": "${workspaceFolder}/../modbus2mqtt.dev/hassio-addon-repository"
+      "args": ["killServers"],
+      "cwd": "${workspaceFolder}"
     },
 
     {

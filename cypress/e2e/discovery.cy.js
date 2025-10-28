@@ -153,11 +153,6 @@ function backspaces(num) {
   for (let a = 0; a < num; a++) rc = rc + '{backspace}'
   return rc
 }
-function e2eReset(log){ 
-  cy.task("e2eServicesStop", log)
-  cy.task("e2eServicesStart", log)
-
-}
 let logSetting = { log: true }
 
 describe('MQTT Discovery Tests', () => {
@@ -170,7 +165,7 @@ describe('MQTT Discovery Tests', () => {
   after(() => {
     // wait for all tests then 
     //cy.task('e2eInitServicesStop', logSetting)
-    cy.task('e2eServicesStop', logSetting)
+    //cy.task('e2eServicesStop', logSetting)
   })
 
   it(
