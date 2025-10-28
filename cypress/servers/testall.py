@@ -119,9 +119,16 @@ def startRequiredApps():
     fb = tempfile.NamedTemporaryFile(delete_on_close=False)
     fb.write( nginxConf.encode('utf-8'))
     fb.close()
-    subprocess.Popen(["nohup", "nginx","-c",fb.name,"-p","."])
-    subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbustcp"])
-    for port in [3002,3006]:
+    file="cypress/servers/tmpfiles"
+    if os.path.exists(file):os.remove(file )
+    subprocess.Popen(["nohup", "nginx","-c",fb.name,"-p","."],stderr=subprocess.DEVNULL)
+    subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbustcp"],stderr=subprocess.DEVNULL)
+    subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/mosquitto"],stderr=subprocess.DEVNULL)
+    subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbus2mqtt 3005 " + file],stderr=subprocess.DEVNULL)  # e2ePort
+    subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbus2mqtt 3004 "  + file + " localhost:3006"],stderr=subprocess.DEVNULL) 
+    subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbus2mqtt 3007 " + file],stderr=subprocess.DEVNULL)  # mqttNoAuthPort
+
+    for port in [3002,3006, 3005,3004, 3001,3003]:
         count=0
         while count < 12:            
             if not isOpen("localhost", port):
@@ -134,21 +141,31 @@ def startRequiredApps():
                 eprint(f.read())
             eprint( executeSyncCommand(["pgrep", "-f", "nginx: master|runModbusTCP"]))
             raise SyncException("Port " + str(port) + " is not up")
+    with open('nohup.out', 'r') as f:
+        for line in f:
+            if line.startswith("TMPDIR_"):
+                print(line)
 
 def unlinkIfExist( file:str):
   if os.path.exists(file):
         os.unlink(file)
  
+def killOne(app:str):
+    try:
+        executeSyncCommand(["pkill",  "-U", os. getlogin(),"-f", app])
+    except:
+        eprint("unable to kill " + app)        
+    
 def killRequiredApps():
     print("::group::Cypress cleanup")
-    try:
-        executeSyncCommand(["pkill", "-f", "nginx: master|runModbusTCP"])
-        unlinkIfExist("nginx.conf")
-        unlinkIfExist("nohup.out" )
-        unlinkIfExist("nginx.error.log" )
-        unlinkIfExist("nginx.pid" )
-    except:
-        return 
+    killOne("nginx: master")
+    killOne("runModbusTCP")
+    killOne("modbus2mqtt")
+    killOne("mosquitto")
+    unlinkIfExist("nginx.conf")
+    unlinkIfExist("nohup.out" )
+    unlinkIfExist("nginx.error.log" )
+    unlinkIfExist("nginx.pid" )
     print( '::endgroup::' )
 
 def testRepository(reponame:str):
