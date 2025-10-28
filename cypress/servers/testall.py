@@ -166,6 +166,7 @@ def killRequiredApps():
     unlinkIfExist("nohup.out" )
     unlinkIfExist("nginx.error.log" )
     unlinkIfExist("nginx.pid" )
+    unlinkIfExist("cypress/servers/tmpfiles" )
     print( '::endgroup::' )
 
 def testRepository(reponame:str):
