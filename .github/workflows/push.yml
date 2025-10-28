@@ -29,6 +29,7 @@ jobs:
       - name: 'Checkout'
         uses: actions/checkout@v4
       - name: set package version number for update NPM version
+        if: ${{ inputs.version_number != '' }}
         id: set-tag
         run: |
           git config --global user.email "noreply@carcam360.de" 
@@ -37,11 +38,9 @@ jobs:
           then
           echo "tag=$(npm version patch )" >> $GITHUB_OUTPUT
           else
-          if [ "$VERSION" == "" ]
+          if [ "${{ inputs.version_number }}" != "" ]
           then
-          echo "tag=$(npm version $VERSION )" >>$GITHUB_OUTPUT
-          else 
-          grep version package.json| sed -e 's/.*version": .\([^"]*\)",$/tag=\1/g' >>$GITHUB_OUTPUT
+          echo "tag=$(npm version ${{ inputs.version_number }} )" >>$GITHUB_OUTPUT
           fi
           fi
           git push
