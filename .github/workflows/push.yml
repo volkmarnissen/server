@@ -79,6 +79,7 @@ jobs:
         id: npminstall
         run: |
           npm ci 
+          npm login
           npm run build
           npm set registry https://registry.npmjs.org/
           npm publish
