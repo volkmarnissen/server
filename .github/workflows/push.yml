@@ -68,6 +68,8 @@ jobs:
         with:
           node-version: 20.x
           registry-url: 'https://registry.npmjs.org'
+          token: ${{ secrets.NPMJS }}
+
       - name: NPM install
         id: npminstall
         run: |
