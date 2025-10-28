@@ -37,7 +37,12 @@ jobs:
           then
           echo "tag=$(npm version patch )" >> $GITHUB_OUTPUT
           else
+          if [ "$VERSION" == "" ]
+          then
           echo "tag=$(npm version $VERSION )" >>$GITHUB_OUTPUT
+          else 
+          grep version package.json| sed -e 's/.*version": .\([^"]*\)",$/tag=\1/g' >>$GITHUB_OUTPUT
+          fi
           fi
           git push
           sinceTag=""
