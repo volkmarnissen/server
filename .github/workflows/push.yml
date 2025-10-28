@@ -8,8 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       version_number:
-        required: true
-        description: Version number <patch|minor| version number(E.g. 1.0.0) see npm version>
+        description: Version number <patch|minor| version number(E.g. 1.0.0) see npm version> An empty version number doesn't change the version
 # Defines two custom environment variables for the workflow. These are used for the Container registry domain, and a name for the Docker image that this workflow builds.
 env:
   REGISTRY: ghcr.io
