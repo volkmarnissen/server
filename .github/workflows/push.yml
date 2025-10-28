@@ -72,7 +72,6 @@ jobs:
         with:
           node-version: 20.x
           registry-url: 'https://registry.npmjs.org'
-          scope: '@modbus2mqtt'
           always-auth: true
           token: ${{ secrets.NPMJS }}
 
@@ -82,7 +81,7 @@ jobs:
           npm ci 
           npm run build
           npm set registry https://registry.npmjs.org/
-          npm publish --provenance --access public
+          npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPMJS }}
   release:
