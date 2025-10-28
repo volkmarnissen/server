@@ -73,7 +73,10 @@ jobs:
         run: |
           npm ci 
           npm run build
+          npm set registry https://registry.npmjs.org/
           npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPMJS }}
   release:
     runs-on: ${{matrix.platform}}
     environment: release
