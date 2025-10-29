@@ -44,7 +44,8 @@ jobs:
           set -e
           git config --global user.email "noreply@carcam360.de" 
           git config --global user.name "Workflow User"
-          version="$(npm version ${{ inputs.version_number }} )"
+          #version="$(npm version ${{ inputs.version_number }} )"
+          version=0.16.41
           echo "tag=v$version" >>$GITHUB_OUTPUT
           git push
           if [[ "$version" =~ \.0$ ]]; then  
