@@ -2,7 +2,6 @@ import { Config } from './config'
 import { HttpServer } from './httpserver'
 import { Bus } from './bus'
 import { Command } from 'commander'
-import { VERSION } from 'ts-node'
 import { LogLevelEnum, Logger, M2mGitHub, M2mSpecification } from '../specification'
 import * as os from 'os'
 
@@ -51,7 +50,6 @@ export class Modbus2Mqtt {
   }
   init() {
     let cli = new Command()
-    cli.version(VERSION)
     cli.usage('[--ssl <ssl-dir>][--yaml <yaml-dir>][ --port <TCP port>] --term <exit code for SIGTERM>')
     cli.option('-s, --ssl <ssl-dir>', 'set directory for certificates')
     cli.option('-c, --config <config-dir>', 'set directory for add on configuration')

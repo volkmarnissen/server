@@ -2,12 +2,10 @@ import ModbusRTU from 'modbus-serial'
 import Debug from 'debug'
 import { ReadRegisterResult } from 'modbus-serial/ModbusRTU'
 import { Command } from 'commander'
-import { VERSION } from 'ts-node'
 
 const debug = Debug('modbusreopen')
 let baudrate = 9600
 let cli = new Command()
-cli.version(VERSION)
 cli.usage('[--baudrate <baudrate>]')
 cli.option('-b, --baudrate <baudrate>', 'set baud rate^')
 cli.parse(process.argv)

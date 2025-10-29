@@ -1,5 +1,4 @@
 import { Command } from 'commander'
-import { VERSION } from 'ts-node'
 import { ConfigSpecification, Logger, LogLevelEnum } from '../specification'
 import Debug from 'debug'
 import { Config } from './config'
@@ -9,7 +8,6 @@ const debug = Debug('modbusTCPserver')
 const log = new Logger('modbusTCPserver')
 
 let cli = new Command()
-cli.version(VERSION)
 cli.usage('--config <config-dir> --data <data-dir> --busid <buis id number>')
 cli.option('-c, --config <config-dir>', 'set directory for add on configuration')
 cli.option('-d, --data <data-dir>', 'set directory for persistent data (public specifications)')
