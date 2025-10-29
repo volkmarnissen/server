@@ -104,6 +104,7 @@ def nginxGetLibDir():
    
 def checkRequiredApps():
     # nginx must be preinstalled
+    eprint("checkRequiredApps")
     isCallable("nginx")
     ngxinlib = nginxGetLibDir()
     if not os.path.isdir(ngxinlib) :
@@ -112,22 +113,27 @@ def checkRequiredApps():
 
 def startRequiredApps():
     checkRequiredApps()
+    eprint("open nginx.conf")
     with open( "./cypress/servers/nginx.conf/nginx.conf","r") as f:
         nginxConf = f.read()
         nginxConf = re.sub(r"mime.types", nginxGetMimesTypes(),nginxConf)
         # default directory
     fb = tempfile.NamedTemporaryFile(delete_on_close=False)
+    eprint("writing  " + fb.name )
     fb.write( nginxConf.encode('utf-8'))
     fb.close()
     file="cypress/servers/tmpfiles"
+    eprint("remove " + file )
     if os.path.exists(file):os.remove(file )
+    eprint("starting "  )
     subprocess.Popen(["nohup", "nginx","-c",fb.name,"-p","."],stderr=subprocess.DEVNULL)
     subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbustcp"],stderr=subprocess.DEVNULL)
     subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/mosquitto"],stderr=subprocess.DEVNULL)
     subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbus2mqtt 3005 " + file],stderr=subprocess.DEVNULL)  # e2ePort
     subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbus2mqtt 3004 "  + file + " localhost:3006"],stderr=subprocess.DEVNULL) 
     subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbus2mqtt 3007 " + file],stderr=subprocess.DEVNULL)  # mqttNoAuthPort
-
+    eprint("started "  )
+   
     for port in [3002,3006, 3005,3004, 3001,3003]:
         count=0
         while count < 12:            
