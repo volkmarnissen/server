@@ -151,8 +151,13 @@ def startRequiredApps():
                 eprint( executeSyncCommand(["pgrep", "-f", "nginx: master|runModbusTCP"]))
                 raise SyncException("Port " + str(port) + " is not up")
         outfile.close()
+         
+        print("::group::start Server logs")
+   
         with open('stderr.out', 'r') as f:
             print(f.read(100000))
+        print( '::endgroup::' )
+        unlinkIfExist("stderr.out")
 
 def unlinkIfExist( file:str):
   if os.path.exists(file):

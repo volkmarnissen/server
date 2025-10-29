@@ -28,8 +28,6 @@ else
     echo "supervisor_host: '$localhost:3006'" >>$TMPDIR/modbus2mqtt/modbus2mqtt.yaml
     export HASSIO_TOKEN=abcd1234
   fi
-  echo =====  >XX
-  cat $TMPDIR/modbus2mqtt/modbus2mqtt.yaml  >>XX
   node dist/server/modbus2mqtt.js -c $TMPDIR  -d $TMPDIR -s $TMPDIR &
   MPID=$!  
 fi
