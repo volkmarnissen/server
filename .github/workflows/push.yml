@@ -48,19 +48,16 @@ jobs:
           version=0.16.41
           echo "tag=v$version" >>$GITHUB_OUTPUT
           git push
+          minor=$(echo $version| sed -e 's/[0-9]*\.\([0-9]*\)\.0$/\1/g')
+          major=$(echo $version| sed -e 's/\([0-9]*\)\.[0-9]*\.0$/\1/g')
+          
           if [[ "$version" =~ \.0$ ]]; then  
-            minor=$(echo $VERSION| sed -e 's/[0-9]*\.\([0-9]*\)\.0$/\1/g')
-            major=$(echo $VERSION| sed -e 's/\([0-9]*\)\.[0-9]*\.0$/\1/g')
-            since_tag="v$major.$(expr $minor - 1).0" 
-            if git rev-parse "v$since_tag" >/dev/null
-            then
-              echo "since_tag=$since_tag" >>$GITHUB_OUTPUT
-            else
-              echo "since_tag=" >>$GITHUB_OUTPUT
-            fi
+            since="v$major.$(expr $minor - 1).0"  
           else
-            echo "since_tag=" >>$GITHUB_OUTPUT
+            since="v$major.$minor" 
           fi
+          since_tag=$(git tag| grep "$since"| sort -n| head -1)
+          echo $since_tag
       - name: '✏️ Generate changelog History'
         uses: heinrichreimer/action-github-changelog-generator@v2.4
         with:
