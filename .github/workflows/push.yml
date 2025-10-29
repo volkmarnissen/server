@@ -78,8 +78,6 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           output: CHANGELOG.md
           headerLabel: '## Changelog for Modbus <=> MQTT'
-      - name: Store CHANGELOG.md
-        id: store_changelog
       - name: Archive CHANGELOG.md
         uses: actions/upload-artifact@v4
         with:
