@@ -178,6 +178,8 @@ export class Config {
     if (Config.secret == undefined) {
       var secretsfile = Config.sslDir.length > 0 ? join(Config.sslDir, 'secrets.txt') : 'secrets.txt'
       var sslDir = path.parse(secretsfile).dir
+      if(sslDir.length==0)
+        sslDir="."
       if (sslDir.length && !fs.existsSync(sslDir)) fs.mkdirSync(sslDir, { recursive: true })
       try {
         if (fs.existsSync(secretsfile)) {
@@ -186,12 +188,12 @@ export class Config {
         } else fs.accessSync(sslDir, fs.constants.W_OK)
         debug('Config.getConfiguration: secretsfile permissions are OK ' + secretsfile)
         Config.secret = Config.getSecret(secretsfile)
-      } catch (err) {
+      } catch (err:any) {
         let msg =
           'Secrets file ' +
           secretsfile +
           ' or parent directory is not writable! No registration possible!(cwd: ' +
-          process.cwd() +
+          process.cwd() + " sslDir: " + sslDir + " err: " + err.message
           ')'
         log.log(LogLevelEnum.error, msg)
 

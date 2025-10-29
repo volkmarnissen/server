@@ -906,7 +906,7 @@ export class M2mSpecification implements IspecificationValidator {
         pollCount: 0,
         m2mSpecification: mspec,
         interval: setInterval(() => {
-          M2mSpecification.poll(spec.filename, error)
+          M2mSpecification.poll(spec!.filename, error)
         }, M2mSpecification.pollingTimeout),
       }
       M2mSpecification.ghContributions.set(spec.filename, c)
