@@ -53,8 +53,10 @@ jobs:
           
           if [[ "$version" =~ \.0$ ]]; then  
             since="v$major.$(expr $minor - 1)"  
+            echo since_tag=$since_tag since=$since aa
           else
             since="v$major.$minor" 
+            echo since_tag=$since_tag since=$since bb
           fi
           since_tag=$(git tag| grep "$since"| sort -n| head -1)
           echo since_tag=$since_tag since=$since vvv
