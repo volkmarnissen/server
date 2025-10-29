@@ -80,9 +80,12 @@ jobs:
           headerLabel: '## Changelog for Modbus <=> MQTT'
       - name: Store CHANGELOG.md
         id: store_changelog
-        run: echo "change_log=$(cat CHANGELOG.md)" >>$GITHUB_OUTPUT
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPMJS }}
+      - name: Archive CHANGELOG.md
+        uses: actions/upload-artifact@v4
+        with:
+          name: CHANGELOG.md
+          path: CHANGELOG.md
+          retention-days: 1
       - name: '✏️ Generate changelog for release'
         id: release_changes
         if: ${{ steps.set-tag.outputs.since_tag != '' }} 
@@ -181,11 +184,10 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
         env:
           BUILDX_NO_DEFAULT_ATTESTATIONS: 1
-      - name: Copy CHANGELOG.md
-        run: echo "${{ needs.npm_publish.outputs.change_log }}" >CHANGELOG.md
-          git stash
-          git pull --rebase
-          git stash pop
+      - name: Download CHANGELOG.md
+        uses: actions/download-artifact@v5
+        with:
+          name: CHANGELOG.md
       - name: Checkin hassio-addon-repository
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
