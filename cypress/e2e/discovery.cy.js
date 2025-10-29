@@ -180,7 +180,6 @@ describe('MQTT Discovery Tests', () => {
       Cypress.config('defaultCommandTimeout', 20000)
       logSetting.log = true
       let addonConfig = undefined;
-      e2eReset( logSetting)
       prefix = 'ingress'
       cy.visit('http://' + localhost + ':' + Cypress.env('nginxAddonHttpPort') +'/' + prefix, logSetting)
       // monitor discovery topics
