@@ -123,7 +123,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPMJS }}
   docker:
-    if: ${{ ( (inputs.job == 'docker')|| (inputs.job == 'all') ) && ( inputs.version_number != '' ) && ! (npm_publish.outputs.release_exists) }}
+    if: ${{ ( (inputs.job == 'docker')|| (inputs.job == 'all') ) && ( inputs.version_number != '' ) }}
     runs-on: ubuntu-latest
     environment: release
     needs: npm_publish
