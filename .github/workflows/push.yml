@@ -61,9 +61,8 @@ jobs:
             since="v$major.$minor" 
             echo since_tag=$since_tag since=$since bb
           fi
-          git tag
           since_tag=$(git tag| grep "$since"| sort -n| head -1)
-          echo since_tag=$since_tag since=$since vvv
+          echo since_tag=$since_tag >>$GITHUB_OUTPUT
       - name: '✏️ Generate changelog History'
         uses: heinrichreimer/action-github-changelog-generator@v2.4
         with:
@@ -99,7 +98,6 @@ jobs:
           token: ${{ secrets.NPMJS }}
 
       - name: NPM install
-        if: ${{ inputs.version_number == '' }}
         id: npminstall
         run: |
           npm ci 
