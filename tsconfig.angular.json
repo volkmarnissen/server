@@ -29,6 +29,7 @@
     "esm": true,
     "experimentalSpecifierResolution": "node"
   },
+  "include": ["./src/angular/*","./src/*.shared/*"],
   "exclude": [
     "node_modules/**/*",
     "dist/**/*",

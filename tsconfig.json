@@ -13,6 +13,7 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "sourceMap": true,
+    "resolveJsonModule": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "declaration": true,
@@ -30,7 +31,7 @@
       "node","jest", "debug"
     ]
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "./package.json"],
   "exclude":[
     "src/angular/**/*",
     "node_modules/**/*",

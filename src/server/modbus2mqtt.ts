@@ -88,7 +88,7 @@ export class Modbus2Mqtt {
         )
         debug(Config.getConfiguration().mqttconnect.mqttserverurl)
         let angulardir: undefined | string = undefined
-
+        log.log(LogLevelEnum.notice, "Modbus2mqtt version: " + Config.getConfiguration().appVersion)
         // hard coded workaround
         // let angulardir = require.resolve('../angular')
         // Did not work in github workflow for testing

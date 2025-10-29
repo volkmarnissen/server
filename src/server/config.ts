@@ -3,6 +3,7 @@ import { parse, stringify } from 'yaml'
 import * as fs from 'fs'
 import * as path from 'path'
 import { join } from 'path'
+import packageJson from '../../package.json';
 import stream from 'stream'
 import { Subject } from 'rxjs'
 import { getBaseFilename } from '../specification.shared'
@@ -221,6 +222,7 @@ export class Config {
       Config.config.noAuthentication = Config.config.noAuthentication ? Config.config.noAuthentication : false
       Config.config.tcpBridgePort = Config.config.tcpBridgePort ? Config.config.tcpBridgePort : 502
       process.env.HASSIO_TOKEN && process.env.HASSIO_TOKEN.length ? process.env.HASSIO_TOKEN : undefined
+      Config.config.appVersion =Config.config.appVersion? Config.config.appVersion:packageJson.version
       Config.config.mqttusehassio =
         Config.config.mqttusehassio && process.env.HASSIO_TOKEN && process.env.HASSIO_TOKEN.length
           ? Config.config.mqttusehassio
