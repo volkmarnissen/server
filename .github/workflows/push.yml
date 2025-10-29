@@ -150,7 +150,7 @@ jobs:
       - name: Prepare Addon Directory
         id: releaseAddon
         run: |
-          if echo ${{npm_publish.outputs.tag }} | grep -e '\.0$' >/dev/null
+          if echo ${{needs.npm_publish.outputs.tag }} | grep -e '\.0$' >/dev/null
           then
              latest=""
           else
@@ -170,25 +170,25 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{steps.releaseAddon.outputs.latest}}
-          labels: org.opencontainers.image.version=${{npm_publish.outputs.tag}}
+          labels: org.opencontainers.image.version=${{needs.npm_publish.outputs.tag}}
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           push: true
           platforms: linux/amd64,linux/arm64
           context: modbus2mqtt${{steps.releaseAddon.outputs.latest}}/docker
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{steps.releaseAddon.outputs.latest}}:${{npm_publish.outputs.version}}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{steps.releaseAddon.outputs.latest}}:${{needs.npm_publish.outputs.version}}
           labels: ${{ steps.meta.outputs.labels }}
         env:
           BUILDX_NO_DEFAULT_ATTESTATIONS: 1
       - name: Copy CHANGELOG.md
-        run: echo "${{ npm_publish.outputs.change_log }}" >CHANGELOG.md
+        run: echo "${{ needs.npm_publish.outputs.change_log }}" >CHANGELOG.md
           git stash
           git pull --rebase
           git stash pop
       - name: Checkin hassio-addon-repository
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: ${{npm_publish.outputs.version}}
+          commit_message: ${{needs.npm_publish.outputs.version}}
   
 
