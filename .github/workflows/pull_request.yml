@@ -27,6 +27,7 @@ jobs:
           build: npm run build
           start: npm run e2e:start
       - name: Protocol from starting servers
+        if: ${{ always()}}
         run: cat nohup.out 
       - name: Run jest component tests
         run: npx jest --reporters default --reporters github-actions
