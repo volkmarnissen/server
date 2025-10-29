@@ -52,8 +52,8 @@ jobs:
           major=$(echo $version| sed -e 's/\([0-9]*\)\.[0-9]*\.0$/\1/g')
           echo v1 $version| sed -e 's/[0-9]*\./XX/g'
           echo v2 $version| sed -e 's/[0-9]*\.[0-9]*$/YY/g'
-          echo v3 $version| sed -e 's/[0-9]*\.\\\([0-9]*\\\)\.0$/\1/g'
-          echo v4 $version| sed -e 's/[0-9]*\.\([0-9]*\)\.0$/\1/g'
+          echo v3 $version| sed -e 's/[0-9]*\.([0-9]*)$/\1/g'
+          echo v4 $version| sed -e 's/[0-9]*\.\([0-9]*\)$/\1/g'
           
           if [[ "$version" =~ \.0$ ]]; then  
             since="v$major.$(expr $minor - 1)"  
