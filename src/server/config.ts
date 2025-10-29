@@ -517,7 +517,7 @@ export class Config {
       ;(secrets as any)['password'] = cpConfig.password
       cpConfig.password = '!secret password'
     }
-    let nonConfigs:string[]=[ "mqttusehassio", "filelocation"]
+    let nonConfigs:string[]=[ "mqttusehassio", "filelocation", "appVersion"]
     nonConfigs.forEach( (name:string)=>{
       delete (cpConfig as any)[name];
     })
