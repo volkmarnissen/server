@@ -57,7 +57,7 @@ jobs:
             since="v$major.$minor" 
           fi
           since_tag=$(git tag| grep "$since"| sort -n| head -1)
-          echo $since_tag
+          echo since_tag=$since_tag since=%since
       - name: '✏️ Generate changelog History'
         uses: heinrichreimer/action-github-changelog-generator@v2.4
         with:
