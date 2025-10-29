@@ -1,6 +1,6 @@
 # Introduction to modbus2mqtt
 [Introduction](introduction.md)
-# server
+# server 
 server for modbus2mqtt for REST API of configuration and publishing modbus values to mqtt
 
 **modbus2mqtt** consists of the following packages:
