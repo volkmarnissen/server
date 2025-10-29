@@ -37,7 +37,7 @@ def executeCommand(cmdArgs: list[str], *args, **kwargs)-> str:
 # it will merge upstream into the current branch
 
 def get_user()->str:
-    authStatus= json.loads(executeCommand(['gh', 'auth', 'status', '--json', 'hosts']))
+    authStatus= executeCommand(['gh', 'auth', 'status'])
     login = "N/A"
     for st in authStatus['hosts']['github.com']:
         if  st['active']:
@@ -47,7 +47,7 @@ def get_user()->str:
    
 
 executeCommand( ["git", "config", "pull.rebase", "true"] )
-login = get_user()
+login = "volkmarnissen"
 if login == 'modbus2mqtt':
     eprint('user modbus2mqtt is not supported')
     exit(2)
