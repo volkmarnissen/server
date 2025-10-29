@@ -53,12 +53,12 @@ jobs:
             since_tag="v$major.$(expr $minor - 1).0" 
             if git rev-parse "v$since_tag" >/dev/null
             then
-              echo "since_tag=since_tag" >>$GITHUB_OUTPUT
+              echo "since_tag=$since_tag" >>$GITHUB_OUTPUT
             else
-              echo "since_tag=''" >>$GITHUB_OUTPUT
+              echo "since_tag=" >>$GITHUB_OUTPUT
             fi
           else
-            echo "since_tag=''" >>$GITHUB_OUTPUT
+            echo "since_tag=" >>$GITHUB_OUTPUT
           fi
       - name: '✏️ Generate changelog History'
         uses: heinrichreimer/action-github-changelog-generator@v2.4
