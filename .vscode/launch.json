@@ -36,11 +36,11 @@
 
     {
       "name": "Run Server",
-      "preLaunchTask": "npm: prepare",
+      "preLaunchTask": "npm: build.dev",
       "timeout": 10000,
       "program": "${workspaceFolder}/dist/server/modbus2mqtt.js",
-      "args": ["-s", "../ssl", "-y", "../yaml-dir"],
-      "console": "integratedTerminal",
+      "args": ["-s", "ssl", "-c", "../config-dir", "-d", "../data-dir"],
+            "console": "integratedTerminal",
       "env": {
         "DEBUG": "",
         "NODE_OPTIONS": "--experimental-vm-modules npx jest"

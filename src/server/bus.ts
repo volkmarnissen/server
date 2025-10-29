@@ -148,7 +148,7 @@ export class Bus implements IModbusConfiguration {
           b.modbusAPI
             .reconnectRTU('updateBus')
             .then(() => {
-              resolve(b)
+              resolve(b!)
             })
             .catch(reject)
         } else reject('Bus does not exist')

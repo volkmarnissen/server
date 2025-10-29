@@ -92,7 +92,7 @@ export class HttpServer extends HttpServerBase {
       if (req.method == 'GET' && url.endsWith('/state/')) {
         let md = new Modbus()
         MqttSubscriptions.readModbus(slave)?.subscribe((spec) => {
-          let payload = slave.getStatePayload(spec.entities)
+          let payload = slave!.getStatePayload(spec.entities)
           this.returnResult(req, res, HttpErrorsEnum.OK, payload)
           return
         })
@@ -413,7 +413,7 @@ export class HttpServer extends HttpServerBase {
           .contribute(req.body.note)
           .then((response) => {
             // poll status updates of pull request
-            M2mSpecification.startPolling(spec.filename, (e) => {
+            M2mSpecification.startPolling(spec!.filename, (e) => {
               log.log(LogLevelEnum.error, e.message)
             })?.subscribe((pullRequest) => {
               if (pullRequest.merged) log.log(LogLevelEnum.notice, 'Merged ' + pullRequest.pullNumber)
