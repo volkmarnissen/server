@@ -174,8 +174,8 @@ def testRepository(reponame:str):
     args = ["npm", 'run', 'test' ]
     # If there are jest tests, append reporters
 
-    if os.path.exists("__tests__"):
-        args = args +[ "--", "--reporters", "default", "--reporters",  "github-actions"]
+    #if os.path.exists("__tests__"):
+    #    args = args +[ "--", "--reporters", "default", "--reporters",  "github-actions"]
     print("::group::Unit tests for " + reponame)
     executeCommandWithOutputs(args,sys.stderr, sys.stderr)
     print( '::endgroup::' )
