@@ -39,7 +39,7 @@ jobs:
       - name: 'Checkout'
         uses: actions/checkout@v4
         with:
-          fetch-tags: true
+          fetch-depth: 0
       - name: set package version number for update NPM version
         id: set-tag
         run: |
