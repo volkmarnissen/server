@@ -145,3 +145,4 @@ nohup.out
 .angular/**/*
 bin/.pycache/**/* */
 cypress/servers/tmpfiles
+stderr.out

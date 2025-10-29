@@ -23,6 +23,7 @@
     "importHelpers": true,
     "target": "es2022",
     "useDefineForClassFields": false,
+    "rootDir": "src",
     "lib": [
       "ES2022",
       "dom"
@@ -31,7 +32,7 @@
       "node","jest", "debug"
     ]
   },
-  "include": ["src/**/*", "./package.json"],
+  "include": ["src/**/*"],
   "exclude":[
     "src/angular/**/*",
     "node_modules/**/*",

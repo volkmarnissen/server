@@ -126,31 +126,38 @@ def startRequiredApps():
     eprint("remove " + file )
     if os.path.exists(file):os.remove(file )
     eprint("starting "  )
-    subprocess.Popen(["nohup", "nginx","-c",fb.name,"-p","."],stderr=subprocess.DEVNULL)
-    subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbustcp"],stderr=subprocess.DEVNULL)
-    subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/mosquitto"],stderr=subprocess.DEVNULL)
-    subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbus2mqtt 3005 " + file],stderr=subprocess.DEVNULL)  # e2ePort
-    subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbus2mqtt 3004 "  + file + " localhost:3006"],stderr=subprocess.DEVNULL) 
-    subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbus2mqtt 3007 " + file],stderr=subprocess.DEVNULL)  # mqttNoAuthPort
-    eprint("started "  )
+    with open('stderr.out', "a") as outfile:
+        subprocess.Popen(["nohup", "nginx","-c",fb.name,"-p","."],stderr=outfile, stdout=outfile)
+        subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbustcp"],stderr=outfile, stdout=outfile)
+        subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/mosquitto"],stderr=outfile, stdout=outfile)
+        subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbus2mqtt 3005 " + file],stderr=outfile, stdout=outfile)  # e2ePort
+        subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbus2mqtt 3004 "  + file + " localhost:3006"],stderr=outfile, stdout=outfile) 
+        subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbus2mqtt 3007 " + file],stderr=outfile, stdout=outfile)  # mqttNoAuthPort
+        eprint("started "  )
    
-    for port in [3002,3006, 3005,3004, 3001,3003]:
-        count=0
-        while count < 12:            
-            if not isOpen("localhost", port):
-                time.sleep(1)
-            else:
-                break
-            count += 1
-        if count == 12:
-            with open( "nohup.out") as f:
-                eprint(f.read())
-            eprint( executeSyncCommand(["pgrep", "-f", "nginx: master|runModbusTCP"]))
-            raise SyncException("Port " + str(port) + " is not up")
-    with open('nohup.out', 'r') as f:
-        for line in f:
-            if line.startswith("TMPDIR_"):
-                print(line)
+        for port in [3002,3006, 3005,3004, 3001,3003]:
+            count=0
+            while count < 12:            
+                if not isOpen("localhost", port):
+                    time.sleep(1)
+                else:
+                    break
+                count += 1
+            if count == 12:
+                outfile.close()
+                if(os.path.exists("stderr.out")):
+                    with open( "stderr.out") as f:
+                        eprint(f.read())
+                eprint( executeSyncCommand(["pgrep", "-f", "nginx: master|runModbusTCP"]))
+                raise SyncException("Port " + str(port) + " is not up")
+        outfile.close()
+         
+        print("::group::start Server logs")
+   
+        with open('stderr.out', 'r') as f:
+            print(f.read(100000))
+        print( '::endgroup::' )
+        unlinkIfExist("stderr.out")
 
 def unlinkIfExist( file:str):
   if os.path.exists(file):
@@ -158,10 +165,11 @@ def unlinkIfExist( file:str):
  
 def killOne(app:str):
     try:
-        executeSyncCommand(["pkill",  "-U", os. getlogin(),"-f", app])
-    except:
-        eprint("unable to kill " + app)        
-    
+        executeSyncCommand(["pkill",  "-U", str(os.getuid()) ,"-f", app])
+    except Exception as err:
+        eprint("unable to kill " + app )        
+        executeSyncCommand(["pgrep",  "-U", str(os.getuid()),"-f", app])
+  
 def killRequiredApps():
     print("::group::Cypress cleanup")
     killOne("nginx: master")
