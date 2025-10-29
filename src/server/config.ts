@@ -454,9 +454,7 @@ export class Config {
           if (Config.config.debugComponents && Config.config.debugComponents.length) Debug.enable(Config.config.debugComponents)
 
           if (Config.configDir.length == 0) log.log(LogLevelEnum.error, 'configDir not set')
-          else {
-            log.log(LogLevelEnum.error, 'config file not parsed "' + src + '"')
-          }
+  
         }
         if (!Config.config || !Config.config.mqttconnect || !Config.isMqttConfigured(Config.config.mqttconnect)) {
           this.getMqttConnectOptions()
