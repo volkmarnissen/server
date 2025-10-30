@@ -296,12 +296,12 @@ export class HttpServerBase {
     })
     // angular files have full path including language e.G. /en-US/polyfill.js
     this.app.use(this.authenticate.bind(this))
+    this.app.use(this.processStaticAngularFiles.bind(this))
     this.app.use(express.static(this.angulardir))
     this.app.get('/', (req: Request, res: express.Response, next: NextFunction) => {
       res.redirect('index.html')
     })
     this.initApp()
-    this.app.use(this.processStaticAngularFiles.bind(this))
     this.app.all(/.*/, this.processAll.bind(this))
     this.app.on('mount', function (socket: any) {
       socket.setTimeout(2 * 60 * 1000)
