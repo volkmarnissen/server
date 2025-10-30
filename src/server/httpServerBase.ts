@@ -201,12 +201,14 @@ export class HttpServerBase {
           (info) => {
             //this.ingressUrl = join("/hassio/ingress/", info.data.slug);
             this.ingressUrl = info.data.ingress_entry
-            log.log(LogLevelEnum.notice, 'Hassio authentication successful url:' + this.ingressUrl)
+            let port= Config.getConfiguration().httpport
+            log.log(LogLevelEnum.notice, 'Hassio authentication prefix:' + this.ingressUrl + " modbus2mqtt: " + port)
             this.initBase()
             resolve()
           },
           (e) => {
-            log.log(LogLevelEnum.warn, 'Hassio authentication failed ' + e.message)
+            let port= Config.getConfiguration().httpport
+            log.log(LogLevelEnum.warn, 'Hassio authentication failed ' + e.message  + " modbus2mqtt: " + port )
             this.initBase()
             resolve()
           }
