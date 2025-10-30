@@ -60,13 +60,13 @@ export class MqttConnector {
       let client = connect(connectionData.mqttserverurl, connectionData as IClientOptions)
       client.on('error', (e) => {
         client!.end(() => {})
-        callback(false, e.toString())
+        callback(false, connectionData.mqttserverurl + ": " + e.toString())
       })
       client.on('connect', () => {
         callback(true, 'OK')
         if (client) client.end(() => {})
       })
-    } else callback(false, 'no mqttserverlurl passes')
+    } else callback(false, 'no mqttserverlurl passed')
   }
 
   getMqttClient(onConnectCallback: (connection: MqttClient) => void): void {
