@@ -25,13 +25,21 @@ then
 else
   mkdir -p $TMPDIR/modbus2mqtt
   echo 'httpport: '$HTTPPORT >$TMPDIR/modbus2mqtt/modbus2mqtt.yaml
-  if [ $# -gt 3 ]
+  mkdir -p e2e
+ 
+  for arg in "$@"; do
+    echo  "arg: $arg" >>"e2e/modbus2mqtt_$HTTPPORT.out"
+  done
+  if [ $# -ge 3 ]
   then # port 3005
     echo "supervisor_host: '$localhost:3006'" >>$TMPDIR/modbus2mqtt/modbus2mqtt.yaml
+    echo "ingress scenario" >>"e2e/modbus2mqtt_$HTTPPORT.out"
+ 
     export HASSIO_TOKEN=abcd1234
+  else
+    echo "normal scenario" >>"e2e/modbus2mqtt_$HTTPPORT.out"
   fi
-  mkdir -p e2e
-  node dist/server/modbus2mqtt.js -c $TMPDIR  -d $TMPDIR -s $TMPDIR >"e2e/modbus2mqtt_$HTTPPORT.out" 2>&1 &
+  node dist/server/modbus2mqtt.js -c $TMPDIR  -d $TMPDIR -s $TMPDIR >>"e2e/modbus2mqtt_$HTTPPORT.out" 2>&1 &
   MPID=$!  
 fi
 echo "TMPDIR_$HTTPPORT $TMPDIR" >>./cypress/servers/tmpfiles
