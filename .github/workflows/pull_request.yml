@@ -28,9 +28,20 @@ jobs:
           npm run e2e:start
       - name: Cypress run e2e test
         uses: cypress-io/github-action@v6
+      - name: Screenshots cypress
+        if: ${{ always()}}
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screenshots
+          path: cypress/screenshots/
+          retention-days: 1
       - name: Protocol from starting servers
         if: ${{ always()}}
-        run: cat nohup.out 
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-serverlogs
+          path: e2e/
+          retention-days: 1
       - name: Run jest component tests
         run: npx jest --reporters default --reporters github-actions
       - name: Cypress run component tests
