@@ -148,8 +148,7 @@ def startRequiredApps():
                 if(os.path.exists("stderr.out")):
                     with open( "stderr.out") as f:
                         eprint(f.read())
-                eprint( executeSyncCommand(["pgrep", "-f", "nginx: master|runModbusTCP"]))
-                raise SyncException("Port " + str(port) + " is not up")
+                    raise SyncException("Port " + str(port) + " is not up")
         outfile.close()
          
         print("::group::start Server logs")
