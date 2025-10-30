@@ -1,13 +1,13 @@
 let prefix = ''
-
+let localhost='127.0.0.1'
 function runRegister(authentication, port) {
   if( prefix.length )
-    cy.visit('http://localhost:' + Cypress.env('nginxAddonHttpPort') +'/' + prefix)
+    cy.visit('http://' + localhost + ':' + Cypress.env('nginxAddonHttpPort') +'/' + prefix)
   else
     if(port != undefined )
-        cy.visit('http://localhost:' + port )
+        cy.visit('http://' + localhost + ':' + port )
     else
-        cy.visit('http://localhost:' + Cypress.env('modbus2mqttE2eHttpPort'))
+        cy.visit('http://' + localhost + ':' + Cypress.env('modbus2mqttE2eHttpPort'))
   if (authentication) {
     cy.get('[formcontrolname="username"]').type('test')
     cy.get('[formcontrolname="password"]').type('test')
@@ -17,7 +17,7 @@ function runRegister(authentication, port) {
 }
 function runConfig(authentication) {
   let port = authentication ? Cypress.env('mosquittoAuthMqttPort') : Cypress.env('mosquittoNoAuthMqttPort')
-  cy.get('[formcontrolname="mqttserverurl"]').type('mqtt://localhost:' + port, { force: true })
+  cy.get('[formcontrolname="mqttserverurl"]').type('mqtt://' + localhost + ':' + port, { force: true })
   cy.get('[formcontrolname="mqttserverurl"]').trigger('change')
   if (authentication) {
     cy.get('[formcontrolname="mqttuser"]').type('homeassistant', { force: true })
@@ -31,11 +31,11 @@ function runConfig(authentication) {
 function runBusses() {
   cy.url().should('contain', prefix + '/busses')
   cy.get('[role="tab"] ').eq(1).click()
-  cy.get('[formcontrolname="host"]').type('localhost', { force: true })
+  cy.get('[formcontrolname="host"]').type(localhost, { force: true })
   cy.get('[formcontrolname="port"]').type('{backspace}{backspace}{backspace}3002', { force: true })
   cy.get('[formcontrolname="timeout"]').eq(0).type('{backspace}{backspace}{backspace}500', { force: true })
   cy.get('[formcontrolname="host"]').trigger('change')
-  cy.get('div.card-header-buttons button:first').click()
+  cy.get('div.card-header-buttons button:first').click({ force: true})
   // List slaves second header button on first card
   cy.get('div.card-header-buttons:first button').eq(1).click()
 }
@@ -119,7 +119,7 @@ describe('End to End Tests', () => {
     },
     () => {
       prefix = 'ingress'
-      cy.visit('http://localhost:' + Cypress.env('nginxAddonHttpPort') +'/' + prefix)
+      cy.visit('http://' + localhost + ':' + Cypress.env('nginxAddonHttpPort') +'/' + prefix)
       runBusses()
     }
   )
