@@ -124,6 +124,9 @@ export class Modbus2Mqtt {
                 .init()
                 .then(() => {
                   httpServer!.listen(() => {
+                    if( process.env.HASSIO_TOKEN ){
+                      log.log(LogLevelEnum.notice, 'Running inside Home Assistant Add-On environment')
+                    }
                     log.log(
                       LogLevelEnum.notice,
                       `modbus2mqtt listening on  ${os.hostname()}: ${Config.getConfiguration().httpport}`
