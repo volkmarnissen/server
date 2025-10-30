@@ -25,7 +25,7 @@ then
 else
   mkdir -p $TMPDIR/modbus2mqtt
   echo 'httpport: '$HTTPPORT >$TMPDIR/modbus2mqtt/modbus2mqtt.yaml
-  if [ $# -gt 2 ]
+  if [ $# -gt 3 ]
   then # port 3005
     echo "supervisor_host: '$localhost:3006'" >>$TMPDIR/modbus2mqtt/modbus2mqtt.yaml
     export HASSIO_TOKEN=abcd1234
