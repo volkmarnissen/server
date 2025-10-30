@@ -242,7 +242,8 @@ process.on('SIGINT', () => {
 export function stopModbusTCPServer() {
   if (server) server.stopServer()
 }
-export function startModbusTCPserver(configDir: string,dataDir:string, busId: number) {
+export function startModbusTCPserver(configDir: string,dataDir:string, busId: number):Promise<void>   { 
+  return new Promise<void>((resolve, reject) => {
   debug('starting')
   if (process.pid) log.log(LogLevelEnum.notice, 'PROCESSID=' + process.pid)
   let gh = new M2mGitHub(null, ConfigSpecification.getPublicDir())
@@ -306,13 +307,19 @@ export function startModbusTCPserver(configDir: string,dataDir:string, busId: nu
             //  logValues()
           } catch (e: any) {
             console.error('Unable to read  directory for ' + e)
+            reject(e)
           }
       })
-      runModbusServer(port)
-    })
-    .catch((e: any) => {
-      log.log(LogLevelEnum.error, 'Failed to init github: ' + e.message)
-    })
+      server = new ModbusServer()
+      return server.startServer(port).then(() => {
+        resolve()
+      }).catch((e) => {
+        reject(e)
+      })
+    }).catch((e) => {
+        reject(e)
+      })
+  })
 }
 
 // set the server to answer for modbus requests
