@@ -1,0 +1,21 @@
+#!/sbin/openrc-run
+
+name="modbus2mqtt"
+description="Modbus to MQTT bridge"
+command="/usr/lib/modbus2mqtt/node_modules/.bin/modbus2mqtt"
+command_args="${MODBUS2MQTT_OPTS}"
+command_background="yes"
+
+pidfile="/run/${RC_SVCNAME}.pid"
+output_log="/var/log/${RC_SVCNAME}.log"
+error_log="/var/log/${RC_SVCNAME}.log"
+
+depend() {
+    need net
+    after mosquitto
+}
+
+start_pre() {
+    checkpath -f "$output_log" -m 0644
+    checkpath -d "/etc/${RC_SVCNAME}" -m 0755
+}

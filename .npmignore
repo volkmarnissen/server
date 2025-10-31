@@ -18,3 +18,7 @@ docker/**
 testHelpers/** 
 package.json.bck
 cypress
+.angular/
+e2e/
+public/
+alpine-package/

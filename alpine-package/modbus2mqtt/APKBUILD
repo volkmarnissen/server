@@ -1,0 +1,40 @@
+# Contributor: Volkmar Nissen <volkmar.nissen@example.com>
+# Maintainer: Volkmar Nissen <volkmar.nissen@example.com>
+pkgname=modbus2mqtt
+# Version kann über PKG_VERSION Umgebungsvariable überschrieben werden
+pkgver=${PKG_VERSION:-1.0.0}
+pkgrel=0
+pkgdesc="Modbus to MQTT bridge"
+url="https://github.com/volkmarnissen/server"
+arch="noarch"
+license="MIT"
+depends="nodejs npm"
+makedepends="npm"
+install="$pkgname.pre-install $pkgname.post-install"
+source="
+    $pkgname.initd
+    $pkgname.confd
+    "
+builddir="$srcdir/$pkgname-$pkgver"
+
+build() {
+    npm install modbus2mqtt
+}
+
+package() {
+    install -Dm755 "$srcdir"/$pkgname.initd "$pkgdir"/etc/init.d/$pkgname
+    install -Dm644 "$srcdir"/$pkgname.confd "$pkgdir"/etc/conf.d/$pkgname
+    
+    # Install application files
+    install -d "$pkgdir"/usr/lib/$pkgname
+    mkdir -p "$pkgdir"/usr/bin
+    ln -s "$pkgdir"/usr/lib/$pkgname/node_modules/.bin/modbus2mqtt "$pkgdir"/usr/bin/modbus2mqtt
+
+    # Create config directory
+    install -d "$pkgdir"/etc/$pkgname
+}
+
+sha512sums="
+fe9262b6d25bae44a8346db6df1123899cbe9f1c1747de0b0d0328f29d869ad2d86172a38c79f89727aed01f02ad3460ae94b14d0a5395c306ca06cd2d97bd65  modbus2mqtt.initd
+564a66e877f22b6d557974513b446ebe403d6cf1fe8806045973c3a1cf1d5ffa9a1f7353ecaf68ee43dcbf9467503bf33e312f86559d35982cba8a65fb807655  modbus2mqtt.confd
+"
