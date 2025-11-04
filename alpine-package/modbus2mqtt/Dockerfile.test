@@ -8,12 +8,20 @@ COPY ./packages/ /tmp/packages/
 # Find the produced apk and install it
 RUN  ls /tmp/packages/*/modbus2mqtt-*.apk  | while read apk_file; do  apk add --allow-untrusted "$apk_file"; done
 
-# Create s6 service directory
-RUN mkdir -p /etc/s6/modbus2mqtt
-
-# Create service run file
-RUN echo '#!/command/with-contenv sh\nexec /usr/bin/modbus2mqtt 2>&1' > /etc/s6/modbus2mqtt/run && \
-    chmod +x /etc/s6/modbus2mqtt/run
+# Create service
+RUN \
+    s6dir=/etc/s6-overlay/s6-rc.d/modbus2mqtt && \
+    mkdir -p $s6dir && \
+    echo 'longrun' > $s6dir/type && \
+    echo '#!/command/with-contenv sh\nexec /usr/bin/modbus2mqtt 2>&1' > $s6dir/run && \
+    chmod +x $s6dir/run && \
+    s6usr=/etc/s6-overlay/s6-rc.d/user/contents.d && \
+    mkdir -p $s6usr && \
+    touch $s6usr/modbus2mqtt && \
+    mkdir -p $s6dir/dependencies.d && \
+    touch $s6dir/dependencies.d/base && \  
+    echo '#!/bin/sh\necho modbus2mqtt done' >$s6dir/finish && \
+    chmod +x $s6dir/finish 
 
 EXPOSE 3000
 
