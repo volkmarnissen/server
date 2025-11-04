@@ -1,0 +1,21 @@
+FROM alpine:3.22
+
+# Install runtime and tooling to start service and perform healthchecks
+RUN apk add --no-cache s6-overlay nodejs npm wget
+
+# Copy produced packages (expect build.sh to have created ./packages)
+COPY ./packages/ /tmp/packages/
+# Find the produced apk and install it
+RUN  ls /tmp/packages/*/modbus2mqtt-*.apk  | while read apk_file; do  apk add --allow-untrusted "$apk_file"; done
+
+# Create s6 service directory
+RUN mkdir -p /etc/s6/modbus2mqtt
+
+# Create service run file
+RUN echo '#!/command/with-contenv sh\nexec /usr/bin/modbus2mqtt 2>&1' > /etc/s6/modbus2mqtt/run && \
+    chmod +x /etc/s6/modbus2mqtt/run
+
+EXPOSE 3000
+
+# Start service using s6-overlay
+CMD ["/init"] 

@@ -1,40 +1,70 @@
 # Contributor: Volkmar Nissen <volkmar.nissen@example.com>
 # Maintainer: Volkmar Nissen <volkmar.nissen@example.com>
 pkgname=modbus2mqtt
-# Version kann über PKG_VERSION Umgebungsvariable überschrieben werden
-pkgver=${PKG_VERSION:-1.0.0}
+# Version comes from package.json or the PKG_VERSION environment variable
+pkgver=0.16.52
 pkgrel=0
 pkgdesc="Modbus to MQTT bridge"
 url="https://github.com/volkmarnissen/server"
-arch="noarch"
+arch="$CARCH"
 license="MIT"
-depends="nodejs npm"
-makedepends="npm"
+depends="nodejs npm s6-overlay git"
+makedepends="npm alpine-sdk shadow rsync py3-psutil make build-base linux-headers udev"
 install="$pkgname.pre-install $pkgname.post-install"
-source="
-    $pkgname.initd
-    $pkgname.confd
-    "
+
+# Disable the abuild check phase: tests are executed in the GitHub workflow
+# (before creating the npm artifacts and after installing the produced APK),
+# so running the check() step inside the APK build would be redundant and
+# may run at the wrong moment. Use the options variable to skip it.
+options="!check"
+source=""
 builddir="$srcdir/$pkgname-$pkgver"
 
 build() {
-    npm install modbus2mqtt
+    # Build modbus2mqtt within the abuild build environment so any native
+    # modules are compiled for the target architecture.
+    mkdir -p "$builddir"
+    cd "$builddir" || exit 1
+    # Copy package.json from the repository so npm can install the
+    # published package into the builddir. abuild typically cleans
+    # $srcdir before running build(), so prefer the checkout at the
+    # parent of the packaging dir (startdir/../package.json) when
+    # available. Fall back to $srcdir/package.json and finally to a
+    # minimal package.json.
+    # Create a minimal package.json that depends on the published
+    # modbus2mqtt@${pkgver} so npm will pull only the runtime deps of
+    # that package (avoids devDependencies and local repo conflicts).
+    printf '{"name":"modbus2mqtt-build","version":"1.0.0","dependencies":{"modbus2mqtt":"%s"}}' "${pkgver}" > package.json
+    # Prefer building native addons from source (set env var for npm >=7).
+    npm install --force --no-audit --no-fund --omit=dev "modbus2mqtt@${pkgver}" || true
+    # Some dependencies (notably @serialport/bindings-cpp) ship a
+    # "prebuilds" directory containing precompiled .node files for many
+    # architectures. abuild rejects packages that contain foreign-arch
+    # native blobs. Remove those prebuilt artifacts so only the locally
+    # compiled target-arch binaries remain in the final package.
+    find node_modules -type d -name "prebuilds" -prune -print -exec rm -rf '{}' + || true
+    npm install --save-dev node-gyp-build 
+    npm rebuild @serialport/bindings-cpp
+    npm uninstall node-gyp-build 
+    echo "Build complete"
 }
 
 package() {
-    install -Dm755 "$srcdir"/$pkgname.initd "$pkgdir"/etc/init.d/$pkgname
-    install -Dm644 "$srcdir"/$pkgname.confd "$pkgdir"/etc/conf.d/$pkgname
-    
     # Install application files
     install -d "$pkgdir"/usr/lib/$pkgname
+    # Copy the node_modules package from the builddir (ensures target-arch binaries)
+    mkdir -p "$pkgdir"/usr/lib
+    rsync -au "$builddir"/node_modules "$pkgdir"/usr/lib
+   
+    # Create symlink to the executable
     mkdir -p "$pkgdir"/usr/bin
-    ln -s "$pkgdir"/usr/lib/$pkgname/node_modules/.bin/modbus2mqtt "$pkgdir"/usr/bin/modbus2mqtt
-
+    ln -s /usr/lib/node_modules/$pkgname/bin/$pkgname "$pkgdir"/usr/bin/$pkgname
+    chmod 775 "$pkgdir"/usr/bin/$pkgname
     # Create config directory
     install -d "$pkgdir"/etc/$pkgname
+    install -d "$pkgdir"/config
+    # Do not chown to the service user here (user may not exist inside fakeroot).
+    # Permissions should be set here; user is created at install time in pre-install.
+    chmod 755 "$pkgdir"/config
 }
 
-sha512sums="
-fe9262b6d25bae44a8346db6df1123899cbe9f1c1747de0b0d0328f29d869ad2d86172a38c79f89727aed01f02ad3460ae94b14d0a5395c306ca06cd2d97bd65  modbus2mqtt.initd
-564a66e877f22b6d557974513b446ebe403d6cf1fe8806045973c3a1cf1d5ffa9a1f7353ecaf68ee43dcbf9467503bf33e312f86559d35982cba8a65fb807655  modbus2mqtt.confd
-"

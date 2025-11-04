@@ -1,6 +1,3 @@
 #!/bin/sh
-
-chown -R modbus2mqtt:modbus2mqtt /etc/modbus2mqtt
-chmod 755 /etc/modbus2mqtt
-
+# post-install: no runtime permission fixes here — permissions are handled in APKBUILD package()
 exit 0
