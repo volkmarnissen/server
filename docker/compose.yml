@@ -1,0 +1,18 @@
+services:
+  modbus2mqtt:
+    # We use a mariadb image which supports both amd64 & arm64 architecture
+    image: modbus2mqtt.latest:latest
+    container_name: modbus2mqtt
+    ports:
+      - 3000:3000 
+    restart: always
+    volumes:
+      - data:/home/volkmar/data
+      - config:/home/volkmar/config
+      - ssl:/home/volkmar/ssl
+    environment:
+      - TZ=Europe/Berlin
+volumes:
+  data:
+  config:
+  ssl:

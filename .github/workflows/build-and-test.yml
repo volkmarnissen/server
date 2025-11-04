@@ -1,0 +1,35 @@
+name: Build and Test APK
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Ensure Docker is available
+        run: docker --version
+
+      - name: Run build and test
+        env:
+          # Prefer new PACKAGER_* secret names; keep ABUILD_* for backwards compatibility
+          PACKAGER_PRIVKEY: ${{ secrets.PACKAGER_PRIVKEY }}
+          PACKAGER_PUBKEY: ${{ secrets.PACKAGER_PUBKEY }}
+          ABUILD_PRIVKEY: ${{ secrets.ABUILD_PRIVKEY }}
+          ABUILD_PUBKEY: ${{ secrets.ABUILD_PUBKEY }}
+        run: |
+          cd alpine-package/modbus2mqtt
+          chmod +x build.sh build-and-test-image.sh
+          # If PACKAGER_* secrets are not set, fall back to ABUILD_* to preserve older CI setups
+          export PACKAGER_PRIVKEY=${PACKAGER_PRIVKEY:-$ABUILD_PRIVKEY}
+          export PACKAGER_PUBKEY=${PACKAGER_PUBKEY:-$ABUILD_PUBKEY}
+          ./build-and-test-image.sh

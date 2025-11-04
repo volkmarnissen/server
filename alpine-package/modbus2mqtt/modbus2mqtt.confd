@@ -1,2 +1,0 @@
-# Configuration options for modbus2mqtt
-MODBUS2MQTT_OPTS="--config /etc --data /var/lib/modbus2mqtt --ssl /usr/lib/modbus2mqtt/ssl"
