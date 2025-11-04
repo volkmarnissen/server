@@ -52,7 +52,6 @@
     "ignore-walk": "^7.0.0",
     "jest-cli": "^29.7.0",
     "jsonwebtoken": "^9.0.2",
-    "latest": "^0.2.0",
     "modbus-serial": "^8.0.17",
     "mqtt": "^5.9.1",
     "multer": "^1.4.5-lts.1",
