@@ -49,7 +49,7 @@ jobs:
           set -e
           git config --global user.email "noreply@carcam360.de" 
           git config --global user.name "Workflow User"
-          version="$(npm version ${{ inputs.version_number }} )"
+          version="$(npm version ${{ inputs.version_number }} | sed -e 's/^v//g' )"
           echo "tag=v$version" >>$GITHUB_OUTPUT
           echo "version=$version" >>$GITHUB_OUTPUT
           echo "tag=v$version" 
