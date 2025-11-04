@@ -66,6 +66,7 @@ jobs:
           since_tag=$(git tag| grep "$since"| sort -n| head -1)
           echo since_tag=$since_tag >>$GITHUB_OUTPUT 
           if [[ "$(gh release view $tag 2>&1)" == "release not found" ]]; then
+            echo "git release view tag $tag: $(gh release view $tag 2>&1)"
             echo "release_exists=false" >> $GITHUB_OUTPUT
           else
             echo "Release found."
