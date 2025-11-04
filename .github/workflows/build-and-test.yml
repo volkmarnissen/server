@@ -1,8 +1,22 @@
 name: Build and Test APK
 
+# Configures this workflow to run every time a change is pushed to the branch called `release`.
 on:
-  push:
-  pull_request:
+#  push:
+#    branches: ['main']
+  workflow_dispatch:
+    inputs:
+      version_number:
+        description: Version number <patch|minor| version number(E.g. 1.0.0) see npm version> An empty version number doesn't change the version
+        default: ''
+      job:
+        type: choice
+        description: Select job to execute
+        options: 
+        - npm_publish
+        - docker
+        - all
+        default: 'all'
 
 jobs:
   build-and-test:
