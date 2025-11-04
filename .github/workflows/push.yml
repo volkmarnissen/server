@@ -63,7 +63,7 @@ jobs:
             echo "isRelease=true" >>$GITHUB_OUTPUT 
           else
             since="v$major.$minor" 
-            echo "isRelease=false" >>$GITHUB_OUTPUT 
+            echo "isRelease=" >>$GITHUB_OUTPUT 
           fi
           since_tag=$(git tag| grep "$since"| sort -n| head -1)
           echo since_tag=$since_tag >>$GITHUB_OUTPUT 
@@ -92,7 +92,7 @@ jobs:
       - name: Create Release
         id: create_release
         uses: actions/create-release@latest
-        if: ${{ steps.set-tag.outputs.isRelease }}
+        if: ${{ steps.set-tag.outputs.isRelease != '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
         with:
