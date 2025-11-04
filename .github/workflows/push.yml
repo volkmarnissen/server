@@ -65,8 +65,8 @@ jobs:
           fi
           since_tag=$(git tag| grep "$since"| sort -n| head -1)
           echo since_tag=$since_tag >>$GITHUB_OUTPUT 
-          if [[ "$(gh release view $tag 2>&1)" == "release not found" ]]; then
-            echo "git release view tag $tag: $(gh release view $tag 2>&1)"
+          found=$(gh api graphql -f query='{repository(owner: "modbus2mqtt", name: "server"){refs(refPrefix: "refs/tags/", last: 5){nodes{name}}}}' --jq '.data.repository.refs.nodes[].name' | grep "$tag"| wc -l)
+          if [[ "$found" -gt "0" ]]; then
             echo "release_exists=false" >> $GITHUB_OUTPUT
           else
             echo "Release found."
