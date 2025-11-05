@@ -19,7 +19,7 @@ beforeAll(() => {
   return new Promise<void>((resolve, reject) => {
     // fake MQTT: avoid reconnect
     setConfigsDirsBackendTCPForTest()
-    
+
     let conn = new MqttConnector()
     let msub = new MqttSubscriptions(conn)
 
@@ -35,15 +35,16 @@ beforeAll(() => {
       HttpServer.prototype.authenticate = (req, res, next) => {
         next()
       }
-      startModbusTCPserver(ConfigSpecification.configDir, ConfigSpecification.dataDir, 0).then(() => {  
-
-      httpServer = new HttpServer(join(ConfigSpecification.configDir, 'angular'))
-      httpServer.setModbusCacheAvailable()
-      httpServer.init()
-      resolve()
-      }).catch((e)=>{
-        reject(e)
-      })
+      startModbusTCPserver(ConfigSpecification.configDir, ConfigSpecification.dataDir, 0)
+        .then(() => {
+          httpServer = new HttpServer(join(ConfigSpecification.configDir, 'angular'))
+          httpServer.setModbusCacheAvailable()
+          httpServer.init()
+          resolve()
+        })
+        .catch((e) => {
+          reject(e)
+        })
     })
   })
 })

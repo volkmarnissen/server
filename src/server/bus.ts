@@ -1,10 +1,5 @@
 import Debug from 'debug'
-import {
-  getSpecificationI18nName,
-  ImodbusEntity,
-  ImodbusSpecification,
-  SpecificationStatus,
-} from '../specification.shared'
+import { getSpecificationI18nName, ImodbusEntity, ImodbusSpecification, SpecificationStatus } from '../specification.shared'
 import { ImodbusAddress, ModbusTasks } from '../server.shared'
 import { IdentifiedStates } from '../specification.shared'
 import { ConverterMap, ImodbusValues, M2mSpecification } from '../specification'
@@ -12,14 +7,7 @@ import { ConfigBus } from './configbus'
 import * as fs from 'fs'
 import { IfileSpecification } from '../specification'
 import { LogLevelEnum, Logger } from '../specification'
-import {
-  Islave,
-  IModbusConnection,
-  IBus,
-  IRTUConnection,
-  ITCPConnection,
-  IidentificationSpecification,
-} from '../server.shared'
+import { Islave, IModbusConnection, IBus, IRTUConnection, ITCPConnection, IidentificationSpecification } from '../server.shared'
 import { ConfigSpecification } from '../specification'
 import { Config } from './config'
 import { ModbusTcpRtuBridge } from './tcprtubridge'

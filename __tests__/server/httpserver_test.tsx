@@ -26,12 +26,7 @@ import {
   IidentificationSpecification,
   IUserAuthenticationStatus,
 } from '../../src/server.shared'
-import {
-  IfileSpecification,
-  LogLevelEnum,
-  Logger,
-  M2mSpecification,
-} from '../../src/specification'
+import { IfileSpecification, LogLevelEnum, Logger, M2mSpecification } from '../../src/specification'
 import { ConfigSpecification } from '../../src/specification'
 import { Mutex } from 'async-mutex'
 import { join } from 'path'

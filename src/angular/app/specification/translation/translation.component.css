@@ -1,15 +1,15 @@
 .rightAligned {
-    right: 0;
-    margin-left: auto;
+  right: 0;
+  margin-left: auto;
 
-    background-color: green
+  background-color: green;
 }
 
 .scrollable {
-    max-height: 300px;
-    overflow-y: auto;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 .margin {
-    padding-left: 30px;
+  padding-left: 30px;
 }

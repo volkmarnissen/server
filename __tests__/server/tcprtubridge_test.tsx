@@ -116,18 +116,20 @@ describe('live tests', () => {
       bridge = new ModbusTcpRtuBridge(queue)
       // open connection to a tcp line
       client.setID(1)
-      console.log("startServer")
+      console.log('startServer')
       bridge.startServer(3010).then(() => {
-         console.log("server started")
+        console.log('server started')
         setTimeout(() => {
-        client.connectTCP('127.0.0.1', { port: 3010 }).then(() => {
-          console.log("connected")
-          resolve()
-        }).catch((e:any )=>{
-          console.log(e.message);
-        })
-        }, 200);
-        
+          client
+            .connectTCP('127.0.0.1', { port: 3010 })
+            .then(() => {
+              console.log('connected')
+              resolve()
+            })
+            .catch((e: any) => {
+              console.log(e.message)
+            })
+        }, 200)
       })
     })
   })
@@ -172,7 +174,7 @@ describe('live tests', () => {
       client
         .writeRegister(2, 1)
         .then(() => {
-          console.log("We are back")
+          console.log('We are back')
         })
         .catch((e) => {
           expect(false).toBeTruthy()

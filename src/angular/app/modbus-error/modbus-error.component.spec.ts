@@ -1,22 +1,22 @@
-import { ComponentFixture, TestBed } from "@angular/core/testing";
+import { ComponentFixture, TestBed } from '@angular/core/testing'
 
-import { ModbusErrorComponentComponent } from "./modbus-error-component.component";
+import { ModbusErrorComponentComponent } from './modbus-error-component.component'
 
-describe("ModbusErrorComponentComponent", () => {
-  let component: ModbusErrorComponentComponent;
-  let fixture: ComponentFixture<ModbusErrorComponentComponent>;
+describe('ModbusErrorComponentComponent', () => {
+  let component: ModbusErrorComponentComponent
+  let fixture: ComponentFixture<ModbusErrorComponentComponent>
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [ModbusErrorComponentComponent],
-    }).compileComponents();
+    }).compileComponents()
 
-    fixture = TestBed.createComponent(ModbusErrorComponentComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
+    fixture = TestBed.createComponent(ModbusErrorComponentComponent)
+    component = fixture.componentInstance
+    fixture.detectChanges()
+  })
 
-  it("should create", () => {
-    expect(component).toBeTruthy();
-  });
-});
+  it('should create', () => {
+    expect(component).toBeTruthy()
+  })
+})

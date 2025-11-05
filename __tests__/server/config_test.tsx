@@ -12,7 +12,7 @@ let debug = Debug('config_test')
 beforeAll(() => {
   return new Promise<void>((resolve, reject) => {
     const config = new Config()
-    fs.copyFileSync(Config.getLocalDir() + "/secrets.yaml",Config.getLocalDir() + "/secrets.yaml.bck")
+    fs.copyFileSync(Config.getLocalDir() + '/secrets.yaml', Config.getLocalDir() + '/secrets.yaml.bck')
     config.readYamlAsync().then(() => {
       let cfg = Config.getConfiguration()
       Config.tokenExpiryTime = 2000
@@ -33,8 +33,8 @@ afterAll(() => {
   let cfg = Config.getConfiguration()
   cfg.noAuthentication = false
   new Config().writeConfiguration(cfg)
-  fs.copyFileSync(Config.getLocalDir() + "/secrets.yaml.bck",Config.getLocalDir() + "/secrets.yaml")
-  fs.unlinkSync(Config.getLocalDir() + "/secrets.yaml.bck");
+  fs.copyFileSync(Config.getLocalDir() + '/secrets.yaml.bck', Config.getLocalDir() + '/secrets.yaml')
+  fs.unlinkSync(Config.getLocalDir() + '/secrets.yaml.bck')
 })
 test('register/login/validate', (done) => {
   const config = new Config()

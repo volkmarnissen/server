@@ -357,9 +357,9 @@ export class ConfigSpecification {
   private renameFilesPath(spec: IfileSpecification, oldfilename: string, newDirectory: string) {
     let oldDirectory = ConfigSpecification.getLocalDir()
     if (spec.status == SpecificationStatus.contributed) oldDirectory = ConfigSpecification.getContributedDir()
-    let specsDir = join( newDirectory, 'specifications')
-    let oldPath = getSpecificationImageOrDocumentUrl( oldDirectory, oldfilename, '')
-    let newPath = getSpecificationImageOrDocumentUrl(join( newDirectory), spec.filename, '')
+    let specsDir = join(newDirectory, 'specifications')
+    let oldPath = getSpecificationImageOrDocumentUrl(oldDirectory, oldfilename, '')
+    let newPath = getSpecificationImageOrDocumentUrl(join(newDirectory), spec.filename, '')
     let newParentDir = path.dirname(newPath)
     if (!fs.existsSync(newParentDir)) fs.mkdirSync(newParentDir, { recursive: true })
     if (fs.existsSync(newPath)) fs.rmSync(newPath, { recursive: true })
@@ -607,8 +607,8 @@ export class ConfigSpecification {
     let specFilePath = ConfigSpecification.getSpecificationPath(spec)
     let fn = ConfigSpecification.getLocalFilesPath(specfilename)
     if (!fs.existsSync(fn)) {
-      ;(fn = ConfigSpecification.getContributedFilesPath(specfilename)),
-        (specFilePath = ConfigSpecification.getContributedSpecificationPath(spec))
+      ;((fn = ConfigSpecification.getContributedFilesPath(specfilename)),
+        (specFilePath = ConfigSpecification.getContributedSpecificationPath(spec)))
     }
     if (!fs.existsSync(fn)) {
       fn = ConfigSpecification.getPublicFilesPath(specfilename)
@@ -666,7 +666,7 @@ export class ConfigSpecification {
 export function getSpecificationImageOrDocumentUrl(rootUrl: string | undefined, specName: string, url: string): string {
   let fn = getBaseFilename(url)
   let rc: string = ''
-  if (rootUrl && rootUrl.length > 0 ) {
+  if (rootUrl && rootUrl.length > 0) {
     let append = '/'
     if (rootUrl.endsWith('/')) append = ''
     rc = rootUrl + append + join(filesUrlPrefix, specName, fn)

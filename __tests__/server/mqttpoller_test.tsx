@@ -1,14 +1,8 @@
 import { Config } from '../../src/server/config'
-import {
-  ImodbusEntity,
-  ModbusRegisterType,
-} from '../../src/specification.shared'
+import { ImodbusEntity, ModbusRegisterType } from '../../src/specification.shared'
 import { ItopicAndPayloads, MqttDiscover } from '../../src/server/mqttdiscover'
-import {
-  MqttClient,
-} from 'mqtt'
-import { FakeModes, FakeMqtt, initBussesForTest, setConfigsDirsForTest
- } from './configsbase'
+import { MqttClient } from 'mqtt'
+import { FakeModes, FakeMqtt, initBussesForTest, setConfigsDirsForTest } from './configsbase'
 import { Bus } from '../../src/server/bus'
 import Debug from 'debug'
 import { ConfigSpecification } from '../../src/specification'
@@ -110,7 +104,7 @@ function copySubscribedSlaves(toA: Slave[], fromA: Slave[]) {
 }
 beforeAll((done) => {
   // Fix ModbusCache ModbusCache.prototype.submitGetHoldingRegisterRequest = submitGetHoldingRegisterRequest
-  setConfigsDirsForTest();
+  setConfigsDirsForTest()
   Config['config'] = {} as any
   let readConfig: Config = new Config()
   readConfig.readYamlAsync().then(() => {

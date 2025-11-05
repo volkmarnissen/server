@@ -2,14 +2,9 @@ import Debug from 'debug'
 import { expect, it, beforeAll, jest } from '@jest/globals'
 import { Config } from '../../src/server/config'
 import { Bus } from '../../src/server/bus'
-import { initBussesForTest, setConfigsDirsForTest} from './configsbase'
+import { initBussesForTest, setConfigsDirsForTest } from './configsbase'
 import { IdentifiedStates } from '../../src/specification.shared'
-import {
-  ConfigSpecification,
-  emptyModbusValues,
-  ImodbusValues,
-  LogLevelEnum,
-} from '../../src/specification'
+import { ConfigSpecification, emptyModbusValues, ImodbusValues, LogLevelEnum } from '../../src/specification'
 import { ModbusAPI } from '../../src/server/modbusAPI'
 
 const debug = Debug('bustest')

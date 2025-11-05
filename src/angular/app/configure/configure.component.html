@@ -4,18 +4,26 @@
       <mat-card-header>
         <mat-card-title class="width200pt">Configure MQTT</mat-card-title>
       </mat-card-header>
-      <mat-card-content>
-      </mat-card-content>
+      <mat-card-content> </mat-card-content>
       <form class="flexcolumns" [formGroup]="configureMqttFormGroup">
         <div class="saveCancel">
-          <button mat-icon-button
+          <button
+            mat-icon-button
             [disabled]="saveDisabled()"
-            class="material-icons app-toolbar-menu save-button" matTooltip="Save Changes" (click)="save()"
-            color="primary">
+            class="material-icons app-toolbar-menu save-button"
+            matTooltip="Save Changes"
+            (click)="save()"
+            color="primary"
+          >
             <mat-icon>check_circle</mat-icon>
           </button>
-          <button mat-icon-button class="material-icons app-toolbar-menu cancel-button" matTooltip="Cancel Changes"
-            color="warn" (click)="close()">
+          <button
+            mat-icon-button
+            class="material-icons app-toolbar-menu cancel-button"
+            matTooltip="Cancel Changes"
+            color="warn"
+            (click)="close()"
+          >
             <mat-icon>cancel</mat-icon>
           </button>
         </div>
@@ -23,75 +31,71 @@
         <ng-template matStepLabel>Enter MQTT Connection</ng-template>
         <mat-form-field class="width250pt">
           <mat-label>MQTT server URL</mat-label>
-          <input matInput formControlName="mqttserverurl" (change)="onChangekMqttConfig()"
-            placeholder="mqtt://mosquitto:1883" />
-          <mat-error *ngIf="configureMqttFormGroup.hasError('invalidConnection') != null">
-            Invalid Connection Data
-          </mat-error>
+          <input matInput formControlName="mqttserverurl" (change)="onChangekMqttConfig()" placeholder="mqtt://mosquitto:1883" />
+          <mat-error *ngIf="configureMqttFormGroup.hasError('invalidConnection') != null"> Invalid Connection Data </mat-error>
           <mat-error *ngIf="configureMqttFormGroup.get('mqttserverurl')?.hasError('required') != null">
             This field is reqired
-          </mat-error>
-        </mat-form-field><br />
+          </mat-error> </mat-form-field
+        ><br />
         <mat-form-field class="width250pt">
           <mat-label>User</mat-label>
           <input matInput formControlName="mqttuser" (change)="onChangekMqttConfig()" />
           <mat-error *ngIf="configureMqttFormGroup.get('mqttuser')?.hasError('required') != null">
             This field is reqired
-          </mat-error> </mat-form-field><br />
+          </mat-error> </mat-form-field
+        ><br />
         <mat-form-field class="width250pt">
           <mat-label>Password</mat-label>
           <input matInput formControlName="mqttpassword" (change)="onChangekMqttConfig()" />
           <mat-error *ngIf="configureMqttFormGroup.get('mqttpassword')?.hasError('required') != null">
             This field is reqired
-          </mat-error> </mat-form-field>
+          </mat-error>
+        </mat-form-field>
         <mat-form-field class="width250pt">
           <mat-label>CA certificate File (located in HA ssl directory)</mat-label>
           <mat-select matInput formControlName="mqttcafile" (selectionChange)="onChangekMqttConfig()">
-            <mat-option *ngFor="let c of sslFiles" [value]="c">{{c}}
-            </mat-option>
+            <mat-option *ngFor="let c of sslFiles" [value]="c">{{ c }} </mat-option>
           </mat-select>
         </mat-form-field>
         <mat-form-field class="width250pt">
           <mat-label>Client key (located in HA ssl directory) for client authentication</mat-label>
           <mat-select matInput formControlName="mqttkeyfile" (selectionChange)="onChangekMqttConfig()">
-            <mat-option *ngFor="let c of sslFiles" [value]="c">{{c}}
-            </mat-option>
+            <mat-option *ngFor="let c of sslFiles" [value]="c">{{ c }} </mat-option>
           </mat-select>
         </mat-form-field>
         <mat-form-field class="width250pt">
           <mat-label>language</mat-label>
           <input matInput [formControl]="discoveryLanguageFormControl" (change)="onChangekMqttConfig()" />
         </mat-form-field>
-        <div [ngClass]="mqttConnectClass"><mat-icon>{{mqttConnectIcon}}</mat-icon>{{mqttConnectMessage}}</div>
+        <div [ngClass]="mqttConnectClass">
+          <mat-icon>{{ mqttConnectIcon }}</mat-icon
+          >{{ mqttConnectMessage }}
+        </div>
       </form>
-
     </mat-card>
     <div class="flexcols">
-
-    <mat-card class="width350pt card">
-      <mat-card-header>
-        <mat-card-title>Configure Github</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <mat-form-field class="width250pt">
-          <mat-label>Personal Access Token</mat-label>
-          <input matInput [formControl]="ghPersonalAccessToken" (change)="onChangeGithubToken()"/>
-        </mat-form-field>
-
-      </mat-card-content>
-    </mat-card>
-    <mat-card class="width350pt card">
-      <mat-card-header>
-        <mat-card-title>Configure Debug</mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <mat-form-field class="width250pt">
-          <mat-label>Debug components</mat-label>
-          <input matInput [formControl]="debugComponentsFormControl" />
-        </mat-form-field>
-
-      </mat-card-content>
-    </mat-card>
+      <mat-card class="width350pt card">
+        <mat-card-header>
+          <mat-card-title>Configure Github</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-form-field class="width250pt">
+            <mat-label>Personal Access Token</mat-label>
+            <input matInput [formControl]="ghPersonalAccessToken" (change)="onChangeGithubToken()" />
+          </mat-form-field>
+        </mat-card-content>
+      </mat-card>
+      <mat-card class="width350pt card">
+        <mat-card-header>
+          <mat-card-title>Configure Debug</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-form-field class="width250pt">
+            <mat-label>Debug components</mat-label>
+            <input matInput [formControl]="debugComponentsFormControl" />
+          </mat-form-field>
+        </mat-card-content>
+      </mat-card>
     </div>
   </div>
 </div>

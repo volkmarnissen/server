@@ -81,8 +81,8 @@ it('checkFiles files.yaml exists, other file is missing=> OK', () => {
 })
 
 it('checkFiles files.yaml does not exist => Exception', () => {
-   let localRoot = ConfigSpecification.getLocalDir()
- let github = new M2mGitHub(null, localRoot)
+  let localRoot = ConfigSpecification.getLocalDir()
+  let github = new M2mGitHub(null, localRoot)
   let oldFn = M2mGitHub.prototype['uploadFileAndCreateTreeParameter']
   M2mGitHub.prototype['uploadFileAndCreateTreeParameter'] = jest
     .fn<(root: string, filemname: string) => Promise<any>>()

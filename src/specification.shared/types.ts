@@ -124,10 +124,10 @@ export interface IminMax {
   min: number
   max: number
 }
-export interface IidentEntity extends Iid{
-  name?:string,
-  readonly:boolean,
-  mqttname?:string
+export interface IidentEntity extends Iid {
+  name?: string
+  readonly: boolean
+  mqttname?: string
 }
 export interface Ientity extends IidentEntity {
   converter: Converters
@@ -145,7 +145,7 @@ export interface Ientity extends IidentEntity {
 }
 export function getParameterType(converter: Converters | null | undefined): string | undefined {
   if (converter)
-    switch (converter  ) {
+    switch (converter) {
       case 'text':
         return 'Itext'
       case 'number':

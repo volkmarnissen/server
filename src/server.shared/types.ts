@@ -77,8 +77,8 @@ export interface Iconfiguration {
   supervisor_host?: string
   debugComponents?: string
   tcpBridgePort?: number
-  displayHex?:boolean
-  appVersion?:string
+  displayHex?: boolean
+  appVersion?: string
 }
 export enum AuthenticationErrors {
   EnvironmentVariableSecretNotSet = 1,
@@ -131,15 +131,15 @@ export interface ImodbusAddress {
   write?: number[]
   length?: number
 }
-export enum ModbusTasks { 
-    deviceDetection = 0,
-    splitted = 1,
-    tcpBridge = 2,
-    poll = 3,
-    specification = 4,
-    entity = 5,
-    writeEntity = 6,
-    initialConnect = 7
+export enum ModbusTasks {
+  deviceDetection = 0,
+  splitted = 1,
+  tcpBridge = 2,
+  poll = 3,
+  specification = 4,
+  entity = 5,
+  writeEntity = 6,
+  initialConnect = 7,
 }
 export interface ImodbusErrorsForSlave {
   task: ModbusTasks
@@ -147,10 +147,10 @@ export interface ImodbusErrorsForSlave {
   address: ImodbusAddress
   state: ModbusErrorStates
 }
-export interface ImodbusStatusForSlave{
-  requestCount: number[];
-  errors:ImodbusErrorsForSlave[],
-  queueLength:number
+export interface ImodbusStatusForSlave {
+  requestCount: number[]
+  errors: ImodbusErrorsForSlave[]
+  queueLength: number
 }
 export interface Islave {
   slaveid: number

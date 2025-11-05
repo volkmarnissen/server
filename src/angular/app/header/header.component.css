@@ -1,12 +1,11 @@
 .disabled {
-    pointer-events: none;
-    color: rgb(230, 62, 62);
-    cursor: default
+  pointer-events: none;
+  color: rgb(230, 62, 62);
+  cursor: default;
 }
 
 @media (max-width: 800pt) {
-    .middle {
-        align-self: flex-start;
-    }
-
+  .middle {
+    align-self: flex-start;
+  }
 }

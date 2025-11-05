@@ -87,9 +87,9 @@ export class Modbus2Mqtt {
           Config.getConfiguration().githubPersonalToken
         )
         debug(Config.getConfiguration().mqttconnect.mqttserverurl)
-        log.log(LogLevelEnum.notice, "Modbus2mqtt version: " + Config.getConfiguration().appVersion)
+        log.log(LogLevelEnum.notice, 'Modbus2mqtt version: ' + Config.getConfiguration().appVersion)
         // hard coded workaround
-        let angulardir = join(require.resolve('./mqttdiscover'), "../../angular/browser" )
+        let angulardir = join(require.resolve('./mqttdiscover'), '../../angular/browser')
         // Did not work in github workflow for testing
 
         if (!angulardir || !fs.existsSync(angulardir)) {
@@ -121,7 +121,7 @@ export class Modbus2Mqtt {
                 .init()
                 .then(() => {
                   httpServer!.listen(() => {
-                    if( process.env.HASSIO_TOKEN ){
+                    if (process.env.HASSIO_TOKEN) {
                       log.log(LogLevelEnum.notice, 'Running inside Home Assistant Add-On environment')
                     }
                     log.log(
