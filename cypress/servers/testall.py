@@ -130,9 +130,12 @@ def startRequiredApps():
         subprocess.Popen(["nohup", "nginx","-c",fb.name,"-p","."],stderr=outfile, stdout=outfile)
         subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbustcp"],stderr=outfile, stdout=outfile)
         subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/mosquitto"],stderr=outfile, stdout=outfile)
+        # use modbus2mqtt with different config files
         subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbus2mqtt 3005 " + file],stderr=outfile, stdout=outfile)  # e2ePort
         subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbus2mqtt 3004 "  + file + " localhost:3006"],stderr=outfile, stdout=outfile) 
         subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbus2mqtt 3007 " + file],stderr=outfile, stdout=outfile)  # mqttNoAuthPort
+        # Use docker host port
+        
         eprint("started "  )
    
         for port in [3002,3006, 3005,3004, 3001,3003]:
