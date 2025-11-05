@@ -37,9 +37,7 @@ jobs:
         env:
           # Prefer new PACKAGER_* secret names; keep ABUILD_* for backwards compatibility
           PACKAGER_PRIVKEY: ${{ secrets.PACKAGER_PRIVKEY }}
-          PACKAGER_PUBKEY: ${{ secrets.PACKAGER_PUBKEY }}
-          ABUILD_PRIVKEY: ${{ secrets.ABUILD_PRIVKEY }}
-          ABUILD_PUBKEY: ${{ secrets.ABUILD_PUBKEY }}
+          PACKAGER_PUBKEY: ${{ env.PACKAGER_PUBKEY }}
         run: |
           cd alpine-package/modbus2mqtt
           chmod +x build.sh build-and-test-image.sh
