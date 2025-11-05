@@ -25,22 +25,29 @@ if docker ps -a --format '{{.Names}}' | grep -xq "modbus2mqtt-test-instance"; th
 fi
 
 echo "Running container to perform runtime healthcheck..."
-container=$(docker run -d -p 3000:3000 --name modbus2mqtt-test-instance modbus2mqtt-test)
+docker run -d -p 3000:3000 --name modbus2mqtt-test-instance modbus2mqtt-test 
 
-# wait a bit for service
-sleep 3
+# wait for service with retry limit
+attempts=0
+max_attempts=4
 
+while [ "$(docker inspect -f '{{.State.Running}}' modbus2mqtt-test-instance)" = "true" ]; do
+  attempts=$((attempts + 1))
+  echo "Attempt $attempts of $max_attempts..."
+  
+  if curl -s -f -o /dev/null http://localhost:3000/; then
+    echo "Service is up and running!"
+    exit 0
+  fi
+  
+  if [ "$attempts" -ge "$max_attempts" ]; then
+    echo "Service failed to respond after $max_attempts attempts - aborting" >&2
+    docker logs modbus2mqtt-test-instance >&2
+    docker stop modbus2mqtt-test-instance >/dev/null
+    docker rm modbus2mqtt-test-instance >/dev/null
+    exit 1
+  fi
+  
+  sleep 2
+done
 
-if wget --quiet --spider http://localhost:3000/ >/dev/null 2>&1; then
-  echo "HTTP check succeeded"
-  docker logs "$container" --tail 50
-  docker stop "$container" >/dev/null
-  docker rm "$container" >/dev/null
-  exit 0
-else
-  echo "HTTP check failed - container logs:" >&2
-  docker logs "$container" >&2
-  docker stop "$container" >/dev/null || true
-  docker rm "$container" >/dev/null || true
-  exit 1
-fi

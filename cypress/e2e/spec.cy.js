@@ -84,7 +84,7 @@ describe('End to End Tests', () => {
     'register->mqtt->busses->slaves->specification with authentication',
     {
       retries: {
-        runMode: 3,
+        runMode: 1,
         openMode: 1,
       },
     },
@@ -100,7 +100,7 @@ describe('End to End Tests', () => {
     'register->mqtt with no authentication',
     {
       retries: {
-        runMode: 3,
+        runMode: 1,
         openMode: 1,
       },
     },
@@ -113,7 +113,7 @@ describe('End to End Tests', () => {
     'mqtt hassio addon',
     {
       retries: {
-        runMode: 3,
+        runMode: 1,
         openMode: 1,
       },
     },

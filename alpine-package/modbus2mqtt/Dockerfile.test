@@ -1,7 +1,7 @@
 FROM alpine:3.22
 
 # Install runtime and tooling to start service and perform healthchecks
-RUN apk add --no-cache s6-overlay nodejs npm wget
+ RUN apk add --no-cache s6-overlay nodejs npm curl
 
 # Copy produced packages (expect build.sh to have created ./packages)
 COPY ./packages/ /tmp/packages/
@@ -13,14 +13,16 @@ RUN \
     s6dir=/etc/s6-overlay/s6-rc.d/modbus2mqtt && \
     mkdir -p $s6dir && \
     echo 'longrun' > $s6dir/type && \
-    echo '#!/command/with-contenv sh\nexec /usr/bin/modbus2mqtt 2>&1' > $s6dir/run && \
+    echo '#!/command/with-contenv sh' > $s6dir/run && \
+    echo 'exec /usr/bin/modbus2mqtt 2>&1' >> $s6dir/run && \
     chmod +x $s6dir/run && \
     s6usr=/etc/s6-overlay/s6-rc.d/user/contents.d && \
     mkdir -p $s6usr && \
     touch $s6usr/modbus2mqtt && \
     mkdir -p $s6dir/dependencies.d && \
     touch $s6dir/dependencies.d/base && \  
-    echo '#!/bin/sh\necho modbus2mqtt done' >$s6dir/finish && \
+    echo '#!/bin/sh' >$s6dir/finish && \
+    echo 'echo modbus2mqtt done' >>$s6dir/finish && \
     chmod +x $s6dir/finish 
 
 EXPOSE 3000

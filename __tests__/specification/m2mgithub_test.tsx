@@ -93,7 +93,7 @@ it('checkFiles files.yaml does not exist => Exception', () => {
       '/specifications/files/waterleveltransmitter/test.png',
     ])
   }
-  expect(t).toThrowError()
+  expect(t).toThrow()
   M2mGitHub.prototype['uploadFileAndCreateTreeParameter'] = oldFn
 })
 

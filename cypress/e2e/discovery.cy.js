@@ -187,6 +187,7 @@ describe('MQTT Discovery Tests', () => {
       assert(mqttConnect != undefined)
       cy.log('MQTT connect')
       cy.task('mqttConnect', mqttConnect, logSetting).then(() => {
+        cy.log('MQTT connected')
         cy.task('mqttSubscribe', '#', logSetting).then((tAndP) => {
           cy.task('mqttResetTopicAndPayloads')
           runBusses(true)

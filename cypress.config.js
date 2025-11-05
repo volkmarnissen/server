@@ -33,10 +33,20 @@ module.exports = defineConfig({
       on('task', {
         mqttConnect(connectionData) {
           return new Promise((resolve, reject) => {
-            // mqtt connect with onConnected = resolve
-            let mqttHelper = MqttHelper.getInstance()
-            mqttHelper.connect(connectionData)
-            resolve('connected')
+            try {// mqtt connect with onConnected = resolve
+              let mqttHelper = MqttHelper.getInstance()
+              mqttHelper.connect( connectionData).then(() => {  
+              console.log('mqttConnect connected '  )
+              resolve('connected')
+            }).catch((e) => {
+              console.log('mqttConnect rejected ' + e.message  )
+              reject('rejected' + e)
+
+            })}
+            catch (e) {
+              console.log('mqttConnect exception ' + e.message  )
+              reject('Exception' + e)
+            }
           })
         },
         mqttClose() {
