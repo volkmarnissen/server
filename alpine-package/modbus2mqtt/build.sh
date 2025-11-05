@@ -87,11 +87,11 @@ chmod 600 /home/builder/.abuild/abuild.conf || true
 chown builder:dialout /home/builder/.abuild/abuild.conf || true
 
 rm -rf /work/src/node_modules || true
-
+sed -i 's/pkgver=.*/pkgver='"${PKG_VERSION}"'/g' /work/APKBUILD || true
 su - builder -s /bin/sh -c '
   set -e
   cd /work
-
+  echo "Building modbus2mqtt APK version $PKG_VERSION"
   # prepare abuild and build package (checksum + build/sign)
   abuild checksum || true
   abuild -r
