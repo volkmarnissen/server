@@ -37,10 +37,15 @@ jobs:
 
       - name: Run build and test
         env:
-          # Prefer new PACKAGER_* secret names; keep ABUILD_* for backwards compatibility
           PACKAGER_PRIVKEY: ${{ secrets.PACKAGER_PRIVKEY }}
           PACKAGER_PUBKEY: ${{ env.PACKAGER_PUBKEY }}
         run: |
           cd alpine-package/modbus2mqtt
           chmod +x build.sh build-and-test-image.sh
           ./build-and-test-image.sh
+      - name: Check in alpine Repository
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with: 
+          commit_message: 'Check in alpine Repository'
+          file_pattern: 'alpine-repo/*/*'
+
