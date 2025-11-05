@@ -21,6 +21,8 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,13 +37,15 @@ jobs:
 
       - name: Run build and test
         env:
-          # Prefer new PACKAGER_* secret names; keep ABUILD_* for backwards compatibility
           PACKAGER_PRIVKEY: ${{ secrets.PACKAGER_PRIVKEY }}
           PACKAGER_PUBKEY: ${{ env.PACKAGER_PUBKEY }}
         run: |
           cd alpine-package/modbus2mqtt
           chmod +x build.sh build-and-test-image.sh
-          # If PACKAGER_* secrets are not set, fall back to ABUILD_* to preserve older CI setups
-          export PACKAGER_PRIVKEY=${PACKAGER_PRIVKEY:-$ABUILD_PRIVKEY}
-          export PACKAGER_PUBKEY=${PACKAGER_PUBKEY:-$ABUILD_PUBKEY}
           ./build-and-test-image.sh
+      - name: Check in alpine Repository
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with: 
+          commit_message: 'Check in alpine Repository'
+          file_pattern: 'alpine-repo/*/*'
+
