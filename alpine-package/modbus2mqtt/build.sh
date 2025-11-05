@@ -16,7 +16,7 @@ fi
 
 : "${PKG_VERSION:=$(node -p "require('../../package.json').version")}" || true
 export PKG_VERSION
-echo version: $PKG_VERSION
+echo version: "$PKG_VERSION"
 HOST_UID=$(id -u)
 HOST_GID=$(id -g)
 PACKAGE="$BASEDIR/../../alpine-repo"

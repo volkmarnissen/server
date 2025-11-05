@@ -124,8 +124,8 @@ interface IuiSlave {
   ],
 })
 export class SelectSlaveComponent extends SessionStorage implements OnInit {
-  preparedIdentSpecs: IidentificationSpecification[];
-  preparedSpecs: Ispecification[];
+  preparedIdentSpecs: IidentificationSpecification[]=[];
+  preparedSpecs: Ispecification[]=[];
   getDetectSpecToolTip(): string {
     return this.slaveNewForm.get("detectSpec")?.value == true
       ? "If there is exactly one specification matching to the modbus data for this slave, " +
@@ -140,8 +140,8 @@ export class SelectSlaveComponent extends SessionStorage implements OnInit {
   getSpecIcon() {
     throw new Error("Method not implemented.");
   }
-  currentLanguage: string;
-  busname: string;
+  currentLanguage: string="en";
+  busname: string="";
   constructor(
     private _formBuilder: FormBuilder,
     private route: ActivatedRoute,
@@ -150,26 +150,27 @@ export class SelectSlaveComponent extends SessionStorage implements OnInit {
     private clipboard: Clipboard,
   ) {
     super();
+    this.slaveNewForm= this._formBuilder.group({
+      slaveId: [null],
+      detectSpec: [false],
+    });
   }
   showAllPublicSpecs = new FormControl<boolean>(false);
   uiSlaves: IuiSlave[] = [];
-  config: Iconfiguration;
+  config: Iconfiguration=undefined as any as Iconfiguration;
   slaves: Islave[] = [];
 
   // label:string;
   // slaveForms: FormGroup[]
   // specs:Observable<IidentificationSpecification[]> []=[]
   //slavesFormArray: FormArray<FormGroup>
-  slaveNewForm: FormGroup = this._formBuilder.group({
-    slaveId: [null],
-    detectSpec: [false],
-  });
-  paramsSubscription: Subscription;
+  slaveNewForm: FormGroup = undefined as any as FormGroup;
+  paramsSubscription: Subscription = undefined as any as Subscription;
   errorStateMatcher = new M2mErrorStateMatcher();
 
-  bus: IBus;
+  bus: IBus  = undefined as any as IBus;
   preselectedSlaveId: number | undefined = undefined;
-  @ViewChild("slavesBody") slavesBody: ElementRef;
+  @ViewChild("slavesBody") slavesBody: ElementRef=  undefined as any as ElementRef;
   @Output() slaveidEventEmitter = new EventEmitter<number | undefined>();
   ngOnInit(): void {
     this.entityApiService.getConfiguration().subscribe((config) => {
