@@ -39,7 +39,7 @@ else
   else
     echo "normal scenario" >>"e2e/modbus2mqtt_$HTTPPORT.out"
   fi
-  node dist/server/modbus2mqtt.js -c "$TMPDIR"  -d "$TMPDIR" -s "$TMPDIR" >>"e2e/modbus2mqtt_$HTTPPORT.out" 2>&1 &
+  node distprod/node_modules/modbus2mqtt/bin/modbus2mqtt -c "$TMPDIR"  -d "$TMPDIR" -s "$TMPDIR" >>"e2e/modbus2mqtt_$HTTPPORT.out" 2>&1 &
   MPID=$!  
 fi
 echo "TMPDIR_$HTTPPORT $TMPDIR" >>./cypress/servers/tmpfiles
