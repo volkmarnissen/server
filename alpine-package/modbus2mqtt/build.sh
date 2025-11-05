@@ -7,7 +7,6 @@ set -eu
 # - PACKAGER_PUBKEY  : public abuild key (multi-line)
 # - (optional) PKG_VERSION : package version; defaults to package.json via node
 BASEDIR=$(dirname "$0")
-mkdir -p "$BASEDIR/work"
 
 if [ -z "${PACKAGER_PRIVKEY:-}" ] || [ -z "${PACKAGER_PUBKEY:-}" ]; then
   echo "ERROR: PACKAGER_PRIVKEY and PACKAGER_PUBKEY must be set in the environment" >&2
