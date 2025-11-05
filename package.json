@@ -55,6 +55,7 @@
     "multer": "^2.0.2",
     "node-html-parser": "^7.0.1",
     "npmlog": "^7.0.1",
+    "rxjs": "^7.8.2",
     "serve-static": "^2.2.0",
     "url-parse": "^1.5.10",
     "yaml": "^2.5.0"
@@ -106,7 +107,6 @@
     "material-design-icons": "^3.0.1",
     "ng-gallery": "^12.0.0",
     "prettier": "^3.6.2",
-    "rxjs": "^7.8.2",
     "supertest": "^7.0.0",
     "ts-jest": "^29.4.5",
     "ts-node": "^10.9.2",

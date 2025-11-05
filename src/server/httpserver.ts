@@ -130,14 +130,14 @@ export class HttpServer extends HttpServerBase {
     this.modbusCacheAvailable = true
   }
   override initApp() {
-      let localdir = join(ConfigSpecification.getLocalDir(), filesUrlPrefix)
-      let publicdir = join(ConfigSpecification.getPublicDir(), filesUrlPrefix)
-      this.app.get(/.*/, (req: Request, res: http.ServerResponse, next) => {
-        debug(req.url)
-        next()
-      })
-      this.app.use('/' + filesUrlPrefix, express.static(localdir))
-      this.app.use('/' + filesUrlPrefix, express.static(publicdir))
+    let localdir = join(ConfigSpecification.getLocalDir(), filesUrlPrefix)
+    let publicdir = join(ConfigSpecification.getPublicDir(), filesUrlPrefix)
+    this.app.get(/.*/, (req: Request, res: http.ServerResponse, next) => {
+      debug(req.url)
+      next()
+    })
+    this.app.use('/' + filesUrlPrefix, express.static(localdir))
+    this.app.use('/' + filesUrlPrefix, express.static(publicdir))
     this.app.use(this.handleSlaveTopics.bind(this))
     //@ts-ignore
     // app.use(function (err:any, req:any, res:any, next:any) {
@@ -150,9 +150,9 @@ export class HttpServer extends HttpServerBase {
       let config = Config.getConfiguration()
       let authHeader = req.header('Authorization')
       let a: IUserAuthenticationStatus = Config.getAuthStatus()
-      ;(a.hasAuthToken = authHeader ? true : false),
+      ;((a.hasAuthToken = authHeader ? true : false),
         (a.authTokenExpired =
-          authHeader != undefined && HttpServer.validateUserToken(req, undefined) == MqttValidationResult.tokenExpired)
+          authHeader != undefined && HttpServer.validateUserToken(req, undefined) == MqttValidationResult.tokenExpired))
 
       if (a.registered && (a.hassiotoken || a.hasAuthToken || a.noAuthentication))
         a.mqttConfigured = Config.isMqttConfigured(config.mqttconnect)
@@ -457,8 +457,8 @@ export class HttpServer extends HttpServerBase {
       //     log.log(LogLevelEnum.error, JSON.stringify(err.message))
       //   })
       res.statusCode = HttpErrorsEnum.ErrNotAcceptable
-          res.end("Google Translate not implemented")
-          log.log(LogLevelEnum.error, "Google Translate not implemented")
+      res.end('Google Translate not implemented')
+      log.log(LogLevelEnum.error, 'Google Translate not implemented')
     })
 
     this.post(apiUri.validateMqtt, (req: Request, res: http.ServerResponse) => {

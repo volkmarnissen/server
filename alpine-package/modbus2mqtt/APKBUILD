@@ -1,3 +1,6 @@
+# shellcheck shell=sh 
+# shellcheck disable=SC2034
+# shellcheck disable=SC2154
 # Contributor: Modbus2mqtt <info@carcam360.de>
 # Maintainer: Modbus2mqtt <info@carcam360.de>
 pkgname=modbus2mqtt

@@ -5,32 +5,24 @@
     </button>
     <mat-menu #configMenu>
       <a [routerLink]="'/configure'">
-        <button mat-button [disabled]="getActiveRoute() == '/configure' ">
-          Configure MQTT/Github ...
-        </button></a><br />
+        <button mat-button [disabled]="getActiveRoute() == '/configure'">Configure MQTT/Github ...</button></a
+      ><br />
       <a [routerLink]="'/specifications'">
-        <button mat-button [disabled]="getActiveRoute() == '/specifications' ">
-          Contribute/Import/Export Spec.
-        </button>
-      </a><br />
+        <button mat-button [disabled]="getActiveRoute() == '/specifications'">Contribute/Import/Export Spec.</button> </a
+      ><br />
       <a [routerLink]="'/busses'" [class]="getActiveRoute() == '/busses' ? 'disabled' : ''">
-        <button mat-button [disabled]="getActiveRoute() == '/busses' ">
-          Show Busses ...
-        </button>
-      </a><br />
+        <button mat-button [disabled]="getActiveRoute() == '/busses'">Show Busses ...</button> </a
+      ><br />
       <a [routerLink]="'/register'" [class]="getActiveRoute() == '/register' ? 'disabled' : ''">
-        <button mat-button aria-label="Register User ..." [disabled]="getActiveRoute() == '/register'">
-          Register User ...
-        </button>
+        <button mat-button aria-label="Register User ..." [disabled]="getActiveRoute() == '/register'">Register User ...</button>
       </a>
     </mat-menu>
   </div>
   <div>
-    <img src="assets/images/icon.png" style=" width:1.5em; height:1.5em;" />
+    <img src="assets/images/icon.png" style="width: 1.5em; height: 1.5em" />
   </div>
 
   <div class="middle flex-auto">
     <h1>Modbus2MQTT</h1>
   </div>
-
 </div>

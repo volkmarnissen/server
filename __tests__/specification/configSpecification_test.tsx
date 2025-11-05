@@ -225,7 +225,7 @@ it('contribution cloned', () => {
     let localSpecdir = ConfigSpecification.getLocalDir() + '/specifications'
     let publicSpecdir = ConfigSpecification.getPublicDir() + '/specifications'
     let contributedSpecdir = ConfigSpecification.getContributedDir() + '/specifications'
-    fs.mkdirSync(localSpecdir,{ recursive: true})
+    fs.mkdirSync(localSpecdir, { recursive: true })
     fs.copyFileSync(join(localSpecdir, 'waterleveltransmitter.yaml'), join(localSpecdir, 'waterleveltransmitter1.yaml'))
     fs.copyFileSync(join(localSpecdir, 'waterleveltransmitter.yaml'), join(publicSpecdir, 'waterleveltransmitter1.yaml'))
     cleanWaterLevelTransmitter1(contributedSpecdir)

@@ -60,7 +60,7 @@ export class MqttConnector {
       let client = connect(connectionData.mqttserverurl, connectionData as IClientOptions)
       client.on('error', (e) => {
         client!.end(() => {})
-        callback(false, connectionData.mqttserverurl + ": " + e.toString())
+        callback(false, connectionData.mqttserverurl + ': ' + e.toString())
       })
       client.on('connect', () => {
         callback(true, 'OK')

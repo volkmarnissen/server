@@ -242,81 +242,85 @@ process.on('SIGINT', () => {
 export function stopModbusTCPServer() {
   if (server) server.stopServer()
 }
-export function startModbusTCPserver(configDir: string,dataDir:string, busId: number):Promise<void>   { 
+export function startModbusTCPserver(configDir: string, dataDir: string, busId: number): Promise<void> {
   return new Promise<void>((resolve, reject) => {
-  debug('starting')
-  if (process.pid) log.log(LogLevelEnum.notice, 'PROCESSID=' + process.pid)
-  let gh = new M2mGitHub(null, ConfigSpecification.getPublicDir())
-  gh.init()
-    .then(() => {
-      let port = 502
-      clearRegisterValues()
-      let directoryBus = ConfigSpecification.getLocalDir() + '/busses/bus.' + busId
-      let directoryPublicSpecs = ConfigSpecification.getPublicDir() + '/specifications'
-      let directoryLocalSpecs = ConfigSpecification.getLocalDir() + '/specifications'
-      if (!fs.existsSync(directoryBus)) {
-        log.log(LogLevelEnum.error, 'Unable to start TCP server: Bus directory not found ' + directoryBus)
-        return
-      }
-      let files = fs.readdirSync(directoryBus)
-      files.forEach((slaveFileName) => {
-        if (slaveFileName == 'bus.yaml') {
-          let content = fs.readFileSync(join(directoryBus, slaveFileName), {
-            encoding: 'utf8',
-          })
-          let connection: IModbusConnection = parse(content.toString())
-          port = (connection as ITCPConnection).port
+    debug('starting')
+    if (process.pid) log.log(LogLevelEnum.notice, 'PROCESSID=' + process.pid)
+    let gh = new M2mGitHub(null, ConfigSpecification.getPublicDir())
+    gh.init()
+      .then(() => {
+        let port = 502
+        clearRegisterValues()
+        let directoryBus = ConfigSpecification.getLocalDir() + '/busses/bus.' + busId
+        let directoryPublicSpecs = ConfigSpecification.getPublicDir() + '/specifications'
+        let directoryLocalSpecs = ConfigSpecification.getLocalDir() + '/specifications'
+        if (!fs.existsSync(directoryBus)) {
+          log.log(LogLevelEnum.error, 'Unable to start TCP server: Bus directory not found ' + directoryBus)
+          return
         }
-
-        if (slaveFileName.startsWith('s'))
-          try {
+        let files = fs.readdirSync(directoryBus)
+        files.forEach((slaveFileName) => {
+          if (slaveFileName == 'bus.yaml') {
             let content = fs.readFileSync(join(directoryBus, slaveFileName), {
               encoding: 'utf8',
             })
-            let slave = parse(content.toString())
-            let slaveid = slave.slaveid
-            let specFilename = slave.specificationid
-            if (specFilename) {
-              let fn = join(directoryLocalSpecs, specFilename + '.yaml')
-              if (!fs.existsSync(fn)) fn = join(directoryPublicSpecs, specFilename + '.yaml')
-              if (!fs.existsSync(fn)) console.log('TCP Server: Spec file not found: ' + fn)
-              else {
-                content = fs.readFileSync(fn, { encoding: 'utf8' })
-                let spec: IfileSpecification = parse(content.toString())
-                spec = new Migrator().migrate(spec)
-                if (spec.testdata) {
-                  let testdata = spec.testdata
-                  if (spec.testdata.analogInputs)
-                    spec.testdata.analogInputs.forEach((avp) => {
-                      let a = avp.address
-                      if (avp.value != undefined) addRegisterValue(slaveid, a, ModbusRegisterType.AnalogInputs, avp.value)
-                    })
-                  if (spec.testdata.holdingRegisters)
-                    spec.testdata.holdingRegisters.forEach((avp) => {
-                      let a = avp.address
-                      if (avp.value != undefined) addRegisterValue(slaveid, a, ModbusRegisterType.HoldingRegister, avp.value)
-                    })
-                  if (spec.testdata.coils)
-                    spec.testdata.coils.forEach((avp) => {
-                      let a = avp.address
-                      if (avp.value != undefined) addRegisterValue(slaveid, a, ModbusRegisterType.Coils, avp.value)
-                    })
+            let connection: IModbusConnection = parse(content.toString())
+            port = (connection as ITCPConnection).port
+          }
+
+          if (slaveFileName.startsWith('s'))
+            try {
+              let content = fs.readFileSync(join(directoryBus, slaveFileName), {
+                encoding: 'utf8',
+              })
+              let slave = parse(content.toString())
+              let slaveid = slave.slaveid
+              let specFilename = slave.specificationid
+              if (specFilename) {
+                let fn = join(directoryLocalSpecs, specFilename + '.yaml')
+                if (!fs.existsSync(fn)) fn = join(directoryPublicSpecs, specFilename + '.yaml')
+                if (!fs.existsSync(fn)) console.log('TCP Server: Spec file not found: ' + fn)
+                else {
+                  content = fs.readFileSync(fn, { encoding: 'utf8' })
+                  let spec: IfileSpecification = parse(content.toString())
+                  spec = new Migrator().migrate(spec)
+                  if (spec.testdata) {
+                    let testdata = spec.testdata
+                    if (spec.testdata.analogInputs)
+                      spec.testdata.analogInputs.forEach((avp) => {
+                        let a = avp.address
+                        if (avp.value != undefined) addRegisterValue(slaveid, a, ModbusRegisterType.AnalogInputs, avp.value)
+                      })
+                    if (spec.testdata.holdingRegisters)
+                      spec.testdata.holdingRegisters.forEach((avp) => {
+                        let a = avp.address
+                        if (avp.value != undefined) addRegisterValue(slaveid, a, ModbusRegisterType.HoldingRegister, avp.value)
+                      })
+                    if (spec.testdata.coils)
+                      spec.testdata.coils.forEach((avp) => {
+                        let a = avp.address
+                        if (avp.value != undefined) addRegisterValue(slaveid, a, ModbusRegisterType.Coils, avp.value)
+                      })
+                  }
                 }
               }
+              //  logValues()
+            } catch (e: any) {
+              console.error('Unable to read  directory for ' + e)
+              reject(e)
             }
-            //  logValues()
-          } catch (e: any) {
-            console.error('Unable to read  directory for ' + e)
+        })
+        server = new ModbusServer()
+        return server
+          .startServer(port)
+          .then(() => {
+            resolve()
+          })
+          .catch((e) => {
             reject(e)
-          }
+          })
       })
-      server = new ModbusServer()
-      return server.startServer(port).then(() => {
-        resolve()
-      }).catch((e) => {
-        reject(e)
-      })
-    }).catch((e) => {
+      .catch((e) => {
         reject(e)
       })
   })

@@ -13,7 +13,7 @@
 // https://on.cypress.io/configuration
 // ***********************************************************
 
-import { mount } from "cypress/angular";
+import { mount } from 'cypress/angular'
 
 // Augment the Cypress namespace to include type definitions for
 // your custom command.
@@ -22,20 +22,20 @@ import { mount } from "cypress/angular";
 declare global {
   namespace Cypress {
     interface Chainable {
-      mount: typeof mount;
-      openAllExpansionPanels: () => void;
+      mount: typeof mount
+      openAllExpansionPanels: () => void
     }
   }
 }
 
-Cypress.Commands.add("mount", mount);
-Cypress.Commands.add("openAllExpansionPanels", () => {
-  cy.get("mat-expansion-panel-header[aria-expanded=false]").then((elements) => {
+Cypress.Commands.add('mount', mount)
+Cypress.Commands.add('openAllExpansionPanels', () => {
+  cy.get('mat-expansion-panel-header[aria-expanded=false]').then((elements) => {
     elements.each((index) => {
-      elements[index].click();
-    });
-  });
-});
+      elements[index].click()
+    })
+  })
+})
 
 // Example use:
 // cy.mount(MyComponent)

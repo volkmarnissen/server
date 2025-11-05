@@ -7,7 +7,6 @@ set -eu
 # - PACKAGER_PUBKEY  : public abuild key (multi-line)
 # - (optional) PKG_VERSION : package version; defaults to package.json via node
 BASEDIR=$(dirname "$0")
-mkdir -p "$BASEDIR/work"
 
 if [ -z "${PACKAGER_PRIVKEY:-}" ] || [ -z "${PACKAGER_PUBKEY:-}" ]; then
   echo "ERROR: PACKAGER_PRIVKEY and PACKAGER_PUBKEY must be set in the environment" >&2
@@ -16,13 +15,16 @@ fi
 
 : "${PKG_VERSION:=$(node -p "require('../../package.json').version")}" || true
 export PKG_VERSION
-echo version: $PKG_VERSION
+echo version: "$PKG_VERSION"
 HOST_UID=$(id -u)
 HOST_GID=$(id -g)
-
+PACKAGE="$BASEDIR/../../alpine-repo"
+mkdir -p "$PACKAGE"
 docker run --rm -i \
   -v "$BASEDIR":/work \
   -w /work \
+  -v "$PACKAGE":/package \
+  -w /package \
   -e PACKAGER="Volkmar Nissen <volkmar.nissen@example.com>" \
   -e PKG_VERSION="$PKG_VERSION" \
   -e PACKAGER_PRIVKEY \
@@ -97,10 +99,13 @@ su - builder -s /bin/sh -c '
   abuild -r
   # copy produced packages back to mounted workdir
   if [ -d /home/builder/packages ]; then
-    cp -aR /home/builder/packages /work/ || true
-    chown -R '"$(id -u):$(id -g)"' /work/packages || true
+    echo "Copying produced packages to /package"
+    ARCH=`uname -m`
+    rm -f "/package/$ARCH"/modbus2mqtt*.apk || true
+    cp -aR /home/builder/packages/* /package/ || true
+    chown -R '"$(id -u):$(id -g)"' /package/ || true
   fi
   '
 IN
 
-echo "build.sh finished; produced packages/ (if build succeeded)"
+echo "build.sh finished; produced packages"

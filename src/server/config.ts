@@ -3,7 +3,7 @@ import { parse, stringify } from 'yaml'
 import * as fs from 'fs'
 import * as path from 'path'
 import { join } from 'path'
-import packageJson from '../../package.json';
+import packageJson from '../../package.json'
 import stream from 'stream'
 import { Subject } from 'rxjs'
 import { getBaseFilename } from '../specification.shared'
@@ -67,8 +67,8 @@ export class Config {
                   //const iat = Math.floor(Date.now() / 1000)
                   //const exp = iat + Config.config.tokenExpiryTimeInMSec // seconds
                   let s = sign({ password: password }, Config.secret, {
-                    expiresIn: Config.tokenExpiryTime + 'ms' as any,
-                    algorithm: 'HS256'
+                    expiresIn: (Config.tokenExpiryTime + 'ms') as any,
+                    algorithm: 'HS256',
                   })
                   resolve(s)
                 } catch (err) {
@@ -179,8 +179,7 @@ export class Config {
     if (Config.secret == undefined) {
       var secretsfile = Config.sslDir.length > 0 ? join(Config.sslDir, 'secrets.txt') : 'secrets.txt'
       var sslDir = path.parse(secretsfile).dir
-      if(sslDir.length==0)
-        sslDir="."
+      if (sslDir.length == 0) sslDir = '.'
       if (sslDir.length && !fs.existsSync(sslDir)) fs.mkdirSync(sslDir, { recursive: true })
       try {
         if (fs.existsSync(secretsfile)) {
@@ -189,13 +188,17 @@ export class Config {
         } else fs.accessSync(sslDir, fs.constants.W_OK)
         debug('Config.getConfiguration: secretsfile permissions are OK ' + secretsfile)
         Config.secret = Config.getSecret(secretsfile)
-      } catch (err:any) {
+      } catch (err: any) {
         let msg =
           'Secrets file ' +
           secretsfile +
           ' or parent directory is not writable! No registration possible!(cwd: ' +
-          process.cwd() + " sslDir: " + sslDir + " err: " + err.message
-          ')'
+          process.cwd() +
+          ' sslDir: ' +
+          sslDir +
+          ' err: ' +
+          err.message
+        ;(')')
         log.log(LogLevelEnum.error, msg)
 
         debug('secretsfile=' + secretsfile + ' ssldir = ' + Config.sslDir)
@@ -222,7 +225,7 @@ export class Config {
       Config.config.noAuthentication = Config.config.noAuthentication ? Config.config.noAuthentication : false
       Config.config.tcpBridgePort = Config.config.tcpBridgePort ? Config.config.tcpBridgePort : 502
       process.env.HASSIO_TOKEN && process.env.HASSIO_TOKEN.length ? process.env.HASSIO_TOKEN : undefined
-      Config.config.appVersion =Config.config.appVersion? Config.config.appVersion:packageJson.version
+      Config.config.appVersion = Config.config.appVersion ? Config.config.appVersion : packageJson.version
       Config.config.mqttusehassio =
         Config.config.mqttusehassio && process.env.HASSIO_TOKEN && process.env.HASSIO_TOKEN.length
           ? Config.config.mqttusehassio
@@ -454,7 +457,6 @@ export class Config {
           if (Config.config.debugComponents && Config.config.debugComponents.length) Debug.enable(Config.config.debugComponents)
 
           if (Config.configDir.length == 0) log.log(LogLevelEnum.error, 'configDir not set')
-  
         }
         if (!Config.config || !Config.config.mqttconnect || !Config.isMqttConfigured(Config.config.mqttconnect)) {
           this.getMqttConnectOptions()
@@ -515,9 +517,9 @@ export class Config {
       ;(secrets as any)['password'] = cpConfig.password
       cpConfig.password = '!secret password'
     }
-    let nonConfigs:string[]=[ "mqttusehassio", "filelocation", "appVersion"]
-    nonConfigs.forEach( (name:string)=>{
-      delete (cpConfig as any)[name];
+    let nonConfigs: string[] = ['mqttusehassio', 'filelocation', 'appVersion']
+    nonConfigs.forEach((name: string) => {
+      delete (cpConfig as any)[name]
     })
     let filename = Config.getConfigPath()
     let dir = path.dirname(filename)

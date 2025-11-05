@@ -1,26 +1,24 @@
 <form [formGroup]="form" (submit)="onSubmit($event)" class="flexcolumns">
-    <div  class="width250pt, center">
-        <h3 mat-dialog-title>{{ (isRegisterMode?'Register User':'Login') }}</h3>
-    </div>
-    <mat-form-field  class="width250pt, center"> 
-        <mat-label>Username</mat-label>
-        <input tabindex="0" id="username" matInput class="width150pt"
-            formControlName="username" >
-            <mat-error *ngIf="form.get('username')!.hasError('required') != null">
-                Username is a required field
-              </mat-error>
-    </mat-form-field >
-    <mat-form-field class="small-width right"   class="width250pt, center">
-        <mat-label>Password</mat-label>
-        <input tabindex="1" matInput
-            formControlName="password" [type]="hide ? 'password' : 'text'">
-            <mat-icon matSuffix (click)="hide = !hide">{{hide ? 'visibility_off' : 'visibility'}}</mat-icon>
-            <mat-error *ngIf="form.get('password')!.hasError('required') != null">
-                Password is a required field
-              </mat-error>
-    </mat-form-field>
-    <mat-card-actions   class="width250pt, center">
-        <button tabindex="2" *ngIf="isRegisterMode" mat-raised-button type="submit" value="noAuthentication" >No Authorization required</button>
-        <button tabindex="3" mat-raised-button type="submit" value="authentication" color="primary">{{ (isRegisterMode?'REGISTER and LOGIN':'LOGIN') }}</button>
- </mat-card-actions>
+  <div class="width250pt, center">
+    <h3 mat-dialog-title>{{ isRegisterMode ? 'Register User' : 'Login' }}</h3>
+  </div>
+  <mat-form-field class="width250pt, center">
+    <mat-label>Username</mat-label>
+    <input tabindex="0" id="username" matInput class="width150pt" formControlName="username" />
+    <mat-error *ngIf="form.get('username')!.hasError('required') != null"> Username is a required field </mat-error>
+  </mat-form-field>
+  <mat-form-field class="small-width right" class="width250pt, center">
+    <mat-label>Password</mat-label>
+    <input tabindex="1" matInput formControlName="password" [type]="hide ? 'password' : 'text'" />
+    <mat-icon matSuffix (click)="hide = !hide">{{ hide ? 'visibility_off' : 'visibility' }}</mat-icon>
+    <mat-error *ngIf="form.get('password')!.hasError('required') != null"> Password is a required field </mat-error>
+  </mat-form-field>
+  <mat-card-actions class="width250pt, center">
+    <button tabindex="2" *ngIf="isRegisterMode" mat-raised-button type="submit" value="noAuthentication">
+      No Authorization required
+    </button>
+    <button tabindex="3" mat-raised-button type="submit" value="authentication" color="primary">
+      {{ isRegisterMode ? 'REGISTER and LOGIN' : 'LOGIN' }}
+    </button>
+  </mat-card-actions>
 </form>

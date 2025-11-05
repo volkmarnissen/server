@@ -2,7 +2,7 @@
 import argparse
 import re
 import socket
-import stat
+import glob
 import subprocess
 import sys
 import time
@@ -112,6 +112,27 @@ def checkRequiredApps():
             
 
 def startRequiredApps():
+    try:
+        shutil.rmtree("./distprod")
+    except OSError:
+        pass  
+    try:
+        for f in glob.glob("modbus2mqtt-*.tgz"):
+            os.remove( f)
+    except OSError:
+        pass
+    eprint("npm pack")
+    executeSyncCommand(["npm","pack"])
+    os.mkdir("./distprod")
+    os.chdir("./distprod")
+    eprint("npm init -y")
+    executeSyncCommand(["npm","init","-y"])
+    eprint("npm isntall" )
+    for f in glob.glob("../modbus2mqtt-*.tgz"):
+        eprint("found " + f)    
+        executeSyncCommand(["npm","install",f ] )
+    os.chdir("..")
+     # kill existing apps
     checkRequiredApps()
     eprint("open nginx.conf")
     with open( "./cypress/servers/nginx.conf/nginx.conf","r") as f:
@@ -130,9 +151,12 @@ def startRequiredApps():
         subprocess.Popen(["nohup", "nginx","-c",fb.name,"-p","."],stderr=outfile, stdout=outfile)
         subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbustcp"],stderr=outfile, stdout=outfile)
         subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/mosquitto"],stderr=outfile, stdout=outfile)
+        # use modbus2mqtt with different config files
         subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbus2mqtt 3005 " + file],stderr=outfile, stdout=outfile)  # e2ePort
         subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbus2mqtt 3004 "  + file + " localhost:3006"],stderr=outfile, stdout=outfile) 
         subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbus2mqtt 3007 " + file],stderr=outfile, stdout=outfile)  # mqttNoAuthPort
+        # Use docker host port
+
         eprint("started "  )
    
         for port in [3002,3006, 3005,3004, 3001,3003]:

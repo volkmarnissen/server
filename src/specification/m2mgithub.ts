@@ -505,7 +505,7 @@ export class M2mGitHub {
                       e.step = 'create blobs'
                       reject(e)
                     })
-                } catch (e:any) {
+                } catch (e: any) {
                   e.step = 'waiting for all failed'
                   reject(e)
                   return

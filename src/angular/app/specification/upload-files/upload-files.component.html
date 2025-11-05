@@ -1,95 +1,161 @@
 <form [formGroup]="uploadFilesForm">
   <!--Angular sometime presses some button if no submit button is available  -->
   <button type="submit" hidden="hidden">Hiden submit</button>
-<mat-accordion>
-  <mat-expansion-panel>
-    <mat-expansion-panel-header>
-      <mat-panel-title>
-        <p [ngClass]="{'errorText': documentUrls.length == 0 }">Documentation</p>
-      </mat-panel-title>
-      <mat-panel-description>
-        <div class="flexcolumns" dragndropDirective (fileDropped)="onDocumentationDropped($event )">
-            <a *ngIf="documentUrls.length >0;else noElements" class="nodistance clickable" target="_blank"
-              rel="noopener noreferrer" [href]="documentUrls[0].url">{{getBaseFilename( documentUrls[0].url)}}</a>
-            <ng-template #noElements>
-              No Documenation available
-            </ng-template>
+  <mat-accordion>
+    <mat-expansion-panel>
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          <p [ngClass]="{ errorText: documentUrls.length == 0 }">Documentation</p>
+        </mat-panel-title>
+        <mat-panel-description>
+          <div class="flexcolumns" dragndropDirective (fileDropped)="onDocumentationDropped($event)">
+            <a
+              *ngIf="documentUrls.length > 0; else noElements"
+              class="nodistance clickable"
+              target="_blank"
+              rel="noopener noreferrer"
+              [href]="documentUrls[0].url"
+              >{{ getBaseFilename(documentUrls[0].url) }}</a
+            >
+            <ng-template #noElements> No Documenation available </ng-template>
+          </div>
+        </mat-panel-description>
+      </mat-expansion-panel-header>
+      <div dragndropDirective (fileDropped)="onDocumentationDropped($event)">
+        <div
+          class="bordervisible"
+          *ngFor="let doc of documentUrls"
+          dragndropDirective
+          (fileDropped)="onDocumentationDropped($event)"
+        >
+          <a class="nodistance clickable" target="_blank" rel="noopener noreferrer" [href]="doc.url">{{
+            getBaseFilename(doc.url)
+          }}</a>
+          <button
+            mat-icon-button
+            class="material-icons app-toolbar-menu"
+            matTooltip="Delete attached Document or Link"
+            color="warn"
+            (click)="deleteFile(doc)"
+            *ngIf="currentSpecification != undefined"
+          >
+            <mat-icon>delete</mat-icon>
+          </button>
         </div>
-      </mat-panel-description>
-    </mat-expansion-panel-header>
-    <div  dragndropDirective (fileDropped)="onDocumentationDropped($event )">
-      <div class="bordervisible" *ngFor="let doc of documentUrls" dragndropDirective
-        (fileDropped)="onDocumentationDropped($event )">
-        <a class="nodistance clickable" target="_blank" rel="noopener noreferrer"
-          [href]="doc.url">{{getBaseFilename(doc.url)}}</a>
-        <button mat-icon-button class="material-icons app-toolbar-menu" matTooltip="Delete attached Document or Link"
-          color="warn" (click)="deleteFile( doc)" *ngIf="currentSpecification != undefined">
-          <mat-icon>delete</mat-icon>
-        </button>
       </div>
-    </div>
-    <div class="margins">
-      <input type="file" #documents id="documents" multiple matTooltip="Test"
-        (change)="documenationBrowseHandler($event.target)" hidden class="downloadLabel" />
-      <label class="downloadLabel" for="documents" i18n dragndropDirective
-        (fileDropped)="onDocumentationDropped($event )">Browse for Document Files</label>
-    </div>
-    <mat-form-field class="width250pt">
-        <mat-label>URL for Documents</mat-label>
-        <input matInput formControlName="urlDocument" (change)="enableAddButton($event,addDocumentUrlButton)" (keydown.enter)="addDocumentUrl()" />
-    </mat-form-field>
-    <button #addDocumentUrlButton mat-icon-button class="material-icons app-toolbar-menu delete-button"
-        matTooltip="Add Url" color="primary" (click)="addDocumentUrl()" [disabled]="urlDocumentControl.value == null">
-        <mat-icon>add</mat-icon>
-    </button>
-
-  </mat-expansion-panel>
-</mat-accordion>
-<div class="margins">
-  <gallery class="gallery" [autoHeight]="true" id="specImages" [counter]="galleryItems.length >1"
-    [thumbs]="galleryItems.length >1" [items]="galleryItems" [imageSize]="'cover'">
-  </gallery>
-</div>
-
-<mat-accordion>
-  <mat-expansion-panel>
-    <mat-expansion-panel-header>
-      <mat-panel-title>
-        <p [ngClass]="{'errorText': imageUrls.length == 0 }">Modify Image List</p>
-      </mat-panel-title>
-    </mat-expansion-panel-header>
-    <div class="bordervisible" dragndropDirective (fileDropped)="onImageDropped($event )">
-      <div class="nodistance" *ngFor="let image of imageUrls" dragndropDirective
-        (fileDropped)="onImageDropped($event )">
-        <a class="nodistance clickable" target="_blank" rel="noopener noreferrer"
-          [href]="image.url">{{getBaseFilename(image.url)}}</a>
-        <button mat-icon-button class="material-icons app-toolbar-menu" matTooltip="Delete attached Document or Link"
-          color="warn" dragndropDirective (fileDropped)="onImageDropped($event )" (click)="deleteFile( image)"
-          *ngIf="currentSpecification != undefined">
-          <mat-icon>delete</mat-icon>
-        </button>
+      <div class="margins">
+        <input
+          type="file"
+          #documents
+          id="documents"
+          multiple
+          matTooltip="Test"
+          (change)="documenationBrowseHandler($event.target)"
+          hidden
+          class="downloadLabel"
+        />
+        <label class="downloadLabel" for="documents" i18n dragndropDirective (fileDropped)="onDocumentationDropped($event)"
+          >Browse for Document Files</label
+        >
       </div>
-    </div>
-    <div class="margins">
-      <input type="file" id="images" multiple matTooltip="Test" (change)="imageBrowseHandler($event.target)"
-        hidden class="downloadLabel" />
-      <label class="downloadLabel" for="images" i18n dragndropDirective (fileDropped)="onImageDropped($event )">Browse
-        for Image Files</label>
-    </div>
-    <div>
       <mat-form-field class="width250pt">
-        <mat-label>Add URL for New Image</mat-label>
-        <input matInput formControlName="urlImage" (change)="enableAddButton($event,addImageUrlButton)" (keydown.enter)="addImageUrl()" />
+        <mat-label>URL for Documents</mat-label>
+        <input
+          matInput
+          formControlName="urlDocument"
+          (change)="enableAddButton($event, addDocumentUrlButton)"
+          (keydown.enter)="addDocumentUrl()"
+        />
       </mat-form-field>
-      <button #addImageUrlButton mat-icon-button class="material-icons app-toolbar-menu delete-button"
-        matTooltip="Add Url" color="primary" (click)="addImageUrl()">
+      <button
+        #addDocumentUrlButton
+        mat-icon-button
+        class="material-icons app-toolbar-menu delete-button"
+        matTooltip="Add Url"
+        color="primary"
+        (click)="addDocumentUrl()"
+        [disabled]="urlDocumentControl.value == null"
+      >
         <mat-icon>add</mat-icon>
       </button>
+    </mat-expansion-panel>
+  </mat-accordion>
+  <div class="margins">
+    <gallery
+      class="gallery"
+      [autoHeight]="true"
+      id="specImages"
+      [counter]="galleryItems.length > 1"
+      [thumbs]="galleryItems.length > 1"
+      [items]="galleryItems"
+      [imageSize]="'cover'"
+    >
+    </gallery>
+  </div>
 
-    </div>
-  </mat-expansion-panel>
-</mat-accordion>
+  <mat-accordion>
+    <mat-expansion-panel>
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          <p [ngClass]="{ errorText: imageUrls.length == 0 }">Modify Image List</p>
+        </mat-panel-title>
+      </mat-expansion-panel-header>
+      <div class="bordervisible" dragndropDirective (fileDropped)="onImageDropped($event)">
+        <div class="nodistance" *ngFor="let image of imageUrls" dragndropDirective (fileDropped)="onImageDropped($event)">
+          <a class="nodistance clickable" target="_blank" rel="noopener noreferrer" [href]="image.url">{{
+            getBaseFilename(image.url)
+          }}</a>
+          <button
+            mat-icon-button
+            class="material-icons app-toolbar-menu"
+            matTooltip="Delete attached Document or Link"
+            color="warn"
+            dragndropDirective
+            (fileDropped)="onImageDropped($event)"
+            (click)="deleteFile(image)"
+            *ngIf="currentSpecification != undefined"
+          >
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+      </div>
+      <div class="margins">
+        <input
+          type="file"
+          id="images"
+          multiple
+          matTooltip="Test"
+          (change)="imageBrowseHandler($event.target)"
+          hidden
+          class="downloadLabel"
+        />
+        <label class="downloadLabel" for="images" i18n dragndropDirective (fileDropped)="onImageDropped($event)"
+          >Browse for Image Files</label
+        >
+      </div>
+      <div>
+        <mat-form-field class="width250pt">
+          <mat-label>Add URL for New Image</mat-label>
+          <input
+            matInput
+            formControlName="urlImage"
+            (change)="enableAddButton($event, addImageUrlButton)"
+            (keydown.enter)="addImageUrl()"
+          />
+        </mat-form-field>
+        <button
+          #addImageUrlButton
+          mat-icon-button
+          class="material-icons app-toolbar-menu delete-button"
+          matTooltip="Add Url"
+          color="primary"
+          (click)="addImageUrl()"
+        >
+          <mat-icon>add</mat-icon>
+        </button>
+      </div>
+    </mat-expansion-panel>
+  </mat-accordion>
 
-<div>
-</div>
+  <div></div>
 </form>

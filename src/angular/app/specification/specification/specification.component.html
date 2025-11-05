@@ -1,47 +1,65 @@
 <div class="saveCancel">
-  <button mat-icon-button [disabled]="!isTouched() || !isValid()" class="material-icons app-toolbar-menu save-button"
-    matTooltip="Save Changes" (click)="saveSpecification()" color="primary">
+  <button
+    mat-icon-button
+    [disabled]="!isTouched() || !isValid()"
+    class="material-icons app-toolbar-menu save-button"
+    matTooltip="Save Changes"
+    (click)="saveSpecification()"
+    color="primary"
+  >
     <mat-icon>check_circle</mat-icon>
   </button>
-  <button mat-icon-button class="material-icons app-toolbar-menu cancel-button" matTooltip="Cancel Changes" color="warn"
-    (click)="closeAndBack()" *ngIf="currentSpecification != undefined">
+  <button
+    mat-icon-button
+    class="material-icons app-toolbar-menu cancel-button"
+    matTooltip="Cancel Changes"
+    color="warn"
+    (click)="closeAndBack()"
+    *ngIf="currentSpecification != undefined"
+  >
     <mat-icon>cancel</mat-icon>
   </button>
 </div>
 
 <div class="flexrowsWrapWhenSmall">
-
   <mat-card class="card flex-align">
-    <mat-card-header><mat-card-title><mat-icon
-          [matTooltip]="getStatusText(currentSpecification?.status)">{{getStatusIcon(currentSpecification?.status)}}</mat-icon>{{getTranslatedSpecName()}}</mat-card-title>
+    <mat-card-header
+      ><mat-card-title
+        ><mat-icon [matTooltip]="getStatusText(currentSpecification?.status)">{{
+          getStatusIcon(currentSpecification?.status)
+        }}</mat-icon
+        >{{ getTranslatedSpecName() }}</mat-card-title
+      >
     </mat-card-header>
     <mat-card-content>
       <p class="messages">
         <mat-list *ngFor="let message of validationMessages">
-          <mat-list-item class="message"><a [routerLink]="" (click)="jump2Message(message)"
-              class="message">{{getValidationMessage(message)}}</a></mat-list-item>
+          <mat-list-item class="message"
+            ><a [routerLink]="" (click)="jump2Message(message)" class="message">{{
+              getValidationMessage(message)
+            }}</a></mat-list-item
+          >
         </mat-list>
+      </p>
+
       <p>
         <mat-expansion-panel *ngFor="let message of errorMessages">
-
           <mat-expansion-panel-header>
             <mat-panel-title>
-              <p class="message">Modbus error: {{message}}
-              </p>
+              <p class="message">Modbus error: {{ message }}</p>
             </mat-panel-title>
           </mat-expansion-panel-header>
           <p>Please check the following:</p>
-          <ul *ngIf="message== 'Timed out'">
+          <ul *ngIf="message == 'Timed out'">
             <li>
-              1. The modbus timeout for the modbus controller in <a routerLink="/busses">Busses</a> is too short.
-              Increase the value. Values in the range of 300-1000 are recommended for RTU based controllers.
+              1. The modbus timeout for the modbus controller in <a routerLink="/busses">Busses</a> is too short. Increase the
+              value. Values in the range of 300-1000 are recommended for RTU based controllers.
             </li>
             <li>
-              2. Check the RS485 connection cable and end resistors.
-              If the device doesn't respond, the controller will get a timeout.
+              2. Check the RS485 connection cable and end resistors. If the device doesn't respond, the controller will get a
+              timeout.
             </li>
           </ul>
-
         </mat-expansion-panel>
       </p>
       <div class="margins">
@@ -49,15 +67,12 @@
       </div>
       <form id="specForm" [formGroup]="enterSpecNameFormGroup" class="flexcolumns">
         <mat-form-field class="width250pt">
-          <mat-label>Specification
-            Name({{specificationMethods?specificationMethods.getMqttLanguageName():""}})</mat-label>
-          <input matInput formControlName="name" (change)="setFilename();copyToSpec()" />
+          <mat-label>Specification Name({{ specificationMethods ? specificationMethods.getMqttLanguageName() : '' }})</mat-label>
+          <input matInput formControlName="name" (change)="setFilename(); copyToSpec()" />
         </mat-form-field>
         <mat-expansion-panel>
           <mat-expansion-panel-header>
-            <mat-panel-title>
-              Discovery Details
-            </mat-panel-title>
+            <mat-panel-title> Discovery Details </mat-panel-title>
           </mat-expansion-panel-header>
           <div class="flexcolumns">
             <mat-form-field class="width250pt">
@@ -75,20 +90,31 @@
           </div>
         </mat-expansion-panel>
       </form>
-      <app-translation [specificationObservable]='specificationSubject' (updateI18n)="updateI18n($event)"
-        [specificationMethods]="specificationMethods" [specificationFormGroup]="validationForms"
-        [mqttdiscoverylanguage]="config?config.mqttdiscoverylanguage:''"></app-translation>
+      <app-translation
+        [specificationObservable]="specificationSubject"
+        (updateI18n)="updateI18n($event)"
+        [specificationMethods]="specificationMethods"
+        [specificationFormGroup]="validationForms"
+        [mqttdiscoverylanguage]="config ? config.mqttdiscoverylanguage : ''"
+      ></app-translation>
     </mat-card-content>
   </mat-card>
   <div>
     <form id="displaySettings" [formGroup]="displayHexFormGroup" class="flexcolumns">
-        <mat-slide-toggle (change)="onDisplayHexChanged($event)" formControlName="displayHex" >Display Modbus Addresses in Hex Format</mat-slide-toggle>
-        </form>
+      <mat-slide-toggle (change)="onDisplayHexChanged($event)" formControlName="displayHex"
+        >Display Modbus Addresses in Hex Format</mat-slide-toggle
+      >
+    </form>
     <div class="flexrows flex-auto">
-      @for ( entity of currentSpecification?.entities; track entity.id){
-      <app-entity [specificationMethods]="specificationMethods" [entity]="entity" [disabled]="disabled" [displayHex]="displayHex"></app-entity>
+      @for (entity of currentSpecification?.entities; track entity.id) {
+        <app-entity
+          [specificationMethods]="specificationMethods"
+          [entity]="entity"
+          [disabled]="disabled"
+          [displayHex]="displayHex"
+        ></app-entity>
       }
-      <app-entity [specificationMethods]="specificationMethods" [disabled]="disabled" [displayHex]="displayHex" ></app-entity>
+      <app-entity [specificationMethods]="specificationMethods" [disabled]="disabled" [displayHex]="displayHex"></app-entity>
     </div>
   </div>
 </div>

@@ -4,13 +4,7 @@ import { IModbusResultOrError, Logger, LogLevelEnum } from '../specification'
 import Debug from 'debug'
 import { IexecuteOptions } from './modbusRTUprocessor'
 import { ModbusRegisterType } from '../specification.shared'
-import {
-  ImodbusAddress,
-  ImodbusErrorsForSlave,
-  ImodbusStatusForSlave,
-  ModbusErrorStates,
-  ModbusTasks,
-} from '../server.shared'
+import { ImodbusAddress, ImodbusErrorsForSlave, ImodbusStatusForSlave, ModbusErrorStates, ModbusTasks } from '../server.shared'
 import { TupleType } from 'typescript'
 
 const debug = Debug('modbusrtuworker')

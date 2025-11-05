@@ -1,65 +1,87 @@
 <div>
-    <app-infobox [message]="message"></app-infobox>
-    <div class="flexrows">
-        <mat-card class="width250pt card">
-            <mat-card-header>
-                <mat-card-title>Functions</mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-                <div class="border" dragndropDirective (fileDropped)="onZipDropped($event )">
-                  <input type="file" #zipFiles id="zipFiles" multiple matTooltip="Test"
-                    (change)="zipBrowseHandler($event.target)" hidden class="downloadLabel" />
-                    <label class="downloadLabel" for="zipFiles" i18n dragndropDirective
-                    (fileDropped)="onZipDropped($event )">Specification Files</label>
-                </div>
-               
-                <button mat-button class=" width150pt  downloadLink" (click)="fetchPublic()">
-                    Update Public Specifications
-                </button>
+  <app-infobox [message]="message"></app-infobox>
+  <div class="flexrows">
+    <mat-card class="width250pt card">
+      <mat-card-header>
+        <mat-card-title>Functions</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="border" dragndropDirective (fileDropped)="onZipDropped($event)">
+          <input
+            type="file"
+            #zipFiles
+            id="zipFiles"
+            multiple
+            matTooltip="Test"
+            (change)="zipBrowseHandler($event.target)"
+            hidden
+            class="downloadLabel"
+          />
+          <label class="downloadLabel" for="zipFiles" i18n dragndropDirective (fileDropped)="onZipDropped($event)"
+            >Specification Files</label
+          >
+        </div>
 
-                <a [href]="generateDownloadLink('local')" download class="downloadLink">Download Local Settings</a>
-                 
-            </mat-card-content>
+        <button mat-button class="width150pt downloadLink" (click)="fetchPublic()">Update Public Specifications</button>
+
+        <a [href]="generateDownloadLink('local')" download class="downloadLink">Download Local Settings</a>
+      </mat-card-content>
+    </mat-card>
+    <div [ngClass]="{ waitCursor: contributing }">
+      <ng-container *ngFor="let spec of specifications">
+        <mat-card class="width350pt card">
+          <mat-card-header>
+            <mat-card-title matTooltip="Contribute Specification" class="width200pt"
+              ><mat-icon [matTooltip]="getStatusText(spec.status)">{{ getStatusIcon(spec.status) }}</mat-icon
+              >{{ getTranslatedSpecName(spec) }}</mat-card-title
+            >
+            <div class="card-header-buttons">
+              <button
+                mat-icon-button
+                class="material-icons app-toolbar-menu delete-button"
+                [matTooltip]="spec.status == 1 ? 'Restore public version' : 'Delete'"
+                color="warn"
+                [disabled]="[0, 4].includes(spec.status)"
+                (click)="deleteSpecification(spec)"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </mat-card-header>
+          <mat-card-content>
+            <img class="marginsall" [src]="getImage(spec.filename)" />
+
+            <div
+              [matTooltip]="
+                [0].includes(spec.status)
+                  ? 'is public'
+                  : spec.messages.length
+                    ? 'has messages'
+                    : config.githubPersonalToken == undefined
+                      ? 'configure github access token first'
+                      : 'Press to contribute to the public'
+              "
+            >
+              <button
+                mat-button
+                class="width200pt"
+                [disabled]="[0].includes(spec.status) || spec.messages.length > 0 || config.githubPersonalToken == undefined"
+                (click)="contributeSpecification(spec)"
+              >
+                Contribute
+              </button>
+            </div>
+            <a [href]="generateDownloadLink(spec.filename)" download>Download</a>
+            <p>
+              <a *ngIf="spec.pullUrl != undefined" [href]="spec.pullUrl" target="_blank">View Pull Request on Github</a>
+            </p>
+
+            <div *ngFor="let message of spec.messages">
+              <p class="message errorTextNoBlink">{{ getValidationMessage(spec, message) }}</p>
+            </div>
+          </mat-card-content>
         </mat-card>
-        <div [ngClass]="{waitCursor: contributing}">
-        <ng-container *ngFor="let spec of specifications ">
-            <mat-card class="width350pt card" >
-                <mat-card-header>
-                    <mat-card-title matTooltip="Contribute Specification" class=" width200pt"><mat-icon
-                            [matTooltip]="getStatusText(spec.status)">{{getStatusIcon(spec.status)}}</mat-icon>{{getTranslatedSpecName(spec)
-                        }}</mat-card-title>
-                    <div class="card-header-buttons">
-                        <button mat-icon-button class="material-icons app-toolbar-menu delete-button"
-                            [matTooltip]="spec.status == 1?'Restore public version':'Delete'" color="warn" [disabled]="[0,4].includes(spec.status)"
-                            (click)="deleteSpecification(spec)">
-                            <mat-icon>delete</mat-icon>
-                        </button>
-                    </div>
-                </mat-card-header>
-                <mat-card-content>
-                    <img class="marginsall" [src]="getImage(spec.filename)" />
-
-                    <div
-                        [matTooltip]="[0].includes(spec.status)?'is public':spec.messages.length? 'has messages':config.githubPersonalToken == undefined? 'configure github access token first':'Press to contribute to the public'">
-                        <button mat-button class="width200pt"
-                            [disabled]="[0].includes(spec.status) || spec.messages.length > 0 || config.githubPersonalToken == undefined"
-                            (click)="contributeSpecification(spec)">
-                            Contribute
-                        </button>
-                    </div>
-                    <a [href]="generateDownloadLink( spec.filename)" download>Download</a>
-                    <p>
-                        <a *ngIf="spec.pullUrl != undefined" [href]="spec.pullUrl" target="_blank">View Pull Request on
-                            Github</a>
-                    </p>
-
-                    <div *ngFor="let message of spec.messages">
-                        <p class="message errorTextNoBlink">{{getValidationMessage(spec,message)}}</p>
-                    </div>
-
-                </mat-card-content>
-            </mat-card>
-        </ng-container>
+      </ng-container>
     </div>
-    </div>
+  </div>
 </div>

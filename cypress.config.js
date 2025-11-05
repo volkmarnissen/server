@@ -3,7 +3,7 @@ const EventEmitter = require('node:events')
 
 const MqttHelper = require('./cypress/functions/mqtt')
 const fs = require('fs')
-const localhost='127.0.0.1'
+const localhost = '127.0.0.1'
 var logStartupFlag = false
 var logServersFlag = false
 function logStartup(msg) {
@@ -13,14 +13,21 @@ function logServer(msg) {
   if (logStartupFlag) console.log(msg)
 }
 
-
 module.exports = defineConfig({
   component: {
     devServer: {
-      framework: "angular",
-      bundler: "webpack",
+      framework: 'angular',
+      bundler: 'webpack',
     },
-    specPattern: "**/*.cy.ts",
+    specPattern: '**/*.cy.ts',
+  },
+  retries: {
+    // Configure retry attempts for `cypress run`
+    // Default is 0
+    runMode: 2,
+    // Configure retry attempts for `cypress open`
+    // Default is 0
+    openMode: 0,
   },
   e2e: {
     setupNodeEvents(on, config) {
@@ -33,18 +40,21 @@ module.exports = defineConfig({
       on('task', {
         mqttConnect(connectionData) {
           return new Promise((resolve, reject) => {
-            try {// mqtt connect with onConnected = resolve
+            try {
+              // mqtt connect with onConnected = resolve
               let mqttHelper = MqttHelper.getInstance()
-              mqttHelper.connect( connectionData).then(() => {  
-              console.log('mqttConnect connected '  )
-              resolve('connected')
-            }).catch((e) => {
-              console.log('mqttConnect rejected ' + e.message  )
-              reject('rejected' + e)
-
-            })}
-            catch (e) {
-              console.log('mqttConnect exception ' + e.message  )
+              mqttHelper
+                .connect(connectionData)
+                .then(() => {
+                  console.log('mqttConnect connected ')
+                  resolve('connected')
+                })
+                .catch((e) => {
+                  console.log('mqttConnect rejected ' + e.message)
+                  reject('rejected' + e)
+                })
+            } catch (e) {
+              console.log('mqttConnect exception ' + e.message)
               reject('Exception' + e)
             }
           })
@@ -87,43 +97,41 @@ module.exports = defineConfig({
         },
         getTempDir(args) {
           return new Promise((resolve, reject) => {
-            var data = fs.readFileSync('cypress/servers/tmpfiles','utf-8')
-            if(!data){
-              reject( new Error("tmpfiles not found"))
-              return;
+            var data = fs.readFileSync('cypress/servers/tmpfiles', 'utf-8')
+            if (!data) {
+              reject(new Error('tmpfiles not found'))
+              return
             }
-            var re = new RegExp(args + " (.*)\n");
+            var re = new RegExp(args + ' (.*)\n')
             var matches = re.exec(data)
-            if(matches && matches.length >1)
-              resolve(matches[1])
-            else{
-              reject( new Error('getTempDir: args not found in tmpfiles ' + args + ' '))
-              return;
+            if (matches && matches.length > 1) resolve(matches[1])
+            else {
+              reject(new Error('getTempDir: args not found in tmpfiles ' + args + ' '))
+              return
             }
           })
-
         },
         log(msg) {
           console.log(msg)
           return 'OK'
         },
       })
-    }
+    },
   },
-    env: {
-      logstartup: false, // Set to true to log startup services messages
-      logservers: true,
-      nginxAddonHttpPort: 3006, //nginx
-      modbus2mqttAddonHttpPort: 3004, //ingress port
-      modbusTcpHttpPort: 3002,
-      modbus2mqttE2eHttpPort: 3005,
-      mosquittoAuthMqttPort: 3001,
-      mosquittoNoAuthMqttPort: 3003,
-      modbus2mqttMqttNoAuthPort: 3007,
-      mqttconnect: {
-        mqttserverurl: 'mqtt://127.0.0.1:3001',
-        username: 'homeassistant',
-        password: 'homeassistant',
-      }
-    } //env
+  env: {
+    logstartup: false, // Set to true to log startup services messages
+    logservers: true,
+    nginxAddonHttpPort: 3006, //nginx
+    modbus2mqttAddonHttpPort: 3004, //ingress port
+    modbusTcpHttpPort: 3002,
+    modbus2mqttE2eHttpPort: 3005,
+    mosquittoAuthMqttPort: 3001,
+    mosquittoNoAuthMqttPort: 3003,
+    modbus2mqttMqttNoAuthPort: 3007,
+    mqttconnect: {
+      mqttserverurl: 'mqtt://127.0.0.1:3001',
+      username: 'homeassistant',
+      password: 'homeassistant',
+    },
+  }, //env
 })

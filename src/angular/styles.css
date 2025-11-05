@@ -1,6 +1,5 @@
-@import "node_modules/@angular/material/prebuilt-themes/deeppurple-amber.css";
-@import "https://fonts.googleapis.com/icon?family=Material+Icons";
-
+@import 'node_modules/@angular/material/prebuilt-themes/deeppurple-amber.css';
+@import 'https://fonts.googleapis.com/icon?family=Material+Icons';
 
 /* You can add global styles to this file, and also import other style files */
 body {
@@ -22,7 +21,7 @@ body {
 }
 
 .flex-align {
-  align-self: stretch
+  align-self: stretch;
 }
 
 .full-number {
@@ -30,29 +29,28 @@ body {
 }
 
 .width50pt {
-  width: 50px
+  width: 50px;
 }
 
 .width80pt {
-  width: 80px
+  width: 80px;
 }
 
 .width100pt {
-  width: 100px
+  width: 100px;
 }
 
 .width130pt {
-  width: 100px
+  width: 100px;
 }
 
 .width150pt {
-  width: 150px
+  width: 150px;
 }
 
 .width200pt {
-  width: 200px
+  width: 200px;
 }
-
 
 .width250pt {
   width: 250px;
@@ -63,11 +61,11 @@ body {
 }
 
 .width350pt {
-  width: 350px
+  width: 350px;
 }
 
 .width550pt {
-  width: 550px
+  width: 550px;
 }
 
 .clickable {
@@ -85,7 +83,7 @@ body {
   margin-right: 10pt;
   padding-left: 10pt;
   padding-right: 10pt;
-  gap: unset
+  gap: unset;
 }
 
 .toggleField {
@@ -98,13 +96,13 @@ body {
   margin-right: 1pt;
   padding-left: 3pt;
   padding-right: 3pt;
-  gap: unset
+  gap: unset;
 }
 
 .nodistance {
   margin: 0pt;
   padding: 0pt;
-  gap: unset
+  gap: unset;
 }
 
 .flexrows {
@@ -136,7 +134,6 @@ body {
     flex-direction: row;
     flex-wrap: wrap;
   }
-
 }
 
 .card-header-buttons {
@@ -174,12 +171,11 @@ body {
 }
 
 .border {
-
-  margin:10pt;
+  margin: 10pt;
   height: 23pt;
   width: 150pt;
 }
-.bordervisible{
+.bordervisible {
   border-color: lightgray;
 }
 .downloadLabel {
@@ -194,8 +190,8 @@ body {
   text-align: center;
   align-items: center;
 }
-.downloadLink{
-  margin:10pt;
+.downloadLink {
+  margin: 10pt;
 }
 .backButton {
   position: fixed;
@@ -225,7 +221,6 @@ body {
   color: red;
   font-weight: bold;
   overflow-wrap: anywhere;
-
 }
 
 @keyframes blinker {
@@ -237,7 +232,6 @@ body {
 .menuButton {
   display: flex;
   flex-direction: row;
-
 }
 
 .greenIcon {
@@ -259,7 +253,7 @@ body {
 }
 
 .gallery {
-  width: 220pt
+  width: 220pt;
 }
 
 .margins {
@@ -274,5 +268,3 @@ body {
 .tooltip-class {
   white-space: pre-line;
 }
-
-

@@ -11,7 +11,6 @@ import { setConfigsDirsForTest } from './configsbase'
 setConfigsDirsForTest()
 new ConfigSpecification().readYaml()
 
-
 var httpServer: HttpServer
 
 const oldAuthenticate: (req: any, res: any, next: () => void) => void = HttpServer.prototype.authenticate

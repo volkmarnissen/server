@@ -18,14 +18,14 @@ export enum FakeModes {
   Discovery,
 }
 let debug = Debug('configsbase')
-export function setConfigsDirsForTest():void{
+export function setConfigsDirsForTest(): void {
   ConfigSpecification.configDir = configDir
   ConfigSpecification.dataDir = dataDir
   Config.configDir = configDir
   Config.sslDir = configDir
 }
-export function setConfigsDirsBackendTCPForTest(){
-    ConfigSpecification.configDir = backendTCPConfigDir
+export function setConfigsDirsBackendTCPForTest() {
+  ConfigSpecification.configDir = backendTCPConfigDir
   ConfigSpecification.dataDir = backendTCPDataDir
   Config.configDir = backendTCPConfigDir
   Config.sslDir = backendTCPConfigDir

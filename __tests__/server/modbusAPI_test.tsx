@@ -5,20 +5,13 @@ import { Bus } from '../../src/server/bus'
 import { initBussesForTest, setConfigsDirsForTest } from './configsbase'
 import { ModbusServer, XYslaveid } from '../../src/server/modbusTCPserver'
 import { IdentifiedStates, ImodbusEntity, ImodbusSpecification } from '../../src/specification.shared'
-import {
-  ConfigSpecification,
-  emptyModbusValues,
-  IModbusResultOrError,
-  ImodbusValues,
-  LogLevelEnum,
-} from '../../src/specification'
+import { ConfigSpecification, emptyModbusValues, IModbusResultOrError, ImodbusValues, LogLevelEnum } from '../../src/specification'
 import { singleMutex } from './configsbase'
 import { ModbusAPI } from '../../src/server/modbusAPI'
 
 const debug = Debug('bustest')
 const testPort = 8888
 setConfigsDirsForTest()
-
 
 beforeAll(() => {
   jest.restoreAllMocks()

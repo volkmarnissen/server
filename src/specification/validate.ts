@@ -31,7 +31,6 @@ let pr_number: number | undefined
 let pr_owner: string | undefined
 let options = cli.opts()
 if (options['config']) {
-  
   ConfigSpecification.configDir = options['config']
 } else {
   ConfigSpecification.configDir = '.'
