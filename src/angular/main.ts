@@ -13,6 +13,7 @@ import { AuthGuardService } from "./app/services/auth-guard.service";
 import { AuthHeaderInterceptor } from "./interceptors/auth-header.interceptor";
 import { APP_ROUTES } from "./app/app-routing.module";
 import { provideAnimations } from "@angular/platform-browser/animations";
+import { provideZonelessChangeDetection } from "@angular/core";
 
 bootstrapApplication(AppComponent, {
   providers: [
@@ -30,6 +31,7 @@ bootstrapApplication(AppComponent, {
       useClass: AuthHeaderInterceptor,
       multi: true,
     },
+    provideZonelessChangeDetection(),
     provideAnimations(),
   ],
 });

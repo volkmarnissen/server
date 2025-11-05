@@ -76,7 +76,6 @@ import { NgFor, NgIf, AsyncPipe } from "@angular/common";
 import { MatTooltip } from "@angular/material/tooltip";
 import { MatSlideToggle } from "@angular/material/slide-toggle";
 import { ModbusErrorComponent } from "../modbus-error/modbus-error.component";
-import { isUndefined } from "cypress/types/lodash";
 
 interface IuiSlave {
   slave: Islave;
