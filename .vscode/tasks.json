@@ -191,6 +191,13 @@
       "problemMatcher": [],
       "label": "npm: build.dev",
       "detail": "npm run build.ui.dev && npm run build.server &&npm run copy.assets"
+    },
+    {
+      "type": "npm",
+      "script": "e2e:start",
+      "problemMatcher": [],
+      "label": "npm: e2e:start",
+      "detail": "./cypress/servers/testall.py startServers"
     }
   ]
 }
