@@ -22,11 +22,19 @@ jobs:
           sudo apt update
           sudo apt install -y mosquitto mosquitto-clients
       - name: npm run build
-        run: |
+        run: | 
+          echo  "::group::start npm ci"
           npm ci
+          echo "::endgroup::"
+          echo  "::group::start build.dev"
           npm run build.dev
+          echo "::endgroup::"
+          echo  "::group::E2e start servers"
           npm run e2e:start
-          npx cypress run
+          echo "::endgroup::"
+          echo  "::group::Start e2e Tests"
+          npx cypress run </dev/null
+          echo "::endgroup::"
       - name: Protocol from starting servers
         if: ${{ always()}}
         uses: actions/upload-artifact@v4
