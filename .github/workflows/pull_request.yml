@@ -28,7 +28,7 @@ jobs:
           npm run e2e:start
           npx cypress run
       - name: Protocol from starting servers
-        if: ${{ failed()}}
+        if: ${{ always()}}
         uses: actions/upload-artifact@v4
         with:
           name: e2e-serverlogs
