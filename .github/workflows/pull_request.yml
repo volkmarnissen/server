@@ -26,17 +26,9 @@ jobs:
           npm ci
           npm run build.dev
           npm run e2e:start
-      - name: Cypress run e2e test
-        uses: cypress-io/github-action@v6
-      - name: Screenshots cypress
-        if: ${{ always()}}
-        uses: actions/upload-artifact@v4
-        with:
-          name: e2e-screenshots
-          path: cypress/screenshots/
-          retention-days: 1
+          npx cypress run
       - name: Protocol from starting servers
-        if: ${{ always()}}
+        if: ${{ failed()}}
         uses: actions/upload-artifact@v4
         with:
           name: e2e-serverlogs
