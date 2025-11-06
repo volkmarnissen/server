@@ -138,30 +138,29 @@ export class EntityComponent extends SessionStorage implements AfterViewInit, On
     { id: VariableTargetParameters.entityUom, name: 'Unit of Measurement' },
   ]
   @Input({ required: true })
-  specificationMethods: ISpecificationMethods
+  specificationMethods: ISpecificationMethods | undefined = undefined
 
   @Input()
   entity: ImodbusEntityWithName = structuredClone(newEntity)
-  backupEntity: ImodbusEntityWithName | null
+  backupEntity: ImodbusEntityWithName | null = null
   @Input()
   disabled: boolean = true
   @Input()
   displayHex: boolean = false
   entityCategories: string[] = ['', 'config', 'diagnostic']
 
-  mqttValues: HTMLElement
-  converters: Observable<Converters[]>
-  currentLanguage: string
+  mqttValues: HTMLElement | undefined = undefined
+  converters: Observable<Converters[]> | null = null
+  currentLanguage: string | null = null
   mqttValueObservable: Subject<ImodbusData | undefined> = new Subject<ImodbusData | undefined>()
-  specificationSavedObservable: Observable<void>
-  subSpec: Subscription
-  allFormGroups: FormGroup = this.fb.group({})
+  specificationSavedObservable: Observable<void> | undefined = undefined
+  subSpec: Subscription | undefined = undefined
+  allFormGroups: FormGroup
   entityFormGroup: FormGroup
   variableFormGroup: FormGroup
   selectPropertiesFormGroup: FormGroup
   numberPropertiesFormGroup: FormGroup
   stringPropertiesFormGroup: FormGroup
-  entityObservable: Observable<ImodbusEntity>
   registerTypes: IRegisterType[] = [
     {
       registerType: ModbusRegisterType.HoldingRegister,
@@ -182,9 +181,7 @@ export class EntityComponent extends SessionStorage implements AfterViewInit, On
     private fb: FormBuilder
   ) {
     super()
-  }
-
-  ngOnInit(): void {
+    this.allFormGroups = this.fb.group({})
     this.entityFormGroup = this.fb.group({
       name: [null as string | null, this.entityNameValidator.bind(this)],
       mqttname: [null as string | null, this.entityMqttNameValidator.bind(this)],
@@ -233,6 +230,9 @@ export class EntityComponent extends SessionStorage implements AfterViewInit, On
         optionMqtt: [null as string | null, Validators.compose([Validators.required, this.uniqueNameValidator.bind(this)])],
         deviceClass: [null as string | null],
       })))
+  }
+
+  ngOnInit(): void {
     this.generateEntityCopyToForm()
     if (this.specificationMethods) {
       this.specificationSavedObservable = this.specificationMethods.getSaveObservable()
@@ -462,16 +462,17 @@ export class EntityComponent extends SessionStorage implements AfterViewInit, On
     }
   }
   readFromModbus() {
-    this.specificationMethods.postModbusEntity(this.entity).subscribe((data) => {
-      this.mqttValueObservable.next(data)
-    })
+    if (this.specificationMethods)
+      this.specificationMethods.postModbusEntity(this.entity).subscribe((data) => {
+        this.mqttValueObservable.next(data)
+      })
   }
   isCurrentMessage(): boolean {
     if (this.specificationMethods == undefined) return false
     return this.specificationMethods.getCurrentMessage()?.referencedEntity == this.entity.id
   }
   onVariableEntityValueChange() {
-    this.specificationMethods.setEntitiesTouched()
+    if (this.specificationMethods) this.specificationMethods.setEntitiesTouched()
     let variableType = this.variableFormGroup.get(variableTypeFormControlName)!.value
     if (variableType)
       this.entity.variableConfiguration = {
@@ -484,14 +485,14 @@ export class EntityComponent extends SessionStorage implements AfterViewInit, On
     else if (this.entity.variableConfiguration) delete this.entity.variableConfiguration
     this.entity.name = undefined
     this.enableEntityFieldsVariableType()
-    this.specificationMethods.copy2Translation(this.entity)
+    if (this.specificationMethods) this.specificationMethods.copy2Translation(this.entity)
   }
   onEntityNameValueChange() {
     // set mqtt name in form control,
     // read variable configuration and set values accordingly.
     // No impact on modbus values
     // set entity.name, entity.mqttname and entity.variableConfiguration
-    if (!this.entity) return
+    if (!this.entity || !this.specificationMethods) return
 
     this.specificationMethods.setEntitiesTouched()
     if (this.isVariableType()) this.onVariableEntityValueChange()
@@ -519,7 +520,7 @@ export class EntityComponent extends SessionStorage implements AfterViewInit, On
     return allowed.indexOf(event.key) >= 0
   }
   onModbusAddressChange() {
-    if (!this.entity) return
+    if (!this.entity || !this.specificationMethods) return
     this.specificationMethods.setEntitiesTouched()
     let modbusAddressFormControl = this.entityFormGroup.get('modbusAddress')!
     let converterFormControl = this.entityFormGroup.get('converter')!
@@ -556,7 +557,7 @@ export class EntityComponent extends SessionStorage implements AfterViewInit, On
   form2Entity() {
     // copies all values which are not relevant to
     // this.saveButton.disabled = !this.canSaveEntity(entity)
-    if (!this.entity) return
+    if (!this.entity || !this.specificationMethods) return
     this.specificationMethods.setEntitiesTouched()
     if (this.entityFormGroup.get('icon')!.value != null) this.entity.icon = this.entityFormGroup.get('icon')!.value
     if (this.entityFormGroup.get('forceUpdate')!.value != null)
@@ -599,7 +600,7 @@ export class EntityComponent extends SessionStorage implements AfterViewInit, On
   }
 
   private onConverterValueChangeLocal() {
-    this.specificationMethods.setEntitiesTouched()
+    this.specificationMethods && this.specificationMethods.setEntitiesTouched()
     switch (this.getParameterTypeFromConverterFormControl()) {
       case 'Inumber':
         this.allFormGroups.setControl('properties', this.numberPropertiesFormGroup)
@@ -711,7 +712,7 @@ export class EntityComponent extends SessionStorage implements AfterViewInit, On
   }
 
   addEntity() {
-    this.specificationMethods.addEntity(this.entity)
+    this.specificationMethods && this.specificationMethods.addEntity(this.entity)
     this.entity = structuredClone(newEntity)
     this.copyEntityToForm(this.entity)
   }
@@ -721,7 +722,7 @@ export class EntityComponent extends SessionStorage implements AfterViewInit, On
   }
 
   copyEntity() {
-    this.specificationMethods.addEntity(this.entity)
+    this.specificationMethods && this.specificationMethods.addEntity(this.entity)
   }
   nameListCompare = (o1: any, o2: any) => {
     return o1.name === o2.name
@@ -806,7 +807,7 @@ export class EntityComponent extends SessionStorage implements AfterViewInit, On
 
     if (control == null || control.value == null || control.value == 0) return { invalid: control.value }
 
-    return this.specificationMethods.hasDuplicateVariableConfigurations(control.value.id, vt.value)
+    return this.specificationMethods && this.specificationMethods.hasDuplicateVariableConfigurations(control.value.id, vt.value)
       ? { unique: control.value }
       : null
   }
@@ -874,7 +875,7 @@ export class EntityComponent extends SessionStorage implements AfterViewInit, On
     return f1 && f2 && f1.id == f2.id
   }
   getEntityLabel(): string {
-    if (!this.entity.name && this.isVariableType()) {
+    if (!this.entity.name && this.isVariableType() && this.specificationMethods) {
       let type = this.variableTypes.find((e) => e.id == this.entity.variableConfiguration!.targetParameter)
       if (!isDeviceVariable(this.entity.variableConfiguration!.targetParameter)) {
         let e = this.specificationMethods
@@ -900,7 +901,7 @@ export class EntityComponent extends SessionStorage implements AfterViewInit, On
   }
 
   addOption() {
-    if (this.canAddOption()) {
+    if (this.canAddOption() && this.specificationMethods) {
       this.specificationMethods.setEntitiesTouched()
       let selectPropertiesForm = this.selectPropertiesFormGroup
       if (this.selectPropertiesFormGroup.valid && this.entity) {
@@ -929,11 +930,11 @@ export class EntityComponent extends SessionStorage implements AfterViewInit, On
     }
   }
   setEntitiesTouched() {
-    this.specificationMethods.setEntitiesTouched()
+    this.specificationMethods && this.specificationMethods.setEntitiesTouched()
   }
   dropOptions(event: CdkDragDrop<any, any, any>) {
     moveItemInArray((this.entity.converterParameters as Iselect).options!, event.previousIndex, event.currentIndex)
-    this.specificationMethods.setEntitiesTouched()
+    this.specificationMethods && this.specificationMethods.setEntitiesTouched()
   }
 
   canAddOption() {
@@ -942,7 +943,7 @@ export class EntityComponent extends SessionStorage implements AfterViewInit, On
     return this.selectPropertiesFormGroup.valid
   }
   deleteOption(option: IselectOption) {
-    this.specificationMethods.setEntitiesTouched()
+    this.specificationMethods && this.specificationMethods.setEntitiesTouched()
     // delete name
     let idx = this.getCurrentOptions().findIndex((opt) => opt.key == option.key)
     if (idx >= 0) this.getCurrentOptions().splice(idx, 1)

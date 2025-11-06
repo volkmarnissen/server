@@ -52,7 +52,7 @@ const translationLanguageFormGroupName = 'translationLanguage'
 })
 export class TranslationComponent implements OnInit, OnDestroy {
   @Input()
-  specificationObservable: Observable<ImodbusSpecification | null>
+  specificationObservable: Observable<ImodbusSpecification | null> | null = null
   specificationSubscription: Subscription | undefined = undefined
   @Input({ required: true })
   specificationFormGroup: FormGroup
@@ -60,11 +60,11 @@ export class TranslationComponent implements OnInit, OnDestroy {
   @Output()
   updateI18n = new EventEmitter<IUpdatei18nText>()
   @Input()
-  mqttdiscoverylanguage: string
+  mqttdiscoverylanguage: string = 'en'
   @Input({ required: true })
-  specificationMethods: ISpecificationMethods
+  specificationMethods: ISpecificationMethods | undefined
   languageToggle: boolean = false
-  currentSpecification: ImodbusSpecification
+  currentSpecification: ImodbusSpecification | undefined
   supportsGoogleTranslate: boolean = true
   allKeys: string[] = []
   originalLanguages: string[] = []
@@ -78,10 +78,10 @@ export class TranslationComponent implements OnInit, OnDestroy {
   ) {}
 
   translationFormGroup: FormGroup = new FormGroup({})
-  originalLanguage: string
-  translationLanguage: string
-  textBuffer: string[]
-  ids: string[]
+  originalLanguage: string = 'en'
+  translationLanguage: string = 'en'
+  textBuffer: string[] = []
+  ids: string[] = []
 
   ngOnInit() {
     if (this.mqttdiscoverylanguage != 'en') {
@@ -92,6 +92,8 @@ export class TranslationComponent implements OnInit, OnDestroy {
     if (this.specificationObservable)
       this.specificationSubscription = this.specificationObservable.subscribe((_specFromParent) => {
         if (_specFromParent) this.currentSpecification = _specFromParent
+        else return
+
         if (this.mqttdiscoverylanguage != 'en') {
           let dql = this.currentSpecification.i18n.find((langStruct) => langStruct.lang == this.mqttdiscoverylanguage)
           let en = this.currentSpecification.i18n.find((langStruct) => langStruct.lang == 'en')
@@ -106,6 +108,7 @@ export class TranslationComponent implements OnInit, OnDestroy {
     this.reloadTexts()
   }
   private addOrUpdateControl(textId: string) {
+    if (this.currentSpecification == undefined) return
     let text = getSpecificationI18nText(this.currentSpecification, this.translationLanguage, textId, true)
     let control = this.translationFormGroup.get(textId)
 
@@ -146,7 +149,7 @@ export class TranslationComponent implements OnInit, OnDestroy {
   }
   showTranslation(): boolean {
     // en should always be availabe. The discovery language is al
-    if (null == this.currentSpecification.i18n.find((l) => l.lang == 'en')) return true
+    if (!this.currentSpecification || null == this.currentSpecification.i18n.find((l) => l.lang == 'en')) return true
     let msgs: Imessage[] = []
 
     // If the discovery language is not available, the translation dialog should be visible.
@@ -158,9 +161,13 @@ export class TranslationComponent implements OnInit, OnDestroy {
   fillLanguages() {
     this.originalLanguages = []
     this.translatedLanguages = []
-    this.currentSpecification.i18n.forEach((l) => {
-      this.originalLanguages.push(l.lang)
-    })
+    if (this.currentSpecification)
+      this.currentSpecification.i18n.forEach((l) => {
+        this.originalLanguages.push(l.lang)
+      })
+    else {
+      this.originalLanguages.push('en')
+    }
   }
   ngOnDestroy(): void {
     if (this.specificationSubscription) this.specificationSubscription.unsubscribe()
@@ -169,11 +176,12 @@ export class TranslationComponent implements OnInit, OnDestroy {
     return key == 'name' ? 'Spec' : 'Entity'
   }
   getOriginalText(key: string): string {
+    if (!this.currentSpecification) return ''
     return getSpecificationI18nText(this.currentSpecification, this.originalLanguage, key, true)!
   }
   changeText(key: string): void {
     let textFc = this.translationFormGroup.get(key)
-    if (textFc) {
+    if (textFc && this.currentSpecification) {
       let text = textFc.value
       setSpecificationI18nText(this.currentSpecification, this.translationLanguage, key, text)
       this.translationFormGroup.updateValueAndValidity()
@@ -181,6 +189,7 @@ export class TranslationComponent implements OnInit, OnDestroy {
     }
   }
   translatedText(key: string): string | null {
+    if (!this.currentSpecification) return null
     return getSpecificationI18nText(this.currentSpecification, this.translationLanguage, key, true)
   }
   getAllKeys(): string[] {

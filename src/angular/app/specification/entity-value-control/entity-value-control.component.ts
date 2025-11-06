@@ -32,10 +32,10 @@ import { NgIf, NgFor } from '@angular/common'
 export class EntityValueControlComponent implements OnInit, OnDestroy, OnChanges {
   @Input({ required: true }) entity: ImodbusEntityWithName | undefined
   @Input({ required: false }) uom: string = ''
-  @Input({ required: true }) specificationMethods: ISpecificationMethods
+  @Input({ required: true }) specificationMethods: ISpecificationMethods | undefined = undefined
   @Input()
-  mqttValueObservable: Observable<ImodbusData | undefined>
-  entityName: string
+  mqttValueObservable: Observable<ImodbusData | undefined> | undefined = undefined
+  entityName: string = ''
   sub: Subscription | undefined
   constructor() {}
   step: number | undefined = undefined
@@ -48,22 +48,27 @@ export class EntityValueControlComponent implements OnInit, OnDestroy, OnChanges
   toggleFormControl: FormControl<boolean | null> = new FormControl(null)
   onTextChange(_event: Event) {
     if (this.textFormControl.value && this.entity)
-      this.specificationMethods.postModbusWriteMqtt(this.entity, this.textFormControl.value.toString()).subscribe((newValue) => {
-        this.textFormControl.setValue(newValue)
-      })
+      this.specificationMethods &&
+        this.specificationMethods.postModbusWriteMqtt(this.entity, this.textFormControl.value.toString()).subscribe((newValue) => {
+          this.textFormControl.setValue(newValue)
+        })
   }
   onNumberChange() {
     if (this.numberFormControl.value && this.entity)
-      this.specificationMethods.postModbusWriteMqtt(this.entity, this.numberFormControl.value.toString()).subscribe((newValue) => {
-        this.textFormControl.setValue(newValue)
-      })
+      this.specificationMethods &&
+        this.specificationMethods
+          .postModbusWriteMqtt(this.entity, this.numberFormControl.value.toString())
+          .subscribe((newValue) => {
+            this.textFormControl.setValue(newValue)
+          })
   }
   onButton() {
     if (this.toggleFormControl.value && this.entity) {
       let val = this.toggleFormControl.value ? 'ON' : 'OFF'
-      this.specificationMethods.postModbusWriteMqtt(this.entity, val).subscribe((newValue) => {
-        this.toggleFormControl.setValue(newValue == 'ON')
-      })
+      this.specificationMethods &&
+        this.specificationMethods.postModbusWriteMqtt(this.entity, val).subscribe((newValue) => {
+          this.toggleFormControl.setValue(newValue == 'ON')
+        })
     }
   }
   onOptionChange() {
@@ -72,12 +77,13 @@ export class EntityValueControlComponent implements OnInit, OnDestroy, OnChanges
         (o) => o.key == this.optionsFormControl.value
       )
       if (option && this.entity)
-        this.specificationMethods.postModbusWriteMqtt(this.entity, option.name).subscribe((newValue) => {
-          let option: IselectOption | undefined = (this.entity!.converterParameters as Iselect).options!.find(
-            (o) => o.name == newValue
-          )
-          if (option) this.optionsFormControl.setValue(option.key)
-        })
+        this.specificationMethods &&
+          this.specificationMethods.postModbusWriteMqtt(this.entity, option.name).subscribe((newValue) => {
+            let option: IselectOption | undefined = (this.entity!.converterParameters as Iselect).options!.find(
+              (o) => o.name == newValue
+            )
+            if (option) this.optionsFormControl.setValue(option.key)
+          })
     }
   }
 

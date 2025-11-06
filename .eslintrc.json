@@ -8,5 +8,10 @@
     "rules": {
         "prettier/prettier": "error"
     },
-    "plugins": ["@typescript-eslint", "prettier"]
+    "plugins": ["@typescript-eslint", "prettier"],
+     "import/resolver": {
+      "typescript": {
+        "project": ["tsconfig.json", "tsconfig.angular.json"]
+      }
+    }
 }

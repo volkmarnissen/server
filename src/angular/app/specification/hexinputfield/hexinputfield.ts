@@ -15,7 +15,7 @@ export class HexFormaterPipe implements PipeTransform {
 })
 export class HexFormaterDirective implements OnInit {
   private el: HTMLInputElement
-  @Input() displayHex: boolean
+  @Input() displayHex: boolean = false
   constructor(private elementRef: ElementRef) {
     this.el = this.elementRef.nativeElement
   }

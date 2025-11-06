@@ -29,7 +29,6 @@ const oneMinuteInMs = 60 * 1000
   styleUrl: './modbus-error.component.css',
 })
 export class ModbusErrorComponent implements OnInit {
-  config: Iconfiguration
   @Input({ required: true }) modbusErrors: ImodbusStatusForSlave | undefined
   @Input({ required: false }) currentDate: number | undefined = undefined
 
