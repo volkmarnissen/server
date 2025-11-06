@@ -1,6 +1,6 @@
 {
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-  "version": "0.2.0",
+  "version": "0.2.0",  
   "configurations": [
     {
       "name": "Launch Program test",
@@ -36,7 +36,7 @@
 
     {
       "name": "Run Server",
-      "preLaunchTask": "npm: build.dev",
+     // "preLaunchTask": "npm: build.dev",
       "timeout": 10000,
       "program": "${workspaceFolder}/dist/server/modbus2mqtt.js",
       "args": ["-s", "ssl", "-c", "../config-dir", "-d", "../data-dir"],
@@ -85,12 +85,13 @@
       "preLaunchTask": "npm: e2e:server.debug",
       "postDebugTask": "npm: e2e:end.debug",
       "timeout": 10000,
+             
       "program": "${workspaceFolder}/dist/server/modbus2mqtt.js",
       "args": ["-c", "${workspaceFolder}/e2e/modbus2mqtt.temp", "-d", "${workspaceFolder}/e2e/modbus2mqtt.temp", "-s", "${workspaceFolder}/e2e/modbus2mqtt.temp"],
       "console": "integratedTerminal",
       "env": {
-        "DEBUG": "httpserver,HttpServerBaseUrl",
         "NODE_OPTIONS": "--experimental-vm-modules npx jest"
+  
       },
       "request": "launch",
       "skipFiles": ["<node_internals>/**"],
@@ -101,6 +102,7 @@
       "name": "Run Addon Server ingress 3004(cypress)",
       "preLaunchTask": "npm: e2e:server.debug.ingress",
       "postDebugTask": "npm: e2e:end.debug",
+
       "timeout": 10000,
       "program": "${workspaceFolder}/dist/server/modbus2mqtt.js",
       "args": ["-c", "${workspaceFolder}/e2e/modbus2mqtt.temp", "-d", "${workspaceFolder}/e2e/modbus2mqtt.temp", "-s", "${workspaceFolder}/e2e/modbus2mqtt.temp"],

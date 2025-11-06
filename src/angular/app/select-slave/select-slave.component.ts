@@ -108,8 +108,8 @@ interface IuiSlave {
   ],
 })
 export class SelectSlaveComponent extends SessionStorage implements OnInit {
-  preparedIdentSpecs: IidentificationSpecification[] = []
-  preparedSpecs: Ispecification[] = []
+  preparedIdentSpecs: IidentificationSpecification[] | undefined
+  preparedSpecs: Ispecification[] | undefined
   getDetectSpecToolTip(): string {
     return this.slaveNewForm.get('detectSpec')?.value == true
       ? 'If there is exactly one specification matching to the modbus data for this slave, ' +
@@ -124,8 +124,8 @@ export class SelectSlaveComponent extends SessionStorage implements OnInit {
   getSpecIcon() {
     throw new Error('Method not implemented.')
   }
-  currentLanguage: string = 'en'
-  busname: string = ''
+  currentLanguage: string | undefined
+  busname: string | undefined
   constructor(
     private _formBuilder: FormBuilder,
     private route: ActivatedRoute,
@@ -141,20 +141,20 @@ export class SelectSlaveComponent extends SessionStorage implements OnInit {
   }
   showAllPublicSpecs = new FormControl<boolean>(false)
   uiSlaves: IuiSlave[] = []
-  config: Iconfiguration = undefined as any as Iconfiguration
+  config: Iconfiguration | undefined
   slaves: Islave[] = []
 
   // label:string;
   // slaveForms: FormGroup[]
   // specs:Observable<IidentificationSpecification[]> []=[]
   //slavesFormArray: FormArray<FormGroup>
-  slaveNewForm: FormGroup = undefined as any as FormGroup
-  paramsSubscription: Subscription = undefined as any as Subscription
+  slaveNewForm: FormGroup
+  paramsSubscription: Subscription | undefined
   errorStateMatcher = new M2mErrorStateMatcher()
 
-  bus: IBus = undefined as any as IBus
+  bus: IBus | undefined
   preselectedSlaveId: number | undefined = undefined
-  @ViewChild('slavesBody') slavesBody: ElementRef = undefined as any as ElementRef
+  @ViewChild('slavesBody') slavesBody: ElementRef | undefined
   @Output() slaveidEventEmitter = new EventEmitter<number | undefined>()
   ngOnInit(): void {
     this.entityApiService.getConfiguration().subscribe((config) => {
@@ -180,6 +180,7 @@ export class SelectSlaveComponent extends SessionStorage implements OnInit {
   }
 
   private updateSlaves(detectSpec?: boolean) {
+    if (!this.bus) return
     this.entityApiService.getSlaves(this.bus.busId).subscribe((slaves) => {
       console.log(JSON.stringify(slaves))
       this.uiSlaves = []
@@ -213,6 +214,7 @@ export class SelectSlaveComponent extends SessionStorage implements OnInit {
     this.uiSlaves = newUiSlaves
   }
   fillCommandTopics(uiSlave: IuiSlave) {
+    if (!this.config || !this.bus) return
     let sl = new Slave(this.bus.busId, uiSlave.slave, this.config.mqttbasetopic)
     uiSlave.commandEntities = []
     let specificationidFC: IidentificationSpecification | undefined = uiSlave.slaveForm.get('specificationid')!
@@ -231,32 +233,38 @@ export class SelectSlaveComponent extends SessionStorage implements OnInit {
     }
   }
   getStateTopic(uiSlave: IuiSlave): string | undefined {
+    if (!this.config || !this.bus) return undefined
     let sl = new Slave(this.bus.busId, uiSlave.slave, this.config.mqttbasetopic)
     return sl.getStateTopic()
   }
   getStatePayload(uiSlave: IuiSlave): string | undefined {
+    if (!this.config || !this.bus) return undefined
     let sl = new Slave(this.bus.busId, uiSlave.slave, this.config.mqttbasetopic)
     let spec = sl.getSpecification()
     return spec ? sl.getStatePayload(spec.entities as any, '') : ''
   }
   getTriggerPollTopic(uiSlave: IuiSlave): string | undefined {
+    if (!this.config || !this.bus) return undefined
     let sl = new Slave(this.bus.busId, uiSlave.slave, this.config.mqttbasetopic)
     return sl.getTriggerPollTopic()
   }
 
   getCommandTopic(uiSlave: IuiSlave, entity: Ientity): string | undefined {
+    if (!this.config || !this.bus) return undefined
     let sl = new Slave(this.bus.busId, uiSlave.slave, this.config.mqttbasetopic)
     let ct = sl.getEntityCommandTopic(entity)
     return ct ? ct.commandTopic : ''
   }
   getModbusCommandTopic(uiSlave: IuiSlave, entity: Ientity): string | undefined {
+    if (!this.config || !this.bus) return undefined
     let sl = new Slave(this.bus.busId, uiSlave.slave, this.config.mqttbasetopic)
     let ct = sl.getEntityCommandTopic(entity)
     return ct && ct.modbusCommandTopic ? ct.modbusCommandTopic : ''
   }
   getDetectedSpecs(uiSlave: IuiSlave, detectSpec: boolean | undefined): Observable<IidentificationSpecification[]> {
+    if (!this.config || !this.bus) return new Observable<IidentificationSpecification[]>((subscriber) => subscriber.next([]))
     let rc = this.entityApiService
-      .getSpecsDetection(this.bus!.busId!, uiSlave.slave.slaveid, this.showAllPublicSpecs.value!, this.config.mqttdiscoverylanguage)
+      .getSpecsDetection(this.bus.busId!, uiSlave.slave.slaveid, this.showAllPublicSpecs.value!, this.config.mqttdiscoverylanguage)
       .pipe(
         map((identSpecs) => {
           let found: IidentificationSpecification | undefined = undefined
@@ -285,10 +293,14 @@ export class SelectSlaveComponent extends SessionStorage implements OnInit {
   }
   getIdentSpecs(uiSlave: IuiSlave | undefined): Promise<IidentificationSpecification[]> {
     return new Promise<IidentificationSpecification[]>((resolve, reject) => {
+      if (!this.preparedSpecs || !this.config || !this.bus) {
+        resolve([])
+        return
+      }
       let fct = (specModbus: ImodbusSpecification | undefined) => {
         let rci: IidentificationSpecification[] = []
-        this.preparedSpecs.forEach((spec) => {
-          let name = getSpecificationI18nName(spec, this.config.mqttdiscoverylanguage)
+        this.preparedSpecs!.forEach((spec) => {
+          let name = getSpecificationI18nName(spec, this.config!.mqttdiscoverylanguage)
           rci.push({
             name: name,
             identified: specModbus && spec.filename == specModbus.filename ? specModbus.identified : IdentifiedStates.unknown,
@@ -341,7 +353,7 @@ export class SelectSlaveComponent extends SessionStorage implements OnInit {
     }
   }
   ngOnDestroy(): void {
-    this.paramsSubscription.unsubscribe()
+    this.paramsSubscription && this.paramsSubscription.unsubscribe()
   }
 
   showUnmatched() {
@@ -362,6 +374,7 @@ export class SelectSlaveComponent extends SessionStorage implements OnInit {
     return 'thumb_down'
   }
   getIidentSpec(filename: string | undefined): IidentificationSpecification | undefined {
+    if (!this.preparedIdentSpecs) return undefined
     return this.preparedIdentSpecs.find((is) => is.filename == filename)
   }
   onSpecificationChange(uiSlave: IuiSlave) {
@@ -440,7 +453,7 @@ export class SelectSlaveComponent extends SessionStorage implements OnInit {
     return rc
   }
   getRootUrl(fg: FormGroup): string {
-    if (this.config.rootUrl && (fg.get('showUrl')!.value as boolean)) return this.config.rootUrl
+    if (this.config && this.config.rootUrl && (fg.get('showUrl')!.value as boolean)) return this.config.rootUrl
     return ''
   }
 
@@ -473,6 +486,7 @@ export class SelectSlaveComponent extends SessionStorage implements OnInit {
     )
   }
   addSlave(newSlaveFormGroup: FormGroup): void {
+    if (!this.bus) return
     let slaveId: number = this.getSlaveIdFromForm(newSlaveFormGroup)
     let detectSpec = newSlaveFormGroup.get(['detectSpec'])?.value
     if (this.canAddSlaveId(newSlaveFormGroup))
@@ -498,6 +512,7 @@ export class SelectSlaveComponent extends SessionStorage implements OnInit {
 
   private static controllers: string[] = ['name', 'rootTopic', 'pollInterval', 'pollMode', 'qos', 'noDiscovery']
   private addSpecificationToUiSlave(uiSlave: IuiSlave) {
+    if (!this.preparedSpecs) return
     uiSlave.slave.specification = this.preparedSpecs.find((ps) => ps.filename == uiSlave.slave.specificationid)
   }
   saveSlave(uiSlave: IuiSlave) {
@@ -524,10 +539,12 @@ export class SelectSlaveComponent extends SessionStorage implements OnInit {
       })
   }
   cancelSlave(uiSlave: IuiSlave) {
+    if (!this.preparedIdentSpecs) return
     uiSlave.slaveForm.reset()
     SelectSlaveComponent.controllers.forEach((controlname) => {
       let value = (uiSlave.slave as any)[controlname]
-      if (controlname == 'specificationid') value = this.preparedIdentSpecs.find((s) => s.filename == uiSlave.slave.specificationid)
+      if (controlname == 'specificationid')
+        value = this.preparedIdentSpecs!.find((s) => s.filename == uiSlave.slave.specificationid)
       uiSlave.slaveForm.get(controlname)!.setValue(value)
     })
     this.slave2Form(uiSlave.slave, uiSlave.slaveForm)
@@ -592,13 +609,14 @@ export class SelectSlaveComponent extends SessionStorage implements OnInit {
     let rc: string | undefined = undefined
     if (slave.name) rc = slave.name
     else if (slave.specification) {
-      let name = getSpecificationI18nName(slave.specification, this.config.mqttdiscoverylanguage)
+      let name = getSpecificationI18nName(slave.specification, this.config ? this.config.mqttdiscoverylanguage : 'en')
       if (name) rc = name
     }
     if (rc == undefined) rc = 'Unknown'
     return rc + '(' + slave.slaveid + ')'
   }
   getSpecEntityName(uiSlave: IuiSlave, entityId: number): string {
+    if (!this.config || !this.bus) return ''
     let name: string | undefined = ''
     if (uiSlave != null && uiSlave.slave && uiSlave.slave.specificationid) {
       let sl = new Slave(this.bus.busId, uiSlave.slave, this.config.mqttbasetopic)
@@ -615,7 +633,12 @@ export class SelectSlaveComponent extends SessionStorage implements OnInit {
     if (slave && slave.specification && (slave.specification as ImodbusSpecification).entities)
       (slave.specification as ImodbusSpecification).entities.forEach((e) => {
         let name: string | undefined | null = e.name
-        if (!name) name = getSpecificationI18nEntityName(slave.specification as ImodbusSpecification, this.currentLanguage, e.id)
+        if (!name)
+          name = getSpecificationI18nEntityName(
+            slave.specification as ImodbusSpecification,
+            this.currentLanguage ? this.currentLanguage : 'en',
+            e.id
+          )
         rc.push({ id: e.id, name: name ? name : '' })
       })
     return rc
