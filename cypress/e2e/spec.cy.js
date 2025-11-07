@@ -50,7 +50,8 @@ function addSlave(willLog) {
   })
   cy.url().should('contain', prefix + '/slaves')
   cy.get('[formcontrolname="detectSpec"]', logSetting).click(logSetting)
-  cy.get('[formcontrolname="slaveId"]', logSetting).type('3{enter}', { force: true, log: willLog })
+  cy.get('[formcontrolname="slaveId"]', logSetting).type('3{enter}', { force: true, log: willLog }).wait(2000)
+  // wait for preparedSpecifications to be available
   cy.get('app-select-slave:first mat-expansion-panel-header[aria-expanded=false]', logSetting).then((elements) => {
     if (elements.length >= 1) {
       elements[0].click(logSetting)
@@ -96,7 +97,7 @@ describe('End to End Tests', () => {
       addSlave(true)
     }
   )
-  xit(
+  it(
     'register->mqtt with no authentication',
     {
       retries: {
@@ -109,7 +110,7 @@ describe('End to End Tests', () => {
       runConfig(false)
     }
   )
-  xit(
+  it(
     'mqtt hassio addon',
     {
       retries: {

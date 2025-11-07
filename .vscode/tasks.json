@@ -157,6 +157,14 @@
       "isBackground": true
     },
     {
+      "label": "ng serve",
+      "type": "shell",
+      "command": "npx ng serve --configuration development",
+      "problemMatcher": [],
+      "detail": "ng",
+      "isBackground": true
+    },
+    {
       "label": "Start Home Assistant",
       "type": "shell",
       "command": "supervisor_run",
