@@ -48,7 +48,7 @@ class StreamThread ( Thread ):
             sys.stderr.flush()
             if line == '':
                 break
-def executeSyncCommandWithCwd(cmdArgs: list[str], cwdP:str, *args, **kwargs)-> str:
+def executeSyncCommandWithCwd(cmdArgs: list[str], cwdP:str, *args, **kwargs)-> bytes:
             
     if cwdP == None:
         cwdP = os.getcwd()
@@ -69,7 +69,7 @@ def executeCommandWithOutputs(cmdArgs: list[str], stdout, stderr,  *args, **kwar
    if proc.returncode != 0:
         raise SyncException( os.getcwd() +':'+' '.join(cmdArgs) + " exited with rc= " + str( proc.returncode))
 
-def executeSyncCommand(cmdArgs: list[str], *args, **kwargs)-> str:
+def executeSyncCommand(cmdArgs: list[str], *args, **kwargs)-> bytes:
     return executeSyncCommandWithCwd(cmdArgs, os.getcwd(), *args, **kwargs)
    
 
@@ -127,16 +127,24 @@ def startRequiredApps(permanent:bool, restart:bool):
     except OSError:
         pass
     if( not permanent):
-        print("::group::start npm pack modbus2mqtt")
-   
-        executeSyncCommand(["npm","pack"])
+        print("::group::start npm pack and install modbus2mqtt")
+        try:
+            executeSyncCommand(["npm","pack", "--silent"]).decode('utf-8').strip()
+        except Exception as err:
+            eprint("npm pack failed: " + str(err))
+            raise SyncException("npm pack failed")  
+        eprint("npm pack succeeded ")
         os.mkdir("./distprod")
         os.chdir("./distprod")
         eprint("npm init -y")
-        executeSyncCommand(["npm","init","-y"])
+        executeSyncCommand(["npm","init","-y", "--silent"])
+        eprint("npm installing modbus2mqtt")
         for f in glob.glob("../modbus2mqtt-*.tgz"):
-            eprint("found " + f)    
-            executeSyncCommand(["npm","install",f ] )
+            try:
+                executeSyncCommand(["npm","install" , "--silent", f ] )
+            except Exception as err:
+                eprint("npm install failed: " + str(err))
+                raise SyncException("npm install failed")
         os.chdir("..")
         # kill existing apps
         print( '::endgroup::' )
@@ -192,11 +200,6 @@ def startRequiredApps(permanent:bool, restart:bool):
             eprint("All required ports are open.")
         outfile.close()
         print( '::endgroup::' )
-        if( not permanent):
-            print("::group::start Server logs")
-            with open('stderr.out', 'r') as f:
-                print(f.read(MAX_LOG_SIZE))
-            print( '::endgroup::' )
         unlinkIfExist("stderr.out")
 
 def unlinkIfExist( file:str):
@@ -211,18 +214,21 @@ def killOne(app:str):
         # Process might not be running, which is fine
         eprint(f"No running process found for {app}")
   
-def killRequiredApps():
+def killRequiredApps(permanent:bool=False, restart:bool=False):
     print("::group::Cypress cleanup")
     try:
-        killOne("nginx: master")
-        killOne("runModbusTCP")
-        killOne("modbus2mqtt")
-        killOne("mosquitto")
-        unlinkIfExist("nginx.conf")
+        if(not restart):
+            killOne("nginx: master")
+            killOne("runModbusTCP")
+            unlinkIfExist("nginx.conf")
+            unlinkIfExist("nginx.pid" )
+            unlinkIfExist("nginx.error.log" )
+        
+        if(not permanent or restart):
+            killOne("modbus2mqtt")
+            killOne("mosquitto")
+            unlinkIfExist("cypress/servers/tmpfiles" )
         unlinkIfExist("nohup.out" )
-        unlinkIfExist("nginx.error.log" )
-        unlinkIfExist("nginx.pid" )
-        unlinkIfExist("cypress/servers/tmpfiles" )
     finally:
         print( '::endgroup::' )
 
@@ -254,7 +260,7 @@ def testall(package:str)->bool:
             eprint("No Cypress e2e tests found in " + os.getcwd())
 
 parser = argparse.ArgumentParser()
-parser.add_argument("test", help="runs with npm ci instead of npm install", choices=["test", "startServers", "killServers"], default="test")
+parser.add_argument("test", help="runs with npm ci instead of npm install", choices=["test", "startServers", "restartServers", "killServers"], default="test")
 parser.add_argument("-p", "--permanent", help="Start nginx and modbustcp server",  action='store_true')
 parser.add_argument("-r", "--restart", help="Start modbus2mqtt and mosquitto",  action='store_true')
 
@@ -264,11 +270,13 @@ try:
     match args.test:
         case "test":
             testall("server")
+        case  "restartServers":
+            killRequiredApps(args.permanent, args.restart)
+            startRequiredApps(args.permanent, args.restart)
         case  "startServers":
-
             startRequiredApps(args.permanent, args.restart)
         case "killServers":
-            killRequiredApps()
+            killRequiredApps(args.permanent, args.restart)
 except SyncException as err1:
     eprint( ": " + err1.args[0])
     list = list(err1.args)   # Convert to list

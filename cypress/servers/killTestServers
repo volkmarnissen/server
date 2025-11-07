@@ -18,7 +18,7 @@ done
 
 MAX_ATTEMPTS=5
 attempt=0
-
+echo "grep pattern $GREP_PATTERN"
 while [ $attempt -lt $MAX_ATTEMPTS ]; do
   attempt=$((attempt + 1))
   
