@@ -15,7 +15,7 @@ End-to-end tests **will not** cover all aspects of the UI and the server.
 The UI parts are to be covered in **Cypress component tests**. 
 
 :construction: However, currently, they are only available for a limited set of the functionality.
-> :warning:
+> **Note:**
 > New features in the UI should get their own cypress component test.
 > Fixes in the UI should also be covered by component tests.
 
@@ -50,7 +50,7 @@ The tests need a complete infrastructure consisting of
 | 3003 |MQTT| None | `mqtt://127.0.0.1:3003` | - | - |
 | 3005 |modbus2mqtt| Optional | `http://localhost:3005` | test | test |
 
-**Note:** modbus2mqtt HTTP interfaces (ports 3004, 3005, 3006, 3007) do not require authentication in the test environment.
+>**Note:** modbus2mqtt HTTP interfaces (ports 3004, 3005, 3006, 3007) do not require authentication in the test environment.
 
 ### HTTP Endpoints
 
@@ -61,6 +61,8 @@ The tests need a complete infrastructure consisting of
 | [Nginx  (3006)](http://localhost:3006) | Nginx reverse proxy for Home Assistant Addon and supervisor simulator|
 | [MQTT NoAuth Test (3007)](http://localhost:3007) | modbus2mqtt with NoAuth MQTT broker |
 | Modbus TCP Server (`tcp://localhost:3002`) | Test Modbus TCP server (not HTTP) |
+
+> **Note:** The Ingress scenario simulates Home Assistant's add-on architecture: The browser connects to nginx (port 3006) which acts as the supervisor api, forwarding requests to the modbus2mqtt instance running on port 3004 with ingress path handling.
 
 ## Starting and Stopping Servers
 
@@ -88,26 +90,29 @@ The tests need a complete infrastructure consisting of
 Test servers log files are located in the root of the package directory ```e2e/modbus2mqtt_<port>.out``` 
 
 ### Debugging angular (not server)
-Debugging the cypress works by 
-- Start cypress
-  ```npm run cypress:open``` 
-  This is configured to open a browser with debug port ```9222```
-  > 👉 This does not work with npx cypress open alone. It needs the environment variable ```CYPRESS_REMOTE_DEBUGGING_PORT=9222``` to be set.
-
-- opening the debugging panel in vscode and launching ```Attach to Chrome(cypress)```
+Debugging Cypress works by:
+- Start Cypress
   ```
-   This is the launch configuration
-   {
-        "request": "attach",
-        "name": "Attach to Chrome(cypress)",
-        "type": "chrome",
-        "port":9222,
-        "webRoot": "${workspaceFolder}",
-        "sourceMaps": true,
-        "outFiles": [
-            "${workspaceRoot}/dist/angular/**/*.js"
-        ]
-   }
+  npm run cypress:open
+  ```
+  This is configured to open a browser with debug port `9222`.
+  > 👉 This does not work with `npx cypress open` alone. It needs the environment variable `CYPRESS_REMOTE_DEBUGGING_PORT=9222` to be set.
+
+- Open the debugging panel in VS Code and launch "Attach to Chrome (cypress)"
+  ```
+  This is the launch configuration
+  {
+      "request": "attach",
+      "name": "Attach to Chrome(cypress)",
+      "type": "chrome",
+      "port": 9222,
+      "webRoot": "${workspaceFolder}",
+      "sourceMaps": true,
+      "outFiles": [
+          "${workspaceRoot}/dist/angular/**/*.js"
+      ]
+  }
+  ```
 
 ### Debugging server
 - Setup
@@ -134,8 +139,7 @@ Debugging the cypress works by
   ```
   npm run cypress:open
   ```
-- Optional: For debugging Angular code:
-  Open the debugging panel in vscode and launching ```Attach to Chrome(cypress)
+- Optional: For debugging Angular code: open the debugging panel in VS Code and launch "Attach to Chrome (cypress)".
 
 - Execute the desired Spec
 
