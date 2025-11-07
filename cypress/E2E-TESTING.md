@@ -63,29 +63,12 @@ The tests need a complete infrastructure consisting of
 
 ## Starting and Stopping Servers
 
-### Start all servers (permanent)
-Starts nginx, modbustcp, mosquitto and modbus2mqtt:
-```bash
-npm run e2e:start
-```
-
-### Start only nginx and modbustcp
-nginx and tcp won't be configured during tests. So, no restart required before reiterate tests:
-```bash
-npm run e2e:start -- --permanent
-```
-
-### Restart only modbus2mqtt and mosquitto
-nginx must be available before hassio tests are running.
-In case of iteration, it's better to restart only modbus2mqtt:
-```bash
-npm run e2e:start -- --restart
-```
-
-### Stop all servers
-```bash
-npm run e2e:stop
-```
+| Action | Command | Description |
+|--------|---------|-------------|
+| Start/restart all servers | `npm run e2e:[re]start` | Starts/Restarts nginx, modbustcp, mosquitto and modbus2mqtt |
+| Start/restart nginx and modbustcp only | `npm run e2e:[re]start -- --permanent` | Nginx and tcp won't be reconfigured during tests, so no restart required before reiterating tests |
+| Start/restart modbus2mqtt and mosquitto only | `npm run e2e:[re]start -- --restart` | Nginx must be available before hassio tests run. For iterations, it's better to restart only modbus2mqtt |
+| Stop all servers | `npm run e2e:stop` | Stops all test servers. ```e2e:stop``` has the same options as ```e2e:start``` |
 
 ## Running Tests
 
