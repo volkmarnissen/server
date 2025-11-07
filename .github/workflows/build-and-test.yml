@@ -21,6 +21,7 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    environment: release
     permissions:
       contents: write
     steps:
@@ -38,7 +39,7 @@ jobs:
       - name: Run build and test
         env:
           PACKAGER_PRIVKEY: ${{ secrets.PACKAGER_PRIVKEY }}
-          PACKAGER_PUBKEY: ${{ env.PACKAGER_PUBKEY }}
+          PACKAGER_PUBKEY: ${{ vars.PACKAGER_PUBKEY }}
         run: |
           cd alpine-package/modbus2mqtt
           chmod +x build.sh build-and-test-image.sh

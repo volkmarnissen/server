@@ -10,14 +10,14 @@ import os
 from threading import Thread
 import shutil
 import tempfile
-import argparse
 class SyncException(Exception):
     pass
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
-def executeCommand(cmdArgs: list[str], *args, **kwargs)-> str:
+# Type hints verbessern
+def executeCommand(cmdArgs: list[str], *args, **kwargs) -> bytes:
     ignoreErrors = kwargs.get('ignoreErrors', None)
     result = subprocess.Popen(cmdArgs,
 	cwd=os.getcwd(),
@@ -73,14 +73,20 @@ def executeSyncCommand(cmdArgs: list[str], *args, **kwargs)-> str:
     return executeSyncCommandWithCwd(cmdArgs, os.getcwd(), *args, **kwargs)
    
 
-def isOpen(ip,port):
-   s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-   try:
-      s.connect((ip, int(port)))
-      s.shutdown(2)
-      return True
-   except:
-      return False
+# Konstanten am Anfang definieren
+MAX_PORT_RETRIES = 12
+MAX_LOG_SIZE = 100000
+PERMANENT_PORTS = [3002, 3006]
+RESTART_PORTS = [3001, 3003, 3004, 3005, 3007]
+
+def isOpen(ip: str, port: int) -> bool:
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.connect((ip, int(port)))
+        s.shutdown(2)
+        return True
+    except (socket.error, ConnectionRefusedError):
+        return False
 
 def isCallable(command:str):
     try:
@@ -104,14 +110,13 @@ def nginxGetLibDir():
    
 def checkRequiredApps():
     # nginx must be preinstalled
-    eprint("checkRequiredApps")
     isCallable("nginx")
     ngxinlib = nginxGetLibDir()
     if not os.path.isdir(ngxinlib) :
         raise SyncException( nginxGetLibDir() + " directory not found!") 
             
 
-def startRequiredApps():
+def startRequiredApps(permanent:bool, restart:bool):
     try:
         shutil.rmtree("./distprod")
     except OSError:
@@ -121,65 +126,77 @@ def startRequiredApps():
             os.remove( f)
     except OSError:
         pass
-    eprint("npm pack")
-    executeSyncCommand(["npm","pack"])
-    os.mkdir("./distprod")
-    os.chdir("./distprod")
-    eprint("npm init -y")
-    executeSyncCommand(["npm","init","-y"])
-    eprint("npm isntall" )
-    for f in glob.glob("../modbus2mqtt-*.tgz"):
-        eprint("found " + f)    
-        executeSyncCommand(["npm","install",f ] )
-    os.chdir("..")
-     # kill existing apps
-    checkRequiredApps()
-    eprint("open nginx.conf")
-    with open( "./cypress/servers/nginx.conf/nginx.conf","r") as f:
-        nginxConf = f.read()
-        nginxConf = re.sub(r"mime.types", nginxGetMimesTypes(),nginxConf)
-        # default directory
-    fb = tempfile.NamedTemporaryFile(delete_on_close=False)
-    eprint("writing  " + fb.name )
-    fb.write( nginxConf.encode('utf-8'))
-    fb.close()
-    file="cypress/servers/tmpfiles"
-    eprint("remove " + file )
-    if os.path.exists(file):os.remove(file )
-    eprint("starting "  )
-    with open('stderr.out', "a") as outfile:
-        subprocess.Popen(["nohup", "nginx","-c",fb.name,"-p","."],stderr=outfile, stdout=outfile)
-        subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbustcp"],stderr=outfile, stdout=outfile)
-        subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/mosquitto"],stderr=outfile, stdout=outfile)
-        # use modbus2mqtt with different config files
-        subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbus2mqtt 3005 " + file],stderr=outfile, stdout=outfile)  # e2ePort
-        subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbus2mqtt 3004 "  + file + " localhost:3006"],stderr=outfile, stdout=outfile) 
-        subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbus2mqtt 3007 " + file],stderr=outfile, stdout=outfile)  # mqttNoAuthPort
-        # Use docker host port
-
-        eprint("started "  )
+    if( not permanent):
+        print("::group::start npm pack modbus2mqtt")
    
-        for port in [3002,3006, 3005,3004, 3001,3003]:
+        executeSyncCommand(["npm","pack"])
+        os.mkdir("./distprod")
+        os.chdir("./distprod")
+        eprint("npm init -y")
+        executeSyncCommand(["npm","init","-y"])
+        for f in glob.glob("../modbus2mqtt-*.tgz"):
+            eprint("found " + f)    
+            executeSyncCommand(["npm","install",f ] )
+        os.chdir("..")
+        # kill existing apps
+        print( '::endgroup::' )
+    print("::group::start Start required servers")
+    if( not restart):
+        checkRequiredApps()
+        with open( "./cypress/servers/nginx.conf/nginx.conf","r") as f:
+            nginxConf = f.read()
+            nginxConf = re.sub(r"mime.types", nginxGetMimesTypes(),nginxConf)
+        # default directory
+        fb = tempfile.NamedTemporaryFile(delete_on_close=False)
+        fb.write( nginxConf.encode('utf-8'))
+        fb.close()
+    if( not permanent):
+        file="cypress/servers/tmpfiles"
+        if os.path.exists(file):
+            os.remove(file )
+    with open('stderr.out', "a") as outfile:
+        if( not restart):
+            subprocess.Popen(["nohup", "nginx","-c",fb.name,"-p","."],stderr=outfile, stdout=outfile)
+            subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbustcp"],stderr=outfile, stdout=outfile)
+        if( not permanent or restart):
+            subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/mosquitto"],stderr=outfile, stdout=outfile)
+            # use modbus2mqtt with different config files
+            subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbus2mqtt 3005 " + file],stderr=outfile, stdout=outfile)  # e2ePort
+            subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbus2mqtt 3004 "  + file + " localhost:3006"],stderr=outfile, stdout=outfile) 
+            subprocess.Popen(["nohup", "sh", "-c", "./cypress/servers/modbus2mqtt 3007 " + file],stderr=outfile, stdout=outfile)  # mqttNoAuthPort
+            # Use docker host port
+        if( permanent):
+            ports = PERMANENT_PORTS
+        elif( restart):
+            ports = RESTART_PORTS
+        else:
+            ports = PERMANENT_PORTS + RESTART_PORTS
+        eprint("Waiting for " + str(ports) + " to open")
+        error=""
+        for port in ports:
             count=0
-            while count < 12:            
+            while count < MAX_PORT_RETRIES:            
                 if not isOpen("localhost", port):
                     time.sleep(1)
                 else:
                     break
                 count += 1
-            if count == 12:
-                outfile.close()
+            if count == MAX_PORT_RETRIES:
                 if(os.path.exists("stderr.out")):
                     with open( "stderr.out") as f:
                         eprint(f.read())
-                    raise SyncException("Port " + str(port) + " is not up")
+                error += f"Port {port} not opened!\n"
+        if( error != ""):
+            raise SyncException( error)
+        else:
+            eprint("All required ports are open.")
         outfile.close()
-         
-        print("::group::start Server logs")
-   
-        with open('stderr.out', 'r') as f:
-            print(f.read(100000))
         print( '::endgroup::' )
+        if( not permanent):
+            print("::group::start Server logs")
+            with open('stderr.out', 'r') as f:
+                print(f.read(MAX_LOG_SIZE))
+            print( '::endgroup::' )
         unlinkIfExist("stderr.out")
 
 def unlinkIfExist( file:str):
@@ -188,23 +205,26 @@ def unlinkIfExist( file:str):
  
 def killOne(app:str):
     try:
-        executeSyncCommand(["pkill",  "-U", str(os.getuid()) ,"-f", app])
+        result = executeSyncCommand(["pkill",  "-U", str(os.getuid()) ,"-f", app])
+        eprint(f"Killed {app}")
     except Exception as err:
-        eprint("unable to kill " + app )        
-        executeSyncCommand(["pgrep",  "-U", str(os.getuid()),"-f", app])
+        # Process might not be running, which is fine
+        eprint(f"No running process found for {app}")
   
 def killRequiredApps():
     print("::group::Cypress cleanup")
-    killOne("nginx: master")
-    killOne("runModbusTCP")
-    killOne("modbus2mqtt")
-    killOne("mosquitto")
-    unlinkIfExist("nginx.conf")
-    unlinkIfExist("nohup.out" )
-    unlinkIfExist("nginx.error.log" )
-    unlinkIfExist("nginx.pid" )
-    unlinkIfExist("cypress/servers/tmpfiles" )
-    print( '::endgroup::' )
+    try:
+        killOne("nginx: master")
+        killOne("runModbusTCP")
+        killOne("modbus2mqtt")
+        killOne("mosquitto")
+        unlinkIfExist("nginx.conf")
+        unlinkIfExist("nohup.out" )
+        unlinkIfExist("nginx.error.log" )
+        unlinkIfExist("nginx.pid" )
+        unlinkIfExist("cypress/servers/tmpfiles" )
+    finally:
+        print( '::endgroup::' )
 
 def testRepository(reponame:str):
     
@@ -231,19 +251,22 @@ def testall(package:str)->bool:
             executeCommandWithOutputs(["npx", "cypress", "run"],sys.stderr, sys.stdout)
             print( '::endgroup::' )
     else:
-            eprint("No Cypress tests ín" + os.getcwd())
+            eprint("No Cypress e2e tests found in " + os.getcwd())
 
 parser = argparse.ArgumentParser()
 parser.add_argument("test", help="runs with npm ci instead of npm install", choices=["test", "startServers", "killServers"], default="test")
+parser.add_argument("-p", "--permanent", help="Start nginx and modbustcp server",  action='store_true')
+parser.add_argument("-r", "--restart", help="Start modbus2mqtt and mosquitto",  action='store_true')
 
 args, unknownargs = parser.parse_known_args()
-
+# for debugging purposes: print("testall arguments: " + str(args))
 try:   
     match args.test:
         case "test":
             testall("server")
         case  "startServers":
-            startRequiredApps()
+
+            startRequiredApps(args.permanent, args.restart)
         case "killServers":
             killRequiredApps()
 except SyncException as err1:

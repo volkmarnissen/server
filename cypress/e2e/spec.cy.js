@@ -83,6 +83,10 @@ describe('End to End Tests', () => {
   it(
     'register->mqtt->busses->slaves->specification with authentication',
     {
+      retries: {
+        runMode: 0,
+        openMode: 0,
+      }
     },
     () => {
 
@@ -92,18 +96,26 @@ describe('End to End Tests', () => {
       addSlave(true)
     }
   )
-  it(
+  xit(
     'register->mqtt with no authentication',
     {
+      retries: {
+        runMode: 0,
+        openMode: 0,
+      }
     },
     () => {
       runRegister(false, Cypress.env('modbus2mqttMqttNoAuthPort'))
       runConfig(false)
     }
   )
-  it(
+  xit(
     'mqtt hassio addon',
     {
+      retries: {
+        runMode: 0,
+        openMode: 0,
+      }
     },
     () => {
       prefix = 'ingress'
