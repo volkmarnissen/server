@@ -51,7 +51,7 @@ import { ISpecificationMethods, ImodbusEntityWithName } from '../../services/spe
 import { I18nService } from '../../services/i18n.service'
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
 import { SpecificationServices } from '../../services/specificationServices'
-import { Iconfiguration, IidentificationSpecification } from '../../../../server.shared'
+import { Iconfiguration } from '../../../../server.shared'
 import { EntityComponent } from '../entity/entity.component'
 import { TranslationComponent } from '../translation/translation.component'
 import { MatInput } from '@angular/material/input'
@@ -100,19 +100,18 @@ import { MatIconButton } from '@angular/material/button'
   ],
 })
 export class SpecificationComponent extends SessionStorage implements OnInit, OnDestroy {
-  slaveid: number
-  busId: number
+  slaveid: number | undefined = undefined
+  busId: number | undefined = undefined
 
   // @Output()
   // updateSpecificationEvent= new EventEmitter<IidentificationSpecification>();
 
   @Output()
   nextEmitter = new EventEmitter<void>()
-  currentSpecification: ImodbusSpecification | null
-  originalSpecification: ImodbusSpecification | null
-  uploadModbusDocumentationFormGroup: FormGroup<any>
+  currentSpecification: ImodbusSpecification | null = null
+  originalSpecification: ImodbusSpecification | null = null
   displayHexFormGroup: FormGroup<any>
-  displayHex: boolean
+  displayHex: boolean = false
   galleryConfig: GalleryConfig = { thumbs: false }
   private entitiesTouched: boolean = false
   private saveSubject = new Subject<void>()
@@ -120,13 +119,16 @@ export class SpecificationComponent extends SessionStorage implements OnInit, On
   private filesTouched: boolean = false
   private specServices: SpecificationServices | undefined
   private currentMessage: Imessage | undefined
-  disabled: boolean
-  specificationMethods: ISpecificationMethods
+  disabled: boolean = false
+  specificationMethods: ISpecificationMethods | undefined
   entities: ImodbusEntityWithName[] | undefined
-  config: Iconfiguration
-  sub: Subscription
+  config: Iconfiguration | undefined
+  sub: Subscription | undefined = undefined
   validationMessages: Imessage[] = []
   errorMessages = new Set<string>()
+  specificationSubject: Subject<ImodbusSpecification> | undefined = undefined //Seems not to be used new Subject<ImodbusSpecification>();
+  enterSpecNameFormGroup: FormGroup
+  validationForms: FormGroup
   constructor(
     private entityApiService: ApiService,
     private fb: FormBuilder,
@@ -135,6 +137,17 @@ export class SpecificationComponent extends SessionStorage implements OnInit, On
     private cdr: ChangeDetectorRef
   ) {
     super()
+    this.enterSpecNameFormGroup = this.fb.group({
+      name: [null as string | null, Validators.required],
+      filename: [null as string | null],
+      icon: [null as string | null],
+      manufacturer: [null as string | null],
+      model: [null as string | null],
+    })
+    this.displayHexFormGroup = this.fb.group({
+      displayHex: [false],
+    })
+    this.validationForms = this.fb.group({ spec: this.enterSpecNameFormGroup })
   }
   ngOnDestroy(): void {
     if (this.currentSpecification?.filename == '_new') {
@@ -143,26 +156,27 @@ export class SpecificationComponent extends SessionStorage implements OnInit, On
 
     if (this.sub) this.sub.unsubscribe()
   }
-  specificationSubject: Subject<ImodbusSpecification> | undefined = undefined //Seems not to be used new Subject<ImodbusSpecification>();
-  enterSpecNameFormGroup: FormGroup
-  validationForms: FormGroup
+  private getMqttDiscoveryLanguage(): string {
+    if (this.config) return this.config.mqttdiscoverylanguage
+    return 'en'
+  }
 
   private setCurrentSpecification(spec: Ispecification | null) {
     this.currentMessage = undefined
     this.currentSpecification = (spec ? spec : null) as ImodbusSpecification
     this.entities = this.currentSpecification == null ? undefined : (this.currentSpecification.entities as ImodbusEntityWithName[])
-    if (this.entities && this.currentSpecification) {
-      I18nService.specificationTextsFromTranslation(this.currentSpecification!, this.config.mqttdiscoverylanguage)
+    if (this.entities && this.currentSpecification && this.config) {
+      I18nService.specificationTextsFromTranslation(this.currentSpecification!, this.getMqttDiscoveryLanguage())
     }
     this.specificationMethods = {
       copy2Translation: (entity: ImodbusEntityWithName): void => {
-        if (entity && entity.id >= 0 && this.currentSpecification) {
-          setSpecificationI18nEntityName(this.currentSpecification, this.config.mqttdiscoverylanguage, entity.id, entity.name)
+        if (entity && entity.id >= 0 && this.currentSpecification && this.config) {
+          setSpecificationI18nEntityName(this.currentSpecification, this.getMqttDiscoveryLanguage(), entity.id, entity.name)
           if (entity.converterParameters && (entity.converterParameters as Iselect).options)
             (entity.converterParameters as Iselect).options?.forEach((option) => {
               setSpecificationI18nEntityOptionName(
                 this.currentSpecification as IbaseSpecification,
-                this.config.mqttdiscoverylanguage,
+                this.config!.mqttdiscoverylanguage,
                 entity.id,
                 option.key,
                 option.name
@@ -179,21 +193,22 @@ export class SpecificationComponent extends SessionStorage implements OnInit, On
       },
 
       getMqttLanguageName: () => {
-        return I18nService.getLanguageName(this.config.mqttdiscoverylanguage)
+        if (!this.config) return ''
+        return I18nService.getLanguageName(this.getMqttDiscoveryLanguage())
       },
       getUom: (entity_id: number): string => {
         return getUom(this.currentSpecification as ImodbusSpecification, entity_id)
       },
       postModbusEntity: (changedEntity: ImodbusEntityWithName): Observable<ImodbusData> => {
-        if (this.currentSpecification) {
+        if (this.currentSpecification && this.config && this.busId != undefined && this.slaveid != undefined) {
           let lSpec: ImodbusSpecification = structuredClone(this.currentSpecification)
           let entity: ImodbusEntityWithName = structuredClone(changedEntity)
-          I18nService.specificationTextsToTranslation(lSpec, this.config.mqttdiscoverylanguage, entity)
+          I18nService.specificationTextsToTranslation(lSpec, this.getMqttDiscoveryLanguage(), entity)
           let idx = lSpec.entities.findIndex((e) => e.id == entity.id)
           if (idx >= 0) lSpec.entities[idx] = entity
           else lSpec.entities.push(entity)
           return this.entityApiService
-            .postModbusEntity(lSpec, changedEntity, this.busId, this.slaveid, this.config.mqttdiscoverylanguage)
+            .postModbusEntity(lSpec, changedEntity, this.busId, this.slaveid, this.getMqttDiscoveryLanguage())
             .pipe(
               map((e) => {
                 this.setValidationMessages()
@@ -209,12 +224,14 @@ export class SpecificationComponent extends SessionStorage implements OnInit, On
       },
 
       postModbusWriteMqtt: (entity, value) => {
+        if (this.busId == undefined || this.slaveid == undefined || !this.currentSpecification || !this.config)
+          throw new Error('undefined parameter') // should not happen
         let s = structuredClone(this.currentSpecification!)
         let idx = s.entities.findIndex((e) => e.id == entity.id)
         if (idx >= 0) s.entities[idx] = entity
         else s.entities.push(entity)
         return this.entityApiService
-          .postModbusWriteMqtt(s, entity.id, this.busId, this.slaveid, this.config.mqttdiscoverylanguage, value)
+          .postModbusWriteMqtt(s, entity.id, this.busId, this.slaveid, this.getMqttDiscoveryLanguage(), value)
           .pipe(
             map((v) => {
               this.setValidationMessages()
@@ -333,8 +350,10 @@ export class SpecificationComponent extends SessionStorage implements OnInit, On
     this.enterSpecNameFormGroup
       .get('name')
       ?.setValue(
-        this.currentSpecification
-          ? getSpecificationI18nName(this.currentSpecification, this.config.mqttdiscoverylanguage, true)
+        this.config
+          ? this.currentSpecification
+            ? getSpecificationI18nName(this.currentSpecification, this.getMqttDiscoveryLanguage(), true)
+            : null
           : null
       )
     this.enterSpecNameFormGroup.get('filename')?.setValue(filename)
@@ -381,20 +400,20 @@ export class SpecificationComponent extends SessionStorage implements OnInit, On
           : undefined
       setSpecificationI18nName(
         this.currentSpecification,
-        this.config.mqttdiscoverylanguage,
+        this.getMqttDiscoveryLanguage(),
         this.enterSpecNameFormGroup.get('name')!.value!
       )
     }
     this.setValidationMessages()
     let e = structuredClone(this.currentSpecification.entities)
-    I18nService.specificationTextsToTranslation(this.currentSpecification, this.config.mqttdiscoverylanguage)
+    I18nService.specificationTextsToTranslation(this.currentSpecification, this.getMqttDiscoveryLanguage())
     this.currentSpecification.entities = e
     this.entities = e
     if (this.specificationSubject) this.specificationSubject.next(this.currentSpecification!)
   }
   getTranslatedSpecName(): string | null {
-    if (this.config && this.config.mqttdiscoverylanguage && this.currentSpecification)
-      return getSpecificationI18nName(this.currentSpecification!, this.config.mqttdiscoverylanguage, true)
+    if (this.getMqttDiscoveryLanguage() && this.currentSpecification)
+      return getSpecificationI18nName(this.currentSpecification!, this.getMqttDiscoveryLanguage(), true)
     return null
   }
   updateDocuments($event: IimageAndDocumentUrl[]) {
@@ -406,12 +425,12 @@ export class SpecificationComponent extends SessionStorage implements OnInit, On
   updateTranslation(entity: ImodbusEntityWithName): void {
     if (entity && this.currentSpecification) {
       if (entity.name)
-        setSpecificationI18nEntityName(this.currentSpecification, this.config.mqttdiscoverylanguage, entity.id, entity.name)
+        setSpecificationI18nEntityName(this.currentSpecification, this.getMqttDiscoveryLanguage(), entity.id, entity.name)
       if (entity.converterParameters && (entity.converterParameters as Iselect).options)
         (entity.converterParameters as Iselect).options?.forEach((option) => {
           setSpecificationI18nEntityOptionName(
             this.currentSpecification as IbaseSpecification,
-            this.config.mqttdiscoverylanguage,
+            this.getMqttDiscoveryLanguage(),
             entity.id,
             option.key,
             option.name
@@ -421,9 +440,9 @@ export class SpecificationComponent extends SessionStorage implements OnInit, On
   }
   updateI18n($event: IUpdatei18nText) {
     if (!$event || !this.currentSpecification) return
-    I18nService.updateSpecificationI18n($event.key, this.currentSpecification!, this.config.mqttdiscoverylanguage)
+    I18nService.updateSpecificationI18n($event.key, this.currentSpecification!, this.getMqttDiscoveryLanguage())
     if ($event.key == 'name') {
-      let specName = getSpecificationI18nName(this.currentSpecification, this.config.mqttdiscoverylanguage, true)
+      let specName = getSpecificationI18nName(this.currentSpecification, this.getMqttDiscoveryLanguage(), true)
       if (specName) this.enterSpecNameFormGroup.get('name')!.setValue(specName)
     }
 
@@ -440,11 +459,11 @@ export class SpecificationComponent extends SessionStorage implements OnInit, On
     ) {
       let es = structuredClone(this.entities)
       es.forEach((e) => {
-        if (e.name) setSpecificationI18nEntityName(this.currentSpecification!, this.config.mqttdiscoverylanguage, e.id, e.name)
+        if (e.name) setSpecificationI18nEntityName(this.currentSpecification!, this.getMqttDiscoveryLanguage(), e.id, e.name)
         delete (e as any).name
       })
       this.currentSpecification.entities = es
-      I18nService.specificationTextsToTranslation(this.currentSpecification, this.config.mqttdiscoverylanguage)
+      I18nService.specificationTextsToTranslation(this.currentSpecification, this.getMqttDiscoveryLanguage())
       this.entityApiService
         .postSpecification(
           this.currentSpecification,
@@ -453,7 +472,7 @@ export class SpecificationComponent extends SessionStorage implements OnInit, On
           this.originalSpecification ? this.originalSpecification.filename : null
         )
         .subscribe((spec) => {
-          this.entityApiService.getModbusSpecification(this.busId, this.slaveid, spec.filename).subscribe((spec) => {
+          this.entityApiService.getModbusSpecification(this.busId!, this.slaveid!, spec.filename).subscribe((spec) => {
             this.setCurrentSpecification(spec)
             this.entitiesTouched = false
             this.filesTouched = false
@@ -506,39 +525,28 @@ export class SpecificationComponent extends SessionStorage implements OnInit, On
   }
 
   ngOnInit(): void {
-    this.enterSpecNameFormGroup = this.fb.group({
-      name: [null as string | null, Validators.required],
-      filename: [null as string | null],
-      icon: [null as string | null],
-      manufacturer: [null as string | null],
-      model: [null as string | null],
-    })
-    this.displayHexFormGroup = this.fb.group({
-      displayHex: [false],
-    })
-    this.validationForms = this.fb.group({ spec: this.enterSpecNameFormGroup })
-
     this.entityApiService.getConfiguration().subscribe((config) => {
       this.config = config
       var dispHexFg = this.displayHexFormGroup.get('displayHex')
       this.displayHex = this.config.displayHex ? this.config.displayHex : false
       if (dispHexFg) dispHexFg.setValue(this.config.displayHex)
-      this.specServices = new SpecificationServices(this.config.mqttdiscoverylanguage, this.entityApiService)
+      this.specServices = new SpecificationServices(this.getMqttDiscoveryLanguage(), this.entityApiService)
       this.sub = this.route.params.subscribe((params) => {
         this.busId = +params['busid']
         this.slaveid = +params['slaveid']
         this.disabled = params['disabled'] != 'false'
-        this.entityApiService.getSlave(this.busId, this.slaveid).subscribe((slave) => {
-          if (!this.currentSpecification)
-            if (slave.specificationid)
-              this.entityApiService.getSpecification(slave.specificationid).subscribe((spec) => {
-                this.setCurrentSpecification(spec as ImodbusSpecification)
-                this.entityApiService
-                  .getModbusSpecification(this.busId, this.slaveid, slave.specificationid)
-                  .subscribe(this.setCurrentSpecification.bind(this))
-              })
-            else this.setCurrentSpecification(structuredClone(newSpecification))
-        })
+        if (this.busId != undefined || this.slaveid != undefined)
+          this.entityApiService.getSlave(this.busId, this.slaveid).subscribe((slave) => {
+            if (!this.currentSpecification)
+              if (slave.specificationid)
+                this.entityApiService.getSpecification(slave.specificationid).subscribe((spec) => {
+                  this.setCurrentSpecification(spec as ImodbusSpecification)
+                  this.entityApiService
+                    .getModbusSpecification(this.busId!, this.slaveid!, slave.specificationid)
+                    .subscribe(this.setCurrentSpecification.bind(this))
+                })
+              else this.setCurrentSpecification(structuredClone(newSpecification))
+          })
       })
     })
   }
@@ -553,7 +561,7 @@ export class SpecificationComponent extends SessionStorage implements OnInit, On
     // So, it must post the changes.
     // However, the validation, can happen only for existant test data.
     this.entityApiService
-      .postForSpecificationValidation(this.currentSpecification!, this.config.mqttdiscoverylanguage)
+      .postForSpecificationValidation(this.currentSpecification!, this.getMqttDiscoveryLanguage())
       .subscribe((mesgs) => {
         this.validationMessages = mesgs
       })
@@ -635,6 +643,8 @@ export class SpecificationComponent extends SessionStorage implements OnInit, On
   }
   onDisplayHexChanged(event: MatSlideToggleChange) {
     this.displayHex = event.checked
+    if (!this.config) return
+
     this.config.displayHex = event.checked
     this.entityApiService.postConfiguration(this.config).subscribe(() => {})
   }

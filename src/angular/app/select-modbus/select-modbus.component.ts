@@ -18,7 +18,7 @@ import { MatTableDataSource } from '@angular/material/table'
 import { IBus, IModbusConnection, IRTUConnection, ITCPConnection, getBusName, getConnectionName } from '../../../server.shared'
 import { MatSelectChange, MatSelect } from '@angular/material/select'
 import { ActivatedRoute, Router } from '@angular/router'
-import { Subscription } from 'rxjs'
+import { Observable, Subscription } from 'rxjs'
 import { MatTabChangeEvent, MatTabGroup, MatTab } from '@angular/material/tabs'
 import { BUS_TIMEOUT_DEFAULT } from '../../../specification.shared'
 import { MatOption } from '@angular/material/core'
@@ -64,21 +64,26 @@ export class SelectModbusComponent implements AfterViewInit, OnDestroy {
     private route: ActivatedRoute,
     private routes: Router,
     private clipBoard: Clipboard
-  ) {}
+  ) {
+    this._formBuilder.array([])
+    this.bussesObservable = this.entityApiService.getBusses()
+    this.bussesFormArray = this._formBuilder.array([])
+    this.configureModbusFormGroup = this._formBuilder.group({
+      bussesFormArray: this.bussesFormArray,
+    })
+  }
   displayedBusIdColumns: string[] = ['select', 'busid', 'connectionData', 'deviceCount']
-  busname: string
-  paramSubscription: Subscription
+  busname: string | undefined = undefined
+  paramSubscription: Subscription | undefined = undefined
   serialDevices: string[] = []
-  bussesFormArray: FormArray = this._formBuilder.array([])
-  configureModbusFormGroup = this._formBuilder.group({
-    bussesFormArray: this.bussesFormArray,
-  })
+  bussesFormArray: FormArray
+  configureModbusFormGroup: FormGroup
   modbusIsRtu: boolean[] = []
   busses: MatTableDataSource<IBus> = new MatTableDataSource<IBus>([])
-  bussesObservable = this.entityApiService.getBusses()
+  bussesObservable: Observable<IBus[]>
   baudRates: Array<number> = [2400, 4800, 9600, 11200, 115700]
   selectedBaudRate: number | undefined = undefined
-  @ViewChild('selectBaudRate') selectBaudRate: MatSelectionList
+  @ViewChild('selectBaudRate') selectBaudRate: MatSelectionList | undefined
   @Input() preselectedBusId: number | undefined = undefined
 
   uniqueConnectionDataValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
@@ -103,7 +108,7 @@ export class SelectModbusComponent implements AfterViewInit, OnDestroy {
     })
   }
   ngOnDestroy(): void {
-    this.paramSubscription.unsubscribe()
+    if (this.paramSubscription) this.paramSubscription.unsubscribe()
   }
 
   getConnectionName(bus: IBus): string {

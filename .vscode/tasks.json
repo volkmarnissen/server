@@ -149,11 +149,20 @@
       }
     },
     {
-      "type": "npm",
-      "script": "ng",
+      "label": "ng serve modbus2mqtt 3005",
+      "type": "shell",
+      "command": "npx ng serve --configuration 3005",
       "problemMatcher": [],
-      "label": "npm: ng",
-      "detail": "ng"
+      "detail": "ng",
+      "isBackground": true
+    },
+    {
+      "label": "ng serve",
+      "type": "shell",
+      "command": "npx ng serve --configuration development",
+      "problemMatcher": [],
+      "detail": "ng",
+      "isBackground": true
     },
     {
       "label": "Start Home Assistant",

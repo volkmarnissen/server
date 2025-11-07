@@ -8,10 +8,11 @@ import {
   ReactiveFormsModule,
   ValidatorFn,
   ValidationErrors,
+  FormGroup,
 } from '@angular/forms'
 import { ApiService } from '../services/api-service'
 import { Iconfiguration, IUserAuthenticationStatus } from '../../../server.shared'
-import { Observable, Subscription } from 'rxjs'
+import { Observable } from 'rxjs'
 import { ActivatedRoute, Router } from '@angular/router'
 import { MatOption } from '@angular/material/core'
 import { MatSelect } from '@angular/material/select'
@@ -52,7 +53,7 @@ import { MatCard, MatCardHeader, MatCardTitle, MatCardContent } from '@angular/m
   standalone: true,
 })
 export class ConfigureComponent implements OnInit {
-  config: Iconfiguration
+  config: Iconfiguration | undefined = undefined
   @Output() isMqttConfiguredEvent = new EventEmitter<boolean>()
 
   constructor(
@@ -63,6 +64,14 @@ export class ConfigureComponent implements OnInit {
   ) {
     this.ghPersonalAccessToken = _formBuilder.control([''])
     this.debugComponentsFormControl = _formBuilder.control([''])
+    this.configObservable = this.entityApiService.getConfiguration()
+    this.configureMqttFormGroup = this._formBuilder.group({
+      mqttserverurl: [null as string | null, this.requiredInNonAddonScenario],
+      mqttuser: [null as string | null],
+      mqttpassword: [null as string | null],
+      mqttkeyfile: [null as string | null],
+      mqttcafile: [null as string | null],
+    })
   }
   private requiredInNonAddonScenario: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
     {
@@ -81,20 +90,13 @@ export class ConfigureComponent implements OnInit {
         this.discoveryLanguageFormControl.pristine)
     )
   }
-  configObservable = this.entityApiService.getConfiguration()
+  configObservable: Observable<Iconfiguration>
   sslFiles: string[] = []
-  sub: Subscription
   mqttConnectIcon: string = 'cast'
   mqttConnectClass: string = 'redIcon'
   mqttConnectMessage: string = 'unknown'
   authStatus: IUserAuthenticationStatus | undefined = undefined
-  configureMqttFormGroup = this._formBuilder.group({
-    mqttserverurl: [null as string | null, this.requiredInNonAddonScenario],
-    mqttuser: [null as string | null],
-    mqttpassword: [null as string | null],
-    mqttkeyfile: [null as string | null],
-    mqttcafile: [null as string | null],
-  })
+  configureMqttFormGroup: FormGroup
   ghPersonalAccessToken: FormControl
   debugComponentsFormControl: FormControl
   discoveryLanguageFormControl = new FormControl<string | null>(null)
@@ -144,9 +146,9 @@ export class ConfigureComponent implements OnInit {
         if (this.discoveryLanguageFormControl && this.discoveryLanguageFormControl.value!)
           config.mqttdiscoverylanguage = this.discoveryLanguageFormControl.value!
         if (mqttcafile) config.mqttcaFile = mqttcafile.value ? mqttcafile.value : undefined
-        else delete this.config.mqttcaFile
+        else this.config && delete this.config.mqttcaFile
         if (mqttkeyfile) config.mqttcertFile = mqttkeyfile.value ? mqttkeyfile.value : undefined
-        else delete config.mqttcertFile
+        else config && delete config.mqttcertFile
         if (config.debugComponents) config.debugComponents = this.debugComponentsFormControl!.value
       }
     }
@@ -161,6 +163,7 @@ export class ConfigureComponent implements OnInit {
   }
 
   save() {
+    if (this.config == undefined) return
     this.form2Config(this.configureMqttFormGroup, this.config)
     if (this.ghPersonalAccessToken && this.ghPersonalAccessToken.value.length > 0)
       this.config.githubPersonalToken = this.ghPersonalAccessToken.value

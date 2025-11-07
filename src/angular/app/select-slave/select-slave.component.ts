@@ -261,44 +261,48 @@ export class SelectSlaveComponent extends SessionStorage implements OnInit {
     let ct = sl.getEntityCommandTopic(entity)
     return ct && ct.modbusCommandTopic ? ct.modbusCommandTopic : ''
   }
-  getDetectedSpecs(uiSlave: IuiSlave, detectSpec: boolean | undefined): Observable<IidentificationSpecification[]> {
-    if (!this.config || !this.bus) return new Observable<IidentificationSpecification[]>((subscriber) => subscriber.next([]))
-    let rc = this.entityApiService
-      .getSpecsDetection(this.bus.busId!, uiSlave.slave.slaveid, this.showAllPublicSpecs.value!, this.config.mqttdiscoverylanguage)
-      .pipe(
-        map((identSpecs) => {
-          let found: IidentificationSpecification | undefined = undefined
-          if (detectSpec) {
-            let foundOne = false
-            identSpecs.forEach((ispec) => {
-              if (ispec.identified == IdentifiedStates.identified)
-                if (found == undefined) {
-                  found = ispec
-                  foundOne = true
-                } else foundOne = false
-            })
-            if (foundOne) {
-              let ctrl = uiSlave.slaveForm.get('specificationid')
-              if (ctrl) {
-                ctrl.setValue(found)
-                // This will not considered as touched, because the uislave.slaveForm is not active yet
-                // It will be marked as touched in this.addSlave
-              }
-            }
-          }
-          return identSpecs
-        })
-      )
-    return rc
-  }
-  getIdentSpecs(uiSlave: IuiSlave | undefined): Promise<IidentificationSpecification[]> {
+  // getDetectedSpecs(uiSlave: IuiSlave, detectSpec: boolean | undefined): Observable<IidentificationSpecification[]> {
+  //   if (!this.config || !this.bus) return new Observable<IidentificationSpecification[]>((subscriber) => subscriber.next([]))
+  //   let rc = this.entityApiService
+  //     .getSpecsDetection(this.bus.busId!, uiSlave.slave.slaveid, this.showAllPublicSpecs.value!, this.config.mqttdiscoverylanguage)
+  //     .pipe(
+  //       map((identSpecs) => {
+  //         let found: IidentificationSpecification | undefined = undefined
+  //         if (detectSpec) {
+  //           let foundOne = false
+  //           identSpecs.forEach((ispec) => {
+  //             if (ispec.identified == IdentifiedStates.identified)
+  //               if (found == undefined) {
+  //                 found = ispec
+  //                 foundOne = true
+  //               } else foundOne = false
+  //           })
+  //           if (foundOne) {
+  //             let ctrl = uiSlave.slaveForm.get('specificationid')
+  //             if (ctrl) {
+  //               ctrl.setValue(found)
+  //               // This will not considered as touched, because the uislave.slaveForm is not active yet
+  //               // It will be marked as touched in this.addSlave
+  //             }
+  //           }
+  //         }
+  //         return identSpecs
+  //       })
+  //     )
+  //   return rc
+  // }
+  private getIdentSpecs(uiSlave: IuiSlave | undefined): Promise<IidentificationSpecification[]> {
     return new Promise<IidentificationSpecification[]>((resolve, reject) => {
-      if (!this.preparedSpecs || !this.config || !this.bus) {
+      if ( !this.bus) {
         resolve([])
         return
       }
       let fct = (specModbus: ImodbusSpecification | undefined) => {
         let rci: IidentificationSpecification[] = []
+        if(!this.preparedSpecs || !this.config || !this.bus) {
+          resolve(rci)
+          return
+        }
         this.preparedSpecs!.forEach((spec) => {
           let name = getSpecificationI18nName(spec, this.config!.mqttdiscoverylanguage)
           rci.push({
@@ -319,7 +323,7 @@ export class SelectSlaveComponent extends SessionStorage implements OnInit {
       else fct(undefined)
     })
   }
-  getUiSlave(slave: Islave, detectSpec: boolean | undefined): IuiSlave {
+  private getUiSlave(slave: Islave, detectSpec: boolean | undefined): IuiSlave {
     let fg = this.initiateSlaveControl(slave, null)
     let rc: IuiSlave = {
       slave: slave,
@@ -339,12 +343,12 @@ export class SelectSlaveComponent extends SessionStorage implements OnInit {
     ;((rc.selectedEntitites = this.getSelectedEntites(slave)), this.fillCommandTopics(rc))
     return rc
   }
-  updateUiSlaves(slave: Islave, detectSpec: boolean | undefined): void {
+  private updateUiSlaves(slave: Islave, detectSpec: boolean | undefined): void {
     let idx = this.uiSlaves.findIndex((s) => s.slave.slaveid == slave.slaveid)
     if (idx >= 0) this.uiSlaves[idx] = this.getUiSlave(slave, detectSpec)
     else this.uiSlaves.push(this.getUiSlave(slave, detectSpec))
   }
-  updateUiSlaveData(slave: Islave): void {
+  private updateUiSlaveData(slave: Islave): void {
     let idx = this.uiSlaves.findIndex((s) => s.slave.slaveid == slave.slaveid)
 
     if (idx >= 0) {
@@ -373,10 +377,10 @@ export class SelectSlaveComponent extends SessionStorage implements OnInit {
     if (identified == 1) return 'thumb_up'
     return 'thumb_down'
   }
-  getIidentSpec(filename: string | undefined): IidentificationSpecification | undefined {
-    if (!this.preparedIdentSpecs) return undefined
-    return this.preparedIdentSpecs.find((is) => is.filename == filename)
-  }
+  // getIidentSpec(filename: string | undefined): IidentificationSpecification | undefined {
+  //   if (!this.preparedIdentSpecs) return undefined
+  //   return this.preparedIdentSpecs.find((is) => is.filename == filename)
+  // }
   onSpecificationChange(uiSlave: IuiSlave) {
     let identSpec: IidentificationSpecification = uiSlave.slaveForm.get('specificationid')!.value
     if (uiSlave.slave != null) {
@@ -486,7 +490,7 @@ export class SelectSlaveComponent extends SessionStorage implements OnInit {
     )
   }
   addSlave(newSlaveFormGroup: FormGroup): void {
-    if (!this.bus) return
+    if (this.bus == undefined) return
     let slaveId: number = this.getSlaveIdFromForm(newSlaveFormGroup)
     let detectSpec = newSlaveFormGroup.get(['detectSpec'])?.value
     if (this.canAddSlaveId(newSlaveFormGroup))
@@ -501,7 +505,7 @@ export class SelectSlaveComponent extends SessionStorage implements OnInit {
         if (detectSpec) {
           let specCtrl = newUiSlave.slaveForm.get('specificationid')
 
-          if (specCtrl && specCtrl.value != undefined) newUiSlave.slaveForm.markAllAsTouched()
+          if (specCtrl && specCtrl.value != undefined && specCtrl.value.filename != undefined) newUiSlave.slaveForm.markAllAsTouched()
         }
       })
   }

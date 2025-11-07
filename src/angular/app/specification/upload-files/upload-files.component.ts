@@ -56,8 +56,15 @@ export class UploadFilesComponent implements OnInit, OnChanges {
   constructor(
     private entityApiService: ApiService,
     private fb: FormBuilder
-  ) {}
-  @Input('specification') currentSpecification: ImodbusSpecification | null
+  ) {
+    this.uploadFilesForm = this.fb.group({
+      urlDocument: [null as string | null],
+      urlImage: [null as string | null],
+    })
+    this.urlDocumentControl = this.uploadFilesForm.get('urlDocument') as FormControl
+    this.urlImageControl = this.uploadFilesForm.get('urlImage') as FormControl
+  }
+  @Input('specification') currentSpecification: ImodbusSpecification | null = null
   uploadFilesForm: FormGroup
   urlDocumentControl: FormControl<string | null>
   urlImageControl: FormControl<string | null>
@@ -65,9 +72,9 @@ export class UploadFilesComponent implements OnInit, OnChanges {
   updateDocumentation = new EventEmitter<IimageAndDocumentUrl[]>()
 
   @ViewChild('addImageUrlButton')
-  addImageUrlButton: MatIconButton
+  addImageUrlButton: MatIconButton | undefined = undefined
   @ViewChild('addDocumentUrlButton')
-  addDocumentUrlButton: MatIconButton
+  addDocumentUrlButton: MatIconButton | undefined = undefined
   galleryItems: GalleryItem[] = []
   imageUrls: IimageAndDocumentUrl[] = []
   documentUrls: IimageAndDocumentUrl[] = []
@@ -78,12 +85,6 @@ export class UploadFilesComponent implements OnInit, OnChanges {
     if (this.addDocumentUrlButton) this.addDocumentUrlButton.disabled = true
   }
   ngOnInit(): void {
-    this.uploadFilesForm = this.fb.group({
-      urlDocument: [null as string | null],
-      urlImage: [null as string | null],
-    })
-    this.urlDocumentControl = this.uploadFilesForm.get('urlDocument') as FormControl
-    this.urlImageControl = this.uploadFilesForm.get('urlImage') as FormControl
     this.generateDocumentUrls()
   }
   private fileBrowseHandler(input: EventTarget | null, usage: SpecificationFileUsage) {

@@ -23,14 +23,33 @@
       ],
       "type": "node"
     },
-    
+    {
+        "request": "attach",
+        "name": "Attach to Chrome(cypress)",
+        "type": "chrome",
+        "port":9222,
+        "webRoot": "${workspaceFolder}",
+        "sourceMaps": true,
+        "outFiles": [
+            "${workspaceRoot}/dist/angular/**/*.js"
+        ]
+     },
+     {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Launch Chrome against localhost",
+      "preLaunchTask": "ng serve",
+      "cwd": "${workspaceFolder}",
+      "url": "http://localhost:4200",
+      "webRoot": "${workspaceFolder}"
+    }
     {
       "name": "Python-Debugger: Aktuelle Datei mit Argumenten",
       "type": "debugpy",
       "request": "launch",
       "program": "${file}",
       "console": "integratedTerminal",
-      "args": ["killServers"],
+      "args": ["restartServers","--permanent"],
       "cwd": "${workspaceFolder}"
     },
 

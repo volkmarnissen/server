@@ -43,14 +43,19 @@ export class LoginComponent implements OnInit, AfterViewInit {
   hide: boolean = true
   isRegisterMode = false
   form: FormGroup
-  sub: Subscription
-  toUrl: string | number
+  sub: Subscription | undefined = undefined
+  toUrl: string | number | undefined
   constructor(
     private _formBuilder: FormBuilder,
     private api: ApiService,
     private router: Router,
     private route: ActivatedRoute
-  ) {}
+  ) {
+    this.form = this._formBuilder.group({
+      username: ['', this.usernamePasswordRequired],
+      password: ['', this.usernamePasswordRequired],
+    })
+  }
   ngAfterViewInit(): void {
     this.sub = this.route.paramMap.subscribe((params) => {
       this.toUrl = params.get('toUrl') || ''
@@ -61,10 +66,6 @@ export class LoginComponent implements OnInit, AfterViewInit {
     let posRegister = this.router.url.indexOf('register')
     // If the url part of the URL and not the parameter contains register, we are in register mode
     this.isRegisterMode = posRegister >= 0
-    this.form = this._formBuilder.group({
-      username: ['', this.usernamePasswordRequired],
-      password: ['', this.usernamePasswordRequired],
-    })
   }
   private login(username: string, password: string, toUrl: string) {
     this.api.getUserLogin(username, password).subscribe((token) => {

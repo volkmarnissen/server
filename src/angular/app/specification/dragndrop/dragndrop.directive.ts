@@ -6,7 +6,7 @@ import { Directive, EventEmitter, HostBinding, HostListener, Output } from '@ang
 })
 export class DragndropDirective {
   constructor() {}
-  @HostBinding('class.fileover') fileOver: boolean
+  @HostBinding('class.fileover') fileOver: boolean | undefined = undefined
   @Output() fileDropped = new EventEmitter<FileList>()
 
   // Dragover listener

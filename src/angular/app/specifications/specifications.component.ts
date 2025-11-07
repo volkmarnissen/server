@@ -49,11 +49,11 @@ interface ImodbusSpecificationWithMessages extends ImodbusSpecification {
   ],
 })
 export class SpecificationsComponent implements OnInit {
-  config: Iconfiguration
+  config: Iconfiguration | undefined
   private specServices: SpecificationServices | undefined
   private authStatus: IUserAuthenticationStatus | undefined = undefined
-  specifications: ImodbusSpecificationWithMessages[]
-  galleryItems: Map<string, GalleryItem[]>
+  specifications: ImodbusSpecificationWithMessages[] | undefined
+  galleryItems: Map<string, GalleryItem[]> = new Map<string, GalleryItem[]>()
   message: Subject<string> = new Subject<string>()
   constructor(
     private apiService: ApiService,
@@ -62,6 +62,7 @@ export class SpecificationsComponent implements OnInit {
   ) {}
   contributing: boolean = false
   fillSpecifications(specs: ImodbusSpecification[]) {
+    if (!this.config) return
     let a: any = {}
     this.galleryItems = new Map<string, GalleryItem[]>()
 
@@ -69,7 +70,7 @@ export class SpecificationsComponent implements OnInit {
       // Specifications Component doesn't change a Specification
       // for validation of identification, it's better to use the Filespecification
       // This happens in getForSpecificationValidation
-      let ox = this.apiService.getForSpecificationValidation(spec.filename, this.config.mqttdiscoverylanguage)
+      let ox = this.apiService.getForSpecificationValidation(spec.filename, this.config!.mqttdiscoverylanguage)
       a[spec.filename] = ox
       this.generateImageGalleryItems(spec)
     })
@@ -135,7 +136,7 @@ export class SpecificationsComponent implements OnInit {
 
   canContribute(spec: ImodbusSpecification): Observable<boolean> {
     let rc = ![SpecificationStatus.published, SpecificationStatus.contributed].includes(spec.status)
-    if (!rc) {
+    if (!rc || !this.config) {
       let s = new Subject<boolean>()
       setTimeout(() => {
         s.next(false)

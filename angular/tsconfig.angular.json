@@ -23,23 +23,11 @@
     "lib": [
       "ES2022",
       "dom"
-    ],
-    "paths": {
-      "angular/src/*": [
-        "./src/*"
-      ]
-    }
+    ]
   },
   "ts-node": {
     "esm": true,
     "experimentalSpecifierResolution": "node"
   },
-  "include": ["./src/angular/*","./src/*.shared/*"],
-  "exclude": [
-    "node_modules/**/*",
-    "dist/**/*",
-    "**/__tests__/**",
-    "**/environments/environment*.ts",
-    "**/*.spec.ts"
-  ]
+  "include": ["../src/angular/*","../src/*.shared/*"],
 }

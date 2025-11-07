@@ -40,11 +40,12 @@ export class InfoboxComponent implements OnInit, OnDestroy {
   newAnimationState = 'close'
   intervalTimer: any = undefined
   @Input({ required: true })
-  message: Observable<string>
+  message: Observable<string> | undefined = undefined
   messageSubscription: any = undefined
 
   constructor() {}
   ngOnInit(): void {
+    if (this.message == undefined) return
     this.messageSubscription = this.message.subscribe((newMessage) => {
       this.messages.push({
         endOfLive: Date.now() + 2 * animationDuration + 1000,

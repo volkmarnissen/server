@@ -1,5 +1,5 @@
 let prefix = ''
-let localhost='127.0.0.1'
+let localhost='localhost'
 function runRegister(authentication, port) {
   if( prefix.length )
     cy.visit('http://' + localhost + ':' + Cypress.env('nginxAddonHttpPort') +'/' + prefix)
@@ -50,7 +50,8 @@ function addSlave(willLog) {
   })
   cy.url().should('contain', prefix + '/slaves')
   cy.get('[formcontrolname="detectSpec"]', logSetting).click(logSetting)
-  cy.get('[formcontrolname="slaveId"]', logSetting).type('3{enter}', { force: true, log: willLog })
+  cy.get('[formcontrolname="slaveId"]', logSetting).type('3{enter}', { force: true, log: willLog }).wait(2000)
+  // wait for preparedSpecifications to be available
   cy.get('app-select-slave:first mat-expansion-panel-header[aria-expanded=false]', logSetting).then((elements) => {
     if (elements.length >= 1) {
       elements[0].click(logSetting)
@@ -83,6 +84,10 @@ describe('End to End Tests', () => {
   it(
     'register->mqtt->busses->slaves->specification with authentication',
     {
+      retries: {
+        runMode: 0,
+        openMode: 0,
+      }
     },
     () => {
 
@@ -95,6 +100,10 @@ describe('End to End Tests', () => {
   it(
     'register->mqtt with no authentication',
     {
+      retries: {
+        runMode: 0,
+        openMode: 0,
+      }
     },
     () => {
       runRegister(false, Cypress.env('modbus2mqttMqttNoAuthPort'))
@@ -104,6 +113,10 @@ describe('End to End Tests', () => {
   it(
     'mqtt hassio addon',
     {
+      retries: {
+        runMode: 0,
+        openMode: 0,
+      }
     },
     () => {
       prefix = 'ingress'
