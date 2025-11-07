@@ -18,7 +18,7 @@
             "localize": true,
             "index": "src/angular/index.html",
             "polyfills": [ "@angular/localize/init"],
-            "tsConfig": "tsconfig.angular.json",
+            "tsConfig": "angular/tsconfig.angular.json",
             "assets": ["src/angular/assets/images", "src/angular/assets"],
             "styles": ["src/angular/styles.css"],
             "scripts": [],
@@ -52,9 +52,13 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "proxyConfig": "proxy.conf.json"
+            "proxyConfig": "angular/proxy.conf.3000.json"
           },
           "configurations": {
+            "3005": {
+              "buildTarget": "modbus2mqtt:build:development",
+              "proxyConfig": "angular/proxy.conf.3005.json"
+            },
             "production": {
               "buildTarget": "modbus2mqtt:build:production"
             },

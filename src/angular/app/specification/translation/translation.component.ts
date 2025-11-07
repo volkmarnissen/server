@@ -55,7 +55,7 @@ export class TranslationComponent implements OnInit, OnDestroy {
   specificationObservable: Observable<ImodbusSpecification | null> | null = null
   specificationSubscription: Subscription | undefined = undefined
   @Input({ required: true })
-  specificationFormGroup: FormGroup
+  specificationFormGroup: FormGroup | undefined = undefined
 
   @Output()
   updateI18n = new EventEmitter<IUpdatei18nText>()
@@ -85,7 +85,7 @@ export class TranslationComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     if (this.mqttdiscoverylanguage != 'en') {
-      this.specificationFormGroup.setControl('translation', this.translationFormGroup)
+      this.specificationFormGroup && this.specificationFormGroup.setControl('translation', this.translationFormGroup)
     }
 
     this.translationFormGroup.addControl('name', new FormControl<string | null>(null))

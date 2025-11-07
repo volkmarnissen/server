@@ -40,6 +40,7 @@ The tests need a complete infrastructure consisting of
 | mosquitto (with Auth) | 3001 | MQTT Broker with authentication |
 | mosquitto (without Auth) | 3003 | MQTT Broker without authentication |
 | modbus2mqtt (MQTT NoAuth) | 3007 | modbus2mqtt with NoAuth MQTT |
+| browser debugger | 9222 | Debugging angular in vscode |
 
 ### Credentials
 
@@ -86,7 +87,29 @@ The tests need a complete infrastructure consisting of
 
 Test servers log files are located in the root of the package directory ```e2e/modbus2mqtt_<port>.out``` 
 
-### Debugging server and angular
+### Debugging angular (not server)
+Debugging the cypress works by 
+- Start cypress
+  ```npm run cypress:open``` 
+  This is configured to open a browser with debug port ```9222```
+  > 👉 This does not work with npx cypress open alone. It needs the environment variable ```CYPRESS_REMOTE_DEBUGGING_PORT=9222``` to be set.
+
+- opening the debugging panel in vscode and launching ```Attach to Chrome(cypress)```
+  ```
+   This is the launch configuration
+   {
+        "request": "attach",
+        "name": "Attach to Chrome(cypress)",
+        "type": "chrome",
+        "port":9222,
+        "webRoot": "${workspaceFolder}",
+        "sourceMaps": true,
+        "outFiles": [
+            "${workspaceRoot}/dist/angular/**/*.js"
+        ]
+   }
+
+### Debugging server
 - Setup
 
   - Start the permanent servers only
@@ -109,9 +132,12 @@ Test servers log files are located in the root of the package directory ```e2e/m
   ```
 - Open cypress
   ```
-  npx cypress open
+  npm run cypress:open
   ```
-  and execute the desired Spec
+- Optional: For debugging Angular code:
+  Open the debugging panel in vscode and launching ```Attach to Chrome(cypress)
+
+- Execute the desired Spec
 
 #### Iterations:
 
@@ -127,6 +153,8 @@ This is the procedure:
   ```
   npm run e2e:stop && npm run e2e:start -- --restart
   ```
+### Debugging both
+Proceed as described in [Debugging Server](#Debugging%20server) but execute option **"For debugging Angular code"**
 
 ## Manual Verification
 

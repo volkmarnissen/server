@@ -22,8 +22,11 @@
   },
   "credits": "multiple choice by Studio 365 from <a href='https://thenounproject.com/browse/icons/term/multiple-choice/' target='_blank' title='multiple choice Icons'>Noun Project</a> (CC BY 3.0)",
   "scripts": {
+    "ng": "npx ng",
     "test": "jest",
-    "cypress": "TS_NODE_PROJECT=./tsconfig.angular.json && cypress run --component",
+    "cypress": "TS_NODE_PROJECT=angular/tsconfig.angular.json ;CYPRESS_REMOTE_DEBUGGING_PORT=9222; npx cypress",
+    "cypress:open": "npm run cypress -- open",
+    "cypress:component": "npm run cypress -- run --component",
     "server": "npm run build && node dist/modbus2mqtt.js -s ../ssl -y ../yaml-dir",
     "e2e:start": "npm run build.dev && ./cypress/servers/testall.py startServers",
     "e2e:restart": "./cypress/servers/testall.py restartServers",

@@ -1,5 +1,5 @@
 let prefix = ''
-let localhost='127.0.0.1'
+let localhost='localhost'
 function runRegister(authentication, port) {
   if( prefix.length )
     cy.visit('http://' + localhost + ':' + Cypress.env('nginxAddonHttpPort') +'/' + prefix)
