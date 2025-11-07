@@ -80,6 +80,53 @@ The tests need a complete infrastructure consisting of
 | Cypress interactive mode | `npm run e2e:start`<br>`npx cypress open` | Starts all servers, then opens Cypress in interactive mode |
 | Retest (after changes) | `npm run e2e:start -- --restart` | Restarts only modbus2mqtt and mosquitto. Hassio scenario needs nginx at startup |
 
+## Debugging
+
+### Server log Files
+
+Test servers log files are located in the root of the package directory ```e2e/modbus2mqtt_<port>.out``` 
+
+### Debugging server and angular
+- Setup
+
+  - Start the permanent servers only
+    ```
+    npm run e2e:start -- --permanent
+    ```
+  - Start the modbus2mqtt server in vscode 
+  - Start the other servers
+    - for debugging standalone scenario
+      ```
+      e2e:server.debug 
+      ```
+    - for debugging hassio scenario
+      ```
+      e2e:server.debug.ingress 
+      ```
+- Start the other modbus2mqtt servers
+  ```
+  npm run e2e:start -- --release
+  ```
+- Open cypress
+  ```
+  npx cypress open
+  ```
+  and execute the desired Spec
+
+#### Iterations:
+
+Before starting a new e2e cypress test, it is required to restart the modbus2mqtt servers, because the tests require  empty config directories.
+
+This is the procedure:
+
+- Stop the debugged server in vscode
+- Remove the content in the configuration directory.
+  Check the launch configuration to find out which directory it is.
+- Restart the server in vscode again
+- Restart the modbus2mqtt services for scenarios which are not debugged 
+  ```
+  npm run e2e:stop && npm run e2e:start -- --restart
+  ```
 
 ## Manual Verification
 
@@ -135,62 +182,6 @@ Show all running test servers:
 lsof -i -P | grep LISTEN | grep -E ':(3001|3002|3003|3004|3005|3006|3007)'
 ```
 
-## Debugging
-
-### Show Server Logs
-
-Server logs are written to `stderr.out`:
-```bash
-tail -f stderr.out
-```
-
-### Temporary Configuration Files
-
-Test servers use temporary configuration files listed in `cypress/servers/tmpfiles`:
-```bash
-cat cypress/servers/tmpfiles
-```
-### Debugging server and angular
-- Setup
-
-  - Start the permanent servers only
-    ```
-    npm run e2e:start -- --permanent
-    ```
-  - Start the modbus2mqtt server in vscode 
-  - Start the other servers
-    - for debugging standalone scenario
-      ```
-      e2e:server.debug 
-      ```
-    - for debugging hassio scenario
-      ```
-      e2e:server.debug.ingress 
-      ```
-- Start the other modbus2mqtt servers
-  ```
-  npm run e2e:start -- --release
-  ```
-- Open cypress
-  ```
-  npx cypress open
-  ```
-  and execute the desired Spec
-
-#### Iterations:
-
-Before starting a new e2e cypress test, it is required to restart the modbus2mqtt servers, because the tests require  empty config directories.
-
-This is the procedure:
-
-- Stop the debugged server in vscode
-- Remove the content in the configuration directory.
-  Check the launch configuration to find out which directory it is.
-- Restart the server in vscode again
-- Restart the modbus2mqtt services for scenarios which are not debugged 
-  ```
-  npm run e2e:stop && npm run e2e:start -- --restart
-  ```
 
 ### Nginx Configuration
 
