@@ -1,8 +1,8 @@
 import Debug from 'debug'
 import fs from 'fs'
 import { format } from 'util'
-import winston, { Logger as WinstonLogger, Logform, LogEntry, LoggerOptions } from 'winston'
-import Transport, { TransportStreamOptions } from 'winston-transport'
+import winston, { Logger as WinstonLogger, LogEntry, LoggerOptions } from 'winston'
+import Transport from 'winston-transport'
 export enum LogLevelEnum {
   verbose = 'verbose',
   timing = 'timing',
