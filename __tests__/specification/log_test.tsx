@@ -7,16 +7,14 @@ describe('Logger wrapper (npmlog backend)', () => {
     process.env['JEST_WORKER_ID'] = '1'
     const logger = new Logger('specTest')
 
-    expect(() => logger.log(LogLevelEnum.notice, 'Hello %s', 'World')).not.toThrow()
-    expect(Logger.isInitialized).toBe(true)
+    expect(() => logger.log(LogLevelEnum.info, 'Hello %s', 'World')).not.toThrow()
     delete process.env['JEST_WORKER_ID']
   })
 
   test('initializes when not in jest', () => {
     delete process.env['JEST_WORKER_ID']
     const logger = new Logger('prodTest')
-    expect(() => logger.log(LogLevelEnum.notice, 'Prod message')).not.toThrow()
-    expect(Logger.isInitialized).toBe(true)
+    expect(() => logger.log(LogLevelEnum.info, 'Prod message')).not.toThrow()
   })
 
   test('writes to test.log in jest when using log2File', () => {

@@ -59,10 +59,10 @@
     "mqtt": "^5.9.1",
     "multer": "^2.0.2",
     "node-html-parser": "^7.0.1",
-    "npmlog": "^7.0.1",
     "rxjs": "^7.8.2",
     "serve-static": "^2.2.0",
     "url-parse": "^1.5.10",
+    "winston": "^3.18.3",
     "yaml": "^2.5.0"
   },
   "devDependencies": {

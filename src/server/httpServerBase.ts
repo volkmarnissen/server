@@ -202,7 +202,7 @@ export class HttpServerBase {
             //this.ingressUrl = join("/hassio/ingress/", info.data.slug);
             this.ingressUrl = info.data.ingress_entry
             let port = Config.getConfiguration().httpport
-            log.log(LogLevelEnum.notice, 'Hassio authentication prefix:' + this.ingressUrl + ' modbus2mqtt: ' + port)
+            log.log(LogLevelEnum.info, 'Hassio authentication prefix:' + this.ingressUrl + ' modbus2mqtt: ' + port)
             this.initBase()
             resolve()
           },
@@ -229,7 +229,7 @@ export class HttpServerBase {
   private sendIndexFile(req: Request, res: express.Response) {
     this.compareIngressUrl(req)
     if (req.url.endsWith('.js')) {
-      log.log(LogLevelEnum.notice, 'sendIndexfile is serving js file directly: ' + req.url)
+      log.log(LogLevelEnum.info, 'sendIndexfile is serving js file directly: ' + req.url)
     }
     let dir = this.getDirectoryForLanguage(req)
     let file = join(this.angulardir, dir, 'index.html')
@@ -262,7 +262,7 @@ export class HttpServerBase {
           } else {
             res.contentType(basename(req.url))
             let content = fs.readFileSync(file)
-            log.log(LogLevelEnum.notice, 'url' + req.url + ' ct:' + res.getHeader('Content-Type'))
+            log.log(LogLevelEnum.info, 'url' + req.url + ' ct:' + res.getHeader('Content-Type'))
             res.setHeader('Content-Length', content.byteLength)
             res.status(200)
             res.send(content)

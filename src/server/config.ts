@@ -232,7 +232,7 @@ export class Config {
           : process.env.HASSIO_TOKEN != undefined && process.env.HASSIO_TOKEN.length > 0
       Config.config.supervisor_host = Config.config.supervisor_host ? Config.config.supervisor_host : 'supervisor'
     } else {
-      log.log(LogLevelEnum.notice, 'No config file found ')
+      log.log(LogLevelEnum.info, 'No config file found ')
       Config.config = structuredClone(Config.newConfig)
     }
     return structuredClone(Config.config)
@@ -417,7 +417,7 @@ export class Config {
           log.log(LogLevelEnum.error, 'configDir not defined in command line')
         }
         if (!fs.existsSync(Config.configDir)) {
-          log.log(LogLevelEnum.notice, 'configuration directory  not found ' + process.cwd() + '/' + Config.configDir)
+          log.log(LogLevelEnum.info, 'configuration directory  not found ' + process.cwd() + '/' + Config.configDir)
           Config.config = structuredClone(Config.newConfig)
           resolve()
         }
@@ -426,7 +426,7 @@ export class Config {
         var yamlFile = Config.getConfigPath()
 
         if (!fs.existsSync(yamlFile)) {
-          log.log(LogLevelEnum.notice, 'configuration file  not found ' + yamlFile)
+          log.log(LogLevelEnum.info, 'configuration file  not found ' + yamlFile)
           Config.config = structuredClone(Config.newConfig)
         } else {
           var secretsFile = Config.getLocalDir() + '/secrets.yaml'

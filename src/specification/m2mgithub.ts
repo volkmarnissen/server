@@ -214,11 +214,11 @@ export class M2mGitHub {
     if (existsSync(join(this.publicRoot, '.git'))) {
       let msg = execSync('git pull', { cwd: this.publicRoot }).toString()
       // log more than two lines only. Two lines usually means up-to-date 1th line + \n
-      if (msg.split(/\r\n|\r|\n/).length > 2) log.log(LogLevelEnum.notice, msg)
+      if (msg.split(/\r\n|\r|\n/).length > 2) log.log(LogLevelEnum.info, msg)
     } // creating a repo is worth a notice
     else
       log.log(
-        LogLevelEnum.notice,
+        LogLevelEnum.info,
         execSync(
           'git clone https://github.com/' +
             githubPublicNames.publicModbus2mqttOwner +

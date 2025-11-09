@@ -98,7 +98,7 @@ const vector: IServiceVector = {
       let v = values.holdingRegisters.find((v) => v.slaveid == unitID && v.address == addr + idx)
       if (v) rc.push(v.value)
       else {
-        log.log(LogLevelEnum.notice, 'Invalid holding reg s:' + unitID + ' a: ' + addr + idx)
+        log.log(LogLevelEnum.info, 'Invalid holding reg s:' + unitID + ' a: ' + addr + idx)
         cb({ modbusErrorCode: 2 } as any as Error, [])
         return
       }
@@ -162,7 +162,7 @@ export class ModbusServer {
         reject(err)
       })
       this.serverTCP.on('initialized', () => {
-        log.log(LogLevelEnum.notice, 'ModbusTCP listening on modbus://0.0.0.0:' + port)
+        log.log(LogLevelEnum.info, 'ModbusTCP listening on modbus://0.0.0.0:' + port)
         resolve(this.serverTCP!)
       })
     })
@@ -205,21 +205,21 @@ export function addRegisterValue(slaveid: number, address: number, fc: ModbusReg
       })
       break
     default:
-      log.log(LogLevelEnum.notice, 'Invalid function code ' + fc)
+      log.log(LogLevelEnum.info, 'Invalid function code ' + fc)
   }
 }
 export function logValues() {
-  log.log(LogLevelEnum.notice, 'coils')
+  log.log(LogLevelEnum.info, 'coils')
   values.coils.forEach((c) => {
-    log.log(LogLevelEnum.notice, 's: ' + c.slaveid + ' a: ' + c.address + ' v: ' + c.value)
+    log.log(LogLevelEnum.info, 's: ' + c.slaveid + ' a: ' + c.address + ' v: ' + c.value)
   })
-  log.log(LogLevelEnum.notice, 'holding')
+  log.log(LogLevelEnum.info, 'holding')
   values.holdingRegisters.forEach((c) => {
-    log.log(LogLevelEnum.notice, 's: ' + c.slaveid + ' a: ' + c.address + ' v: ' + c.value)
+    log.log(LogLevelEnum.info, 's: ' + c.slaveid + ' a: ' + c.address + ' v: ' + c.value)
   })
-  log.log(LogLevelEnum.notice, 'input')
+  log.log(LogLevelEnum.info, 'input')
   values.inputRegisters.forEach((c) => {
-    log.log(LogLevelEnum.notice, 's: ' + c.slaveid + ' a: ' + c.address + ' v: ' + c.value)
+    log.log(LogLevelEnum.info, 's: ' + c.slaveid + ' a: ' + c.address + ' v: ' + c.value)
   })
 }
 let server: ModbusServer | undefined = undefined
@@ -228,7 +228,7 @@ export function runModbusServer(port: number = 8502): void {
   server
     .startServer(port)
     .then(() => {
-      log.log(LogLevelEnum.notice, 'listening')
+      log.log(LogLevelEnum.info, 'listening')
     })
     .catch((e) => {
       log.log(LogLevelEnum.error, 'Unable to start ' + e.message)
@@ -245,7 +245,7 @@ export function stopModbusTCPServer() {
 export function startModbusTCPserver(configDir: string, dataDir: string, busId: number): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     debug('starting')
-    if (process.pid) log.log(LogLevelEnum.notice, 'PROCESSID=' + process.pid)
+    if (process.pid) log.log(LogLevelEnum.info, 'PROCESSID=' + process.pid)
     let gh = new M2mGitHub(null, ConfigSpecification.getPublicDir())
     gh.init()
       .then(() => {

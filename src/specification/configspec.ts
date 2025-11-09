@@ -87,10 +87,10 @@ export class ConfigSpecification {
           debug('Unable to read Files directory for ' + filesName + '\n' + JSON.stringify(e))
         }
       } else {
-        log.log(LogLevelEnum.notice, 'files path does not exist ' + filesPath)
+        log.log(LogLevelEnum.info, 'files path does not exist ' + filesPath)
       }
-      log.log(LogLevelEnum.notice, JSON.stringify(files.files))
-      log.log(LogLevelEnum.notice, JSON.stringify(urls))
+      log.log(LogLevelEnum.info, JSON.stringify(files.files))
+      log.log(LogLevelEnum.info, JSON.stringify(urls))
       urls.forEach((url) => {
         if (files.files.find((uf) => uf.url == url.url && uf.usage == url.usage) == null) {
           files.files.push(url)
@@ -137,7 +137,7 @@ export class ConfigSpecification {
 
       spec.files = f.files
     } else {
-      //log.log(LogLevelEnum.notice, 'File not found: ' + fp)
+      //log.log(LogLevelEnum.info, 'File not found: ' + fp)
       spec.files = []
     }
     spec.files.forEach((file) => {
@@ -151,7 +151,7 @@ export class ConfigSpecification {
   private readspecifications(directory: string): IfileSpecification[] {
     var rc: IfileSpecification[] = []
     if (!fs.existsSync(directory)) {
-      //log.log(LogLevelEnum.notice, 'specifications directory not found ' + directory)
+      //log.log(LogLevelEnum.info, 'specifications directory not found ' + directory)
       return rc
     }
     var files: string[] = fs.readdirSync(directory)
@@ -529,7 +529,7 @@ export class ConfigSpecification {
             found = true
             fs.unlinkSync(ConfigSpecification.getSpecificationPath(sp))
             fs.rmSync(ConfigSpecification.getLocalFilesPath(sp.filename))
-            log.log(LogLevelEnum.notice, 'Specification removed: ' + sp.filename)
+            log.log(LogLevelEnum.info, 'Specification removed: ' + sp.filename)
             return
           } catch (e: any) {
             log.log(LogLevelEnum.error, 'Unable to remove Specification ' + sp.filename + ' ' + e.message)
@@ -541,7 +541,7 @@ export class ConfigSpecification {
         }
     }
     // if (!found && (!specfileName || specfileName != '_new'))
-    //  log.log(LogLevelEnum.notice, 'specification not found for deletion ' + specfileName)
+    //  log.log(LogLevelEnum.info, 'specification not found for deletion ' + specfileName)
   }
 
   static getSpecificationByName(name: string): IfileSpecification | undefined {

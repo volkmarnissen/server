@@ -78,7 +78,7 @@ function readModbusRegisterFake(): Promise<ImodbusValues> {
 }
 it('Bus getSpecsForDevice', (done) => {
   prepareIdentification()
-  if (Config.getConfiguration().fakeModbus) debug(LogLevelEnum.notice, 'Fakemodbus')
+  if (Config.getConfiguration().fakeModbus) debug(LogLevelEnum.info, 'Fakemodbus')
   let bus = Bus.getBus(0)
   expect(bus).toBeDefined()
   bus!['modbusAPI'] = new ModbusAPI(bus!)
