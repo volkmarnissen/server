@@ -19,7 +19,6 @@ declare global {
 
 let cli = new Command()
 cli.version(SPECIFICATION_VERSION)
-cli.usage('[--yaml <yaml-dir>] [--pr_number <pull request number>')
 cli.usage('--config <config-dir> --data <data-dir> [--pr_number <pull request number>]')
 cli.option('-c, --config <config-dir>', 'set directory for add on configuration')
 cli.option('-d, --data <data-dir>', 'set directory for persistent data (public specifications)')

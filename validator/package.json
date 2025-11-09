@@ -1,0 +1,33 @@
+{
+  "name": "@modbus2mqtt/validator",
+  "version": "1.0.0",
+  "description": "Validator for modbus2mqtt Specifications",
+  "main": "dist/validator.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/modbus2mqtt/modbus2mqtt.git"
+  },
+  "keywords": [
+    "modbus",
+    "mqtt",
+    "modbus2mqtt"
+  ],
+  "author": "volkmar.nissen@gmail.com",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/modbus2mqtt/modbus2mqtt/issues"
+  },
+  "homepage": "https://github.com/modbus2mqtt/modbus2mqtt#readme",
+  "dependencies": {
+    "@octokit/rest": "^20.1.1",
+    "commander": "^12.1.0",
+    "debug": "^4.3.7",
+    "fs": "^0.0.1-security",
+    "winston": "^3.18.3",
+    "path": "^0.12.7",
+    "yaml": "^2.4.5"
+  }
+}
