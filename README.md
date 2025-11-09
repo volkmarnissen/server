@@ -11,5 +11,16 @@ server for modbus2mqtt for REST API of configuration and publishing modbus value
 5. **../angular**: Angular configuration UI for **modbus2mqtt**
 
 
-Installation:
+## Installation
+
+### Development Setup
+
+After cloning the repository, install Git hooks to ensure code formatting:
+
+```bash
+npm install
+npm run install-hooks
+```
+
+The pre-commit hook will automatically run `prettier` on staged files before each commit.
 
