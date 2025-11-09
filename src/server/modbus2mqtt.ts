@@ -12,6 +12,7 @@ import path, { dirname, join } from 'path'
 import { SpecificationStatus } from '../specification.shared'
 import * as fs from 'fs'
 import { ConfigBus } from './configbus'
+import { CmdlineMigrate } from './CmdlineMigrate'
 const { argv } = require('node:process')
 let httpServer: HttpServer | undefined = undefined
 
@@ -71,6 +72,20 @@ export class Modbus2Mqtt {
       Config.configDir = '.'
       ConfigSpecification.configDir = '.'
     }
+
+    // Perform migration from old structure (data/local) to new (config/modbus2mqtt)
+    if (CmdlineMigrate.needsMigration(Config.dataDir, Config.configDir)) {
+      log.log(LogLevelEnum.info, 'Detected old directory structure, performing migration...')
+      try {
+        CmdlineMigrate.migrate(Config.dataDir, Config.configDir)
+        log.log(LogLevelEnum.info, 'Migration completed successfully')
+      } catch (error) {
+        log.log(LogLevelEnum.error, `Migration failed: ${error}`)
+        log.log(LogLevelEnum.error, 'Please migrate manually or check permissions')
+        // Continue execution - migration failure should not prevent startup
+      }
+    }
+
     if (options['term'])
       process.on('SIGTERM', () => {
         process.exit(options['term'])
