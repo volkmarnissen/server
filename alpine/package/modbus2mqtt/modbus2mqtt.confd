@@ -1,0 +1,3 @@
+# Configuration for modbus2mqtt OpenRC service
+# Place custom command-line arguments here if needed
+# MODBUS2MQTT_OPTS=""

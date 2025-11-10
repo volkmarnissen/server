@@ -8,19 +8,23 @@ pkgname=modbus2mqtt
 pkgver=0.16.56
 pkgrel=0
 pkgdesc="Modbus to MQTT bridge"
-url="https://github.com/volkmarnissen/server"
+url="https://github.com/modbus2mqtt/server"
 arch="$CARCH"
 license="MIT"
-depends="nodejs npm s6-overlay git"
+depends="nodejs npm s6-overlay git openssh-server"
 makedepends="npm alpine-sdk shadow rsync py3-psutil make build-base linux-headers udev"
 install="$pkgname.pre-install $pkgname.post-install"
+subpackages="$pkgname-openrc"
 
 # Disable the abuild check phase: tests are executed in the GitHub workflow
 # (before creating the npm artifacts and after installing the produced APK),
 # so running the check() step inside the APK build would be redundant and
 # may run at the wrong moment. Use the options variable to skip it.
 options="!check"
-source=""
+source="
+	$pkgname.initd
+	$pkgname.confd
+	"
 builddir="$srcdir/$pkgname-$pkgver"
 
 build() {
@@ -93,14 +97,25 @@ package() {
     # Create symlink to the executable
     install -d "$pkgdir"/usr/bin
     ln -s /usr/lib/node_modules/$pkgname/bin/$pkgname "$pkgdir"/usr/bin/$pkgname
+    
     # Create config directory
     install -d "$pkgdir"/etc/$pkgname
-    # create homeassistant addon directories
-    install -d "$pkgdir"/config
-    install -d "$pkgdir"/data
-    install -d "$pkgdir"/ssl
-    # Do not chown to the service user here (user may not exist inside fakeroot).
-    # Permissions should be set here; user is created at install time in pre-install.
-    chmod 755 "$pkgdir"/config "$pkgdir"/data "$pkgdir"/ssl
+    # create homeassistant addon directories (permissions set in post-install)
+    install -d -m 755 "$pkgdir"/config
+    install -d -m 755 "$pkgdir"/data
+    install -d -m 755 "$pkgdir"/ssl
 }
 
+openrc() {
+    pkgdesc="$pkgdesc (OpenRC init scripts)"
+    install_if="$pkgname=$pkgver-r$pkgrel openrc"
+    depends=""
+    
+    # Install OpenRC init script and config to subpackage
+    install -m755 -D "$builddir"/../../$pkgname.initd "$subpkgdir"/etc/init.d/$pkgname
+    install -m644 -D "$builddir"/../../$pkgname.confd "$subpkgdir"/etc/conf.d/$pkgname
+}
+sha512sums="
+d03c77fda1d53d8f7fa43eac4366d34c5dad06e0feb81b3e99c3a0e6c84b7043b1987fc6f7b0273816134eccd9b8d4040cb3be23e5eb5aee898a686f9355adc6  modbus2mqtt.initd
+14e6c4eaf90a9f75504bcf7da6253240a58dae0098a3acc26a391e28a0a8be6200adf13a108f8260eaec88a1bcd0de4c8afa492c86f7d030ecb6db845bc7aa41  modbus2mqtt.confd
+"

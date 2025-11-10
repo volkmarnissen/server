@@ -32,15 +32,7 @@ In Proxmox web interface:
 3. Check **Start after created**
 4. Click **Finish**
 
-### 2. Enable Nesting (if needed)
-
-For Docker support inside the container:
-
-```bash
-pct set <CTID> -features nesting=1
-```
-
-### 3. Pass-through USB Device (for Modbus RTU)
+### 2. Pass-through USB Device (for Modbus RTU)
 
 Identify the USB device on the Proxmox host:
 
@@ -70,79 +62,62 @@ pct reboot <CTID>
 
 ## Install modbus2mqtt
 
-### Option 1: Native Installation with Alpine Package
-
 Enter the container:
 
 ```bash
 pct enter <CTID>
 ```
 
-Install modbus2mqtt from Alpine package:
+Install modbus2mqtt from GitHub Release:
 
 ```bash
 # Update Alpine repositories
 apk update
 apk upgrade
 
-# Install modbus2mqtt
-apk add modbus2mqtt
+# Set version (visit GitHub Releases for latest version)
+VERSION="0.16.56"
 
-# Enable and start the service
-rc-update add modbus2mqtt default
-rc-service modbus2mqtt start
+# Detect architecture
+ARCH=$(uname -m)
+
+# Download and install public signing key (architecture-independent)
+wget https://github.com/modbus2mqtt/server/releases/download/v${VERSION}/packager.rsa.pub \
+  -O /etc/apk/keys/packager-modbus2mqtt.rsa.pub
+
+# Note: The published public key is IDENTICAL for all architectures (single key pair).
+
+# Download and install package (architecture-specific)
+wget https://github.com/modbus2mqtt/server/releases/download/v${VERSION}/modbus2mqtt-${VERSION}-r0-${ARCH}.apk
+apk add modbus2mqtt-${VERSION}-r0-${ARCH}.apk
+
+# The service is automatically enabled and started by the package installation
+
+# Check service status
+rc-service modbus2mqtt status
 ```
 
-Configure modbus2mqtt:
+**Note:** Visit [GitHub Releases](https://github.com/modbus2mqtt/server/releases) to find the latest version number.
+
+### Package Verification
+
+The public key (`packager.rsa.pub`) verifies that packages are signed by the official build system. This ensures the integrity and authenticity of the downloaded package.
+
+To verify the key fingerprint:
 
 ```bash
-# Edit configuration
-vi /etc/modbus2mqtt/modbus2mqtt.yaml
+sha256sum /etc/apk/keys/packager-modbus2mqtt.rsa.pub
 ```
 
-### Option 2: Docker Inside LXC
+### Configuration
 
-Enter the container:
+modbus2mqtt provides a Web UI for configuration. After installation, access it via:
 
-```bash
-pct enter <CTID>
+```
+http://<container-ip>:3000
 ```
 
-Install Docker on Alpine:
-
-```bash
-# Install Docker
-apk add docker docker-compose
-
-# Enable and start Docker
-rc-update add docker default
-rc-service docker start
-```
-
-Follow the [Docker installation guide](./installation-docker.md).
-
-### Option 3: Native Installation with Node.js
-
-Enter the container:
-
-```bash
-pct enter <CTID>
-```
-
-Install Node.js on Alpine:
-
-```bash
-# Install Node.js and dependencies
-apk add nodejs npm git
-
-# Clone and build modbus2mqtt
-git clone https://github.com/modbus2mqtt/server.git /opt/modbus2mqtt
-cd /opt/modbus2mqtt
-npm install
-npm run build
-```
-
-Follow the [Local installation guide](./installation-local.md) for configuration.
+If no configuration exists, the service starts with the root URL and guides you through the initial setup via the Web UI.
 
 ## Networking
 
@@ -166,13 +141,16 @@ Alpine uses `iptables` or `awall` for firewall configuration:
 ```bash
 # Using iptables
 apk add iptables
+iptables -A INPUT -p tcp --dport 22 -j ACCEPT
 iptables -A INPUT -p tcp --dport 3000 -j ACCEPT
 
 # Or using awall (Alpine Wall)
 apk add awall
 echo 'variable:
+  port_ssh: 22
   port_modbus2mqtt: 3000
 filter:
+  - { in: internet, out: _fw, service: tcp/$port_ssh, action: accept }
   - { in: internet, out: _fw, service: tcp/$port_modbus2mqtt, action: accept }' > /etc/awall/optional/modbus2mqtt.json
 awall enable modbus2mqtt
 awall activate
@@ -186,50 +164,7 @@ Enable container autostart in Proxmox:
 pct set <CTID> -onboot 1
 ```
 
-### For Alpine Package Installation
-
-The service is automatically configured with OpenRC:
-
-```bash
-# Check service status
-rc-service modbus2mqtt status
-
-# Enable autostart
-rc-update add modbus2mqtt default
-```
-
-### For Manual Node.js Installation
-
-Create an OpenRC service for Alpine:
-
-```bash
-vi /etc/init.d/modbus2mqtt
-```
-
-```bash
-#!/sbin/openrc-run
-
-name="modbus2mqtt"
-description="Modbus2MQTT Server"
-command="/usr/bin/node"
-command_args="/opt/modbus2mqtt/dist/modbus2mqtt.js"
-command_background="yes"
-pidfile="/run/${RC_SVCNAME}.pid"
-directory="/opt/modbus2mqtt"
-
-depend() {
-    need net
-    after firewall
-}
-```
-
-Make it executable and enable:
-
-```bash
-chmod +x /etc/init.d/modbus2mqtt
-rc-update add modbus2mqtt default
-rc-service modbus2mqtt start
-```
+The modbus2mqtt service is automatically configured and enabled during package installation.
 
 ## Resource Management
 

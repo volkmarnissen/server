@@ -32,36 +32,13 @@ Please be respectful and constructive in all interactions with the community.
 
 ## Development Setup
 
-### Prerequisites
+For detailed development setup instructions, see the [Development Guide](./development.md).
 
-- Node.js 20 or higher
-- npm or yarn
-- Git
-- VS Code (recommended)
-
-### Install Dependencies
+Quick start:
 
 ```bash
 npm install
 npm run install-hooks
-```
-
-The `install-hooks` command sets up pre-commit hooks that automatically format code with Prettier.
-
-### Using VS Code Devcontainer
-
-For a consistent development environment:
-
-1. Install Docker and the "Dev Containers" extension in VS Code
-2. Open the project in VS Code
-3. Press `F1` and select "Dev Containers: Reopen in Container"
-4. Wait for the container to build and install dependencies
-
-All required tools and extensions will be automatically configured.
-
-### Build the Project
-
-```bash
 npm run build.dev
 ```
 

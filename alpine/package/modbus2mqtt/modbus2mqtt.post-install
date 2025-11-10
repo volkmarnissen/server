@@ -1,3 +1,50 @@
 #!/bin/sh
-# post-install: no runtime permission fixes here — permissions are handled in APKBUILD package()
+# post-install: configure SSH for root login with certificate authentication
+
+# Ensure SSH directories exist
+mkdir -p /root/.ssh /var/run/sshd
+chmod 700 /root/.ssh
+
+# Configure sshd for root-only certificate login
+if [ -f /etc/ssh/sshd_config ]; then
+    # Enable root login with public key only (no password)
+    sed -i 's/^#*PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
+    sed -i 's/^#*PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config
+    sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+    sed -i 's/^#*ChallengeResponseAuthentication.*/ChallengeResponseAuthentication no/' /etc/ssh/sshd_config
+    sed -i 's/^#*UsePAM.*/UsePAM no/' /etc/ssh/sshd_config
+    
+    # Allow only root user access
+    if ! grep -q "^AllowUsers root" /etc/ssh/sshd_config; then
+        echo 'AllowUsers root' >> /etc/ssh/sshd_config
+    fi
+    if ! grep -q "^DenyUsers" /etc/ssh/sshd_config; then
+        echo 'DenyUsers *' >> /etc/ssh/sshd_config
+    fi
+fi
+
+# Generate host keys if they don't exist
+if [ ! -f /etc/ssh/ssh_host_rsa_key ]; then
+    ssh-keygen -A
+fi
+
+# Create and configure application directories for modbus2mqtt user
+mkdir -p /config /data /ssl
+chown -R modbus2mqtt:dialout /config /data /ssl
+chmod -R 755 /config /data /ssl
+
+# Enable and start sshd service (OpenRC)
+if command -v rc-update >/dev/null 2>&1; then
+    rc-update add sshd default 2>/dev/null || true
+    rc-service sshd start 2>/dev/null || true
+    echo "sshd service enabled and started"
+fi
+
+# Enable and start modbus2mqtt service (OpenRC)
+if command -v rc-update >/dev/null 2>&1; then
+    rc-update add modbus2mqtt default 2>/dev/null || true
+    rc-service modbus2mqtt start 2>/dev/null || true
+    echo "modbus2mqtt service enabled and started"
+fi
+
 exit 0

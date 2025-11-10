@@ -4,12 +4,12 @@ set -eu
 # Containerized abuild flow for macOS/Linux hosts.
 # Expects the following environment variables (caller / CI):
 # - PACKAGER_PRIVKEY : full private abuild key (multi-line)
-# - PACKAGER_PUBKEY  : public abuild key (multi-line)
+# - PACKAGER_PUBKEY  : public abuild key (multi-line) [optional; derived from private if unset]
 # - (optional) PKG_VERSION : package version; defaults to package.json via node
 BASEDIR=$(dirname "$0")
 
-if [ -z "${PACKAGER_PRIVKEY:-}" ] || [ -z "${PACKAGER_PUBKEY:-}" ]; then
-  echo "ERROR: PACKAGER_PRIVKEY and PACKAGER_PUBKEY must be set in the environment" >&2
+if [ -z "${PACKAGER_PRIVKEY:-}" ]; then
+  echo "ERROR: PACKAGER_PRIVKEY must be set in the environment" >&2
   exit 2
 fi
 
@@ -45,18 +45,24 @@ HOST_UID=$(id -u)
 HOST_GID=$(id -g)
 PACKAGE="$BASEDIR/../../repo"
 mkdir -p "$PACKAGE"
+# Prepare npm cache directory on host to speed up repeated builds
+CACHE_DIR="$BASEDIR/build/npm-cache"
+mkdir -p "$CACHE_DIR"
 docker run --rm -i \
   -v "$BASEDIR":/work \
   -w /work \
   -v "$PACKAGE":/package \
   -w /package \
+  -v "$CACHE_DIR":/home/builder/.npm \
   -e PACKAGER="Volkmar Nissen <volkmar.nissen@example.com>" \
   -e PKG_VERSION="$PKG_VERSION" \
   -e PACKAGER_PRIVKEY \
-  -e PACKAGER_PUBKEY \
+  ${PACKAGER_PUBKEY:+-e PACKAGER_PUBKEY} \
   -e HOST_UID="$HOST_UID" \
   -e HOST_GID="$HOST_GID" \
   -e ALPINE_VERSION="$ALPINE_VERSION" \
+  -e NPM_CONFIG_CACHE="/home/builder/.npm" \
+  -e npm_config_cache="/home/builder/.npm" \
   alpine:"$ALPINE_VERSION" /bin/sh -s <<'IN'
 set -e 
 # Use ALPINE_VERSION provided by host
@@ -86,11 +92,18 @@ adduser -D -u "${HOST_UID}" -G dialout builder || true
 addgroup builder abuild || true
 mkdir -p /home/builder
 chown builder:dialout /home/builder || true
+mkdir -p /home/builder/.npm
+chown -R builder:dialout /home/builder/.npm || true
 
 # write abuild keys from env into builder home
 mkdir -p /home/builder/.abuild
 printf '%s' "$PACKAGER_PRIVKEY" > /home/builder/.abuild/builder-6904805d.rsa
-printf '%s' "$PACKAGER_PUBKEY" > /home/builder/.abuild/builder-6904805d.rsa.pub
+# Write or derive public key
+if [ -n "$PACKAGER_PUBKEY" ]; then
+  printf '%s' "$PACKAGER_PUBKEY" > /home/builder/.abuild/builder-6904805d.rsa.pub
+else
+  openssl rsa -in /home/builder/.abuild/builder-6904805d.rsa -pubout -out /home/builder/.abuild/builder-6904805d.rsa.pub >/dev/null 2>&1 || true
+fi
 chmod 600 /home/builder/.abuild/builder-6904805d.rsa || true
 chown -R builder:dialout /home/builder/.abuild || true
 cp /home/builder/.abuild/builder-6904805d.rsa.pub /etc/apk/keys || true
@@ -118,6 +131,9 @@ su - builder -s /bin/sh -c '
     ARCH=`uname -m`
     rm -f "/package/$ARCH"/modbus2mqtt*.apk || true
     cp -aR /home/builder/packages/* /package/ || true
+    # also place the public signing key into the repo for trusted installs
+    mkdir -p "/package/$ARCH" || true
+    cp /home/builder/.abuild/builder-6904805d.rsa.pub "/package/$ARCH/packager.rsa.pub" || true
     chown -R '"$(id -u):$(id -g)"' /package/ || true
   fi
   '

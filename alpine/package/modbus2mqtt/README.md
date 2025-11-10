@@ -69,11 +69,15 @@ What the scripts do
 
 2) GitHub Actions
 
-- Add the following secrets to the repository (prefer the PACKAGER_* names):
-  - `PACKAGER_PRIVKEY` — content of the private key file (including BEGIN/END lines)
-  - `PACKAGER_PUBKEY` — content of the public key file
+- Add the following credentials to GitHub:
+  - Secret (Repository or Environment secret): `PACKAGER_PRIVKEY` — content of the private key file (including BEGIN/END lines)
+  - Variable (Environment variable preferred): `PACKAGER_PUBKEY` — optional; content of the public key file. If omitted, the build script derives it automatically from the private key.
 
-- For backwards compatibility the workflow also accepts `ABUILD_PRIVKEY` / `ABUILD_PUBKEY` and will use them when `PACKAGER_*` are not present.
+- Recommended setup: Settings → Environments → `packaging` →
+  - Secrets: add `PACKAGER_PRIVKEY`
+  - Environment variables: add `PACKAGER_PUBKEY` (optional)
+
+- If you only provide `PACKAGER_PRIVKEY`, the build script will generate the public key internally using `openssl rsa -pubout`.
 
 - The workflow `.github/workflows/build-and-test.yml` injects these secrets into the job environment and runs `./build-and-test-image.sh`.
 
