@@ -64,9 +64,19 @@ if docker ps -a --format '{{.Names}}' | grep -xq "modbus2mqtt-test-instance"; th
   docker rm -f modbus2mqtt-test-instance >/dev/null 2>&1 || true
 fi
 
+# Detect host architecture and map to Docker platform
+HOST_ARCH=$(uname -m)
+case "$HOST_ARCH" in
+  x86_64) DOCKER_PLATFORM="linux/amd64" ;;
+  aarch64|arm64) DOCKER_PLATFORM="linux/arm64" ;;
+  armv7l) DOCKER_PLATFORM="linux/arm/v7" ;;
+  *) echo "WARNING: Unknown arch $HOST_ARCH, using linux/amd64" >&2; DOCKER_PLATFORM="linux/amd64" ;;
+esac
+echo "Building for platform: $DOCKER_PLATFORM (host arch: $HOST_ARCH)"
+
 # build test docker image (use project root as build context, point to docker/Dockerfile)
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../" >/dev/null 2>&1 && pwd -P)"
-docker build --build-arg ALPINE_VERSION="$ALPINE_VERSION" -t modbus2mqtt-test -f "$PROJECT_ROOT/docker/Dockerfile" "$PROJECT_ROOT"
+docker build --platform "$DOCKER_PLATFORM" --build-arg ALPINE_VERSION="$ALPINE_VERSION" -t modbus2mqtt-test -f "$PROJECT_ROOT/docker/Dockerfile" "$PROJECT_ROOT"
 
 echo "Running container to perform runtime healthcheck..."
 
