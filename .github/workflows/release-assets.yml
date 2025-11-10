@@ -63,6 +63,7 @@ jobs:
       - name: Build APK for ${{ matrix.arch }}
         env:
           ALPINE_ARCH: ${{ matrix.arch }}
+          PACKAGER_PRIVKEY: ${{ secrets.PACKAGER_PRIVKEY }}
         run: |
           set -eux
           cd alpine/package/modbus2mqtt
