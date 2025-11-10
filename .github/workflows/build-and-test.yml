@@ -41,7 +41,7 @@ jobs:
           PACKAGER_PRIVKEY: ${{ secrets.PACKAGER_PRIVKEY }}
           PACKAGER_PUBKEY: ${{ vars.PACKAGER_PUBKEY }}
         run: |
-          cd alpine-package/modbus2mqtt
+          cd alpine/package/modbus2mqtt
           chmod +x build.sh build-and-test-image.sh
           ./build-and-test-image.sh
       - name: Check in alpine Repository
