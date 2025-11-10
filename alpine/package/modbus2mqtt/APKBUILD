@@ -5,7 +5,7 @@
 # Maintainer: Modbus2mqtt <info@carcam360.de>
 pkgname=modbus2mqtt
 # Version comes from package.json or the PKG_VERSION environment variable
-pkgver=0.16.53
+pkgver=0.16.55
 pkgrel=0
 pkgdesc="Modbus to MQTT bridge"
 url="https://github.com/volkmarnissen/server"

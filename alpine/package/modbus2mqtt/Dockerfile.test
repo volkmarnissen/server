@@ -3,7 +3,7 @@ FROM alpine:3.22
 # Install runtime and tooling to start service and perform healthchecks
  RUN apk add --no-cache s6-overlay nodejs npm curl
 
-# Copy produced packages (expect build.sh to have created ./packages)
+# Copy produced packages (expect build-and-test-image.sh to copy repo to ./packages)
 COPY ./packages/ /tmp/packages/
 # Find the produced apk and install it
 RUN  ls /tmp/packages/*/modbus2mqtt-*.apk  | while read apk_file; do  apk add --allow-untrusted "$apk_file"; done
