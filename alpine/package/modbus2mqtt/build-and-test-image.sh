@@ -69,7 +69,27 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../" >/dev/null 2>&1 && pwd -P)"
 docker build --build-arg ALPINE_VERSION="$ALPINE_VERSION" -t modbus2mqtt-test -f "$PROJECT_ROOT/docker/Dockerfile" "$PROJECT_ROOT"
 
 echo "Running container to perform runtime healthcheck..."
-docker run -d -p 3000:3000 -p 3022:22 --name modbus2mqtt-test-instance modbus2mqtt-test 
+
+# Create temporary directory for test data
+TEST_DATA_DIR=$(mktemp -d)
+trap 'rm -rf "$TEST_DATA_DIR"' EXIT
+
+# Generate test SSH key pair
+ssh-keygen -t ed25519 -f "$TEST_DATA_DIR/test_key" -N "" -C "modbus2mqtt-test" >/dev/null 2>&1
+TEST_PUBKEY=$(cat "$TEST_DATA_DIR/test_key.pub")
+
+# Create options.json with test public key
+cat > "$TEST_DATA_DIR/options.json" << EOF
+{
+  "ssh_port": 22,
+  "user_pubkey": "$TEST_PUBKEY"
+}
+EOF
+
+echo "Created options.json with test SSH key"
+
+# Start container with shared data volume
+docker run -d -p 3000:3000 -p 3022:22 -v "$TEST_DATA_DIR:/data" --name modbus2mqtt-test-instance modbus2mqtt-test 
 
 # wait for service with retry limit
 attempts=0
@@ -87,33 +107,42 @@ while [ "$(docker inspect -f '{{.State.Running}}' modbus2mqtt-test-instance)" = 
     if nc -z -w 2 localhost 3022 >/dev/null 2>&1; then
       echo "SSH port 3022 is open"
       
-      # Check if user has SSH public key
-      if [ -f "$HOME/.ssh/id_rsa.pub" ]; then
-        echo "Copying SSH public key to container..."
-        # Copy public key to authorized_keys in container
-        docker exec modbus2mqtt-test-instance sh -c "cat > /root/.ssh/authorized_keys" < "$HOME/.ssh/id_rsa.pub"
-        docker exec modbus2mqtt-test-instance chmod 600 /root/.ssh/authorized_keys
-        
-        # Test SSH connection with key
-        echo "Testing SSH connection with key..."
-        if ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes -p 3022 root@localhost "echo 'SSH connection successful'" 2>/dev/null; then
-          echo "SSH service is working correctly (successful key authentication)"
-        else
-          echo "ERROR: SSH connection with key failed" >&2
-          docker logs modbus2mqtt-test-instance >&2
-          if [ "$KEEP_CONTAINER" = false ]; then
-            docker stop modbus2mqtt-test-instance >/dev/null 2>&1
-            docker rm modbus2mqtt-test-instance >/dev/null 2>&1
-          fi
-          exit 1
-        fi
+      # Wait a moment for SSH service to fully initialize
+      sleep 2
+      
+      # Check if authorized_keys was created correctly from options.json
+      echo "Checking authorized_keys configuration..."
+      CONTAINER_AUTHKEYS=$(docker exec modbus2mqtt-test-instance cat /root/.ssh/authorized_keys 2>/dev/null || echo "")
+      
+      if echo "$CONTAINER_AUTHKEYS" | grep -q "modbus2mqtt-test"; then
+        echo "✓ authorized_keys contains test public key from options.json"
       else
-        # Try to connect to SSH (should refuse without key, but service is running)
-        if timeout 3 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes -p 3022 root@localhost exit 2>&1 | grep -q "Permission denied\|publickey"; then
-          echo "SSH service is responding correctly (publickey authentication required)"
-        else
-          echo "WARNING: SSH service check inconclusive, but port is open" >&2
+        echo "ERROR: authorized_keys does not contain test public key" >&2
+        echo "Expected key with comment: modbus2mqtt-test" >&2
+        echo "Actual authorized_keys content:" >&2
+        echo "$CONTAINER_AUTHKEYS" >&2
+        echo "Container logs:" >&2
+        docker logs modbus2mqtt-test-instance >&2
+        if [ "$KEEP_CONTAINER" = false ]; then
+          docker stop modbus2mqtt-test-instance >/dev/null 2>&1
+          docker rm modbus2mqtt-test-instance >/dev/null 2>&1
         fi
+        exit 1
+      fi
+      
+      # Test SSH connection with the generated test key
+      echo "Testing SSH connection with test key..."
+      if ssh -i "$TEST_DATA_DIR/test_key" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes -p 3022 root@localhost "echo 'SSH connection successful'" 2>/dev/null; then
+        echo "✓ SSH service is working correctly (successful key authentication via options.json)"
+      else
+        echo "ERROR: SSH connection with test key failed" >&2
+        echo "Container logs:" >&2
+        docker logs modbus2mqtt-test-instance >&2
+        if [ "$KEEP_CONTAINER" = false ]; then
+          docker stop modbus2mqtt-test-instance >/dev/null 2>&1
+          docker rm modbus2mqtt-test-instance >/dev/null 2>&1
+        fi
+        exit 1
       fi
     else
       echo "ERROR: SSH service is not listening on port 3022" >&2

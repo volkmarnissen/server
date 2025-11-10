@@ -18,9 +18,6 @@ if [ -f /etc/ssh/sshd_config ]; then
     if ! grep -q "^AllowUsers root" /etc/ssh/sshd_config; then
         echo 'AllowUsers root' >> /etc/ssh/sshd_config
     fi
-    if ! grep -q "^DenyUsers" /etc/ssh/sshd_config; then
-        echo 'DenyUsers *' >> /etc/ssh/sshd_config
-    fi
 fi
 
 # Generate host keys if they don't exist

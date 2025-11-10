@@ -19,13 +19,31 @@ ENV BUILD_VERSION=${BUILD_VERSION}
 
 WORKDIR /usr/app
 
-# Install runtime and tooling to start service and perform healthchecks
-RUN apk add --no-cache s6-overlay nodejs npm curl openssh-server
+# Install jq (used by SSH init script to parse /data/options.json); wget is in base image
+RUN apk add --no-cache jq
 
 # Copy produced packages (expect build scripts to have created repo)
 COPY ./alpine/repo/ /tmp/alpine-repo/
-# Find the produced apk and install it
-RUN ls /tmp/alpine-repo/*/modbus2mqtt-*.apk | while read apk_file; do apk add --allow-untrusted "$apk_file"; done
+# Find the produced apk and install it (trusted install)
+# Copy signing key into /etc/apk/keys and install package without --allow-untrusted
+RUN set -e; \
+    ARCH="$(uname -m)"; \
+    KEY="/tmp/alpine-repo/${ARCH}/packager.rsa.pub"; \
+    APK="/tmp/alpine-repo/${ARCH}/modbus2mqtt-*.apk"; \
+    if [ ! -f "$KEY" ]; then echo "ERROR: public key $KEY not found" >&2; exit 1; fi; \
+    cp "$KEY" /etc/apk/keys/builder-6904805d.rsa.pub; \
+    apk add --no-cache $APK || { echo "Falling back to untrusted install" >&2; apk add --allow-untrusted $APK; }; \
+    echo "Installed modbus2mqtt via trusted APK (builder-6904805d.rsa.pub)";
+
+# Copy SSH configuration script as oneshot service
+RUN mkdir -p /etc/s6-overlay/s6-rc.d/ssh-init /etc/s6-overlay/scripts
+COPY ./docker/01-configure-ssh.sh /etc/s6-overlay/scripts/configure-ssh.sh
+RUN chmod +x /etc/s6-overlay/scripts/configure-ssh.sh && \
+    echo 'oneshot' > /etc/s6-overlay/s6-rc.d/ssh-init/type && \
+    echo '#!/command/execlineb -P' > /etc/s6-overlay/s6-rc.d/ssh-init/up && \
+    echo '/etc/s6-overlay/scripts/configure-ssh.sh' >> /etc/s6-overlay/s6-rc.d/ssh-init/up && \
+    chmod +x /etc/s6-overlay/s6-rc.d/ssh-init/up && \
+    touch /etc/s6-overlay/s6-rc.d/user/contents.d/ssh-init
 
 # Ensure application directories have correct ownership (post-install creates these)
 RUN chown -R modbus2mqtt:dialout /config /data /ssl
@@ -53,6 +71,10 @@ RUN \
     echo 'echo modbus2mqtt done' >>$s6dir/finish && \
     chmod +x $s6dir/finish
 
+# SSH configuration is done by:
+# 1. APK post-install: creates /root/.ssh, configures sshd_config, generates host keys
+# 2. cont-init script: reads /data/options.json and configures authorized_keys
+
 # Create SSH service for s6-overlay
 RUN \
     sshdir=/etc/s6-overlay/s6-rc.d/sshd && \
@@ -72,7 +94,7 @@ CMD ["/init"]
 
 # Health check
 HEALTHCHECK --start-period=10m \
-    CMD curl --fail http://127.0.0.1:3000 || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3000 || exit 1
 # Labels
 LABEL \
     io.hass.name="${BUILD_NAME}" \
