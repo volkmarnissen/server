@@ -69,6 +69,24 @@
       "sourceMaps": true,
       "type": "node"
     },
+      {
+      "name": "Run Validator",
+      "preLaunchTask": "npm: build.dev",
+      "timeout": 10000,
+      "program": "${workspaceFolder}/validator/dist/specification/validate.js",
+      "args": ["-p", "69", "-o", "volkmarnissen"],
+            "console": "integratedTerminal",
+      "env": {
+        "DEBUG": "",
+        "GITHUB_TOKEN": "${GH_MQTT_CONFIG_KEY}",
+        "NODE_OPTIONS": "--experimental-vm-modules npx jest"
+      },
+      "cwd": "${workspaceFolder}/validator",
+      "request": "launch",
+      "skipFiles": ["<node_internals>/**"],
+      "sourceMaps": true,
+      "type": "node"
+    },
     {
       "name": "Run TCP Bridge",
       "preLaunchTask": "npm: build.dev",

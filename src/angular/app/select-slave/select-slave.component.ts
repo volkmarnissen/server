@@ -293,13 +293,13 @@ export class SelectSlaveComponent extends SessionStorage implements OnInit {
   // }
   private getIdentSpecs(uiSlave: IuiSlave | undefined): Promise<IidentificationSpecification[]> {
     return new Promise<IidentificationSpecification[]>((resolve, reject) => {
-      if ( !this.bus) {
+      if (!this.bus) {
         resolve([])
         return
       }
       let fct = (specModbus: ImodbusSpecification | undefined) => {
         let rci: IidentificationSpecification[] = []
-        if(!this.preparedSpecs || !this.config || !this.bus) {
+        if (!this.preparedSpecs || !this.config || !this.bus) {
           resolve(rci)
           return
         }
@@ -505,7 +505,8 @@ export class SelectSlaveComponent extends SessionStorage implements OnInit {
         if (detectSpec) {
           let specCtrl = newUiSlave.slaveForm.get('specificationid')
 
-          if (specCtrl && specCtrl.value != undefined && specCtrl.value.filename != undefined) newUiSlave.slaveForm.markAllAsTouched()
+          if (specCtrl && specCtrl.value != undefined && specCtrl.value.filename != undefined)
+            newUiSlave.slaveForm.markAllAsTouched()
         }
       })
   }

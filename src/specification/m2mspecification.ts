@@ -898,7 +898,7 @@ export class M2mSpecification implements IspecificationValidator {
     let spec = ConfigSpecification.getSpecificationByFilename(specfilename)
     let contribution = M2mSpecification.ghContributions.get(specfilename)
     if (contribution == undefined && spec && spec.pullNumber) {
-      log.log(LogLevelEnum.notice, 'startPolling for pull Number ' + spec.pullNumber)
+      log.log(LogLevelEnum.info, 'startPolling for pull Number ' + spec.pullNumber)
       let mspec = new M2mSpecification(spec as Ispecification)
       let c: Icontribution = {
         pullRequest: spec.pullNumber,

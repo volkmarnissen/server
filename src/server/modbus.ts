@@ -86,7 +86,7 @@ export class Modbus {
         }
       } else {
         let msg = 'Bus ' + modbusAPI.getName() + ' has no configured Specification'
-        log.log(LogLevelEnum.notice, msg)
+        log.log(LogLevelEnum.info, msg)
         reject(new Error(msg))
       }
     })

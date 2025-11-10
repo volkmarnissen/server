@@ -237,6 +237,10 @@ it('GET angular files', (done) => {
     })
 })
 it('GET local files', (done) => {
+  const orig = testdir + 'files.yaml'
+  const backup = testdir + 'files.yaml.bck'
+  const fs = require('fs')
+  if (fs.existsSync(orig)) fs.copyFileSync(orig, backup)
   supertest(httpServer['app'])
     .get('/specifications/files/waterleveltransmitter/files.yaml')
     .expect(200)
@@ -251,6 +255,10 @@ it('GET local files', (done) => {
     .catch((e) => {
       expect(1).toBeFalsy()
       done()
+    })
+    .finally(() => {
+      if (fs.existsSync(backup)) fs.copyFileSync(backup, orig)
+      if (fs.existsSync(backup)) fs.unlinkSync(backup)
     })
 })
 

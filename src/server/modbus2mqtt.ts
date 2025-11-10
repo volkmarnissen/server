@@ -12,6 +12,7 @@ import path, { dirname, join } from 'path'
 import { SpecificationStatus } from '../specification.shared'
 import * as fs from 'fs'
 import { ConfigBus } from './configbus'
+import { CmdlineMigrate } from './CmdlineMigrate'
 const { argv } = require('node:process')
 let httpServer: HttpServer | undefined = undefined
 
@@ -71,6 +72,20 @@ export class Modbus2Mqtt {
       Config.configDir = '.'
       ConfigSpecification.configDir = '.'
     }
+
+    // Perform migration from old structure (data/local) to new (config/modbus2mqtt)
+    if (CmdlineMigrate.needsMigration(Config.dataDir, Config.configDir)) {
+      log.log(LogLevelEnum.info, 'Detected old directory structure, performing migration...')
+      try {
+        CmdlineMigrate.migrate(Config.dataDir, Config.configDir)
+        log.log(LogLevelEnum.info, 'Migration completed successfully')
+      } catch (error) {
+        log.log(LogLevelEnum.error, `Migration failed: ${error}`)
+        log.log(LogLevelEnum.error, 'Please migrate manually or check permissions')
+        // Continue execution - migration failure should not prevent startup
+      }
+    }
+
     if (options['term'])
       process.on('SIGTERM', () => {
         process.exit(options['term'])
@@ -87,7 +102,7 @@ export class Modbus2Mqtt {
           Config.getConfiguration().githubPersonalToken
         )
         debug(Config.getConfiguration().mqttconnect.mqttserverurl)
-        log.log(LogLevelEnum.notice, 'Modbus2mqtt version: ' + Config.getConfiguration().appVersion)
+        log.log(LogLevelEnum.info, 'Modbus2mqtt version: ' + Config.getConfiguration().appVersion)
         // hard coded workaround
         let angulardir = join(require.resolve('./mqttdiscover'), '../../angular/browser')
         // Did not work in github workflow for testing
@@ -95,7 +110,7 @@ export class Modbus2Mqtt {
         if (!angulardir || !fs.existsSync(angulardir)) {
           log.log(LogLevelEnum.error, 'Unable to find angular start file ' + angulardir)
           process.exit(2)
-        } else log.log(LogLevelEnum.notice, 'angulardir is ' + angulardir)
+        } else log.log(LogLevelEnum.info, 'angulardir is ' + angulardir)
         let angulardirLang = path.parse(angulardir).dir
         debug('http root : ' + angulardir)
         let gh = new M2mGitHub(
@@ -122,12 +137,9 @@ export class Modbus2Mqtt {
                 .then(() => {
                   httpServer!.listen(() => {
                     if (process.env.HASSIO_TOKEN) {
-                      log.log(LogLevelEnum.notice, 'Running inside Home Assistant Add-On environment')
+                      log.log(LogLevelEnum.info, 'Running inside Home Assistant Add-On environment')
                     }
-                    log.log(
-                      LogLevelEnum.notice,
-                      `modbus2mqtt listening on  ${os.hostname()}: ${Config.getConfiguration().httpport}`
-                    )
+                    log.log(LogLevelEnum.info, `modbus2mqtt listening on  ${os.hostname()}: ${Config.getConfiguration().httpport}`)
                     new ConfigSpecification().deleteNewSpecificationFiles()
                     // clean cache once per hour
                     setInterval(
@@ -141,7 +153,7 @@ export class Modbus2Mqtt {
                         bus.startPolling()
                       })
                     } else {
-                      log.log(LogLevelEnum.notice, 'Poll disabled by environment variable MODBUS_POLL')
+                      log.log(LogLevelEnum.info, 'Poll disabled by environment variable MODBUS_POLL')
                     }
                   })
                 })

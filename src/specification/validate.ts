@@ -19,7 +19,6 @@ declare global {
 
 let cli = new Command()
 cli.version(SPECIFICATION_VERSION)
-cli.usage('[--yaml <yaml-dir>] [--pr_number <pull request number>')
 cli.usage('--config <config-dir> --data <data-dir> [--pr_number <pull request number>]')
 cli.option('-c, --config <config-dir>', 'set directory for add on configuration')
 cli.option('-d, --data <data-dir>', 'set directory for persistent data (public specifications)')
@@ -72,7 +71,7 @@ function validate() {
     log.log(LogLevelEnum.error, 'No Github Access Token passed to environment variable GITHUB_TOKEN')
     process.exit(2)
   }
-  log.log(LogLevelEnum.notice, 'pull request: ' + pr_number)
+  log.log(LogLevelEnum.info, 'pull request: ' + pr_number)
   let gh = new M2mGithubValidate(process.env.GITHUB_TOKEN)
   gh.listPullRequestFiles(pr_owner, pr_number)
     .then((data) => {
@@ -101,7 +100,7 @@ function validate() {
       if (specsOnly && specnames.length > 0) {
         specnames = specnames.substring(2)
         if (messages.length == 0) {
-          log.log(LogLevelEnum.notice, 'specifications ' + specnames + ' are valid')
+          log.log(LogLevelEnum.info, 'specifications ' + specnames + ' are valid')
           gh.addIssueComment(
             pr_number!,
             "**$${\\color{green}\\space ' + specnames + '\\space validated\\space successfully}$$**\nSpecifications '" +
@@ -109,7 +108,7 @@ function validate() {
               "' have no issues"
           )
             .then(() => {
-              log.log(LogLevelEnum.notice, 'Issue Comment added')
+              log.log(LogLevelEnum.info, 'Issue Comment added')
               process.exit(0)
             })
             .catch((e) => {

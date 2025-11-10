@@ -21,5 +21,7 @@ cypress
 .angular/
 e2e/
 public/
+alpine/
 alpine-package/
+alpine-repo/
 distprod

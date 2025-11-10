@@ -80,7 +80,7 @@ export class ModbusRTUProcessor {
     if (repeatMessage || msg != ModbusRTUProcessor.lastNoticeMessage) {
       ModbusRTUProcessor.lastNoticeMessage = msg
       ModbusRTUProcessor.lastNoticeMessageTime = Date.now()
-      log.log(LogLevelEnum.notice, options.task ? options.task + ' ' : '' + msg)
+      log.log(LogLevelEnum.info, options.task ? options.task + ' ' : '' + msg)
     }
   }
 

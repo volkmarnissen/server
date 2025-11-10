@@ -82,7 +82,7 @@ export class ModbusRTUWorker extends ModbusWorker {
     if (repeatMessage || msg != ModbusRTUWorker.lastNoticeMessage) {
       ModbusRTUWorker.lastNoticeMessage = msg
       ModbusRTUWorker.lastNoticeMessageTime = Date.now()
-      log.log(LogLevelEnum.notice, options.task ? options.task + ' ' : '' + msg)
+      log.log(LogLevelEnum.info, options.task ? options.task + ' ' : '' + msg)
     }
   }
   private retry(current: IQueueEntry, error: any): Promise<void> {

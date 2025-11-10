@@ -330,7 +330,7 @@ export class MqttDiscover {
         this.subscriptions.updateSubscribedSlave(oldSlave, slave)
 
       this.connector.getMqttClient((mqttClient) => {
-        log.log(LogLevelEnum.notice, 'Publish Discovery: length:' + tAndPs.length)
+        log.log(LogLevelEnum.info, 'Publish Discovery: length:' + tAndPs.length)
         tAndPs.forEach((tAndP) => {
           mqttClient.publish(tAndP.topic, tAndP.payload, retain)
           if (newSlave) this.subscriptions.resubscribe(mqttClient)

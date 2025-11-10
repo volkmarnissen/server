@@ -211,7 +211,7 @@ export class ModbusTcpRtuBridge {
         log.log(LogLevelEnum.error, 'TCP bridge error: ' + err!.message + ' (Continue w/o TCP bridge)')
       })
       this.serverTCP.on('initialized', () => {
-        log.log(LogLevelEnum.notice, 'TCP bridge: listening on modbus://0.0.0.0:' + port)
+        log.log(LogLevelEnum.info, 'TCP bridge: listening on modbus://0.0.0.0:' + port)
         resolve(this.serverTCP!)
       })
     })

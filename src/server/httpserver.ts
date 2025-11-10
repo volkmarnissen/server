@@ -416,8 +416,8 @@ export class HttpServer extends HttpServerBase {
             M2mSpecification.startPolling(spec!.filename, (e) => {
               log.log(LogLevelEnum.error, e.message)
             })?.subscribe((pullRequest) => {
-              if (pullRequest.merged) log.log(LogLevelEnum.notice, 'Merged ' + pullRequest.pullNumber)
-              else if (pullRequest.closed) log.log(LogLevelEnum.notice, 'Closed ' + pullRequest.pullNumber)
+              if (pullRequest.merged) log.log(LogLevelEnum.info, 'Merged ' + pullRequest.pullNumber)
+              else if (pullRequest.closed) log.log(LogLevelEnum.info, 'Closed ' + pullRequest.pullNumber)
               else debug('Polled pullrequest ' + pullRequest.pullNumber)
 
               if (pullRequest.merged || pullRequest.closed)
@@ -575,7 +575,7 @@ export class HttpServer extends HttpServerBase {
         },
         (error) => {
           // Log the error, but return empty array
-          log.log(LogLevelEnum.notice, 'listDevices: ' + error.message)
+          log.log(LogLevelEnum.info, 'listDevices: ' + error.message)
           this.returnResult(req, res, HttpErrorsEnum.OK, JSON.stringify([]), error)
         }
       )

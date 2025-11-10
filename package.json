@@ -37,7 +37,8 @@
     "e2e:end.debug": "rm -rf 'e2e/modbus2mqtt.temp'",
     "build.dev": "tsc -p tsconfig.json && ng build --configuration development",
     "build": "tsc -p tsconfig.json && ng build --configuration production && npx @opengovsg/credits-generator",
-    "prettier": "prettier --write '**/*.{ts,js,css,html,tsx}'"
+    "prettier": "prettier --write '**/*.{ts,js,css,html,tsx}'",
+    "install-hooks": "git config core.hooksPath .githooks && echo 'Git hooks configured to use .githooks directory'"
   },
   "dependencies": {
     "@octokit/rest": "^20.1.1",
@@ -58,10 +59,10 @@
     "mqtt": "^5.9.1",
     "multer": "^2.0.2",
     "node-html-parser": "^7.0.1",
-    "npmlog": "^7.0.1",
     "rxjs": "^7.8.2",
     "serve-static": "^2.2.0",
     "url-parse": "^1.5.10",
+    "winston": "^3.18.3",
     "yaml": "^2.5.0"
   },
   "devDependencies": {
@@ -93,7 +94,6 @@
     "@types/multer": "^2.0.0",
     "@types/node": "^22.5.5",
     "@types/node-fetch": "^2.6.11",
-    "@types/npmlog": "^7.0.0",
     "@types/supertest": "^6.0.2",
     "@types/url-parse": "^1.4.11",
     "@types/ws": "^8.18.1",

@@ -108,7 +108,7 @@ export class ConfigBus {
       if (b.busId > maxBusId) maxBusId = b.busId
     })
     maxBusId++
-    log.log(LogLevelEnum.notice, 'AddBusProperties: ' + maxBusId)
+    log.log(LogLevelEnum.info, 'AddBusProperties: ' + maxBusId)
     let busArrayIndex =
       ConfigBus.busses.push({
         busId: maxBusId,
