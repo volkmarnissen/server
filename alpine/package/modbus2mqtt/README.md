@@ -1,6 +1,16 @@
 Short description
 
-This directory contains an Alpine APK package for `modbus2mqtt` and helper scripts that perform the package build and a container-based runtime check.
+This directory contains the Alpine APK packaging for `modbus2mqtt` plus helper scripts to build the package and run a container-based runtime check.
+
+Node ↔ Alpine version coupling
+
+To avoid ABI issues with native modules (e.g. `@serialport/bindings-cpp`), the build uses the local Node.js major version to select a matching Alpine release.
+
+- Node 22 → Alpine 3.22
+- Node 20 → Alpine 3.20
+- Node 18 → Alpine 3.18
+
+`build.sh` determines the Alpine version automatically and writes it to `build/alpine.env` (e.g. `ALPINE_VERSION=3.22`). `build-and-test-image.sh` reads this file and uses the same version for the test image. Override by setting `ALPINE_VERSION=3.xx` explicitly.
 
 Important: disabled `check()` phase
 
@@ -8,10 +18,10 @@ In `APKBUILD` you will find:
 
   options="!check"
 
-This disables the default `check()` phase of `abuild`. Reasoning:
-- The application tests (Jest and Cypress) are executed in the GitHub Actions pipeline.
-- The CI runs in two stages: tests (before creating the npm artifacts) and a subsequent package-installation check against the generated `.apk`.
-- Running a local `check()` inside the `abuild` run would either run tests at the wrong time or be redundant.
+Rationale:
+- Jest/Cypress tests run in CI separately.
+- CI validates both before package creation and after installing the generated `.apk`.
+- Running `check()` inside `abuild` would be redundant and possibly at the wrong time.
 
 How the keys and CI setup work
 
@@ -32,9 +42,25 @@ export ABUILD_PUBKEY="$(cat ~/.abuild/builder-6904805d.rsa.pub)"
 - Build and test locally:
 
 ```sh
-cd alpine-package/modbus2mqtt
+cd alpine/package/modbus2mqtt
 chmod +x build.sh build-and-test-image.sh
 ./build-and-test-image.sh
+```
+
+What the scripts do
+
+- `build.sh`
+  - verifies abuild keys in the environment (`PACKAGER_PRIVKEY`, `PACKAGER_PUBKEY`)
+  - derives (or uses) `ALPINE_VERSION`, persists it into `build/alpine.env`
+  - starts a temporary Alpine container (`alpine:${ALPINE_VERSION}`)
+  - configures repositories, installs build deps, runs `abuild -r`
+  - copies produced packages into `../../repo`
+
+- `build-and-test-image.sh`
+  - calls `build.sh`
+  - reads `build/alpine.env` and builds the test image with `FROM alpine:${ALPINE_VERSION}`
+  - installs the freshly built `.apk` and launches the service via s6-overlay
+  - performs a healthcheck on `http://localhost:3000/`
 ```
 
 `build.sh` starts a temporary Alpine container, writes the keys to `/home/builder/.abuild`, runs `npm build` and `abuild -r` as the builder user, and copies the generated packages into `./packages`.
@@ -55,7 +81,7 @@ Notes and troubleshooting
 
 - Multi-line secrets: GitHub Actions supports multi-line secret values. Make sure PEM headers (`-----BEGIN RSA PRIVATE KEY-----`) and footers are included.
 - If `abuild` reports signature errors or warnings about missing checks, this is expected in CI — the produced package is installed with `--allow-untrusted`. The workflow validates functionality, not PKI signatures.
-- If npm build / tsc errors occur, run `npm run build` locally and verify Node version (the workflow uses Node 18).
+- If npm build / tsc errors occur, run `npm run build` locally and verify Node version or set `ALPINE_VERSION` explicitly.
 
 Contact
 

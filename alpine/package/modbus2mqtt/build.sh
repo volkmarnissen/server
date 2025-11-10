@@ -16,6 +16,31 @@ fi
 : "${PKG_VERSION:=$(node -p "require('../../../package.json').version")}" || true
 export PKG_VERSION
 echo version: "$PKG_VERSION"
+
+# Determine Alpine version strictly from local Node.js if not provided
+if [ -z "${ALPINE_VERSION:-}" ]; then
+  NODE_MAJOR=$(node -p "process.versions.node.split('.')[0]" 2>/dev/null || echo "")
+  if [ -z "$NODE_MAJOR" ]; then
+    echo "ERROR: Could not determine local Node.js version (node not in PATH). Set ALPINE_VERSION explicitly." >&2
+    exit 3
+  fi
+  case "$NODE_MAJOR" in
+    22) ALPINE_VERSION="3.22" ;;
+    20) ALPINE_VERSION="3.20" ;;
+    18) ALPINE_VERSION="3.18" ;;
+    *)
+      echo "ERROR: Unsupported Node.js major '$NODE_MAJOR'. Supported: 22, 20, 18. Set ALPINE_VERSION explicitly." >&2
+      exit 4
+    ;;
+  esac
+fi
+export ALPINE_VERSION
+echo "Using Alpine ${ALPINE_VERSION} (from Node.js major ${NODE_MAJOR:-unknown})"
+
+# Persist chosen Alpine version for downstream scripts
+mkdir -p "$BASEDIR/build"
+printf 'ALPINE_VERSION=%s\n' "$ALPINE_VERSION" > "$BASEDIR/build/alpine.env"
+
 HOST_UID=$(id -u)
 HOST_GID=$(id -g)
 PACKAGE="$BASEDIR/../../repo"
@@ -31,33 +56,23 @@ docker run --rm -i \
   -e PACKAGER_PUBKEY \
   -e HOST_UID="$HOST_UID" \
   -e HOST_GID="$HOST_GID" \
-  alpine:3.22 /bin/sh -s <<'IN'
+  -e ALPINE_VERSION="$ALPINE_VERSION" \
+  alpine:"$ALPINE_VERSION" /bin/sh -s <<'IN'
 set -e 
-# Probe a list of Alpine repo versions and pick the first reachable one.
-# This avoids hardcoding a single (possibly unavailable) mirror while preventing
-# using an overly old release. We prefer recent stable versions and fall back
-# to edge if necessary.
-VERSIONS="v3.22 v3.21 v3.20 v3.19 v3.18 edge"
-success=0
-for v in $VERSIONS; do
-  cat > /etc/apk/repositories <<-REPO
-https://dl-cdn.alpinelinux.org/alpine/$v/main
-https://dl-cdn.alpinelinux.org/alpine/$v/community
+# Use ALPINE_VERSION provided by host
+ALPINE_REPO_VER="v${ALPINE_VERSION}"
+cat > /etc/apk/repositories <<-REPO
+https://dl-cdn.alpinelinux.org/alpine/${ALPINE_REPO_VER}/main
+https://dl-cdn.alpinelinux.org/alpine/${ALPINE_REPO_VER}/community
 REPO
-  # try update; if successful, keep this repo
-  if apk update >/dev/null 2>&1; then
-    echo "Using alpine repo $v"
-    success=1
-    break
-  fi
-done
-if [ "$success" -ne 1 ]; then
-  echo "ERROR: no alpine repositories reachable (tried: $VERSIONS)" >&2
+if ! apk update >/dev/null 2>&1; then
+  echo "ERROR: failed to use alpine repositories for ${ALPINE_REPO_VER}" >&2
   exit 1
 fi
 
-# Install build deps inside the container
-apk add --no-cache abuild alpine-sdk nodejs npm git shadow openssl doas
+# Install build deps inside the container (suppress progress output)
+echo "Installing build dependencies..."
+apk add --no-cache abuild alpine-sdk nodejs npm git shadow openssl doas >/dev/null 2>&1
 mkdir -p /etc/doas.d
 echo 'permit nopass :dialout as root' > /etc/doas.d/doas.conf || true
 

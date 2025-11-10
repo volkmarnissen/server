@@ -5,7 +5,7 @@
 # Maintainer: Modbus2mqtt <info@carcam360.de>
 pkgname=modbus2mqtt
 # Version comes from package.json or the PKG_VERSION environment variable
-pkgver=0.16.55
+pkgver=0.16.56
 pkgrel=0
 pkgdesc="Modbus to MQTT bridge"
 url="https://github.com/volkmarnissen/server"
@@ -35,17 +35,52 @@ build() {
     # available. Fall back to $srcdir/package.json and finally to a
     # minimal package.json.
     npm init -y >/dev/null 2>&1 || true
-    npm install --force --no-audit --no-fund --omit=dev "${pkgname}@${pkgver}" || true
-    # Prefer building native addons from source (set env var for npm >=7).
-    npm install --save-dev node-gyp-build 
-    npm rebuild @serialport/bindings-cpp
-    npm uninstall node-gyp-build 
-    # Some dependencies (notably @serialport/bindings-cpp) ship a
-    # "prebuilds" directory containing precompiled .node files for many
-    # architectures. abuild rejects packages that contain foreign-arch
-    # native blobs. Remove those prebuilt artifacts so only the locally
-    # compiled target-arch binaries remain in the final package.
+    
+    # Install main package with suppressed output (show only on error)
+    echo "Installing ${pkgname}@${pkgver}..."
+    npm_log=$(mktemp)
+    if ! npm install --force --no-audit --no-fund --omit=dev "${pkgname}@${pkgver}" >"$npm_log" 2>&1; then
+        echo "ERROR: npm install failed" >&2
+        cat "$npm_log" >&2
+        rm -f "$npm_log"
+        exit 1
+    fi
+    rm -f "$npm_log"
+    
+    # Remove prebuilt binaries first to force rebuild from source
     find node_modules -type d -name "prebuilds" -prune -print -exec rm -rf '{}' + || true
+    
+    # Install build tools for native module compilation
+    echo "Installing build tools..."
+    build_log=$(mktemp)
+    if ! npm install --save-dev node-gyp node-gyp-build >"$build_log" 2>&1; then
+        echo "WARNING: Failed to install build tools" >&2
+        cat "$build_log" >&2
+    fi
+    rm -f "$build_log"
+    
+    # Rebuild all native modules from source for target architecture
+    # Find all packages with binding.gyp (indicator for native modules)
+    find node_modules -name "binding.gyp" -type f | while read -r gyp_file; do
+        module_dir=$(dirname "$gyp_file")
+        module_name=$(basename "$module_dir")
+        echo "Rebuilding native module: $module_name"
+        cd "$module_dir" || continue
+        
+        # Capture node-gyp output; only show on error
+        log_file=$(mktemp)
+        if ! node-gyp rebuild >"$log_file" 2>&1; then
+            echo "WARNING: Failed to rebuild $module_name" >&2
+            cat "$log_file" >&2
+        fi
+        rm -f "$log_file"
+        
+        cd "$builddir" || exit 1
+    done
+    
+    # Uninstall build tools quietly
+    echo "Cleaning up build tools..."
+    npm uninstall node-gyp node-gyp-build >/dev/null 2>&1 || true
 }
 
 package() {
