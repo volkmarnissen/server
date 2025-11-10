@@ -24,16 +24,15 @@ RUN apk add --no-cache jq
 
 # Copy produced packages (expect build scripts to have created repo)
 COPY ./alpine/repo/ /tmp/alpine-repo/
-# Find the produced apk and install it (trusted install)
-# Copy signing key into /etc/apk/keys and install package without --allow-untrusted
+# Install APK with strict signature verification (no untrusted fallback)
 RUN set -e; \
     ARCH="$(uname -m)"; \
     KEY="/tmp/alpine-repo/${ARCH}/packager.rsa.pub"; \
     APK="/tmp/alpine-repo/${ARCH}/modbus2mqtt-*.apk"; \
     if [ ! -f "$KEY" ]; then echo "ERROR: public key $KEY not found" >&2; exit 1; fi; \
     cp "$KEY" /etc/apk/keys/builder-6904805d.rsa.pub; \
-    apk add --no-cache $APK || { echo "Falling back to untrusted install" >&2; apk add --allow-untrusted $APK; }; \
-    echo "Installed modbus2mqtt via trusted APK (builder-6904805d.rsa.pub)";
+    apk add --no-cache $APK; \
+    echo "✓ Installed modbus2mqtt via trusted APK with signature verification";
 
 # Copy SSH configuration script as oneshot service
 RUN mkdir -p /etc/s6-overlay/s6-rc.d/ssh-init /etc/s6-overlay/scripts

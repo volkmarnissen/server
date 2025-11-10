@@ -42,41 +42,82 @@ jobs:
   build_apks:
     runs-on: ubuntu-latest
     needs: prepare
+    strategy:
+      matrix:
+        arch: [x86_64, aarch64]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up QEMU for cross-compilation
+        if: matrix.arch == 'aarch64'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
 
       - name: Install tools
         run: |
           sudo apt-get update
           sudo apt-get install -y jq bash
 
-      - name: Build APK (x86_64 test + aarch64 prod)
+      - name: Build APK for ${{ matrix.arch }}
+        env:
+          ALPINE_ARCH: ${{ matrix.arch }}
         run: |
           set -eux
-          # x86_64 test build (quick validation)
-          (cd alpine/package/modbus2mqtt && ./build-and-test-image.sh || (echo 'Test image build failed'; exit 1))
-          # aarch64 production build (example placeholder)
-          echo 'Would run aarch64 build here (abuild -r)'
+          cd alpine/package/modbus2mqtt
+          # For aarch64, use QEMU to run the Alpine container on arm64
+          if [ "$ALPINE_ARCH" = "aarch64" ]; then
+            # Build APK only (skip Docker test on emulated arch for speed)
+            ./build.sh
+          else
+            # For x86_64, run full build-and-test including Docker validation
+            ./build-and-test-image.sh
+          fi
 
-      - name: Upload APK artifacts
+      - name: Upload APK artifacts for ${{ matrix.arch }}
         if: ${{ !inputs.dry_run }}
         uses: actions/upload-artifact@v4
         with:
-          name: apks-${{ needs.prepare.outputs.resolved_version }}
+          name: apks-${{ matrix.arch }}-${{ needs.prepare.outputs.resolved_version }}
           path: |
-            alpine/package/modbus2mqtt/*.apk
-            alpine/package/modbus2mqtt/packager.rsa.pub
+            alpine/repo/${{ matrix.arch }}/*.apk
+            alpine/repo/${{ matrix.arch }}/packager.rsa.pub
           if-no-files-found: warn
 
   docker:
     runs-on: ubuntu-latest
-    needs: prepare
+    needs: [prepare, build_apks]
     outputs:
       image_tag: v${{ needs.prepare.outputs.resolved_version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Download all APK artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: apks-*-${{ needs.prepare.outputs.resolved_version }}
+          path: downloaded-apks
+
+      - name: Organize APKs by architecture
+        run: |
+          mkdir -p alpine/repo
+          # Move artifacts from their subdirectories to alpine/repo/<arch>/
+          for artifact_dir in downloaded-apks/apks-*; do
+            if [ -d "$artifact_dir" ]; then
+              ARCH=$(basename "$artifact_dir" | sed 's/apks-\(.*\)-[0-9].*/\1/')
+              echo "Processing architecture: $ARCH"
+              mkdir -p "alpine/repo/$ARCH"
+              cp -r "$artifact_dir"/* "alpine/repo/$ARCH/" || true
+            fi
+          done
+          ls -lR alpine/repo
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: amd64,arm64
 
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
@@ -98,9 +139,24 @@ jobs:
           TAG="ghcr.io/${{ github.repository }}:v${VERSION}"
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             # Dry run: build a single-arch image and load into local Docker to sanity-check
-            docker buildx build --platform linux/amd64 -t "$TAG" --progress plain --load .
+            docker buildx build \
+              --platform linux/amd64 \
+              --cache-from type=gha \
+              --cache-to type=gha,mode=max \
+              -t "$TAG" \
+              --progress plain \
+              --load \
+              .
           else
-            docker buildx build --platform linux/amd64,linux/arm64 -t "$TAG" --progress plain --push .
+            # Production: build and push multi-arch with layer caching
+            docker buildx build \
+              --platform linux/amd64,linux/arm64 \
+              --cache-from type=gha \
+              --cache-to type=gha,mode=max \
+              -t "$TAG" \
+              --progress plain \
+              --push \
+              .
           fi
           echo "Built image $TAG"
 
@@ -112,23 +168,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download APK artifacts
+      - name: Download all APK artifacts
         uses: actions/download-artifact@v4
         with:
-          name: apks-${{ needs.prepare.outputs.resolved_version }}
+          pattern: apks-*-${{ needs.prepare.outputs.resolved_version }}
           path: apks
+
+      - name: Flatten APK artifacts for upload
+        run: |
+          mkdir -p release-apks
+          find apks -type f \( -name "*.apk" -o -name "packager.rsa.pub" \) -exec cp {} release-apks/ \;
+          ls -lh release-apks/
 
       - name: Upload to existing Release (if exists)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.prepare.outputs.resolved_version }}
-          files: |
-            apks/*.apk
-            apks/packager.rsa.pub
+          files: release-apks/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 # Notes:
 # - dry_run=true allows local verification without pushing image or release assets.
-# - aarch64 build placeholder should be replaced by real abuild invocation.
+# - Multi-arch APK builds (x86_64 + aarch64) use QEMU for cross-compilation.
+# - Docker image builds with strict signature verification (no untrusted fallback).
 # - This workflow is designed to be called from a publish workflow after version bump.
