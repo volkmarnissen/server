@@ -40,14 +40,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Fail if NPM_TOKEN secret missing
+      - name: Fail if NPMJS secret missing
         run: |
-          if [ -z "${NPM_TOKEN:-}" ]; then
-            echo "ERROR: NPM_TOKEN secret is not defined in repository settings." >&2
+          if [ -z "${NPMJS:-}" ]; then
+            echo "ERROR: NPMJS secret is not defined in repository settings." >&2
             exit 1
           fi
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPMJS }}
 
       - name: Bump version (manual trigger only)
         if: ${{ github.event_name == 'workflow_dispatch' }}
@@ -74,7 +74,7 @@ jobs:
 
       - name: Publish to npm
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPMJS }}
         run: npm publish --access public
 
       - name: Create GitHub Release (optional)
