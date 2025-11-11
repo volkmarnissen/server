@@ -1,7 +1,16 @@
 name: Build Release Assets
 
 on:
-  workflow_call:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (without leading v). If omitted, read from package.json.'
+        required: false
+        type: string
+      dry_run:
+        description: 'Skip pushing image and uploading release assets when true.'
+        required: false
+        type: boolean  workflow_call:
     inputs:
       version:
         description: 'Version (without leading v). If omitted, read from package.json.'
