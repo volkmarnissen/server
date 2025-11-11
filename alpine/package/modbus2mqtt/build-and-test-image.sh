@@ -3,10 +3,26 @@ set -eu
 
 # Parse command line options
 KEEP_CONTAINER=false
-if [ "${1:-}" = "--keep" ] || [ "${1:-}" = "-k" ]; then
-  KEEP_CONTAINER=true
-  echo "Container will be kept running for debugging"
-fi
+SKIP_BUILD=false
+
+for arg in "$@"; do
+  case "$arg" in
+    --keep|-k)
+      KEEP_CONTAINER=true
+      echo "Container will be kept running for debugging"
+      ;;
+    --skip-build|-s)
+      SKIP_BUILD=true
+      echo "Skipping APK build (using existing repository)"
+      ;;
+    *)
+      echo "Usage: $0 [--keep|-k] [--skip-build|-s]"
+      echo "  --keep|-k      Keep containers running for debugging"
+      echo "  --skip-build|-s Skip APK build if repository exists"
+      exit 1
+      ;;
+  esac
+done
 
 # Determine absolute script directory to allow running from any CWD
 SCRIPT_DIR="$(cd "$(dirname "$0")" >/dev/null 2>&1 && pwd -P)"
@@ -15,28 +31,82 @@ PKG_DIR="$SCRIPT_DIR/packages"
 
 # ALPINE_VERSION wird nun innerhalb von build.sh ermittelt und persistiert
 
-# Ensure required abuild keys are present in environment (caller / CI must set them)
-if [ -z "${PACKAGER_PRIVKEY:-}" ]; then
-  echo "ERROR: PACKAGER_PRIVKEY must be set in the environment" >&2
-  exit 2
+# Check if we should skip the build
+if [ "$SKIP_BUILD" = "true" ]; then
+  echo "Checking for existing APK repository..."
+  # Check if any APK and public key files exist
+  APK_FOUND=false
+  KEY_FOUND=false
+  
+  for apk_file in "$REPO_DIR"/*/modbus2mqtt-*.apk; do
+    if [ -f "$apk_file" ]; then
+      APK_FOUND=true
+      break
+    fi
+  done
+  
+  for key_file in "$REPO_DIR"/*/packager.rsa.pub; do
+    if [ -f "$key_file" ]; then
+      KEY_FOUND=true
+      break
+    fi
+  done
+  
+  if [ "$APK_FOUND" = "true" ] && [ "$KEY_FOUND" = "true" ]; then
+    echo "✓ Found existing APK packages and public key - skipping build"
+  else
+    echo "ERROR: --skip-build specified but no valid APK repository found in $REPO_DIR" >&2
+    echo "Expected: modbus2mqtt-*.apk and packager.rsa.pub files" >&2
+    exit 2
+  fi
+else
+  # Ensure required abuild keys are present in environment (caller / CI must set them)
+  if [ -z "${PACKAGER_PRIVKEY:-}" ]; then
+    echo "ERROR: PACKAGER_PRIVKEY must be set in the environment" >&2
+    exit 2
+  fi
 fi
 
-# Check if port 3000 or 3022 is in use and attempt cleanup
-if lsof -i -P | grep LISTEN | grep -qE ':(3000|3022)'; then
-  echo "Port 3000 or 3022 is in use - attempting to stop old test container..."
-  docker stop modbus2mqtt-test-instance >/dev/null 2>&1 || true
-  docker rm modbus2mqtt-test-instance >/dev/null 2>&1 || true
-  sleep 3
-  # Verify ports are now free
-  if lsof -i -P | grep LISTEN | grep -qE ':(3000|3022)'; then
-    echo "ERROR: Port 3000 or 3022 is still in use after cleanup - cannot run test" >&2
-    echo "Run: docker ps -a | grep modbus2mqtt or lsof -i :3000 -i :3022 to investigate" >&2
-    lsof -i :3000 -i :3022 >&2 || true
+# Cleanup any existing test containers and check ports
+echo "Cleaning up any existing test containers..."
+docker stop modbus2mqtt-test-instance modbus2mqtt-standalone-test >/dev/null 2>&1 || true
+docker rm modbus2mqtt-test-instance modbus2mqtt-standalone-test >/dev/null 2>&1 || true
+
+# Check if ports are still in use after cleanup
+if lsof -i -P | grep LISTEN | grep -qE ':(3010|3011|3022|3023)'; then
+  echo "Port conflicts detected after container cleanup:"
+  lsof -i :3010 -i :3011 -i :3022 -i :3023 2>/dev/null || true
+  echo "Waiting for ports to be released..."
+  sleep 5
+  if lsof -i -P | grep LISTEN | grep -qE ':(3010|3011|3022|3023)'; then
+    echo "ERROR: Ports still in use - cannot run test" >&2
+    echo "Run: docker ps -a | grep modbus2mqtt or lsof -i :3010 -i :3011 -i :3022 -i :3023 to investigate" >&2
     exit 1
   fi
 fi
-# build the apk using build.sh (this will copy produced packages/ into ../../repo)
-"$SCRIPT_DIR/build.sh"
+
+# Build APK or use existing repository
+if [ "$SKIP_BUILD" = "true" ]; then
+  echo "Using existing APK repository (build skipped)"
+  # Try to determine Alpine version from existing packages
+  for apk_file in "$REPO_DIR"/*/modbus2mqtt-*.apk; do
+    if [ -f "$apk_file" ]; then
+      # Extract architecture from path (e.g., /repo/x86_64/modbus2mqtt-*.apk)
+      ARCH_DIR=$(dirname "$apk_file")
+      ARCH=$(basename "$ARCH_DIR")
+      echo "Found existing APK for architecture: $ARCH"
+      break
+    fi
+  done
+  # Set a default Alpine version if build metadata isn't available
+  if [ ! -f "$SCRIPT_DIR/build/alpine.env" ]; then
+    echo "ALPINE_VERSION=3.22" > "$SCRIPT_DIR/build/alpine.env"
+    echo "Set default ALPINE_VERSION=3.22 for Docker build"
+  fi
+else
+  # build the apk using build.sh (this will copy produced packages/ into ../../repo)
+  "$SCRIPT_DIR/build.sh"
+fi
 
 # Read chosen Alpine version from build metadata
 if [ -f "$SCRIPT_DIR/build/alpine.env" ]; then
@@ -99,7 +169,7 @@ EOF
 echo "Created options.json with test SSH key"
 
 # Start container with shared data volume
-docker run -d -p 3000:3000 -p 3022:22 -v "$TEST_DATA_DIR:/data" --name modbus2mqtt-test-instance modbus2mqtt-test 
+docker run -d -p 3010:3000 -p 3022:22 -v "$TEST_DATA_DIR:/data" --name modbus2mqtt-test-instance modbus2mqtt-test 
 
 # wait for service with retry limit
 attempts=0
@@ -109,7 +179,7 @@ while [ "$(docker inspect -f '{{.State.Running}}' modbus2mqtt-test-instance)" = 
   attempts=$((attempts + 1))
   echo "Attempt $attempts of $max_attempts..."
   
-  if curl -s -f -o /dev/null http://localhost:3000/; then
+  if curl -s -f -o /dev/null http://localhost:3010/; then
     echo "Service is up and running!"
     
     # Test SSH service
@@ -173,10 +243,71 @@ while [ "$(docker inspect -f '{{.State.Running}}' modbus2mqtt-test-instance)" = 
       exit 0
     fi
     
-    echo "Cleaning up test container..."
+    echo "Cleaning up first test container..."
     docker stop modbus2mqtt-test-instance >/dev/null 2>&1
     docker rm modbus2mqtt-test-instance >/dev/null 2>&1
-    exit 0
+    
+    # Test 2: Standalone mode (no volume mounts, no options.json)
+    echo ""
+    echo "=== Testing Standalone Mode (no volumes) ==="
+    echo "Starting standalone container without volume mounts..."
+    
+    docker run -d -p 3011:3000 -p 3023:22 --name modbus2mqtt-standalone-test modbus2mqtt-test
+    
+    # Wait for standalone service 
+    standalone_attempts=0
+    while [ "$(docker inspect -f '{{.State.Running}}' modbus2mqtt-standalone-test)" = "true" ]; do
+      standalone_attempts=$((standalone_attempts + 1))
+      echo "Standalone test attempt $standalone_attempts of $max_attempts..."
+      
+      if curl -s -f -o /dev/null http://localhost:3011/; then
+        echo "✓ Standalone service is running on port 3011!"
+        
+        # Test SSH port (should be open but no authorized_keys)
+        if nc -z -w 2 localhost 3023 >/dev/null 2>&1; then
+          echo "✓ SSH service is running on port 3023 (no keys configured)"
+        else
+          echo "⚠ SSH service not responding on port 3023"
+        fi
+        
+        if [ "$KEEP_CONTAINER" = true ]; then
+          echo ""
+          echo "Both containers are running for debugging:"
+          echo "  docker logs modbus2mqtt-standalone-test"
+          echo "  docker exec -it modbus2mqtt-standalone-test sh"
+          echo "  docker stop modbus2mqtt-standalone-test && docker rm modbus2mqtt-standalone-test"
+          exit 0
+        fi
+        
+        echo "Cleaning up standalone test container..."
+        docker stop modbus2mqtt-standalone-test >/dev/null 2>&1
+        docker rm modbus2mqtt-standalone-test >/dev/null 2>&1
+        echo ""
+        echo "=== All Tests Passed ==="
+        echo "✓ Test 1: Container with volume mount and SSH keys"
+        echo "✓ Test 2: Standalone container without volumes"
+        exit 0
+      fi
+      
+      if [ "$standalone_attempts" -ge "$max_attempts" ]; then
+        echo "ERROR: Standalone service failed to respond after $max_attempts attempts" >&2
+        docker logs modbus2mqtt-standalone-test >&2
+        if [ "$KEEP_CONTAINER" = false ]; then
+          docker stop modbus2mqtt-standalone-test >/dev/null 2>&1
+          docker rm modbus2mqtt-standalone-test >/dev/null 2>&1
+        fi
+        exit 1
+      fi
+      
+      sleep 2
+    done
+    
+    echo "ERROR: Standalone container stopped unexpectedly" >&2
+    docker logs modbus2mqtt-standalone-test >&2
+    if [ "$KEEP_CONTAINER" = false ]; then
+      docker rm modbus2mqtt-standalone-test >/dev/null 2>&1
+    fi
+    exit 1
   fi
   
   if [ "$attempts" -ge "$max_attempts" ]; then

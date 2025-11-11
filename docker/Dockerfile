@@ -44,8 +44,9 @@ RUN chmod +x /etc/s6-overlay/scripts/configure-ssh.sh && \
     chmod +x /etc/s6-overlay/s6-rc.d/ssh-init/up && \
     touch /etc/s6-overlay/s6-rc.d/user/contents.d/ssh-init
 
-# Ensure application directories have correct ownership (post-install creates these)
-RUN chown -R modbus2mqtt:dialout /config /data /ssl
+# Ensure application directories exist and have correct ownership
+RUN mkdir -p /config /data /ssl && \
+    chown -R modbus2mqtt:dialout /config /data /ssl
 
 # Create home directory for modbus2mqtt user (git needs it)
 RUN mkdir -p /var/lib/modbus2mqtt/.config/git && \
@@ -57,7 +58,7 @@ RUN \
     mkdir -p $s6dir && \
     echo 'longrun' > $s6dir/type && \
     echo '#!/command/with-contenv sh' > $s6dir/run && \
-    echo 'cd /data' >> $s6dir/run && \
+    echo 'cd /data || { echo "ERROR: Cannot access /data directory"; exit 1; }' >> $s6dir/run && \
     echo 'export HOME=/var/lib/modbus2mqtt' >> $s6dir/run && \
     echo 'exec s6-setuidgid modbus2mqtt /usr/bin/modbus2mqtt 2>&1' >> $s6dir/run && \
     chmod +x $s6dir/run && \

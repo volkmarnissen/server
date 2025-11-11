@@ -155,6 +155,11 @@ jobs:
               --platform linux/amd64 \
               --cache-from type=gha \
               --cache-to type=gha,mode=max \
+              --build-arg BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+              --build-arg BUILD_DESCRIPTION="modbus2mqtt Docker Image" \
+              --build-arg BUILD_NAME="modbus2mqtt" \
+              --build-arg BUILD_REPOSITORY="${{ github.repository }}" \
+              --build-arg BUILD_VERSION="${VERSION}" \
               -t "$TAG" \
               --progress plain \
               --load \
@@ -165,6 +170,11 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               --cache-from type=gha \
               --cache-to type=gha,mode=max \
+              --build-arg BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+              --build-arg BUILD_DESCRIPTION="modbus2mqtt Docker Image" \
+              --build-arg BUILD_NAME="modbus2mqtt" \
+              --build-arg BUILD_REPOSITORY="${{ github.repository }}" \
+              --build-arg BUILD_VERSION="${VERSION}" \
               -t "$TAG" \
               --progress plain \
               --push \
