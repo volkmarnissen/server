@@ -132,11 +132,10 @@ su - builder -s /bin/sh -c '
     ARCH=`uname -m`
     rm -f "/package/$ARCH"/modbus2mqtt*.apk || true
     cp -aR /home/builder/packages/* /package/ || true
-    # also place the public signing key into the repo for trusted installs
-    mkdir -p "/package/$ARCH" || true
+    # Place the public signing key into the repo root for architecture-independent access
     if [ -f "/home/builder/.abuild/builder-6904805d.rsa.pub" ]; then
-      cp /home/builder/.abuild/builder-6904805d.rsa.pub "/package/$ARCH/packager.rsa.pub"
-      echo "✓ Public key copied to /package/$ARCH/packager.rsa.pub"
+      cp /home/builder/.abuild/builder-6904805d.rsa.pub "/package/packager.rsa.pub"
+      echo "✓ Public key copied to /package/packager.rsa.pub (architecture-independent)"
     else
       echo "WARNING: Public key /home/builder/.abuild/builder-6904805d.rsa.pub not found"
       echo "Available files in /home/builder/.abuild/:"
