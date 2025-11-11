@@ -59,6 +59,7 @@ docker run --rm -i \
   -e HOST_UID="$HOST_UID" \
   -e HOST_GID="$HOST_GID" \
   -e ALPINE_VERSION="$ALPINE_VERSION" \
+  -e TARGET_ARCH="${TARGET_ARCH:-}" \
   -e NPM_CONFIG_CACHE="/home/builder/.npm" \
   -e npm_config_cache="/home/builder/.npm" \
   alpine:"$ALPINE_VERSION" /bin/sh -s <<'IN'
@@ -129,7 +130,9 @@ su - builder -s /bin/sh -c '
   # copy produced packages back to mounted workdir
   if [ -d /home/builder/packages ]; then
     echo "Copying produced packages to /package"
-    ARCH=`uname -m`
+    # Use TARGET_ARCH if set (for cross-compilation), otherwise fall back to uname -m
+    ARCH=${TARGET_ARCH:-$(uname -m)}
+    echo "Using architecture: $ARCH (TARGET_ARCH=${TARGET_ARCH:-unset}, uname -m=$(uname -m))"
     rm -f "/package/$ARCH"/modbus2mqtt*.apk || true
     cp -aR /home/builder/packages/* /package/ || true
     # Place the public signing key into the repo root for architecture-independent access
