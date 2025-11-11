@@ -1,16 +1,6 @@
 name: Build Release Assets
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version (without leading v). If omitted, read from package.json.'
-        required: false
-        type: string
-      dry_run:
-        description: 'Skip pushing image and uploading release assets when true.'
-        required: false
-        type: boolean  workflow_call:
   workflow_call:
     inputs:
       version:
@@ -28,6 +18,16 @@ on:
       image_tag:
         description: 'Docker image tag (v<version>).'
         value: ${{ jobs.docker.outputs.image_tag }}
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (without leading v). If omitted, read from package.json.'
+        required: false
+        type: string
+      dry_run:
+        description: 'Skip pushing image and uploading release assets when true.'
+        required: false
+        type: boolean
 
 jobs:
   prepare:
