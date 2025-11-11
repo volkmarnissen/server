@@ -1,7 +1,9 @@
 #
 name: Create and publish a Docker image
 
-# Configures this workflow to run every time a change is pushed to the branch called `release`.
+# This workflow will start on push on main branch it'll publish an modbus2mqtt npm package 
+# if the patch level is '0' (major/minor releases) it will also create a Release.
+# A release can be created by manually execution and setting version number to 'minor'
 on:
 #  push:
 #    branches: ['main']
