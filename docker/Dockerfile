@@ -1,4 +1,6 @@
-FROM alpine:3.22
+ARG ALPINE_VERSION=3.22
+FROM alpine:${ALPINE_VERSION}
+
 # Build arguments
 ARG BUILD_DATE
 ARG BUILD_DESCRIPTION="modbus2mqtt Docker Image"
@@ -17,13 +19,37 @@ ENV BUILD_VERSION=${BUILD_VERSION}
 
 WORKDIR /usr/app
 
-# Install runtime and tooling to start service and perform healthchecks
-RUN apk add --no-cache s6-overlay nodejs npm curl
+# Install jq (used by SSH init script to parse /data/options.json); wget is in base image
+RUN apk add --no-cache jq
 
-# Copy produced packages (expect build.sh to have created ./packages)
-COPY ./alpine-repo/ /tmp/alpine-repo/
-# Find the produced apk and install it
-RUN  ls /tmp/alpine-repo/`uname -m`/modbus2mqtt-*.apk  | while read apk_file; do  apk add --allow-untrusted "$apk_file"; done
+# Copy produced packages (expect build scripts to have created repo)
+COPY ./alpine/repo/ /tmp/alpine-repo/
+# Install APK with strict signature verification (no untrusted fallback)
+RUN set -e; \
+    ARCH="$(uname -m)"; \
+    KEY="/tmp/alpine-repo/${ARCH}/packager.rsa.pub"; \
+    APK="/tmp/alpine-repo/${ARCH}/modbus2mqtt-*.apk"; \
+    if [ ! -f "$KEY" ]; then echo "ERROR: public key $KEY not found" >&2; exit 1; fi; \
+    cp "$KEY" /etc/apk/keys/builder-6904805d.rsa.pub; \
+    apk add --no-cache $APK; \
+    echo "✓ Installed modbus2mqtt via trusted APK with signature verification";
+
+# Copy SSH configuration script as oneshot service
+RUN mkdir -p /etc/s6-overlay/s6-rc.d/ssh-init /etc/s6-overlay/scripts
+COPY ./docker/01-configure-ssh.sh /etc/s6-overlay/scripts/configure-ssh.sh
+RUN chmod +x /etc/s6-overlay/scripts/configure-ssh.sh && \
+    echo 'oneshot' > /etc/s6-overlay/s6-rc.d/ssh-init/type && \
+    echo '#!/command/execlineb -P' > /etc/s6-overlay/s6-rc.d/ssh-init/up && \
+    echo '/etc/s6-overlay/scripts/configure-ssh.sh' >> /etc/s6-overlay/s6-rc.d/ssh-init/up && \
+    chmod +x /etc/s6-overlay/s6-rc.d/ssh-init/up && \
+    touch /etc/s6-overlay/s6-rc.d/user/contents.d/ssh-init
+
+# Ensure application directories have correct ownership (post-install creates these)
+RUN chown -R modbus2mqtt:dialout /config /data /ssl
+
+# Create home directory for modbus2mqtt user (git needs it)
+RUN mkdir -p /var/lib/modbus2mqtt/.config/git && \
+    chown -R modbus2mqtt:dialout /var/lib/modbus2mqtt
 
 # Create service
 RUN \
@@ -31,7 +57,9 @@ RUN \
     mkdir -p $s6dir && \
     echo 'longrun' > $s6dir/type && \
     echo '#!/command/with-contenv sh' > $s6dir/run && \
-    echo 'exec /usr/bin/modbus2mqtt 2>&1' >> $s6dir/run && \
+    echo 'cd /data' >> $s6dir/run && \
+    echo 'export HOME=/var/lib/modbus2mqtt' >> $s6dir/run && \
+    echo 'exec s6-setuidgid modbus2mqtt /usr/bin/modbus2mqtt 2>&1' >> $s6dir/run && \
     chmod +x $s6dir/run && \
     s6usr=/etc/s6-overlay/s6-rc.d/user/contents.d && \
     mkdir -p $s6usr && \
@@ -40,16 +68,32 @@ RUN \
     touch $s6dir/dependencies.d/base && \  
     echo '#!/bin/sh' >$s6dir/finish && \
     echo 'echo modbus2mqtt done' >>$s6dir/finish && \
-    chmod +x $s6dir/finish 
+    chmod +x $s6dir/finish
 
-EXPOSE 3000
+# SSH configuration is done by:
+# 1. APK post-install: creates /root/.ssh, configures sshd_config, generates host keys
+# 2. cont-init script: reads /data/options.json and configures authorized_keys
+
+# Create SSH service for s6-overlay
+RUN \
+    sshdir=/etc/s6-overlay/s6-rc.d/sshd && \
+    mkdir -p $sshdir && \
+    echo 'longrun' > $sshdir/type && \
+    echo '#!/command/with-contenv sh' > $sshdir/run && \
+    echo 'exec /usr/sbin/sshd -D -e 2>&1' >> $sshdir/run && \
+    chmod +x $sshdir/run && \
+    touch /etc/s6-overlay/s6-rc.d/user/contents.d/sshd && \
+    mkdir -p $sshdir/dependencies.d && \
+    touch $sshdir/dependencies.d/base
+
+EXPOSE 3000 22
 
 # Start service using s6-overlay
 CMD ["/init"] 
 
 # Health check
 HEALTHCHECK --start-period=10m \
-    CMD curl --fail http://127.0.0.1:3000 || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3000 || exit 1
 # Labels
 LABEL \
     io.hass.name="${BUILD_NAME}" \

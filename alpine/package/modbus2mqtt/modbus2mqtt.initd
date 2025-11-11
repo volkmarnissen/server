@@ -1,0 +1,23 @@
+#!/sbin/openrc-run
+# OpenRC init script for modbus2mqtt
+
+description="Modbus to MQTT bridge"
+command="/usr/bin/modbus2mqtt"
+command_user="modbus2mqtt:dialout"
+command_background=true
+pidfile="/run/$RC_SVCNAME.pid"
+output_log="/var/log/$RC_SVCNAME.log"
+error_log="/var/log/$RC_SVCNAME.err"
+directory="/data"
+
+depend() {
+    need net
+    after firewall
+}
+
+start_pre() {
+    checkpath --directory --mode 0755 /var/log
+    checkpath --directory --mode 0755 --owner modbus2mqtt:dialout /var/lib/modbus2mqtt
+    checkpath --directory --mode 0755 --owner modbus2mqtt:dialout /var/lib/modbus2mqtt/.config/git
+    export HOME=/var/lib/modbus2mqtt
+}

@@ -5,22 +5,26 @@
 # Maintainer: Modbus2mqtt <info@carcam360.de>
 pkgname=modbus2mqtt
 # Version comes from package.json or the PKG_VERSION environment variable
-pkgver=0.16.55
+pkgver=0.16.56
 pkgrel=0
 pkgdesc="Modbus to MQTT bridge"
-url="https://github.com/volkmarnissen/server"
+url="https://github.com/modbus2mqtt/server"
 arch="$CARCH"
 license="MIT"
-depends="nodejs npm s6-overlay git"
+depends="nodejs npm s6-overlay git openssh-server"
 makedepends="npm alpine-sdk shadow rsync py3-psutil make build-base linux-headers udev"
 install="$pkgname.pre-install $pkgname.post-install"
+subpackages="$pkgname-openrc"
 
 # Disable the abuild check phase: tests are executed in the GitHub workflow
 # (before creating the npm artifacts and after installing the produced APK),
 # so running the check() step inside the APK build would be redundant and
 # may run at the wrong moment. Use the options variable to skip it.
 options="!check"
-source=""
+source="
+	$pkgname.initd
+	$pkgname.confd
+	"
 builddir="$srcdir/$pkgname-$pkgver"
 
 build() {
@@ -35,17 +39,52 @@ build() {
     # available. Fall back to $srcdir/package.json and finally to a
     # minimal package.json.
     npm init -y >/dev/null 2>&1 || true
-    npm install --force --no-audit --no-fund --omit=dev "${pkgname}@${pkgver}" || true
-    # Prefer building native addons from source (set env var for npm >=7).
-    npm install --save-dev node-gyp-build 
-    npm rebuild @serialport/bindings-cpp
-    npm uninstall node-gyp-build 
-    # Some dependencies (notably @serialport/bindings-cpp) ship a
-    # "prebuilds" directory containing precompiled .node files for many
-    # architectures. abuild rejects packages that contain foreign-arch
-    # native blobs. Remove those prebuilt artifacts so only the locally
-    # compiled target-arch binaries remain in the final package.
+    
+    # Install main package with suppressed output (show only on error)
+    echo "Installing ${pkgname}@${pkgver}..."
+    npm_log=$(mktemp)
+    if ! npm install --force --no-audit --no-fund --omit=dev "${pkgname}@${pkgver}" >"$npm_log" 2>&1; then
+        echo "ERROR: npm install failed" >&2
+        cat "$npm_log" >&2
+        rm -f "$npm_log"
+        exit 1
+    fi
+    rm -f "$npm_log"
+    
+    # Remove prebuilt binaries first to force rebuild from source
     find node_modules -type d -name "prebuilds" -prune -print -exec rm -rf '{}' + || true
+    
+    # Install build tools for native module compilation
+    echo "Installing build tools..."
+    build_log=$(mktemp)
+    if ! npm install --save-dev node-gyp node-gyp-build >"$build_log" 2>&1; then
+        echo "WARNING: Failed to install build tools" >&2
+        cat "$build_log" >&2
+    fi
+    rm -f "$build_log"
+    
+    # Rebuild all native modules from source for target architecture
+    # Find all packages with binding.gyp (indicator for native modules)
+    find node_modules -name "binding.gyp" -type f | while read -r gyp_file; do
+        module_dir=$(dirname "$gyp_file")
+        module_name=$(basename "$module_dir")
+        echo "Rebuilding native module: $module_name"
+        cd "$module_dir" || continue
+        
+        # Capture node-gyp output; only show on error
+        log_file=$(mktemp)
+        if ! node-gyp rebuild >"$log_file" 2>&1; then
+            echo "WARNING: Failed to rebuild $module_name" >&2
+            cat "$log_file" >&2
+        fi
+        rm -f "$log_file"
+        
+        cd "$builddir" || exit 1
+    done
+    
+    # Uninstall build tools quietly
+    echo "Cleaning up build tools..."
+    npm uninstall node-gyp node-gyp-build >/dev/null 2>&1 || true
 }
 
 package() {
@@ -58,14 +97,25 @@ package() {
     # Create symlink to the executable
     install -d "$pkgdir"/usr/bin
     ln -s /usr/lib/node_modules/$pkgname/bin/$pkgname "$pkgdir"/usr/bin/$pkgname
+    
     # Create config directory
     install -d "$pkgdir"/etc/$pkgname
-    # create homeassistant addon directories
-    install -d "$pkgdir"/config
-    install -d "$pkgdir"/data
-    install -d "$pkgdir"/ssl
-    # Do not chown to the service user here (user may not exist inside fakeroot).
-    # Permissions should be set here; user is created at install time in pre-install.
-    chmod 755 "$pkgdir"/config "$pkgdir"/data "$pkgdir"/ssl
+    # create homeassistant addon directories (permissions set in post-install)
+    install -d -m 755 "$pkgdir"/config
+    install -d -m 755 "$pkgdir"/data
+    install -d -m 755 "$pkgdir"/ssl
 }
 
+openrc() {
+    pkgdesc="$pkgdesc (OpenRC init scripts)"
+    install_if="$pkgname=$pkgver-r$pkgrel openrc"
+    depends=""
+    
+    # Install OpenRC init script and config to subpackage
+    install -m755 -D "$builddir"/../../$pkgname.initd "$subpkgdir"/etc/init.d/$pkgname
+    install -m644 -D "$builddir"/../../$pkgname.confd "$subpkgdir"/etc/conf.d/$pkgname
+}
+sha512sums="
+d03c77fda1d53d8f7fa43eac4366d34c5dad06e0feb81b3e99c3a0e6c84b7043b1987fc6f7b0273816134eccd9b8d4040cb3be23e5eb5aee898a686f9355adc6  modbus2mqtt.initd
+14e6c4eaf90a9f75504bcf7da6253240a58dae0098a3acc26a391e28a0a8be6200adf13a108f8260eaec88a1bcd0de4c8afa492c86f7d030ecb6db845bc7aa41  modbus2mqtt.confd
+"

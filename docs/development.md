@@ -1,12 +1,15 @@
-# Local Installation
+# Development Setup
+
+This guide is for **contributors and developers** who want to work on the modbus2mqtt codebase. For production installations, see the [Proxmox Installation Guide](./installation-proxmox.md) or [Docker Installation Guide](./installation-docker.md).
 
 ## Prerequisites
 
 - Node.js 20 or higher
 - npm or yarn package manager
-- Git (for cloning the repository)
+- Git
+- A code editor (VS Code recommended)
 
-## Installation Steps
+## Setup Steps
 
 ### 1. Clone the Repository
 
@@ -21,13 +24,13 @@ cd server
 npm install
 ```
 
-### 3. Install Git Hooks (for contributors)
+### 3. Install Git Hooks
 
 ```bash
 npm run install-hooks
 ```
 
-This will set up pre-commit hooks that automatically format code with Prettier.
+This sets up pre-commit hooks that automatically format code with Prettier before each commit.
 
 ### 4. Build the Application
 
@@ -182,9 +185,16 @@ sudo usermod -a -G dialout $USER
 
 Log out and back in for changes to take effect.
 
+## Contributing
+
+Ready to contribute? Check out the [Contributing Guide](./contributing.md) for:
+- Code style guidelines
+- Pull request process
+- Testing requirements
+- Documentation standards
+
 ## Next Steps
 
 - [Configuration Guide](./configuration.md)
 - [Adding Devices](./adding-devices.md)
 - [Creating Specifications](./creating-specifications.md)
-- [Development Setup](./development.md)

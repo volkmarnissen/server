@@ -4,60 +4,81 @@ set -eu
 # Containerized abuild flow for macOS/Linux hosts.
 # Expects the following environment variables (caller / CI):
 # - PACKAGER_PRIVKEY : full private abuild key (multi-line)
-# - PACKAGER_PUBKEY  : public abuild key (multi-line)
+# - PACKAGER_PUBKEY  : public abuild key (multi-line) [optional; derived from private if unset]
 # - (optional) PKG_VERSION : package version; defaults to package.json via node
 BASEDIR=$(dirname "$0")
 
-if [ -z "${PACKAGER_PRIVKEY:-}" ] || [ -z "${PACKAGER_PUBKEY:-}" ]; then
-  echo "ERROR: PACKAGER_PRIVKEY and PACKAGER_PUBKEY must be set in the environment" >&2
+if [ -z "${PACKAGER_PRIVKEY:-}" ]; then
+  echo "ERROR: PACKAGER_PRIVKEY must be set in the environment" >&2
   exit 2
 fi
 
 : "${PKG_VERSION:=$(node -p "require('../../../package.json').version")}" || true
 export PKG_VERSION
 echo version: "$PKG_VERSION"
+
+# Determine Alpine version strictly from local Node.js if not provided
+if [ -z "${ALPINE_VERSION:-}" ]; then
+  NODE_MAJOR=$(node -p "process.versions.node.split('.')[0]" 2>/dev/null || echo "")
+  if [ -z "$NODE_MAJOR" ]; then
+    echo "ERROR: Could not determine local Node.js version (node not in PATH). Set ALPINE_VERSION explicitly." >&2
+    exit 3
+  fi
+  case "$NODE_MAJOR" in
+    22) ALPINE_VERSION="3.22" ;;
+    20) ALPINE_VERSION="3.20" ;;
+    18) ALPINE_VERSION="3.18" ;;
+    *)
+      echo "ERROR: Unsupported Node.js major '$NODE_MAJOR'. Supported: 22, 20, 18. Set ALPINE_VERSION explicitly." >&2
+      exit 4
+    ;;
+  esac
+fi
+export ALPINE_VERSION
+echo "Using Alpine ${ALPINE_VERSION} (from Node.js major ${NODE_MAJOR:-unknown})"
+
+# Persist chosen Alpine version for downstream scripts
+mkdir -p "$BASEDIR/build"
+printf 'ALPINE_VERSION=%s\n' "$ALPINE_VERSION" > "$BASEDIR/build/alpine.env"
+
 HOST_UID=$(id -u)
 HOST_GID=$(id -g)
 PACKAGE="$BASEDIR/../../repo"
 mkdir -p "$PACKAGE"
+# Prepare npm cache directory on host to speed up repeated builds
+CACHE_DIR="$BASEDIR/build/npm-cache"
+mkdir -p "$CACHE_DIR"
 docker run --rm -i \
   -v "$BASEDIR":/work \
   -w /work \
   -v "$PACKAGE":/package \
   -w /package \
+  -v "$CACHE_DIR":/home/builder/.npm \
   -e PACKAGER="Volkmar Nissen <volkmar.nissen@example.com>" \
   -e PKG_VERSION="$PKG_VERSION" \
   -e PACKAGER_PRIVKEY \
-  -e PACKAGER_PUBKEY \
+  ${PACKAGER_PUBKEY:+-e PACKAGER_PUBKEY} \
   -e HOST_UID="$HOST_UID" \
   -e HOST_GID="$HOST_GID" \
-  alpine:3.22 /bin/sh -s <<'IN'
+  -e ALPINE_VERSION="$ALPINE_VERSION" \
+  -e NPM_CONFIG_CACHE="/home/builder/.npm" \
+  -e npm_config_cache="/home/builder/.npm" \
+  alpine:"$ALPINE_VERSION" /bin/sh -s <<'IN'
 set -e 
-# Probe a list of Alpine repo versions and pick the first reachable one.
-# This avoids hardcoding a single (possibly unavailable) mirror while preventing
-# using an overly old release. We prefer recent stable versions and fall back
-# to edge if necessary.
-VERSIONS="v3.22 v3.21 v3.20 v3.19 v3.18 edge"
-success=0
-for v in $VERSIONS; do
-  cat > /etc/apk/repositories <<-REPO
-https://dl-cdn.alpinelinux.org/alpine/$v/main
-https://dl-cdn.alpinelinux.org/alpine/$v/community
+# Use ALPINE_VERSION provided by host
+ALPINE_REPO_VER="v${ALPINE_VERSION}"
+cat > /etc/apk/repositories <<-REPO
+https://dl-cdn.alpinelinux.org/alpine/${ALPINE_REPO_VER}/main
+https://dl-cdn.alpinelinux.org/alpine/${ALPINE_REPO_VER}/community
 REPO
-  # try update; if successful, keep this repo
-  if apk update >/dev/null 2>&1; then
-    echo "Using alpine repo $v"
-    success=1
-    break
-  fi
-done
-if [ "$success" -ne 1 ]; then
-  echo "ERROR: no alpine repositories reachable (tried: $VERSIONS)" >&2
+if ! apk update >/dev/null 2>&1; then
+  echo "ERROR: failed to use alpine repositories for ${ALPINE_REPO_VER}" >&2
   exit 1
 fi
 
-# Install build deps inside the container
-apk add --no-cache abuild alpine-sdk nodejs npm git shadow openssl doas
+# Install build deps inside the container (suppress progress output)
+echo "Installing build dependencies..."
+apk add --no-cache abuild alpine-sdk nodejs npm git shadow openssl doas >/dev/null 2>&1
 mkdir -p /etc/doas.d
 echo 'permit nopass :dialout as root' > /etc/doas.d/doas.conf || true
 
@@ -71,11 +92,18 @@ adduser -D -u "${HOST_UID}" -G dialout builder || true
 addgroup builder abuild || true
 mkdir -p /home/builder
 chown builder:dialout /home/builder || true
+mkdir -p /home/builder/.npm
+chown -R builder:dialout /home/builder/.npm || true
 
 # write abuild keys from env into builder home
 mkdir -p /home/builder/.abuild
 printf '%s' "$PACKAGER_PRIVKEY" > /home/builder/.abuild/builder-6904805d.rsa
-printf '%s' "$PACKAGER_PUBKEY" > /home/builder/.abuild/builder-6904805d.rsa.pub
+# Write or derive public key
+if [ -n "$PACKAGER_PUBKEY" ]; then
+  printf '%s' "$PACKAGER_PUBKEY" > /home/builder/.abuild/builder-6904805d.rsa.pub
+else
+  openssl rsa -in /home/builder/.abuild/builder-6904805d.rsa -pubout -out /home/builder/.abuild/builder-6904805d.rsa.pub >/dev/null 2>&1 || true
+fi
 chmod 600 /home/builder/.abuild/builder-6904805d.rsa || true
 chown -R builder:dialout /home/builder/.abuild || true
 cp /home/builder/.abuild/builder-6904805d.rsa.pub /etc/apk/keys || true
@@ -103,6 +131,9 @@ su - builder -s /bin/sh -c '
     ARCH=`uname -m`
     rm -f "/package/$ARCH"/modbus2mqtt*.apk || true
     cp -aR /home/builder/packages/* /package/ || true
+    # also place the public signing key into the repo for trusted installs
+    mkdir -p "/package/$ARCH" || true
+    cp /home/builder/.abuild/builder-6904805d.rsa.pub "/package/$ARCH/packager.rsa.pub" || true
     chown -R '"$(id -u):$(id -g)"' /package/ || true
   fi
   '

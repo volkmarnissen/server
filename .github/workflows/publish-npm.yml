@@ -1,0 +1,99 @@
+name: Publish to npm and Build Assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_level:
+        description: 'Release level for npm version (patch|minor|major)'
+        required: true
+        default: 'patch'
+      create_github_release:
+        description: 'Create a GitHub Release when true (manual runs)'
+        required: false
+        type: boolean
+        default: false
+      dry_run_assets:
+        description: 'Call asset build in dry-run mode (no image push or release uploads)'
+        required: false
+        type: boolean
+        default: false
+  push:
+    branches:
+      - main
+
+jobs:
+  npm_publish:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.getver.outputs.version }}
+      is_release: ${{ steps.flags.outputs.is_release }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Fail if NPM_TOKEN secret missing
+        run: |
+          if [ -z "${NPM_TOKEN:-}" ]; then
+            echo "ERROR: NPM_TOKEN secret is not defined in repository settings." >&2
+            exit 1
+          fi
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Bump version (manual trigger only)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          npm version ${{ inputs.release_level }} -m "chore(release): v%s"
+
+      - name: Read version from package.json
+        id: getver
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Decide if this should create a GitHub Release
+        id: flags
+        run: |
+          VERSION="${{ steps.getver.outputs.version }}"
+          PATCH=${VERSION##*.}
+          if [ "$PATCH" = "0" ] || { [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.create_github_release }}" = "true" ]; }; then
+            echo "is_release=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_release=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
+
+      - name: Create GitHub Release (optional)
+        if: ${{ steps.flags.outputs.is_release == 'true' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.getver.outputs.version }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build_assets:
+    needs: npm_publish
+    uses: ./.github/workflows/release-assets.yml
+    with:
+      version: ${{ needs.npm_publish.outputs.version }}
+      dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run_assets }}
+
+# Notes:
+# - For push to main, it will NOT bump version automatically; it uses the current package.json version.
+# - For manual runs, you can choose patch/minor/major and optionally create a GitHub Release.
+# - The reusable workflow release-assets.yml builds APKs and Docker images and attaches assets for releases.
