@@ -16,6 +16,11 @@ fi
 export PKG_VERSION
 echo version: "$PKG_VERSION"
 
+# Set target architecture - can be overridden by environment variable
+: "${TARGET_ARCH:=$(uname -m)}"
+export TARGET_ARCH
+echo "Target architecture: $TARGET_ARCH"
+
 # Determine Alpine version strictly from local Node.js if not provided
 if [ -z "${ALPINE_VERSION:-}" ]; then
   NODE_MAJOR=$(node -p "process.versions.node.split('.')[0]" 2>/dev/null || echo "")
@@ -44,6 +49,13 @@ HOST_UID=$(id -u)
 HOST_GID=$(id -g)
 PACKAGE="$BASEDIR/../../repo"
 mkdir -p "$PACKAGE"
+
+# Determine target architecture for APK placement
+if [ -n "${TARGET_ARCH:-}" ]; then
+  echo "Using explicit target architecture: $TARGET_ARCH (cross-compilation mode)"
+else
+  echo "Using native architecture: $(uname -m) (local development mode)"
+fi
 # Prepare npm cache directory on host to speed up repeated builds
 CACHE_DIR="$BASEDIR/build/npm-cache"
 mkdir -p "$CACHE_DIR"
@@ -132,7 +144,11 @@ su - builder -s /bin/sh -c '
     echo "Copying produced packages to /package"
     # Use TARGET_ARCH if set (for cross-compilation), otherwise fall back to uname -m
     ARCH=${TARGET_ARCH:-$(uname -m)}
-    echo "Using architecture: $ARCH (TARGET_ARCH=${TARGET_ARCH:-unset}, uname -m=$(uname -m))"
+    if [ -n "${TARGET_ARCH:-}" ]; then
+      echo "Placing APKs in architecture directory: $ARCH (cross-compilation for $TARGET_ARCH)"
+    else
+      echo "Placing APKs in architecture directory: $ARCH (native build for $(uname -m))"
+    fi
     rm -f "/package/$ARCH"/modbus2mqtt*.apk || true
     cp -aR /home/builder/packages/* /package/ || true
     # Place the public signing key into the repo root for architecture-independent access

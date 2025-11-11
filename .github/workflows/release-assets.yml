@@ -70,6 +70,10 @@ jobs:
         run: |
           set -eux
           cd alpine/package/modbus2mqtt
+          # Explicitly export TARGET_ARCH for the build process
+          export TARGET_ARCH="$ALPINE_ARCH"
+          echo "DEBUG: Set TARGET_ARCH=$TARGET_ARCH for build"
+          
           # For aarch64, use QEMU to run the Alpine container on arm64
           if [ "$ALPINE_ARCH" = "aarch64" ]; then
             # Build APK only (skip Docker test on emulated arch for speed)
