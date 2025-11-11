@@ -168,11 +168,15 @@ EOF
 
 echo "Created options.json with test SSH key"
 
-# Set correct permissions for mount point (modbus2mqtt user = UID 1000)
+# Set correct permissions for mount point (modbus2mqtt user = UID 1000, GID 20 dialout)
 echo "Setting correct permissions for test data directory..."
 chmod 755 "$TEST_DATA_DIR"
-# Make files readable for modbus2mqtt user (fallback for different systems)
-chmod 644 "$TEST_DATA_DIR"/* 2>/dev/null || true
+# Set ownership to UID 1000 (modbus2mqtt user in container)
+if command -v chown >/dev/null 2>&1; then
+  chown -R 1000:20 "$TEST_DATA_DIR" 2>/dev/null || chmod -R 644 "$TEST_DATA_DIR"/* 2>/dev/null || true
+else
+  chmod -R 644 "$TEST_DATA_DIR"/* 2>/dev/null || true
+fi
 
 # Start container with shared data volume
 docker run -d -p 3010:3000 -p 3022:22 -v "$TEST_DATA_DIR:/data" --name modbus2mqtt-test-instance modbus2mqtt-test 
