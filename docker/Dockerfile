@@ -24,6 +24,8 @@ RUN apk add --no-cache jq
 
 # Copy produced packages (expect build scripts to have created repo)
 COPY ./alpine/repo/ /tmp/alpine-repo/
+# Ensure public key is copied (workaround for Docker COPY behavior with root files)
+COPY ./alpine/repo/packager.rsa.pub /tmp/alpine-repo/packager.rsa.pub
 # Install APK with strict signature verification (no untrusted fallback)
 RUN set -e; \
     ARCH="$(uname -m)"; \
