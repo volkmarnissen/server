@@ -151,7 +151,8 @@ jobs:
           -t "$TAG" \
           --progress plain \
           --push \
-          -f ./docker/Dockerfile
+          -f ./docker/Dockerfile \
+          .
           echo "Built image $TAG"
 
   attach_release_assets:
