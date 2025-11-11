@@ -109,12 +109,16 @@ jobs:
           PUBLIC_KEY_COPIED=false
           for artifact_dir in downloaded-apks/apks-*; do
             if [ -d "$artifact_dir" ]; then
-              ARCH=$(basename "$artifact_dir" | sed 's/apks-\(.*\)-[0-9].*/\1/')
-              echo "Processing architecture: $ARCH"
+              # Extract architecture from artifact directory name
+              dir_basename=$(basename "$artifact_dir")
+              echo "Debug: Processing directory: $dir_basename"
+              ARCH=$(echo "$dir_basename" | sed 's/apks-\([^-]*\)-.*/\1/')
+              echo "✓ Extracted architecture: '$ARCH' from '$dir_basename'"
               mkdir -p "alpine/repo/$ARCH"
               
               # Copy APK files to arch directory
               find "$artifact_dir" -name "*.apk" -exec cp {} "alpine/repo/$ARCH/" \;
+              echo "✓ Copied APK files for $ARCH"
               
               # Copy public key to repo root (only once)
               if [ "$PUBLIC_KEY_COPIED" = "false" ] && [ -f "$artifact_dir/packager.rsa.pub" ]; then
@@ -122,6 +126,18 @@ jobs:
                 echo "✓ Public key copied to alpine/repo/packager.rsa.pub"
                 PUBLIC_KEY_COPIED=true
               fi
+            fi
+          done
+          
+          # Ensure we have APKs for both architectures
+          echo "Checking APK availability:"
+          for arch in x86_64 aarch64; do
+            if [ -d "alpine/repo/$arch" ]; then
+              apk_count=$(find "alpine/repo/$arch" -name "*.apk" | wc -l)
+              echo "✓ $arch: $apk_count APK files"
+              ls -la "alpine/repo/$arch"/*.apk || true
+            else
+              echo "⚠️  Missing APKs for $arch"
             fi
           done
           
