@@ -6,7 +6,7 @@ set -eu
 # - PACKAGER_PRIVKEY : full private abuild key (multi-line)
 # - (optional) PKG_VERSION : package version; defaults to package.json via node
 BASEDIR=$(dirname "$0")
-
+cd "$BASEDIR"
 if [ -z "${PACKAGER_PRIVKEY:-}" ]; then
   echo "ERROR: PACKAGER_PRIVKEY must be set in the environment" >&2
   exit 2
@@ -50,12 +50,6 @@ HOST_GID=$(id -g)
 PACKAGE="$BASEDIR/../../repo"
 mkdir -p "$PACKAGE"
 
-# Determine target architecture for APK placement
-if [ -n "${TARGET_ARCH:-}" ]; then
-  echo "Using explicit target architecture: $TARGET_ARCH (cross-compilation mode)"
-else
-  echo "Using native architecture: $(uname -m) (local development mode)"
-fi
 # Prepare npm cache directory on host to speed up repeated builds
 CACHE_DIR="$BASEDIR/build/npm-cache"
 mkdir -p "$CACHE_DIR"
@@ -71,7 +65,7 @@ docker run --rm -i \
   -e HOST_UID="$HOST_UID" \
   -e HOST_GID="$HOST_GID" \
   -e ALPINE_VERSION="$ALPINE_VERSION" \
-  -e TARGET_ARCH="${TARGET_ARCH:-}" \
+  -e TARGET_ARCH="${TARGET_ARCH}" \
   -e NPM_CONFIG_CACHE="/home/builder/.npm" \
   -e npm_config_cache="/home/builder/.npm" \
   alpine:"$ALPINE_VERSION" /bin/sh -s <<'IN'
@@ -141,16 +135,9 @@ su - builder -s /bin/sh -c '
   abuild -r
   # copy produced packages back to mounted workdir
   if [ -d /home/builder/packages ]; then
-    echo "Copying produced packages to /package"
-    # Use TARGET_ARCH if set (for cross-compilation), otherwise fall back to uname -m
-    ARCH=${TARGET_ARCH:-$(uname -m)}
-    if [ -n "${TARGET_ARCH:-}" ]; then
-      echo "Placing APKs in architecture directory: $ARCH (cross-compilation for $TARGET_ARCH)"
-    else
-      echo "Placing APKs in architecture directory: $ARCH (native build for $(uname -m))"
-    fi
-    rm -f "/package/$ARCH"/modbus2mqtt*.apk || true
-    cp -aR /home/builder/packages/* /package/ || true
+
+    rm -f "/package/$TARGET_ARCH/modbus2mqtt*.apk" || true
+      cp -aR "/home/builder/packages/$TARGET_ARCH" /package/ || true
     # Place the public signing key into the repo root for architecture-independent access
     if [ -f "/home/builder/.abuild/builder-6904805d.rsa.pub" ]; then
       cp /home/builder/.abuild/builder-6904805d.rsa.pub "/package/packager.rsa.pub"
