@@ -1,4 +1,4 @@
-import { it, expect, jest, xit } from '@jest/globals'
+import { it, expect, jest, xit, beforeEach, afterEach } from '@jest/globals'
 import { ConfigSpecification } from '../../src/specification'
 import * as fs from 'fs'
 import path, { join } from 'path'
@@ -15,10 +15,26 @@ import {
 import { IModbusResultOrError } from '../../src/specification'
 import { ImodbusValues } from '../../src/specification'
 import { trace } from 'console'
+import { SpecificationTestHelper } from '../server/testhelper'
 
 ConfigSpecification['configDir'] = configDir
 ConfigSpecification['dataDir'] = dataDir
 ConfigSpecification.setMqttdiscoverylanguage('en')
+
+// Test Helper für Datei-Backups
+let testHelper: SpecificationTestHelper
+
+beforeEach(() => {
+  testHelper = new SpecificationTestHelper()
+  // Backup der wichtigsten Dateien vor jedem Test
+  testHelper.backupAll(configDir)
+})
+
+afterEach(() => {
+  // Wiederherstellen aller Dateien nach jedem Test
+  testHelper.restoreAll()
+})
+
 let testdata: ImodbusValues = {
   coils: new Map<number, IModbusResultOrError>(),
   discreteInputs: new Map<number, IModbusResultOrError>(),

@@ -2,6 +2,7 @@ import { expect, describe, test, beforeEach, afterEach } from '@jest/globals'
 import fs from 'fs'
 import path from 'path'
 import { CmdlineMigrate } from '../../src/server/CmdlineMigrate'
+import { MigrationTestHelper } from './testhelper'
 
 describe('CmdlineMigrate', () => {
   const testBaseDir = path.join(__dirname, 'temp-migration-test')
@@ -9,8 +10,12 @@ describe('CmdlineMigrate', () => {
   const configDir = path.join(testBaseDir, 'config')
   const oldLocalDir = path.join(dataDir, 'local')
   const newLocalDir = path.join(configDir, 'modbus2mqtt')
+  let testHelper: MigrationTestHelper
 
   beforeEach(() => {
+    testHelper = new MigrationTestHelper()
+    testHelper.registerTempDir(testBaseDir)
+
     // Clean up before each test
     if (fs.existsSync(testBaseDir)) {
       fs.rmSync(testBaseDir, { recursive: true, force: true })
@@ -21,10 +26,8 @@ describe('CmdlineMigrate', () => {
   })
 
   afterEach(() => {
-    // Clean up after each test
-    if (fs.existsSync(testBaseDir)) {
-      fs.rmSync(testBaseDir, { recursive: true, force: true })
-    }
+    // Verwende den TestHelper für cleanup
+    testHelper.cleanup()
   })
 
   describe('needsMigration', () => {

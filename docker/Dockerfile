@@ -52,7 +52,7 @@ RUN mkdir -p /config /data /ssl && \
 # Create home directory for modbus2mqtt user (git needs it)
 RUN mkdir -p /var/lib/modbus2mqtt/.config/git && \
     chown -R modbus2mqtt:dialout /var/lib/modbus2mqtt && \
-    chmod 755 /var/lib/modbus2mqtt
+    chmod -R 755 /var/lib/modbus2mqtt
 
 # Create service
 RUN \

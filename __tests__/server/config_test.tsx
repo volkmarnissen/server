@@ -7,12 +7,19 @@ import { ImqttClient, AuthenticationErrors } from '../../src/server.shared'
 import AdmZip from 'adm-zip'
 import Debug from 'debug'
 import exp from 'constants'
+import { ConfigTestHelper } from './testhelper'
 setConfigsDirsForTest()
 let debug = Debug('config_test')
+
+// Test Helper Instanz
+let configTestHelper: ConfigTestHelper
+
 beforeAll(() => {
   return new Promise<void>((resolve, reject) => {
+    // Erst Test-Verzeichnisse setzen, dann ConfigTestHelper
+    configTestHelper = new ConfigTestHelper('config-test')
+    configTestHelper.setup()
     const config = new Config()
-    fs.copyFileSync(Config.getLocalDir() + '/secrets.yaml', Config.getLocalDir() + '/secrets.yaml.bck')
     config.readYamlAsync().then(() => {
       let cfg = Config.getConfiguration()
       Config.tokenExpiryTime = 2000
@@ -33,8 +40,7 @@ afterAll(() => {
   let cfg = Config.getConfiguration()
   cfg.noAuthentication = false
   new Config().writeConfiguration(cfg)
-  fs.copyFileSync(Config.getLocalDir() + '/secrets.yaml.bck', Config.getLocalDir() + '/secrets.yaml')
-  fs.unlinkSync(Config.getLocalDir() + '/secrets.yaml.bck')
+  configTestHelper.restore()
 })
 test('register/login/validate', (done) => {
   const config = new Config()
