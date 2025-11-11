@@ -72,12 +72,36 @@ jobs:
           # For aarch64, use QEMU to run the Alpine container on arm64
           if [ "$ALPINE_ARCH" = "aarch64" ]; then
             # Build APK only (skip Docker test on emulated arch for speed)
+            echo "Building APK for aarch64 with QEMU emulation..."
             ./build.sh
+            echo "✓ APK build completed for aarch64"
           else
             # For x86_64, run full build-and-test including Docker validation
+            echo "Building and testing APK for x86_64..."
             ./build-and-test-image.sh
+            echo "✓ APK build and test completed for x86_64"
+          fi
+          
+          # Verify APK creation
+          echo "Verifying APK creation for $ALPINE_ARCH..."
+          if [ -d "../../repo/$ALPINE_ARCH" ]; then
+            echo "✓ Architecture directory exists: ../../repo/$ALPINE_ARCH"
+            ls -la "../../repo/$ALPINE_ARCH"/ || true
+            apk_count=$(find "../../repo/$ALPINE_ARCH" -name "*.apk" | wc -l)
+            echo "Found $apk_count APK files for $ALPINE_ARCH"
+          else
+            echo "ERROR: Architecture directory ../../repo/$ALPINE_ARCH not found!"
+            echo "Available directories:"
+            ls -la ../../repo/ || true
+            exit 1
           fi
 
+      - name: Debug APK structure before upload
+        run: |
+          echo "Checking APK structure for ${{ matrix.arch }}..."
+          ls -laR alpine/repo/ || echo "alpine/repo not found"
+          find . -name "*.apk" -type f || echo "No APK files found"
+          
       - name: Upload APK artifacts for ${{ matrix.arch }}
         uses: actions/upload-artifact@v4
         with:
@@ -85,7 +109,7 @@ jobs:
           path: |
             alpine/repo/${{ matrix.arch }}/*.apk
             alpine/repo/packager.rsa.pub
-          if-no-files-found: warn
+          if-no-files-found: error
 
   docker:
     runs-on: ubuntu-latest
