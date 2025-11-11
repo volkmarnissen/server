@@ -51,6 +51,7 @@ jobs:
 
   build_apks:
     runs-on: ubuntu-latest
+    environment: packager
     needs: prepare
     strategy:
       matrix:
