@@ -25,9 +25,8 @@ alpine/
 ### Prerequisites
 
 - Docker
-- Environment variables:
-  - `PACKAGER_PRIVKEY` - Private abuild key
-  - `PACKAGER_PUBKEY` - Public abuild key
+- Environment variable:
+  - `PACKAGER_PRIVKEY` - Private abuild key (public key is derived automatically)
 
 ### Build Commands
 

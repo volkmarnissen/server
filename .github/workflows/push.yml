@@ -145,7 +145,6 @@ jobs:
       - name: Build Alpine packages (x86_64 test + aarch64)
         env:
           PACKAGER_PRIVKEY: ${{ secrets.PACKAGER_PRIVKEY }}
-          PACKAGER_PUBKEY: ${{ vars.PACKAGER_PUBKEY }}
         run: |
           set -e
           cd alpine/package/modbus2mqtt

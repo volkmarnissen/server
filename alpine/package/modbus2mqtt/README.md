@@ -27,16 +27,10 @@ How the keys and CI setup work
 
 1) Local preparation (developer machine)
 
-- Export the abuild keys into the environment (the files contain the private / public PEM contents). The packaging scripts now expect the keys in the variables `PACKAGER_PRIVKEY` / `PACKAGER_PUBKEY` (these names are used by `abuild`). For backwards compatibility the CI workflow also accepts `ABUILD_PRIVKEY` / `ABUILD_PUBKEY` and falls back to them if `PACKAGER_*` are not set:
+- Export the abuild private key into the environment. The packaging script expects the key in the variable `PACKAGER_PRIVKEY` (this name is used by `abuild`). The public key will be automatically derived from the private key:
 
 ```sh
-# preferred (recommended)
 export PACKAGER_PRIVKEY="$(cat ~/.abuild/builder-6904805d.rsa)"
-export PACKAGER_PUBKEY="$(cat ~/.abuild/builder-6904805d.rsa.pub)"
-
-# legacy fallback (supported by the workflow but prefer PACKAGER_*)
-export ABUILD_PRIVKEY="$(cat ~/.abuild/builder-6904805d.rsa)"
-export ABUILD_PUBKEY="$(cat ~/.abuild/builder-6904805d.rsa.pub)"
 ```
 
 - Build and test locally:
@@ -50,7 +44,8 @@ chmod +x build.sh build-and-test-image.sh
 What the scripts do
 
 - `build.sh`
-  - verifies abuild keys in the environment (`PACKAGER_PRIVKEY`, `PACKAGER_PUBKEY`)
+  - verifies abuild private key in the environment (`PACKAGER_PRIVKEY`)
+  - derives the public key automatically using `openssl rsa -pubout`
   - derives (or uses) `ALPINE_VERSION`, persists it into `build/alpine.env`
   - starts a temporary Alpine container (`alpine:${ALPINE_VERSION}`)
   - configures repositories, installs build deps, runs `abuild -r`
@@ -69,15 +64,14 @@ What the scripts do
 
 2) GitHub Actions
 
-- Add the following credentials to GitHub:
-  - Secret (Repository or Environment secret): `PACKAGER_PRIVKEY` — content of the private key file (including BEGIN/END lines)
-  - Variable (Environment variable preferred): `PACKAGER_PUBKEY` — optional; content of the public key file. If omitted, the build script derives it automatically from the private key.
+- Add the following credential to GitHub:
+  - Secret (Repository secret): `PACKAGER_PRIVKEY` — content of the private key file (including BEGIN/END lines)
 
-- Recommended setup: Settings → Environments → `packaging` →
-  - Secrets: add `PACKAGER_PRIVKEY`
-  - Environment variables: add `PACKAGER_PUBKEY` (optional)
+- Setup: Repository Settings → Secrets and variables → Actions → Secrets → New repository secret
+  - Name: `PACKAGER_PRIVKEY`
+  - Value: Full content of `~/.abuild/builder-6904805d.rsa`
 
-- If you only provide `PACKAGER_PRIVKEY`, the build script will generate the public key internally using `openssl rsa -pubout`.
+- The build script will automatically generate the public key internally using `openssl rsa -pubout`.
 
 - The workflow `.github/workflows/build-and-test.yml` injects these secrets into the job environment and runs `./build-and-test-image.sh`.
 

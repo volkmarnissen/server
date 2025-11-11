@@ -53,7 +53,7 @@ EOF
       break
     fi
     sleep 1
-    if [ $i -eq 30 ]; then
+    if [ "$i" -eq 30 ]; then
       echo "✗ SSH service failed to start"
       docker logs "$CONTAINER_ID"
       docker stop "$CONTAINER_ID" >/dev/null 2>&1

@@ -3,6 +3,6 @@ files:
   - url: __tests__/server/config-dir/modbus2mqtt/specifications/files/test.pdf
     fileLocation: 0
     usage: doc
-  - url: specifications/files/waterleveltransmitter/test2.jpg
+  - url: specifications/files/waterleveltransmitter/test.pdf
     fileLocation: 0
     usage: doc
