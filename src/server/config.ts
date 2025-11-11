@@ -7,7 +7,7 @@ import packageJson from '../../package.json'
 import stream from 'stream'
 import { Subject } from 'rxjs'
 import { getBaseFilename } from '../specification.shared'
-import { sign, verify } from 'jsonwebtoken'
+import { JwtPayload, sign, verify } from 'jsonwebtoken'
 import * as bcrypt from 'bcryptjs'
 import * as http from 'http'
 import { LogLevelEnum, Logger, filesUrlPrefix } from '../specification'
@@ -48,85 +48,76 @@ const defaultTokenExpiryTime = 1000 * 60 * 60 * 24 // One day
 export class Config {
   static tokenExpiryTime: number = defaultTokenExpiryTime
   static mqttHassioLoginData: ImqttClient | undefined = undefined
-  static login(name: string, password: string): Promise<string> {
-    let rc = new Promise<string>((resolve, reject) => {
-      if (Config.config.noAuthentication) {
-        log.log(LogLevelEnum.error, 'Login called, but noAuthentication is configured')
-        reject(AuthenticationErrors.InvalidParameters)
-        return
-      }
+  static async login(name: string, password: string): Promise<string> {
+    if (Config.config.noAuthentication) {
+      log.log(LogLevelEnum.error, 'Login called, but noAuthentication is configured')
+      throw AuthenticationErrors.InvalidParameters
+    }
 
-      if (Config.config && Config.config.username && Config.config.password) {
-        // Login
-        if (name === Config.config.username)
-          bcrypt
-            .compare(password, Config.config.password)
-            .then((success) => {
-              if (success) {
-                try {
-                  //const iat = Math.floor(Date.now() / 1000)
-                  //const exp = iat + Config.config.tokenExpiryTimeInMSec // seconds
-                  let s = sign({ password: password }, Config.secret, {
-                    expiresIn: (Config.tokenExpiryTime + 'ms') as any,
-                    algorithm: 'HS256',
-                  })
-                  resolve(s)
-                } catch (err) {
-                  log.log(LogLevelEnum.error, err)
-                  reject(AuthenticationErrors.SignError)
-                }
-              } else reject(AuthenticationErrors.InvalidUserPasswordCombination)
-            })
-            .catch((err) => {
-              log.log(LogLevelEnum.error, 'login: compare failed: ' + err)
-              reject(AuthenticationErrors.InvalidParameters)
-            })
-        else {
-          log.log(LogLevelEnum.error, 'login: Username was not set')
-          reject(AuthenticationErrors.InvalidParameters)
+    if (Config.config && Config.config.username && Config.config.password) {
+      // Login
+      if (name === Config.config.username) {
+        let success = false
+        try {
+          success = await bcrypt.compare(password, Config.config.password)
+        } catch (err) {
+          log.log(LogLevelEnum.error, 'login: compare failed: ' + err)
+          throw AuthenticationErrors.InvalidParameters
         }
+        if (success) {
+          try {
+            //const iat = Math.floor(Date.now() / 1000)
+            //const exp = iat + Config.config.tokenExpiryTimeInMSec // seconds
+            const s = sign({ password: password }, Config.secret, {
+              expiresIn: (Config.tokenExpiryTime + 'ms') as any,
+              algorithm: 'HS256',
+            })
+            return s
+          } catch (err) {
+            log.log(LogLevelEnum.error, err)
+            throw AuthenticationErrors.SignError
+          }
+        } else {
+          throw AuthenticationErrors.InvalidUserPasswordCombination
+        }
+      } else {
+        log.log(LogLevelEnum.error, 'login: Username was not set')
+        throw AuthenticationErrors.InvalidParameters
       }
-    })
-    return rc
+    }
+    throw AuthenticationErrors.InvalidParameters
   }
-  static register(name: string | undefined, password: string | undefined, noAuthentication: boolean): Promise<void> {
-    let rc = new Promise<void>((resolve, reject) => {
-      if (noAuthentication == true) {
-        Config.config.noAuthentication = true
-        new Config().writeConfiguration(Config.config)
-        resolve()
-      } else if (Config.config && password) {
-        // Login
-        //No username and password configured.: Register login
-        bcrypt
-          .hash(password, saltRounds)
-          .then((enc) => {
-            Config.config.password = enc
-            Config.config.username = name
-            new Config().writeConfiguration(Config.config)
-            resolve()
-          })
-          .catch((err) => {
-            reject(err)
-          })
-      } else reject(AuthenticationErrors.InvalidParameters)
-    })
-    return rc
+  static async register(name: string | undefined, password: string | undefined, noAuthentication: boolean): Promise<void> {
+    if (noAuthentication == true) {
+      Config.config.noAuthentication = true
+      new Config().writeConfiguration(Config.config)
+      return
+    } else if (Config.config && password) {
+      // Login
+      //No username and password configured.: Register login
+      const enc = await bcrypt.hash(password, saltRounds)
+      Config.config.password = enc
+      Config.config.username = name
+      new Config().writeConfiguration(Config.config)
+    } else {
+      throw AuthenticationErrors.InvalidParameters
+    }
   }
   static validateUserToken(token: string | undefined): MqttValidationResult {
     if (this.config.noAuthentication) return MqttValidationResult.OK
     if (token == undefined) return MqttValidationResult.error
+
     try {
-      let v: any = verify(token, Config.secret, { complete: true })
-      v = verify(token, Config.secret, {
-        complete: true,
-        ignoreExpiration: false,
-      })
-      if (bcrypt.compareSync(v.payload.password, Config.config.password!)) return MqttValidationResult.OK
-      else return MqttValidationResult.error
+      const payload = verify(token, Config.secret) as JwtPayload & { password: string }
+      if (bcrypt.compareSync(payload.password, Config.config.password!)) {
+        return MqttValidationResult.OK
+      }
+      return MqttValidationResult.error
     } catch (err) {
-      if ((err as any).name && (err as any).name == 'TokenExpiredError') return MqttValidationResult.tokenExpired
-      log.log(LogLevelEnum.error, 'Validate: ' + err)
+      if ((err as any).name === 'TokenExpiredError') {
+        return MqttValidationResult.tokenExpired
+      }
+      log.log(LogLevelEnum.error, 'JWT validation failed: ' + err)
       return MqttValidationResult.error
     }
   }
@@ -135,7 +126,6 @@ export class Config {
     return join(Config.configDir, 'modbus2mqtt')
   }
 
-  //@ts-ignore
   private static config: Iconfiguration
   private static secret: string
   private static specificationsChanged = new Subject<string>()
@@ -167,7 +157,7 @@ export class Config {
       result += characters.charAt(Math.floor(Math.random() * charactersLength))
       counter += 1
     }
-    let dir = path.dirname(pathStr)
+    const dir = path.dirname(pathStr)
     debug('Config.getSecret: write Secretfile to ' + pathStr)
     if (dir && !fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
     fs.writeFileSync(pathStr, result, { encoding: 'utf8' })
@@ -177,33 +167,37 @@ export class Config {
   }
   static getConfiguration(): Iconfiguration {
     if (Config.secret == undefined) {
-      var secretsfile = Config.sslDir.length > 0 ? join(Config.sslDir, 'secrets.txt') : 'secrets.txt'
-      var sslDir = path.parse(secretsfile).dir
-      if (sslDir.length == 0) sslDir = '.'
-      if (sslDir.length && !fs.existsSync(sslDir)) fs.mkdirSync(sslDir, { recursive: true })
-      try {
-        if (fs.existsSync(secretsfile)) {
-          debug('secretsfile ' + 'secretsfile exists')
-          fs.accessSync(secretsfile, fs.constants.W_OK)
-        } else fs.accessSync(sslDir, fs.constants.W_OK)
-        debug('Config.getConfiguration: secretsfile permissions are OK ' + secretsfile)
-        Config.secret = Config.getSecret(secretsfile)
-      } catch (err: any) {
-        let msg =
-          'Secrets file ' +
-          secretsfile +
-          ' or parent directory is not writable! No registration possible!(cwd: ' +
-          process.cwd() +
-          ' sslDir: ' +
-          sslDir +
-          ' err: ' +
-          err.message
-        ;(')')
-        log.log(LogLevelEnum.error, msg)
-
-        debug('secretsfile=' + secretsfile + ' ssldir = ' + Config.sslDir)
-        throw new Error(msg)
+      // Use sslDir if explicitly set (Home Assistant case), otherwise use current working directory
+      const effectiveSslDir = Config.sslDir.length > 0 ? Config.sslDir : process.cwd()
+      const secretsfile = join(effectiveSslDir, 'secrets.txt')
+      const secretsDir = path.dirname(secretsfile)
+      // Only create the directory if we're going to write to it
+      if (secretsDir && !fs.existsSync(secretsfile) && !fs.existsSync(secretsDir)) {
+        fs.mkdirSync(secretsDir, { recursive: true })
       }
+      // Check permissions before proceeding
+      if (fs.existsSync(secretsfile)) {
+        debug('secretsfile ' + secretsfile + ' exists')
+        try {
+          fs.accessSync(secretsfile, fs.constants.W_OK)
+        } catch (err: any) {
+          const msg = `Secrets file ${secretsfile} is not writable! (error: ${err.message})`
+          log.log(LogLevelEnum.error, msg)
+          throw new Error(msg)
+        }
+      } else {
+        // File doesn't exist, check if we can write to the directory
+        try {
+          fs.accessSync(secretsDir, fs.constants.W_OK)
+        } catch (err: any) {
+          const msg = `Secrets directory ${secretsDir} is not writable! (cwd: ${process.cwd()}, error: ${err.message})`
+          log.log(LogLevelEnum.error, msg)
+          throw new Error(msg)
+        }
+      }
+
+      debug('Config.getConfiguration: secretsfile permissions are OK ' + secretsfile)
+      Config.secret = Config.getSecret(secretsfile)
     }
 
     if (Config.config) {
@@ -250,14 +244,15 @@ export class Config {
     }
   }
   async readGetResponse(res: http.IncomingMessage): Promise<any> {
+    const lbuffers: Uint8Array[] = []
+
     return new Promise<any>((resolve, reject) => {
-      let lbuffers: Uint8Array[] = []
       res.on('data', (chunk) => lbuffers.push(chunk))
       res.on('end', () => {
         try {
           if (res.statusCode && res.statusCode < 299) {
-            let lbuffer = Buffer.concat(lbuffers)
-            let json = JSON.parse(lbuffer.toString())
+            const lbuffer = Buffer.concat(lbuffers)
+            const json = JSON.parse(lbuffer.toString())
             resolve(json)
           } else {
             // http Error
@@ -267,11 +262,14 @@ export class Config {
           reject(e)
         }
       })
+      res.on('error', (err) => {
+        reject(err)
+      })
     })
   }
   static executeHassioGetRequest<T>(url: string, next: (_dev: T) => void, reject: (error: any) => void): void {
     // This method can be called before configuration. It can't use config.hassio
-    let hassiotoken: string | undefined = process.env.HASSIO_TOKEN
+    const hassiotoken: string | undefined = process.env.HASSIO_TOKEN
     if (!hassiotoken || hassiotoken.length == 0) throw new Error('ENV: HASSIO_TOKEN not defined')
 
     const timer = setTimeout(() => {
@@ -297,7 +295,7 @@ export class Config {
                   else reject(new Error('get' + url + ' expected data root object: ' + JSON.stringify(obj)))
               })
               .catch((reason) => {
-                let msg = 'supervisor call ' + url + ' failed ' + JSON.stringify(reason) + ' ' + res.headers.get('content-type')
+                const msg = 'supervisor call ' + url + ' failed ' + JSON.stringify(reason) + ' ' + res.headers.get('content-type')
                 log.log(LogLevelEnum.error, msg)
                 reject(new Error(msg))
               })
@@ -336,7 +334,7 @@ export class Config {
   }
   private static readCertfile(filename?: string): string | undefined {
     if (filename && Config.sslDir) {
-      let fn = join(Config.sslDir, filename)
+      const fn = join(Config.sslDir, filename)
       if (fs.existsSync(fn)) return fs.readFileSync(fn, { encoding: 'utf8' }).toString()
     }
     return undefined
@@ -355,7 +353,7 @@ export class Config {
         Config.executeHassioGetRequest<{ data: ImqttClient }>(
           '/services/mqtt',
           (mqtt) => {
-            let config = Config.getConfiguration()
+            const config = Config.getConfiguration()
             config.mqttconnect = mqtt.data
             if (
               config.mqttconnect.mqttserverurl == undefined &&
@@ -386,101 +384,91 @@ export class Config {
   }
 
   async getMqttConnectOptions(): Promise<ImqttClient> {
-    return new Promise<ImqttClient>((resolve, reject) => {
-      let config = Config.getConfiguration()
-      if (config.mqttusehassio) {
-        this.getMqttLoginFromHassio().then(
-          (mqttFromHassio) => {
-            resolve(mqttFromHassio)
-          },
-          (reason) => {
-            reject(reason)
-          }
-        )
-      } else {
-        let config = Config.getConfiguration()
-        Config.updateMqttTlsConfig(config)
-        if (!Config.config.mqttconnect.mqttserverurl) reject('Configuration problem: no mqttserverurl defined')
-        else if (!Config.config.mqttconnect.username) reject('Configuration problem: no mqttuser defined')
-        else if (!Config.config.mqttconnect.password) reject('Configuration problem: no mqttpassword defined')
-        else resolve(Config.getConfiguration().mqttconnect)
-      }
-    })
+    const config = Config.getConfiguration()
+
+    if (config.mqttusehassio) {
+      return await this.getMqttLoginFromHassio()
+    }
+
+    // Manual MQTT configuration
+    Config.updateMqttTlsConfig(config)
+
+    if (!Config.config.mqttconnect.mqttserverurl) {
+      throw new Error('Configuration problem: no mqttserverurl defined')
+    }
+    if (!Config.config.mqttconnect.username) {
+      throw new Error('Configuration problem: no mqttuser defined')
+    }
+    if (!Config.config.mqttconnect.password) {
+      throw new Error('Configuration problem: no mqttpassword defined')
+    }
+
+    return Config.config.mqttconnect
   }
   static isMqttConfigured(mqttClient: ImqttClient): boolean {
     return mqttClient != undefined && mqttClient.mqttserverurl != undefined
   }
-  readYamlAsync(): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      try {
-        if (!Config.configDir || Config.configDir.length == 0) {
-          log.log(LogLevelEnum.error, 'configDir not defined in command line')
-        }
-        if (!fs.existsSync(Config.configDir)) {
-          log.log(LogLevelEnum.info, 'configuration directory  not found ' + process.cwd() + '/' + Config.configDir)
-          Config.config = structuredClone(Config.newConfig)
-          resolve()
-        }
-        debug('configDir: ' + Config.configDir + ' ' + process.argv.length)
-
-        var yamlFile = Config.getConfigPath()
-
-        if (!fs.existsSync(yamlFile)) {
-          log.log(LogLevelEnum.info, 'configuration file  not found ' + yamlFile)
-          Config.config = structuredClone(Config.newConfig)
-        } else {
-          var secretsFile = Config.getLocalDir() + '/secrets.yaml'
-          var src: string = fs.readFileSync(yamlFile, { encoding: 'utf8' })
-          if (fs.existsSync(secretsFile)) {
-            var matches: IterableIterator<RegExpMatchArray>
-            var secrets = parse(fs.readFileSync(secretsFile, { encoding: 'utf8' }))
-            let srcLines = src.split('\n')
-            src = ''
-            srcLines.forEach((line) => {
-              const r1 = /\"*!secret ([a-zA-Z0-9-_]*)\"*/g
-              matches = line.matchAll(r1)
-              let skipLine = false
-              for (const match of matches) {
-                let key = match[1]
-                if (secrets[key] && secrets[key].length) {
-                  line = line.replace(match[0], '"' + secrets[key] + '"')
-                } else {
-                  skipLine = true
-                  if (!secrets[key]) debug('no entry in secrets file for ' + key + ' line will be ignored')
-                  else debug('secrets file entry contains !secret for ' + key + ' line will be ignored')
-                }
-              }
-              if (!skipLine) src = src.concat(line, '\n')
-            })
-          }
-          Config.config = parse(src)
-          if (Config.config.debugComponents && Config.config.debugComponents.length) Debug.enable(Config.config.debugComponents)
-
-          if (Config.configDir.length == 0) log.log(LogLevelEnum.error, 'configDir not set')
-        }
-        if (!Config.config || !Config.config.mqttconnect || !Config.isMqttConfigured(Config.config.mqttconnect)) {
-          this.getMqttConnectOptions()
-            .then((mqttLoginData) => {
-              Config.mqttHassioLoginData = mqttLoginData
-
-              resolve()
-            })
-            .catch((reason) => {
-              log.log(LogLevelEnum.error, 'Unable to connect to mqtt ' + reason)
-              Config.config.mqttusehassio = false
-              // This should not stop the application
-              resolve()
-            })
-        } else {
-          resolve()
-        }
-      } catch (error: any) {
-        log.log(LogLevelEnum.error, 'readyaml failed: ' + error.message)
-        throw error
-        // Expected output: ReferenceError: nonExistentFunction is not defined
-        // (Note: the exact output may be browser-dependent)
+  async readYamlAsync(): Promise<void> {
+    try {
+      if (!Config.configDir || Config.configDir.length == 0) {
+        log.log(LogLevelEnum.error, 'configDir not defined in command line')
       }
-    })
+      if (!fs.existsSync(Config.configDir)) {
+        log.log(LogLevelEnum.info, 'configuration directory  not found ' + process.cwd() + '/' + Config.configDir)
+        Config.config = structuredClone(Config.newConfig)
+        return
+      }
+      debug('configDir: ' + Config.configDir + ' ' + process.argv.length)
+
+      const yamlFile = Config.getConfigPath()
+
+      if (!fs.existsSync(yamlFile)) {
+        log.log(LogLevelEnum.info, 'configuration file  not found ' + yamlFile)
+        Config.config = structuredClone(Config.newConfig)
+      } else {
+        const secretsFile = join(Config.getLocalDir(), 'secrets.yaml')
+        let src: string = fs.readFileSync(yamlFile, { encoding: 'utf8' })
+        if (fs.existsSync(secretsFile)) {
+          let matches: IterableIterator<RegExpMatchArray>
+          const secrets = parse(fs.readFileSync(secretsFile, { encoding: 'utf8' }))
+          let srcLines = src.split('\n')
+          src = ''
+          srcLines.forEach((line) => {
+            const r1 = /\"*!secret ([a-zA-Z0-9-_]*)\"*/g
+            matches = line.matchAll(r1)
+            let skipLine = false
+            for (const match of matches) {
+              let key = match[1]
+              if (secrets[key] && secrets[key].length) {
+                line = line.replace(match[0], '"' + secrets[key] + '"')
+              } else {
+                skipLine = true
+                if (!secrets[key]) debug('no entry in secrets file for ' + key + ' line will be ignored')
+                else debug('secrets file entry contains !secret for ' + key + ' line will be ignored')
+              }
+            }
+            if (!skipLine) src = src.concat(line, '\n')
+          })
+        }
+        Config.config = parse(src)
+        if (Config.config.debugComponents && Config.config.debugComponents.length) Debug.enable(Config.config.debugComponents)
+
+        if (Config.configDir.length == 0) log.log(LogLevelEnum.error, 'configDir not set')
+      }
+      if (!Config.config || !Config.config.mqttconnect || !Config.isMqttConfigured(Config.config.mqttconnect)) {
+        try {
+          const mqttLoginData = await this.getMqttConnectOptions()
+          Config.mqttHassioLoginData = mqttLoginData
+        } catch (reason) {
+          log.log(LogLevelEnum.error, 'Unable to connect to mqtt ' + reason)
+          Config.config.mqttusehassio = false
+          // This should not stop the application
+        }
+      }
+    } catch (error: any) {
+      log.log(LogLevelEnum.error, 'readyaml failed: ' + error.message)
+      throw error
+    }
   }
   // set the base file for relative includes
   readYaml(): void {
@@ -493,10 +481,10 @@ export class Config {
   }
 
   writeConfiguration(config: Iconfiguration) {
-    let cpConfig = structuredClone(config)
+    const cpConfig = structuredClone(config)
     Config.config = config
     if (cpConfig.debugComponents && cpConfig.debugComponents.length) Debug.enable(cpConfig.debugComponents)
-    let secrets = {}
+    const secrets = {}
     if (cpConfig.mqttconnect.password) {
       ;(secrets as any)['mqttpassword'] = cpConfig.mqttconnect.password
       cpConfig.mqttconnect.password = '!secret mqttpassword'
@@ -517,12 +505,12 @@ export class Config {
       ;(secrets as any)['password'] = cpConfig.password
       cpConfig.password = '!secret password'
     }
-    let nonConfigs: string[] = ['mqttusehassio', 'filelocation', 'appVersion']
+    const nonConfigs: string[] = ['mqttusehassio', 'filelocation', 'appVersion']
     nonConfigs.forEach((name: string) => {
       delete (cpConfig as any)[name]
     })
-    let filename = Config.getConfigPath()
-    let dir = path.dirname(filename)
+    const filename = Config.getConfigPath()
+    const dir = path.dirname(filename)
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
     let s = stringify(cpConfig)
     fs.writeFileSync(filename, s, { encoding: 'utf8' })
@@ -530,10 +518,10 @@ export class Config {
     fs.writeFileSync(this.getSecretsPath(), s, { encoding: 'utf8' })
   }
   static getConfigPath() {
-    return Config.getLocalDir() + '/modbus2mqtt.yaml'
+    return join(Config.getLocalDir(), 'modbus2mqtt.yaml')
   }
   getSecretsPath() {
-    return Config.getLocalDir() + '/secrets.yaml'
+    return join(Config.getLocalDir(), 'secrets.yaml')
   }
   static setFakeModbus(newMode: boolean) {
     Config.config.fakeModbus = newMode
@@ -541,28 +529,33 @@ export class Config {
   static getFileNameFromSlaveId(slaveid: number): string {
     return 's' + slaveid
   }
-  static createZipFromLocal(_filename: string, r: stream.Writable): Promise<void> {
+  static async createZipFromLocal(_filename: string, r: stream.Writable): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-      let archive = new AdmZip()
-      let dir = Config.getLocalDir()
-      let files: string[] = fs.readdirSync(Config.getLocalDir(), { recursive: true }) as string[]
-      files.forEach((file) => {
-        let p = join(dir, file)
-        if (fs.statSync(p).isFile() && file.indexOf('secrets.yaml') < 0) archive.addLocalFile(p, path.dirname(file))
-      })
-      r.write(archive.toBuffer())
-      r.end(() => {
-        resolve()
-      })
+      try {
+        const archive = new AdmZip()
+        const dir = Config.getLocalDir()
+        const files: string[] = fs.readdirSync(Config.getLocalDir(), { recursive: true }) as string[]
+        files.forEach((file) => {
+          const p = join(dir, file)
+          if (fs.statSync(p).isFile() && file.indexOf('secrets.yaml') < 0) {
+            archive.addLocalFile(p, path.dirname(file))
+          }
+        })
+        r.write(archive.toBuffer())
+        r.end(() => {
+          resolve()
+        })
+      } catch (error) {
+        reject(error)
+      }
     })
   }
 }
 export function getSpecificationImageOrDocumentUrl(rootUrl: string | undefined, specName: string, url: string): string {
-  let fn = getBaseFilename(url)
+  const fn = getBaseFilename(url)
   let rc: string = ''
   if (rootUrl) {
-    let append = '/'
-    if (rootUrl.endsWith('/')) append = ''
+    const append = rootUrl.endsWith('/') ? '' : '/'
     rc = rootUrl + append + join(filesUrlPrefix, specName, fn)
   } else rc = '/' + join(filesUrlPrefix, specName, fn)
 

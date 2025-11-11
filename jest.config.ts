@@ -11,6 +11,7 @@ const config: Config = {
   testRegex: '(.*|(\\.|/)(test|spec))(\\.tsx)+$',
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   moduleDirectories: ['src', 'node_modules'],
+  maxWorkers: 1,
   //  setupFiles: ["<rootDir>/.jest/setEnvVars.js"]
   // collectCoverage: true,
   // coverageDirectory: './',

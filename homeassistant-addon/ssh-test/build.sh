@@ -30,6 +30,7 @@ else
   docker buildx use multiarch-builder
 fi
 
+# shellcheck disable=SC2054
 BUILD_ARGS=(
   --platform linux/amd64,linux/arm64,linux/arm/v7
   --build-arg S6_OVERLAY_VERSION=3.2.0.0

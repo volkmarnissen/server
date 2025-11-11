@@ -37,6 +37,7 @@ import { MqttConnector } from '../../src/server/mqttconnector'
 import { MqttSubscriptions } from '../../src/server/mqttsubscriptions'
 import { ModbusAPI } from '../../src/server/modbusAPI'
 import { setConfigsDirsForTest } from './configsbase'
+import { ConfigTestHelper } from './testhelper'
 let mockReject = false
 let debug = Debug('testhttpserver')
 const mqttService = {
@@ -119,9 +120,15 @@ function mockedHttp(_options: any, cb: (res: any) => any) {
 let oldExecuteHassioGetRequest: any
 let lspec = ConfigSpecification.getLocalDir() + '/specifications/'
 
+// Test Helper Instanz
+let httpTestHelper: ConfigTestHelper
+
 const oldAuthenticate: (req: any, res: any, next: () => void) => void = HttpServer.prototype.authenticate
 beforeAll(() => {
   return new Promise<void>((resolve, reject) => {
+    setConfigsDirsForTest()
+    httpTestHelper = new ConfigTestHelper('httpserver-test')
+    httpTestHelper.setup()
     let cfg = new Config()
     cfg.readYamlAsync().then(() => {
       ConfigBus.readBusses()
@@ -629,4 +636,9 @@ describe('http POST', () => {
         })
     })
   })
+})
+
+// Global cleanup für secrets.yaml
+afterAll(() => {
+  httpTestHelper.restore()
 })

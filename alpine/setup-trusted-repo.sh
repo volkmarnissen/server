@@ -38,5 +38,5 @@ if [ -n "$PUBKEY" ]; then
   echo "   apk add modbus2mqtt"
 else
   echo "WARNING: No public key found in repository"
-  echo "Make sure PACKAGER_PUBKEY is set when running build.sh"
+  echo "Make sure PACKAGER_PRIVKEY is set when running build.sh (public key is derived automatically)"
 fi

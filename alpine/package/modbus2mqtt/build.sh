@@ -4,7 +4,6 @@ set -eu
 # Containerized abuild flow for macOS/Linux hosts.
 # Expects the following environment variables (caller / CI):
 # - PACKAGER_PRIVKEY : full private abuild key (multi-line)
-# - PACKAGER_PUBKEY  : public abuild key (multi-line) [optional; derived from private if unset]
 # - (optional) PKG_VERSION : package version; defaults to package.json via node
 BASEDIR=$(dirname "$0")
 
@@ -57,7 +56,6 @@ docker run --rm -i \
   -e PACKAGER="Volkmar Nissen <volkmar.nissen@example.com>" \
   -e PKG_VERSION="$PKG_VERSION" \
   -e PACKAGER_PRIVKEY \
-  ${PACKAGER_PUBKEY:+-e PACKAGER_PUBKEY} \
   -e HOST_UID="$HOST_UID" \
   -e HOST_GID="$HOST_GID" \
   -e ALPINE_VERSION="$ALPINE_VERSION" \
@@ -98,12 +96,8 @@ chown -R builder:dialout /home/builder/.npm || true
 # write abuild keys from env into builder home
 mkdir -p /home/builder/.abuild
 printf '%s' "$PACKAGER_PRIVKEY" > /home/builder/.abuild/builder-6904805d.rsa
-# Write or derive public key
-if [ -n "$PACKAGER_PUBKEY" ]; then
-  printf '%s' "$PACKAGER_PUBKEY" > /home/builder/.abuild/builder-6904805d.rsa.pub
-else
-  openssl rsa -in /home/builder/.abuild/builder-6904805d.rsa -pubout -out /home/builder/.abuild/builder-6904805d.rsa.pub >/dev/null 2>&1 || true
-fi
+# Derive public key from private key
+openssl rsa -in /home/builder/.abuild/builder-6904805d.rsa -pubout -out /home/builder/.abuild/builder-6904805d.rsa.pub >/dev/null 2>&1 || true
 chmod 600 /home/builder/.abuild/builder-6904805d.rsa || true
 chown -R builder:dialout /home/builder/.abuild || true
 cp /home/builder/.abuild/builder-6904805d.rsa.pub /etc/apk/keys || true

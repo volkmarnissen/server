@@ -18,6 +18,16 @@ on:
       image_tag:
         description: 'Docker image tag (v<version>).'
         value: ${{ jobs.docker.outputs.image_tag }}
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (without leading v). If omitted, read from package.json.'
+        required: false
+        type: string
+      dry_run:
+        description: 'Skip pushing image and uploading release assets when true.'
+        required: false
+        type: boolean
 
 jobs:
   prepare:
@@ -41,6 +51,7 @@ jobs:
 
   build_apks:
     runs-on: ubuntu-latest
+    environment: packager
     needs: prepare
     strategy:
       matrix:
@@ -144,6 +155,11 @@ jobs:
               --platform linux/amd64 \
               --cache-from type=gha \
               --cache-to type=gha,mode=max \
+              --build-arg BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+              --build-arg BUILD_DESCRIPTION="modbus2mqtt Docker Image" \
+              --build-arg BUILD_NAME="modbus2mqtt" \
+              --build-arg BUILD_REPOSITORY="${{ github.repository }}" \
+              --build-arg BUILD_VERSION="${VERSION}" \
               -t "$TAG" \
               --progress plain \
               --load \
@@ -154,6 +170,11 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               --cache-from type=gha \
               --cache-to type=gha,mode=max \
+              --build-arg BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+              --build-arg BUILD_DESCRIPTION="modbus2mqtt Docker Image" \
+              --build-arg BUILD_NAME="modbus2mqtt" \
+              --build-arg BUILD_REPOSITORY="${{ github.repository }}" \
+              --build-arg BUILD_VERSION="${VERSION}" \
               -t "$TAG" \
               --progress plain \
               --push \

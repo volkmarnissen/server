@@ -1,15 +1,36 @@
 import Debug from 'debug'
-import { expect, it, beforeAll, jest } from '@jest/globals'
+import { expect, it, beforeAll, jest, beforeEach, afterEach } from '@jest/globals'
 import { Config } from '../../src/server/config'
 import { Bus } from '../../src/server/bus'
 import { initBussesForTest, setConfigsDirsForTest } from './configsbase'
 import { IdentifiedStates } from '../../src/specification.shared'
 import { ConfigSpecification, emptyModbusValues, ImodbusValues, LogLevelEnum } from '../../src/specification'
 import { ModbusAPI } from '../../src/server/modbusAPI'
+import { FileBackupHelper } from './testhelper'
 
 const debug = Debug('bustest')
 const testPort = 8888
 setConfigsDirsForTest()
+
+// Test Helper für Bus-Dateien
+let busTestHelper: FileBackupHelper
+
+beforeEach(() => {
+  busTestHelper = new FileBackupHelper()
+  // Backup aller relevanten Bus-Dateien
+  const configDir = Config.configDir
+  if (configDir) {
+    busTestHelper.backup(`${configDir}/modbus2mqtt/busses/bus.0/s2.yaml`)
+    busTestHelper.backup(`${configDir}/modbus2mqtt/specifications/files/waterleveltransmitter/files.yaml`)
+  }
+})
+
+afterEach(() => {
+  // Wiederherstellen aller Dateien nach jedem Test
+  if (busTestHelper) {
+    busTestHelper.restoreAll()
+  }
+})
 
 beforeAll(() => {
   jest.restoreAllMocks()

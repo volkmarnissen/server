@@ -166,6 +166,10 @@ export class Modbus2Mqtt {
         debugAction('readBussesFromConfig starts')
         gh.init().finally(startServer)
       })
+      .catch((error) => {
+        log.log(LogLevelEnum.error, 'Unable to read configuration ' + error.message)
+        process.exit(2)
+      })
   }
 }
 let m = new Modbus2Mqtt()
