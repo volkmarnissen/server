@@ -27,7 +27,6 @@ done
 # Determine absolute script directory to allow running from any CWD
 SCRIPT_DIR="$(cd "$(dirname "$0")" >/dev/null 2>&1 && pwd -P)"
 REPO_DIR="$SCRIPT_DIR/../../repo"
-PKG_DIR="$SCRIPT_DIR/packages"
 
 # ALPINE_VERSION wird nun innerhalb von build.sh ermittelt und persistiert
 
@@ -124,9 +123,7 @@ if [ ! -d "$REPO_DIR" ]; then
   exit 1
 fi
 
-# Copy repo to local packages for Docker build context (inside script directory)
-rm -rf "$PKG_DIR"
-cp -r "$REPO_DIR" "$PKG_DIR"
+# Note: No need to copy - Docker build uses project root as context and APK repo is already in alpine/repo
 
 # Remove old test container if it exists
 if docker ps -a --format '{{.Names}}' | grep -xq "modbus2mqtt-test-instance"; then

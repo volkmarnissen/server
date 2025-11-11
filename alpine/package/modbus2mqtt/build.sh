@@ -97,7 +97,14 @@ chown -R builder:dialout /home/builder/.npm || true
 mkdir -p /home/builder/.abuild
 printf '%s' "$PACKAGER_PRIVKEY" > /home/builder/.abuild/builder-6904805d.rsa
 # Derive public key from private key
-openssl rsa -in /home/builder/.abuild/builder-6904805d.rsa -pubout -out /home/builder/.abuild/builder-6904805d.rsa.pub >/dev/null 2>&1 || true
+echo "Generating public key from private key..."
+if openssl rsa -in /home/builder/.abuild/builder-6904805d.rsa -pubout -out /home/builder/.abuild/builder-6904805d.rsa.pub 2>/dev/null; then
+  echo "✓ Public key generated successfully"
+else
+  echo "ERROR: Failed to generate public key from private key" >&2
+  openssl rsa -in /home/builder/.abuild/builder-6904805d.rsa -pubout -out /home/builder/.abuild/builder-6904805d.rsa.pub 2>&1 || true
+  exit 1
+fi
 chmod 600 /home/builder/.abuild/builder-6904805d.rsa || true
 chown -R builder:dialout /home/builder/.abuild || true
 cp /home/builder/.abuild/builder-6904805d.rsa.pub /etc/apk/keys || true
@@ -127,10 +134,29 @@ su - builder -s /bin/sh -c '
     cp -aR /home/builder/packages/* /package/ || true
     # also place the public signing key into the repo for trusted installs
     mkdir -p "/package/$ARCH" || true
-    cp /home/builder/.abuild/builder-6904805d.rsa.pub "/package/$ARCH/packager.rsa.pub" || true
-    chown -R '"$(id -u):$(id -g)"' /package/ || true
+    if [ -f "/home/builder/.abuild/builder-6904805d.rsa.pub" ]; then
+      cp /home/builder/.abuild/builder-6904805d.rsa.pub "/package/$ARCH/packager.rsa.pub"
+      echo "✓ Public key copied to /package/$ARCH/packager.rsa.pub"
+    else
+      echo "WARNING: Public key /home/builder/.abuild/builder-6904805d.rsa.pub not found"
+      echo "Available files in /home/builder/.abuild/:"
+      ls -la /home/builder/.abuild/ || true
+    fi
+    # Note: File permissions will be handled outside the container
   fi
   '
 IN
 
 echo "build.sh finished; produced packages"
+
+# Verify file permissions and ownership for debugging
+echo "Verifying package directory permissions..."
+if [ -d "$PACKAGE" ]; then
+  echo "Package directory contents and permissions:"
+  ls -laR "$PACKAGE"
+  echo "Current user: $(id -un) ($(id -u))"
+  echo "Current group: $(id -gn) ($(id -g))"
+else
+  echo "WARNING: Package directory $PACKAGE not found"
+fi
+# Note: Files should have correct ownership thanks to HOST_UID/HOST_GID mapping
