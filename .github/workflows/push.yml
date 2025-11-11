@@ -127,5 +127,4 @@ jobs:
     uses: ./.github/workflows/release-assets.yml
     with:
       version: ${{ needs.npm_publish.outputs.version }}
-      dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run_assets }}
  
