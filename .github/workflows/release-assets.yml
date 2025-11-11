@@ -84,7 +84,7 @@ jobs:
           name: apks-${{ matrix.arch }}-${{ needs.prepare.outputs.resolved_version }}
           path: |
             alpine/repo/${{ matrix.arch }}/*.apk
-            alpine/repo/${{ matrix.arch }}/packager.rsa.pub
+            alpine/repo/packager.rsa.pub
           if-no-files-found: warn
 
   docker:
@@ -106,14 +106,27 @@ jobs:
         run: |
           mkdir -p alpine/repo
           # Move artifacts from their subdirectories to alpine/repo/<arch>/
+          PUBLIC_KEY_COPIED=false
           for artifact_dir in downloaded-apks/apks-*; do
             if [ -d "$artifact_dir" ]; then
               ARCH=$(basename "$artifact_dir" | sed 's/apks-\(.*\)-[0-9].*/\1/')
               echo "Processing architecture: $ARCH"
               mkdir -p "alpine/repo/$ARCH"
-              cp -r "$artifact_dir"/* "alpine/repo/$ARCH/" || true
+              
+              # Copy APK files to arch directory
+              find "$artifact_dir" -name "*.apk" -exec cp {} "alpine/repo/$ARCH/" \;
+              
+              # Copy public key to repo root (only once)
+              if [ "$PUBLIC_KEY_COPIED" = "false" ] && [ -f "$artifact_dir/packager.rsa.pub" ]; then
+                cp "$artifact_dir/packager.rsa.pub" "alpine/repo/packager.rsa.pub"
+                echo "✓ Public key copied to alpine/repo/packager.rsa.pub"
+                PUBLIC_KEY_COPIED=true
+              fi
             fi
           done
+          
+          # Verify the structure
+          echo "Final alpine/repo structure:"
           ls -lR alpine/repo
 
       - name: Set up QEMU
@@ -174,10 +187,109 @@ jobs:
           find apks -type f \( -name "*.apk" -o -name "packager.rsa.pub" \) -exec cp {} release-apks/ \;
           ls -lh release-apks/
 
+      - name: Generate release body with APK table
+        id: release-body
+        run: |
+          VERSION="${{ needs.prepare.outputs.resolved_version }}"
+          DOCKER_TAG="ghcr.io/${{ github.repository }}:v${VERSION}"
+          
+          # Create release body with APK table
+          cat > release-body.md << 'EOF'
+          ## 📦 modbus2mqtt v${{ needs.prepare.outputs.resolved_version }}
+          
+          ### 🐳 Docker Image
+          
+          ```bash
+          docker pull ghcr.io/${{ github.repository }}:v${{ needs.prepare.outputs.resolved_version }}
+          ```
+          
+          **Multi-architecture support:** `linux/amd64`, `linux/arm64`
+          
+          ### 📋 Alpine APK Packages
+          
+          | Architecture | APK Package | Size | Direct Download |
+          |--------------|-------------|------|-----------------|
+          EOF
+          
+          # Add APK files to table
+          for apk_file in release-apks/*.apk; do
+            if [ -f "$apk_file" ]; then
+              FILENAME=$(basename "$apk_file")
+              # Extract architecture from filename pattern
+              if echo "$FILENAME" | grep -q "x86_64"; then
+                ARCH="x86_64 (AMD64)"
+              elif echo "$FILENAME" | grep -q "aarch64"; then
+                ARCH="aarch64 (ARM64)"
+              else
+                ARCH="Unknown"
+              fi
+              # Get file size
+              SIZE=$(ls -lh "$apk_file" | awk '{print $5}')
+              # Create download link
+              DOWNLOAD_LINK="[📥 Download](https://github.com/${{ github.repository }}/releases/download/v${VERSION}/${FILENAME})"
+              
+              echo "| $ARCH | \`$FILENAME\` | $SIZE | $DOWNLOAD_LINK |" >> release-body.md
+            fi
+          done
+          
+          # Add public key section
+          cat >> release-body.md << 'EOF'
+          
+          ### 🔐 Package Verification
+          
+          **Public Key for APK signature verification:**
+          
+          | File | Purpose | Download |
+          |------|---------|----------|
+          | `packager.rsa.pub` | APK signature verification | [📥 Download](https://github.com/${{ github.repository }}/releases/download/v${{ needs.prepare.outputs.resolved_version }}/packager.rsa.pub) |
+          
+          **Installation with signature verification:**
+          
+          ```bash
+          # Download and install public key
+          wget https://github.com/${{ github.repository }}/releases/download/v${{ needs.prepare.outputs.resolved_version }}/packager.rsa.pub
+          sudo cp packager.rsa.pub /etc/apk/keys/
+          
+          # Install APK with verification
+          wget https://github.com/${{ github.repository }}/releases/download/v${{ needs.prepare.outputs.resolved_version }}/modbus2mqtt-${{ needs.prepare.outputs.resolved_version }}-r0.apk
+          apk add modbus2mqtt-${{ needs.prepare.outputs.resolved_version }}-r0.apk
+          ```
+          
+          ### 🚀 Quick Start
+          
+          **Docker (Recommended):**
+          ```bash
+          docker run -d \
+            --name modbus2mqtt \
+            -p 3000:3000 \
+            -p 22:22 \
+            -v /path/to/config:/data \
+            ghcr.io/${{ github.repository }}:v${{ needs.prepare.outputs.resolved_version }}
+          ```
+          
+          **Alpine Linux:**
+          ```bash
+          # Add repository and install
+          echo "https://github.com/${{ github.repository }}/releases/download/v${{ needs.prepare.outputs.resolved_version }}/" >> /etc/apk/repositories
+          apk update
+          apk add modbus2mqtt
+          ```
+          
+          ---
+          
+          📚 **Documentation:** [README.md](https://github.com/${{ github.repository }}/blob/main/README.md)  
+          🐛 **Issues:** [Report bugs](https://github.com/${{ github.repository }}/issues)  
+          💬 **Discussions:** [Community support](https://github.com/${{ github.repository }}/discussions)
+          EOF
+          
+          echo "Release body generated successfully"
+
       - name: Upload to existing Release (if exists)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.prepare.outputs.resolved_version }}
+          append_body: true
+          body_path: release-body.md
           files: release-apks/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
