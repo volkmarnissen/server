@@ -27,9 +27,46 @@ COPY ./alpine/repo/ /tmp/alpine-repo/
 # Install APK with strict signature verification (no untrusted fallback)
 RUN set -e; \
     ARCH="$(uname -m)"; \
-    KEY="/tmp/alpine-repo/${ARCH}/packager.rsa.pub"; \
-    APK="/tmp/alpine-repo/${ARCH}/modbus2mqtt-*.apk"; \
-    if [ ! -f "$KEY" ]; then echo "ERROR: public key $KEY not found" >&2; exit 1; fi; \
+    # Map Docker platform architecture to Alpine APK architecture \
+    # Docker linux/amd64 -> x86_64, Docker linux/arm64 -> aarch64 \
+    case "$ARCH" in \
+        x86_64) APK_ARCH="x86_64" ;; \
+        aarch64|arm64) APK_ARCH="aarch64" ;; \
+        *) echo "ERROR: Unsupported architecture: $ARCH" >&2; exit 1 ;; \
+    esac; \
+    echo "Container arch: $ARCH, APK arch: $APK_ARCH"; \
+    \
+    # Try both possible locations for flexibility \
+    KEY="/tmp/alpine-repo/${APK_ARCH}/packager.rsa.pub"; \
+    APK="/tmp/alpine-repo/${APK_ARCH}/modbus2mqtt-*.apk"; \
+    \
+    # Debug: show what's actually available \
+    echo "Looking for key: $KEY"; \
+    echo "Looking for APK: $APK"; \
+    echo "Available directories in /tmp/alpine-repo:"; \
+    ls -la /tmp/alpine-repo/ || true; \
+    for dir in /tmp/alpine-repo/*/; do \
+        if [ -d "$dir" ]; then \
+            echo "Contents of $dir:"; \
+            ls -la "$dir" || true; \
+        fi; \
+    done; \
+    \
+    # Check if key and APK exist \
+    if [ ! -f "$KEY" ]; then \
+        echo "ERROR: public key $KEY not found" >&2; \
+        echo "Available key files:" >&2; \
+        find /tmp/alpine-repo -name "*.pub" -type f || true; \
+        exit 1; \
+    fi; \
+    if ! ls $APK >/dev/null 2>&1; then \
+        echo "ERROR: APK files $APK not found" >&2; \
+        echo "Available APK files:" >&2; \
+        find /tmp/alpine-repo -name "*.apk" -type f || true; \
+        exit 1; \
+    fi; \
+    \
+    # Install the APK \
     cp "$KEY" /etc/apk/keys/builder-6904805d.rsa.pub; \
     apk add --no-cache $APK; \
     echo "✓ Installed modbus2mqtt via trusted APK with signature verification";
