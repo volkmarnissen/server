@@ -137,7 +137,7 @@ su - builder -s /bin/sh -c '
   if [ -d /home/builder/packages ]; then
 
     rm -f "/package/$TARGET_ARCH/modbus2mqtt*.apk" || true
-      cp -aR "/home/builder/packages/$TARGET_ARCH" /package/ || true
+    cp -aR "/home/builder/packages/$TARGET_ARCH/" /package/ || true
     # Place the public signing key into the repo root for architecture-independent access
     if [ -f "/home/builder/.abuild/builder-6904805d.rsa.pub" ]; then
       cp /home/builder/.abuild/builder-6904805d.rsa.pub "/package/packager.rsa.pub"
