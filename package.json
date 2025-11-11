@@ -16,6 +16,9 @@
   },
   "author": "Volkmar Nissen <volkmar.nissen@gmail.com>",
   "license": "MIT",
+  "engines": {
+    "node": ">=22.11.0"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/modbus2mqtt/server.git"
