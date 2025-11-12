@@ -40,157 +40,144 @@ jobs:
           fi
           echo "Using version: $(cat $GITHUB_OUTPUT)"
 
-  build_apks:
-    runs-on: ${{ matrix.platform }}
-    environment: packager
-    needs: prepare
-    strategy:
-      matrix:
-        platform: [ubuntu-latest, ubuntu-22.04-arm]
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
 
-      - name: Platform check
-        id: platformcheck
-        run: |
-          if [ "${{ matrix.platform }}" == "ubuntu-22.04-arm" ]; then
-            echo "arch=aarch64" >> $GITHUB_OUTPUT
-            echo "platform=arm64" >> $GITHUB_OUTPUT
-          else
-            echo "arch=x86_64" >> $GITHUB_OUTPUT
-            echo "platform=amd64" >> $GITHUB_OUTPUT
-          fi
+attach_release_assets:
+  runs-on: ubuntu-latest
+  needs: [prepare, build_apks, create_multiarch_manifest]
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Download all APK artifacts
+      uses: actions/download-artifact@v4
+      with:
+        pattern: apks-*-${{ needs.prepare.outputs.resolved_version }}
+        path: apks
+    - name: Download packager.rsa.pub artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: packager-rsa-pub-${{ needs.prepare.outputs.resolved_version }}
+        path: release-apks/
+    - name: Flatten APK artifacts for upload
+      run: |
+        mkdir -p release-apks
+        find apks -type f \( -name "*.apk" -o -name "packager.rsa.pub" \) -exec cp {} release-apks/ \;
+        ls -lh release-apks/
+    - name: Fetch GitHub-generated changelog
+      id: gen-changelog
+      run: |
+        set -euo pipefail
+        TAG="v${{ needs.prepare.outputs.resolved_version }}"
+        API="https://api.github.com/repos/${{ github.repository }}/releases/generate-notes"
+        echo "Requesting generated release notes for $TAG"
+        RESPONSE=$(curl -s -H "Accept: application/vnd.github+json" -H "Authorization: token ${GITHUB_TOKEN}" -X POST -d "{\"tag_name\":\"$TAG\"}" "$API")
+        echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('body',''))" > initial-release-notes.md || true
+        if [ ! -s initial-release-notes.md ]; then
+          echo "## Changelog" > initial-release-notes.md
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Generate release body (AMD64 only)
+      id: release-body
+      run: |
+        set -euo pipefail
+        VERSION="${{ needs.prepare.outputs.resolved_version }}"
+        REPO="${{ github.repository }}"
+        # Start with GitHub generated changelog
+        if [ -f initial-release-notes.md ]; then
+          cat initial-release-notes.md > release-body.md
+        else
+          echo "## Changelog" > release-body.md
+        fi
+        echo "## 📦 modbus2mqtt v${VERSION}" >> release-body.md
+        echo "" >> release-body.md
+        echo "### 🐳 Docker Image" >> release-body.md
+        echo "" >> release-body.md
+        echo '    docker pull ghcr.io/'"${REPO}":v"${VERSION}" >> release-body.md
+        echo "" >> release-body.md
+        echo "**Multi-architecture support:** \\`linux/amd64\\`, \\`linux/arm64\\`" >> release-body.md
+        echo "" >> release-body.md
+        echo "### 📋 Alpine APK (recommended)" >> release-body.md
+        # Find AMD64 APK (file contains x86_64 or amd64)
+        AMD_APK=$(ls release-apks/*x86_64*.apk 2>/dev/null | head -n1 || true)
+        if [ -z "$AMD_APK" ]; then
+          AMD_APK=$(ls release-apks/*amd64*.apk 2>/dev/null | head -n1 || true)
+        fi
+        if [ -n "$AMD_APK" ]; then
+          AMD_FILE=$(basename "$AMD_APK")
+          AMD_SIZE=$(ls -lh "$AMD_APK" | awk '{print $5}')
+          AMD_LINK="https://github.com/${REPO}/releases/download/v${VERSION}/${AMD_FILE}"
+        else
+          AMD_FILE="(no AMD64 APK found)"
+          AMD_SIZE="-"
+          AMD_LINK="#"
+        fi
+        echo "- File: \\`${AMD_FILE}\\` (${AMD_SIZE})" >> release-body.md
+        echo "- Direct download: [📥 Download](${AMD_LINK})" >> release-body.md
+        echo "" >> release-body.md
+        echo "### 🔐 Package Verification" >> release-body.md
+        echo "" >> release-body.md
+        echo "Public Key for APK signature verification:" >> release-body.md
+        echo "" >> release-body.md
+        echo "- File: \\`packager.rsa.pub\\`" >> release-body.md
+        echo "- Direct download: [📥 packager.rsa.pub](https://github.com/${REPO}/releases/download/v${VERSION}/packager.rsa.pub)" >> release-body.md
+        echo "" >> release-body.md
+        echo "Installation example (verify key first):" >> release-body.md
+        echo "" >> release-body.md
+        echo '        # Download and install public key' >> release-body.md
+        echo '        wget https://github.com/'"${REPO}"'/releases/download/v'"${VERSION}"'/packager.rsa.pub' >> release-body.md
+        echo '        sudo cp packager.rsa.pub /etc/apk/keys/' >> release-body.md
+        echo "" >> release-body.md
+        echo '    # Download & install the APK' >> release-body.md
+        echo '    wget '"${AMD_LINK}" >> release-body.md
+        echo '    sudo apk add ./'"${AMD_FILE}" >> release-body.md
+        echo "" >> release-body.md
+        echo "---" >> release-body.md
+        echo "" >> release-body.md
+        echo "Documentation: https://github.com/${REPO}/blob/main/README.md" >> release-body.md
 
-      - name: Install tools
-        run: |
-          sudo apt-get update
-        attach_release_assets:
-          runs-on: ubuntu-latest
-          needs: [prepare, build_apks, create_multiarch_manifest]
-          steps:
-            - name: Checkout
-              uses: actions/checkout@v4
-            - name: Download all APK artifacts
-              uses: actions/download-artifact@v4
-              with:
-                pattern: apks-*-${{ needs.prepare.outputs.resolved_version }}
-                path: apks
-            - name: Download packager.rsa.pub artifact
-              uses: actions/download-artifact@v4
-              with:
-                name: packager-rsa-pub-${{ needs.prepare.outputs.resolved_version }}
-                path: release-apks/
-            - name: Flatten APK artifacts for upload
-              run: |
-                mkdir -p release-apks
-                find apks -type f \( -name "*.apk" -o -name "packager.rsa.pub" \) -exec cp {} release-apks/ \;
-                ls -lh release-apks/
-            - name: Fetch GitHub-generated changelog
-              id: gen-changelog
-              run: |
-                set -euo pipefail
-                TAG="v${{ needs.prepare.outputs.resolved_version }}"
-                API="https://api.github.com/repos/${{ github.repository }}/releases/generate-notes"
-                echo "Requesting generated release notes for $TAG"
-                RESPONSE=$(curl -s -H "Accept: application/vnd.github+json" -H "Authorization: token ${GITHUB_TOKEN}" -X POST -d "{\"tag_name\":\"$TAG\"}" "$API")
-                echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('body',''))" > initial-release-notes.md || true
-                if [ ! -s initial-release-notes.md ]; then
-                  echo "## Changelog" > initial-release-notes.md
-                fi
-              env:
-                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            - name: Generate release body (AMD64 only)
-              id: release-body
-              run: |
-                set -euo pipefail
-                VERSION="${{ needs.prepare.outputs.resolved_version }}"
-                REPO="${{ github.repository }}"
-                # Start with GitHub generated changelog
-                if [ -f initial-release-notes.md ]; then
-                  cat initial-release-notes.md > release-body.md
-                else
-                  echo "## Changelog" > release-body.md
-                fi
-                echo "## 📦 modbus2mqtt v${VERSION}" >> release-body.md
-                echo "" >> release-body.md
-                echo "### 🐳 Docker Image" >> release-body.md
-                echo "" >> release-body.md
-                echo '    docker pull ghcr.io/'"${REPO}":v"${VERSION}" >> release-body.md
-                echo "" >> release-body.md
-                echo "**Multi-architecture support:** \\`linux/amd64\\`, \\`linux/arm64\\`" >> release-body.md
-                echo "" >> release-body.md
-                echo "### 📋 Alpine APK (recommended)" >> release-body.md
-                # Find AMD64 APK (file contains x86_64 or amd64)
-                AMD_APK=$(ls release-apks/*x86_64*.apk 2>/dev/null | head -n1 || true)
-                if [ -z "$AMD_APK" ]; then
-                  AMD_APK=$(ls release-apks/*amd64*.apk 2>/dev/null | head -n1 || true)
-                fi
-                if [ -n "$AMD_APK" ]; then
-                  AMD_FILE=$(basename "$AMD_APK")
-                  AMD_SIZE=$(ls -lh "$AMD_APK" | awk '{print $5}')
-                  AMD_LINK="https://github.com/${REPO}/releases/download/v${VERSION}/${AMD_FILE}"
-                else
-                  AMD_FILE="(no AMD64 APK found)"
-                  AMD_SIZE="-"
-                  AMD_LINK="#"
-                fi
-                echo "- File: \\`${AMD_FILE}\\` (${AMD_SIZE})" >> release-body.md
-        id: platformcheck
-        run: |
-          if [ "${{ matrix.platform }}" == "ubuntu-22.04-arm" ]; then
-            echo "arch=aarch64" >> $GITHUB_OUTPUT
-            echo "platform=arm64" >> $GITHUB_OUTPUT
-          else
-            echo "arch=x86_64" >> $GITHUB_OUTPUT
-            echo "platform=amd64" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Download APK artifacts for ${{ steps.platformcheck.outputs.arch }}
-        uses: actions/download-artifact@v4
-        with:
-          name: apks-${{ steps.platformcheck.outputs.arch }}-${{ needs.prepare.outputs.resolved_version }}
-          path: alpine/repo/${{ steps.platformcheck.outputs.arch }}
-
-      - name: Download packager.rsa.pub artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: packager-rsa-pub-${{ needs.prepare.outputs.resolved_version }}
-          path: alpine/repo/
+        echo "Release body generated successfully"
 
 
+    - name: Download APK artifacts for ${{ steps.platformcheck.outputs.arch }}
+      uses: actions/download-artifact@v4
+      with:
+        name: apks-${{ steps.platformcheck.outputs.arch }}-${{ needs.prepare.outputs.resolved_version }}
+        path: alpine/repo/${{ steps.platformcheck.outputs.arch }}
+    - name: Download packager.rsa.pub artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: packager-rsa-pub-${{ needs.prepare.outputs.resolved_version }}
+        path: alpine/repo/
 
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Login to GHCR
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker image for ${{ steps.platformcheck.outputs.platform }}
-        env:
-          VERSION: ${{ needs.prepare.outputs.resolved_version }}
-          ARCH: ${{ steps.platformcheck.outputs.arch }}
-          PLATFORM: ${{ steps.platformcheck.outputs.platform }}
-        run: |
-          set -eux
-          TAG="ghcr.io/${{ github.repository }}-${PLATFORM}:v${VERSION}"
-          
-          echo "Building Docker image for $PLATFORM architecture..."
-          docker build \
-            --build-arg BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
-            --build-arg BUILD_DESCRIPTION="modbus2mqtt Docker Image" \
-            --build-arg BUILD_NAME="modbus2mqtt" \
-            --build-arg BUILD_REPOSITORY="${{ github.repository }}" \
-            --build-arg BUILD_VERSION="${VERSION}" \
-            --build-arg BUILD_ARCH="${ARCH}" \
-            -t "$TAG" \
-            -f ./docker/Dockerfile \
-            .
-          
-          echo "Pushing image: $TAG"
-          docker push "$TAG"
-          echo "✓ Built and pushed image $TAG"
+    - name: Build and push Docker image for ${{ steps.platformcheck.outputs.platform }}
+      env:
+        VERSION: ${{ needs.prepare.outputs.resolved_version }}
+        ARCH: ${{ steps.platformcheck.outputs.arch }}
+        PLATFORM: ${{ steps.platformcheck.outputs.platform }}
+      run: |
+        set -eux
+        TAG="ghcr.io/${{ github.repository }}-${PLATFORM}:v${VERSION}"
+        echo "Building Docker image for $PLATFORM architecture..."
+        docker build \
+          --build-arg BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+          --build-arg BUILD_DESCRIPTION="modbus2mqtt Docker Image" \
+          --build-arg BUILD_NAME="modbus2mqtt" \
+          --build-arg BUILD_REPOSITORY="${{ github.repository }}" \
+          --build-arg BUILD_VERSION="${VERSION}" \
+          --build-arg BUILD_ARCH="${ARCH}" \
+          -t "$TAG" \
+          -f ./docker/Dockerfile \
+          .
+        echo "Pushing image: $TAG"
+        docker push "$TAG"
+        echo "✓ Built and pushed image $TAG"
 
   create_multiarch_manifest:
     runs-on: ubuntu-latest
