@@ -273,36 +273,24 @@ jobs:
           
           ```bash
           docker pull ghcr.io/${{ github.repository }}:v${{ needs.prepare.outputs.resolved_version }}
-                    ```
+          ```
                     
           **Multi-architecture support:** `linux/amd64`, `linux/arm64`
           
           ### 📋 Alpine APK Packages
           
-          | Architecture | APK Package | Size | Direct Download |
-          |--------------|-------------|------|-----------------|
           EOF
           
-          # Add APK files to table
-          for apk_file in release-apks/*.apk; do
-            if [ -f "$apk_file" ]; then
-              FILENAME=$(basename "$apk_file")
-              # Extract architecture from filename pattern
-              if echo "$FILENAME" | grep -q "x86_64"; then
-                ARCH="x86_64 (AMD64)"
-              elif echo "$FILENAME" | grep -q "aarch64"; then
-                ARCH="aarch64 (ARM64)"
-              else
-                ARCH="Unknown"
-              fi
-              # Get file size
-              SIZE=$(ls -lh "$apk_file" | awk '{print $5}')
-              # Create download link
-              DOWNLOAD_LINK="[📥 Download](https://github.com/${{ github.repository }}/releases/download/v${VERSION}/${FILENAME})"
-       
-              echo "| $ARCH | \`$FILENAME\` | $SIZE | $DOWNLOAD_LINK |" >> release-body.md
-            fi
-          done
+          # Nur einen Eintrag für x86_64 APK erzeugen
+          APK_FILE=$(ls release-apks/*x86_64*.apk 2>/dev/null | head -n1 || true)
+          if [ -n "$APK_FILE" ]; then
+            FILENAME=$(basename "$APK_FILE")
+            SIZE=$(ls -lh "$APK_FILE" | awk '{print $5}')
+            DOWNLOAD_LINK="[📥 Download](https://github.com/${{ github.repository }}/releases/download/v${VERSION}/${FILENAME})"
+            echo "| x86_64 (AMD64) | \\`$FILENAME\\` | $SIZE | $DOWNLOAD_LINK |" >> release-body.md
+          else
+            echo "| x86_64 (AMD64) | (not found) | - | - |" >> release-body.md
+          fi
 
           # Add public key section
           cat >> release-body.md << 'EOF'
