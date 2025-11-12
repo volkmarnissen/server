@@ -7,7 +7,7 @@ REPO_DIR="$SCRIPT_DIR/repo"
 
 if [ ! -d "$REPO_DIR" ]; then
   echo "ERROR: Repository directory not found: $REPO_DIR" >&2
-  echo "Run package/modbus2mqtt/build.sh first" >&2
+  echo "Run package/modbus2mqtt/package.sh first" >&2
   exit 1
 fi
 
@@ -38,5 +38,5 @@ if [ -n "$PUBKEY" ]; then
   echo "   apk add modbus2mqtt"
 else
   echo "WARNING: No public key found in repository"
-  echo "Make sure PACKAGER_PRIVKEY is set when running build.sh (public key is derived automatically)"
+  echo "Make sure PACKAGER_PRIVKEY is set when running package.sh (public key is derived automatically)"
 fi

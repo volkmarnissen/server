@@ -8,6 +8,7 @@ ARG BUILD_NAME="modbus2mqtt"
 ARG BUILD_REF="modbus2mqtt"
 ARG BUILD_REPOSITORY="modbus2mqtt"
 ARG BUILD_VERSION
+ARG BUILD_ARCH
 
 # Set environment variables during the build process
 ENV BUILD_DATE=${BUILD_DATE}
@@ -16,8 +17,8 @@ ENV BUILD_NAME=${BUILD_NAME}
 ENV BUILD_REF=${BUILD_REF}
 ENV BUILD_REPOSITORY=${BUILD_REPOSITORY}
 ENV BUILD_VERSION=${BUILD_VERSION}
-
-WORKDIR /usr/app
+ENV BUILD_ARCH=${BUILD_ARCH}
+WORKDIR /
 
 # Install jq (used by SSH init script to parse /data/options.json); wget is in base image
 RUN apk add --no-cache jq
@@ -28,7 +29,7 @@ COPY ./alpine/repo/ /tmp/alpine-repo/
 COPY ./alpine/repo/packager.rsa.pub /tmp/alpine-repo/packager.rsa.pub
 # Install APK with strict signature verification (no untrusted fallback)
 RUN set -e; \
-    ARCH="$(uname -m)"; \
+    ARCH="$BUILD_ARCH"; \
     # Map Docker platform architecture to Alpine APK architecture \
     case "$ARCH" in \
         x86_64) APK_ARCH="x86_64" ;; \

@@ -10,7 +10,7 @@ To avoid ABI issues with native modules (e.g. `@serialport/bindings-cpp`), the b
 - Node 20 → Alpine 3.20
 - Node 18 → Alpine 3.18
 
-`build.sh` determines the Alpine version automatically and writes it to `build/alpine.env` (e.g. `ALPINE_VERSION=3.22`). `build-and-test-image.sh` reads this file and uses the same version for the test image. Override by setting `ALPINE_VERSION=3.xx` explicitly.
+`package.sh` determines the Alpine version automatically and writes it to `build/alpine.env` (e.g. `ALPINE_VERSION=3.22`). `build-and-test-image.sh` reads this file and uses the same version for the test image. Override by setting `ALPINE_VERSION=3.xx` explicitly.
 
 Important: disabled `check()` phase
 
@@ -37,13 +37,16 @@ export PACKAGER_PRIVKEY="$(cat ~/.abuild/builder-6904805d.rsa)"
 
 ```sh
 cd alpine/package/modbus2mqtt
-chmod +x build.sh build-and-test-image.sh
+chmod +x package.sh build-and-test-image.sh
+# For APK building only:
+./package.sh
+# For full build and test:
 ./build-and-test-image.sh
 ```
 
 What the scripts do
 
-- `build.sh`
+- `package.sh`
   - verifies abuild private key in the environment (`PACKAGER_PRIVKEY`)
   - derives the public key automatically using `openssl rsa -pubout`
   - derives (or uses) `ALPINE_VERSION`, persists it into `build/alpine.env`
