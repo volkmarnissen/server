@@ -200,6 +200,19 @@ jobs:
           docker push "$TAG"
           echo "✓ Built and pushed image $TAG"
 
+      - name: Test native Docker image (only on amd64/x86_64)
+        if: steps.platformcheck.outputs.platform == 'amd64'
+        env:
+          VERSION: ${{ needs.prepare.outputs.resolved_version }}
+          ARCH: ${{ steps.platformcheck.outputs.arch }}
+          PLATFORM: ${{ steps.platformcheck.outputs.platform }}
+        run: |
+          set -eux
+          TAG="ghcr.io/${{ github.repository }}-${PLATFORM}:v${VERSION}"
+          docker pull "$TAG"
+          ./docker/test.sh --quick --docker-tag "$TAG"
+          echo "✓ Docker-Image wurde erfolgreich getestet."
+
   create_multiarch_manifest:
     runs-on: ubuntu-latest
     needs: [prepare, build_and_push_docker]

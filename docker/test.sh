@@ -3,7 +3,36 @@ set -e
 
 # docker/test.sh 
 # Test script for modbus2mqtt Docker image
-# Usage: ./docker/test.sh [--keep|-k] [--quick|-q]
+# Usage: ./docker/test.sh [--keep|-k] [--quick|-q] [IMAGE_TAG]
+
+# Optional: --docker-tag <TAG> als Argument
+IMAGE_TAG="modbus2mqtt"
+POSITIONAL=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --keep|-k|--quick|-q)
+      POSITIONAL+=("$1")
+      shift
+      ;;
+    --docker-tag)
+      if [[ -n "$2" ]]; then
+        IMAGE_TAG="$2"
+        shift 2
+      else
+        echo "ERROR: --docker-tag requires an argument" >&2
+        exit 1
+      fi
+      ;;
+    *)
+      echo "Usage: $0 [--keep|-k] [--quick|-q] [--docker-tag <TAG>]"
+      echo "  --keep|-k         Keep containers running for debugging"
+      echo "  --quick|-q        Quick test (web service only, no SSH tests)"
+      echo "  --docker-tag TAG  Use specific Docker image tag (default: modbus2mqtt)"
+      exit 1
+      ;;
+  esac
+done
+set -- "${POSITIONAL[@]}"
 
 # Configuration
 KEEP_CONTAINER=false
@@ -180,7 +209,7 @@ echo "=== Test 1: Full Configuration Test ==="
 setup_ssh_test "$TEST_DATA_DIR"
 
 echo "Starting container with volume mount..."
-docker run -d -p 3010:3000 -p 3022:22 -v "$TEST_DATA_DIR:/data" --name modbus2mqtt-test-main modbus2mqtt
+docker run -d -p 3010:3000 -p 3022:22 -v "$TEST_DATA_DIR:/data" --name modbus2mqtt-test-main "$IMAGE_TAG"
 
 # Wait for web service
 if ! wait_for_service 3010 "Web service" "modbus2mqtt-test-main"; then
@@ -203,7 +232,7 @@ if [ "$QUICK_TEST" = "false" ]; then
   echo ""
   echo "=== Test 2: Standalone Container Test ==="
   echo "Starting standalone container..."
-  docker run -d -p 3011:3000 -p 3023:22 --name modbus2mqtt-test-standalone modbus2mqtt
+  docker run -d -p 3011:3000 -p 3023:22 --name modbus2mqtt-test-standalone "$IMAGE_TAG"
 
   if ! wait_for_service 3011 "Standalone web service" "modbus2mqtt-test-standalone"; then
     cleanup_containers
