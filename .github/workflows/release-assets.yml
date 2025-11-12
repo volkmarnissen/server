@@ -103,17 +103,15 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: apks-${{ steps.platformcheck.outputs.arch }}-${{ needs.prepare.outputs.resolved_version }}
-          path: |
-            alpine/repo/${{ steps.platformcheck.outputs.arch }}/*.apk
-            if-no-files-found: error
+          path: alpine/repo/${{ steps.platformcheck.outputs.arch }}/*.apk
+          if-no-files-found: error
 
-        - name: Upload packager.rsa.pub as separate artifact
-          if: steps.platformcheck.outputs.arch == 'x86_64' # Nur einmal hochladen (z. B. im x86_64-Job)
-          uses: actions/upload-artifact@v4
-          with:
-            name: packager-rsa-pub-${{ needs.prepare.outputs.resolved_version }}
-            path: alpine/repo/packager.rsa.pub
-            if-no-files-found: error
+      - name: Upload packager.rsa.pub as separate artifact
+        if: steps.platformcheck.outputs.arch == 'x86_64' # Nur einmal hochladen (z. B. im x86_64-Job)
+        uses: actions/upload-artifact@v4
+        with:
+          name: packager-rsa-pub-${{ needs.prepare.outputs.resolved_version }}
+          path: alpine/repo/packager.rsa.pub
           if-no-files-found: error
 
   build_and_push_docker:
@@ -143,11 +141,11 @@ jobs:
           name: apks-${{ steps.platformcheck.outputs.arch }}-${{ needs.prepare.outputs.resolved_version }}
           path: alpine/repo/${{ steps.platformcheck.outputs.arch }}
 
-        - name: Download packager.rsa.pub artifact
-          uses: actions/download-artifact@v4
-          with:
-            name: packager-rsa-pub-${{ needs.prepare.outputs.resolved_version }}
-            path: alpine/repo/
+      - name: Download packager.rsa.pub artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: packager-rsa-pub-${{ needs.prepare.outputs.resolved_version }}
+          path: alpine/repo/
 
 
 
@@ -223,11 +221,6 @@ jobs:
         with:
           pattern: apks-*-${{ needs.prepare.outputs.resolved_version }}
           path: apks
-      - name: Download packager.rsa.pub artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: packager-rsa-pub-${{ needs.prepare.outputs.resolved_version }}
-          path: release-apks/
       - name: Download packager.rsa.pub artifact
         uses: actions/download-artifact@v4
         with:
