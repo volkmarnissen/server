@@ -301,12 +301,13 @@ jobs:
             FILENAME=$(basename "$APK_FILE")
             SIZE=$(ls -lh "$APK_FILE" | awk '{print $5}')
             DOWNLOAD_LINK="[📥 Download](https://github.com/${{ github.repository }}/releases/download/v${VERSION}/${FILENAME})"
-            echo "| x86_64 (AMD64) | \\`$FILENAME\\` | $SIZE | $DOWNLOAD_LINK |" >> release-body.md
+            echo "modbus2mqtt x86_64 (AMD64) \\`$FILENAME\\` $SIZE $DOWNLOAD_LINK" >> release-body.md
           else
-            echo "| x86_64 (AMD64) | (not found) | - | - |" >> release-body.md
+            echo "amd64notfound=true" >> $GITHUB_OUTPUT
           fi
 
           # Add public key section
+
           cat >> release-body.md << 'EOF'
 
           ### 🔐 Package Verification
@@ -325,7 +326,7 @@ jobs:
           sudo cp packager.rsa.pub /etc/apk/keys/
           
           # Install APK with verification
-          wget https://github.com/${{ github.repository }}/releases/download/v${{ needs.prepare.outputs.resolved_version }}/modbus2mqtt-${{ needs.prepare.outputs.resolved_version }}-r0.apk
+          wget https://github.com/${{ github.repository }}/releases/download/v${{ needs.prepare.outputs.resolved_version }}/modbus2mqtt-${{ needs.prepare.outputs.resolved_version }}-r0-(aarch64|x86_64).apk
           apk add modbus2mqtt-${{ needs.prepare.outputs.resolved_version }}-r0.apk
           ```
           
@@ -341,13 +342,6 @@ jobs:
             ghcr.io/${{ github.repository }}:v${{ needs.prepare.outputs.resolved_version }}
           ```
           
-          **Alpine Linux:**
-          ```bash
-          # Add repository and install
-          echo "https://github.com/${{ github.repository }}/releases/download/v${{ needs.prepare.outputs.resolved_version }}/" >> /etc/apk/repositories
-          apk update
-          apk add modbus2mqtt
-          ```
           
                     ---
           
@@ -359,6 +353,7 @@ jobs:
           echo "Release body generated successfully"
 
       - name: Upload to existing Release (if exists)
+        if: ${{ steps.release-body.outputs.amd64notfound != 'true' }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.prepare.outputs.resolved_version }}
