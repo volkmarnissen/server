@@ -1,8 +1,3 @@
-      - name: Download packager.rsa.pub artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: packager-rsa-pub-${{ needs.prepare.outputs.resolved_version }}
-          path: release-apks/
 name: Build Release Assets
 
 on:
@@ -228,7 +223,11 @@ jobs:
         with:
           pattern: apks-*-${{ needs.prepare.outputs.resolved_version }}
           path: apks
-
+      - name: Download packager.rsa.pub artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: packager-rsa-pub-${{ needs.prepare.outputs.resolved_version }}
+          path: release-apks/
       - name: Download packager.rsa.pub artifact
         uses: actions/download-artifact@v4
         with:
