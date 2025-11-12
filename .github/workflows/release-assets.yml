@@ -252,108 +252,101 @@ jobs:
           find apks -type f \( -name "*.apk" -o -name "packager.rsa.pub" \) -exec cp {} release-apks/ \;
           ls -lh release-apks/
 
-      - name: Generate release body with APK table
+      - name: Fetch GitHub-generated changelog
+        id: gen-changelog
+        run: |
+          set -euo pipefail
+          TAG="v${{ needs.prepare.outputs.resolved_version }}"
+          API="https://api.github.com/repos/${{ github.repository }}/releases/generate-notes"
+          echo "Requesting generated release notes for $TAG"
+          RESPONSE=$(curl -s -H "Accept: application/vnd.github+json" -H "Authorization: token ${GITHUB_TOKEN}" -X POST -d "{\"tag_name\":\"$TAG\"}" "$API")
+          echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('body',''))" > initial-release-notes.md || true
+          if [ ! -s initial-release-notes.md ]; then
+            echo "## Changelog" > initial-release-notes.md
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate release body (AMD64 only)
         id: release-body
         run: |
+          set -euo pipefail
           VERSION="${{ needs.prepare.outputs.resolved_version }}"
-          DOCKER_TAG="ghcr.io/${{ github.repository }}:v${VERSION}"
-          
-          # Create release body with APK table
-          cat > release-body.md << 'EOF'
-          ## 📦 modbus2mqtt v${{ needs.prepare.outputs.resolved_version }}
-          
-          ### 🐳 Docker Image
-          
-          ```bash
-          docker pull ghcr.io/${{ github.repository }}:v${{ needs.prepare.outputs.resolved_version }}
-          ```
-          
-          **Multi-architecture support:** `linux/amd64`, `linux/arm64`
-          
-          ### 📋 Alpine APK Packages
-          
-          | Architecture | APK Package | Size | Direct Download |
-          |--------------|-------------|------|-----------------|
+          REPO="${{ github.repository }}"
+
+          # Start with GitHub generated changelog
+          if [ -f initial-release-notes.md ]; then
+            cat initial-release-notes.md > release-body.md
+          else
+            echo "## Changelog" > release-body.md
+          fi
+
+          cat >> release-body.md <<'EOF'
+            ## 📦 modbus2mqtt v${VERSION}
+
+            ### 🐳 Docker Image
+
+            ```bash
+            docker pull ghcr.io/${REPO}:v${VERSION}
+            ```
+
+            **Multi-architecture support:** `linux/amd64`, `linux/arm64`
+
+            ### 📋 Alpine APK (recommended)
+
           EOF
-          
-          # Add APK files to table
-          for apk_file in release-apks/*.apk; do
-            if [ -f "$apk_file" ]; then
-              FILENAME=$(basename "$apk_file")
-              # Extract architecture from filename pattern
-              if echo "$FILENAME" | grep -q "x86_64"; then
-                ARCH="x86_64 (AMD64)"
-              elif echo "$FILENAME" | grep -q "aarch64"; then
-                ARCH="aarch64 (ARM64)"
-              else
-                ARCH="Unknown"
-              fi
-              # Get file size
-              SIZE=$(ls -lh "$apk_file" | awk '{print $5}')
-              # Create download link
-              DOWNLOAD_LINK="[📥 Download](https://github.com/${{ github.repository }}/releases/download/v${VERSION}/${FILENAME})"
-              
-              echo "| $ARCH | \`$FILENAME\` | $SIZE | $DOWNLOAD_LINK |" >> release-body.md
-            fi
-          done
-          
-          # Add public key section
-          cat >> release-body.md << 'EOF'
-          
-          ### 🔐 Package Verification
-          
-          **Public Key for APK signature verification:**
-          
-          | File | Purpose | Download |
-          |------|---------|----------|
-          | `packager.rsa.pub` | APK signature verification | [📥 Download](https://github.com/${{ github.repository }}/releases/download/v${{ needs.prepare.outputs.resolved_version }}/packager.rsa.pub) |
-          
-          **Installation with signature verification:**
-          
-          ```bash
-          # Download and install public key
-          wget https://github.com/${{ github.repository }}/releases/download/v${{ needs.prepare.outputs.resolved_version }}/packager.rsa.pub
-          sudo cp packager.rsa.pub /etc/apk/keys/
-          
-          # Install APK with verification
-          wget https://github.com/${{ github.repository }}/releases/download/v${{ needs.prepare.outputs.resolved_version }}/modbus2mqtt-${{ needs.prepare.outputs.resolved_version }}-r0.apk
-          apk add modbus2mqtt-${{ needs.prepare.outputs.resolved_version }}-r0.apk
-          ```
-          
-          ### 🚀 Quick Start
-          
-          **Docker (Recommended):**
-          ```bash
-          docker run -d \
-            --name modbus2mqtt \
-            -p 3000:3000 \
-            -p 22:22 \
-            -v /path/to/config:/data \
-            ghcr.io/${{ github.repository }}:v${{ needs.prepare.outputs.resolved_version }}
-          ```
-          
-          **Alpine Linux:**
-          ```bash
-          # Add repository and install
-          echo "https://github.com/${{ github.repository }}/releases/download/v${{ needs.prepare.outputs.resolved_version }}/" >> /etc/apk/repositories
-          apk update
-          apk add modbus2mqtt
-          ```
-          
-          ---
-          
-          📚 **Documentation:** [README.md](https://github.com/${{ github.repository }}/blob/main/README.md)  
-          🐛 **Issues:** [Report bugs](https://github.com/${{ github.repository }}/issues)  
-          💬 **Discussions:** [Community support](https://github.com/${{ github.repository }}/discussions)
+
+          # Find AMD64 APK (file contains x86_64 or amd64)
+          AMD_APK=$(ls release-apks/*x86_64*.apk 2>/dev/null | head -n1 || true)
+          if [ -z "$AMD_APK" ]; then
+            AMD_APK=$(ls release-apks/*amd64*.apk 2>/dev/null | head -n1 || true)
+          fi
+
+          if [ -n "$AMD_APK" ]; then
+            AMD_FILE=$(basename "$AMD_APK")
+            AMD_SIZE=$(ls -lh "$AMD_APK" | awk '{print $5}')
+            AMD_LINK="https://github.com/${REPO}/releases/download/v${VERSION}/${AMD_FILE}"
+          else
+            AMD_FILE="(no AMD64 APK found)"
+            AMD_SIZE="-"
+            AMD_LINK="#"
+          fi
+
+            cat >> release-body.md <<'EOF'
+              - File: \`${AMD_FILE}\` (${AMD_SIZE})
+              - Direct download: [📥 Download](${AMD_LINK})
+
+              ### 🔐 Package Verification
+
+              Public Key for APK signature verification:
+
+              - File: `packager.rsa.pub`
+              - Direct download: [📥 packager.rsa.pub](https://github.com/${REPO}/releases/download/v${VERSION}/packager.rsa.pub)
+
+              Installation example (verify key first):
+
+              ```bash
+              # Download and install public key
+              wget https://github.com/${REPO}/releases/download/v${VERSION}/packager.rsa.pub
+              sudo cp packager.rsa.pub /etc/apk/keys/
+
+              # Download & install the APK
+              wget ${AMD_LINK}
+              sudo apk add ./${AMD_FILE}
+              ```
+
+              ---
+
+              Documentation: https://github.com/${REPO}/blob/main/README.md
           EOF
-          
+
           echo "Release body generated successfully"
 
       - name: Upload to existing Release (if exists)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.prepare.outputs.resolved_version }}
-          append_body: true
+          append_body: false
           body_path: release-body.md
           files: release-apks/*
         env:
