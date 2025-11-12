@@ -246,11 +246,25 @@ jobs:
           name: packager-rsa-pub-${{ needs.prepare.outputs.resolved_version }}
           path: release-apks/
 
+
       - name: Flatten APK artifacts for upload
         run: |
           mkdir -p release-apks
           find apks -type f \( -name "*.apk" -o -name "packager.rsa.pub" \) -exec cp {} release-apks/ \;
           ls -lh release-apks/
+
+      - name: Generate GitHub changelog (initial-release-notes.md)
+        run: |
+          TAG="v${{ needs.prepare.outputs.resolved_version }}"
+          API="https://api.github.com/repos/${{ github.repository }}/releases/generate-notes"
+          echo "Requesting generated release notes for $TAG"
+          RESPONSE=$(curl -s -H "Accept: application/vnd.github+json" -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -X POST -d "{\"tag_name\":\"$TAG\"}" "$API")
+          echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('body',''))" > initial-release-notes.md || true
+          if [ ! -s initial-release-notes.md ]; then
+            echo "## Changelog" > initial-release-notes.md
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate release body with APK table
         id: release-body
