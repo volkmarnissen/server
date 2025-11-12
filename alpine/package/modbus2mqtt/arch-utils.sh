@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # arch-utils.sh
 # Shared utilities for modbus2mqtt Alpine builds
 # Usage: source this file to get access to the functions
@@ -36,10 +36,37 @@ detect_alpine_version() {
     echo "  Alpine version: $ALPINE_VERSION"
 }
 
+# Find and set repository root
+# Sets: REPO_ROOT (absolute path to repository root)
+# Usage: find_repo_root /path/to/current/script
+find_repo_root() {
+    script_path="${1}"
+    if [ -z "$script_path" ]; then
+        echo "ERROR: find_repo_root requires script path as argument" >&2
+        return 1
+    fi
+    
+    script_dir="$(dirname "$(readlink -f "$script_path")")"
+    
+    # Navigate up from script directory to find package.json
+    current_dir="$script_dir"
+    while [ "$current_dir" != "/" ] && [ ! -f "$current_dir/package.json" ]; do
+        current_dir="$(dirname "$current_dir")"
+    done
+    
+    if [ ! -f "$current_dir/package.json" ]; then
+        echo "ERROR: Could not find repository root (package.json not found)" >&2
+        return 1
+    fi
+    
+    REPO_ROOT="$current_dir"
+    export REPO_ROOT
+}
+
 # Persist Alpine version to build metadata file
 # Usage: persist_alpine_version /path/to/build/dir
 persist_alpine_version() {
-    local build_dir="${1:-build}"
+    build_dir="${1:-build}"
     mkdir -p "$build_dir"
     printf 'ALPINE_VERSION=%s\n' "$ALPINE_VERSION" > "$build_dir/alpine.env"
     echo "✓ Alpine version persisted to $build_dir/alpine.env"

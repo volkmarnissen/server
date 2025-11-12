@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -eu
 
 # package.sh
@@ -7,19 +7,23 @@ set -eu
 # - PACKAGER_PRIVKEY : full private abuild key (multi-line)
 # - (optional) PKG_VERSION : package version; defaults to package.json via node
 
-BASEDIR=$(dirname "$0")
-cd "$BASEDIR"
+# Get script directory for Docker volume mounting
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 
-# Source shared utilities for Alpine version detection
+# Source shared utilities and find repository root
 # shellcheck source=./arch-utils.sh
-. "$BASEDIR/arch-utils.sh"
+. "$SCRIPT_DIR/arch-utils.sh"
+find_repo_root "$0"
+
+# Change to repository root for all operations  
+cd "$REPO_ROOT"
 
 if [ -z "${PACKAGER_PRIVKEY:-}" ]; then
   echo "ERROR: PACKAGER_PRIVKEY must be set in the environment" >&2
   exit 2
 fi
 
-: "${PKG_VERSION:=$(node -p "require('../../../package.json').version")}" || true
+: "${PKG_VERSION:=$(node -p "require('./package.json').version")}" || true
 export PKG_VERSION
 echo "Package version: $PKG_VERSION"
 
@@ -27,17 +31,21 @@ echo "Package version: $PKG_VERSION"
 detect_alpine_version || exit $?
 
 # Persist chosen Alpine version for downstream scripts
-persist_alpine_version "$BASEDIR/build"
+persist_alpine_version "alpine/package/modbus2mqtt/build"
 
 # Setup directories and permissions
 HOST_UID=$(id -u)
 HOST_GID=$(id -g)
-PACKAGE="$BASEDIR/../../repo"
+
+# Setup paths from repository root
+PACKAGE="alpine/repo"
 mkdir -p "$PACKAGE"
+PACKAGE="$(cd "$PACKAGE" && pwd)"
 
 # Prepare npm cache directory on host to speed up repeated builds
-CACHE_DIR="$BASEDIR/build/npm-cache"
+CACHE_DIR="alpine/package/modbus2mqtt/build/npm-cache"
 mkdir -p "$CACHE_DIR"
+CACHE_DIR="$(cd "$CACHE_DIR" && pwd)"
 
 echo "Starting containerized APK build..."
 echo "  Alpine version: $ALPINE_VERSION"
@@ -46,7 +54,7 @@ echo "  Build user: $HOST_UID:$HOST_GID"
 
 # Run build in Alpine container
 docker run --rm -i \
-  -v "$BASEDIR":/work \
+  -v "$SCRIPT_DIR":/work \
   -w /work \
   -v "$PACKAGE":/package \
   -v "$CACHE_DIR":/home/builder/.npm \
