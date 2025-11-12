@@ -276,7 +276,7 @@ jobs:
           if [ -f initial-release-notes.md ]; then
             # Füge eine Leerzeile nach dem Changelog ein, damit Markdown-Header korrekt erkannt werden
             cat initial-release-notes.md > release-body.md
-            echo "\n" >> release-body.md
+            echo >> release-body.md
           fi
 
           # Create release body mit APK-Tabelle
@@ -301,7 +301,7 @@ jobs:
             FILENAME=$(basename "$APK_FILE")
             SIZE=$(ls -lh "$APK_FILE" | awk '{print $5}')
             DOWNLOAD_LINK="[📥 Download](https://github.com/${{ github.repository }}/releases/download/v${VERSION}/${FILENAME})"
-            echo "modbus2mqtt x86_64 (AMD64) \\`$FILENAME\\` $SIZE $DOWNLOAD_LINK" >> release-body.md
+            echo "modbus2mqtt x86_64 (AMD64) Size: `$FILENAME\\` $SIZE    $DOWNLOAD_LINK" >> release-body.md
           else
             echo "amd64notfound=true" >> $GITHUB_OUTPUT
           fi
@@ -326,7 +326,9 @@ jobs:
           sudo cp packager.rsa.pub /etc/apk/keys/
           
           # Install APK with verification
-          wget https://github.com/${{ github.repository }}/releases/download/v${{ needs.prepare.outputs.resolved_version }}/modbus2mqtt-${{ needs.prepare.outputs.resolved_version }}-r0-(aarch64|x86_64).apk
+          # for aarch64 uncomment the following line and comment the x86_64 line
+          # wget https://github.com/${{ github.repository }}/releases/download/v${{ needs.prepare.outputs.resolved_version }}/modbus2mqtt-${{ needs.prepare.outputs.resolved_version }}-r0-aarch64.apk
+          wget https://github.com/${{ github.repository }}/releases/download/v${{ needs.prepare.outputs.resolved_version }}/modbus2mqtt-${{ needs.prepare.outputs.resolved_version }}-r0-x86_64.apk
           apk add modbus2mqtt-${{ needs.prepare.outputs.resolved_version }}-r0.apk
           ```
           
