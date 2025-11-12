@@ -344,8 +344,7 @@ jobs:
             ghcr.io/${{ github.repository }}:v${{ needs.prepare.outputs.resolved_version }}
           ```
           
-          
-                    ---
+          ---
           
           📚 **Documentation:** [README.md](https://github.com/${{ github.repository }}/blob/main/README.md)  
           🐛 **Issues:** [Report bugs](https://github.com/${{ github.repository }}/issues)  
