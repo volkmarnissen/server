@@ -385,7 +385,7 @@ jobs:
         with:
           repository: modbus2mqtt/hassio-addon-repository
           path: hassio-addon-repository
-          ref: refs/heads/main
+          ref: refs/heads/test
           token: ${{ secrets.PAT }}    
       - name: Prepare Addon Directory
         id: prepareAddonDirectory
