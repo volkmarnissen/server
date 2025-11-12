@@ -98,12 +98,31 @@ jobs:
           echo "Checking APK structure for ${{ steps.platformcheck.outputs.arch }}..."
           ls -laR alpine/repo/ || echo "alpine/repo not found"
           find . -name "*.apk" -type f || echo "No APK files found"
-          
+      - name: Prepare APK filenames (append arch suffix)
+        run: |
+          set -euo pipefail
+          ARCH=${{ steps.platformcheck.outputs.arch }}
+          SRC_DIR="alpine/repo/${ARCH}"
+          DST_DIR="alpine/repo/upload"
+          mkdir -p "$DST_DIR"
+          shopt -s nullglob || true
+          for f in "$SRC_DIR"/*.apk; do
+            [ -f "$f" ] || continue
+            base=$(basename "$f")
+            # If filename already contains arch indicators, keep it, else append
+            if echo "$base" | grep -Eq "(x86_64|aarch64|amd64|arm64)"; then
+              cp "$f" "$DST_DIR/$base"
+            else
+              cp "$f" "$DST_DIR/${base%.apk}-$ARCH.apk"
+            fi
+          done
+          ls -lh "$DST_DIR" || true
+
       - name: Upload APK artifacts for ${{ steps.platformcheck.outputs.arch }}
         uses: actions/upload-artifact@v4
         with:
           name: apks-${{ steps.platformcheck.outputs.arch }}-${{ needs.prepare.outputs.resolved_version }}
-          path: alpine/repo/${{ steps.platformcheck.outputs.arch }}/*.apk
+          path: alpine/repo/upload/*.apk
           if-no-files-found: error
 
       - name: Upload packager.rsa.pub as separate artifact
