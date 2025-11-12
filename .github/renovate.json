@@ -1,0 +1,90 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base",
+    "schedule:quarterly"
+  ],
+  "timezone": "Europe/Berlin",
+  "schedule": [
+    "before 10am on the 1st day of the quarter"
+  ],
+  "packageRules": [
+    {
+      "groupName": "Angular ecosystem (minor/patch)",
+      "matchPackageNames": [
+        "@angular/*", 
+        "@angular-devkit/*",
+        "@ngx-translate/*"
+      ],
+      "matchUpdateTypes": ["minor", "patch"],
+      "schedule": [
+        "before 10am on the 1st day of the quarter"
+      ],
+      "reviewers": ["volkmarnissen"]
+    },
+    {
+      "groupName": "Angular MAJOR upgrade",
+      "matchPackageNames": [
+        "@angular/*", 
+        "@angular-devkit/*",
+        "@ngx-translate/*"
+      ],
+      "matchUpdateTypes": ["major"],
+      "schedule": [
+        "before 10am on the 1st day of the quarter"
+      ],
+      "reviewers": ["volkmarnissen"],
+      "labels": ["major-update", "breaking-change"],
+      "prTitle": "🚨 Angular MAJOR update: v{{currentVersion}} → v{{newVersion}}",
+      "prBodyTemplate": "⚠️ **BREAKING CHANGES EXPECTED** ⚠️\n\nThis is an Angular major version upgrade from {{currentVersion}} to {{newVersion}}.\n\n**Required actions:**\n- [ ] Review Angular migration guide: https://update.angular.io/\n- [ ] Run `ng update @angular/core @angular/cli`\n- [ ] Test thoroughly before merging\n- [ ] Update Node.js version if required\n- [ ] Check for deprecated APIs\n\n**Changelog:** {{{changelog}}}\n\n**Release Notes:** {{{notes}}}",
+      "assignees": ["volkmarnissen"],
+      "additionalBranchPrefix": "angular-major/",
+      "minimumReleaseAge": "3 days"
+    },
+    {
+      "groupName": "Angular + Node.js compatibility check",
+      "matchPackageNames": ["@angular/core"],
+      "matchUpdateTypes": ["major"],
+      "prBodyTemplate": "⚠️ **Angular Major + Node.js Compatibility** ⚠️\n\nAngular {{newVersion}} requires specific Node.js versions:\n\n**Node.js compatibility for Angular {{newVersion}}:**\n- Check: https://angular.io/guide/versions\n- Update `.nvmrc` and `package.json` engines accordingly\n- Verify Alpine version mapping in `build.sh`\n\n**Current setup:**\n- Node.js: Check `.nvmrc`\n- Engines: `{{{engines}}}`\n\n{{{changelog}}}",
+      "reviewers": ["volkmarnissen"]
+    },
+    {
+      "groupName": "Node.js version update",
+      "matchDatasources": ["node-version"],
+      "matchFiles": [".nvmrc"],
+      "schedule": [
+        "before 10am on the 1st day of the quarter"
+      ],
+      "reviewers": ["volkmarnissen"],
+      "labels": ["nodejs-update"],
+      "prTitle": "📦 Update Node.js to v{{newVersion}}",
+      "prBodyTemplate": "🔄 **Node.js Update**\n\nThis updates Node.js from {{currentVersion}} to {{newVersion}}.\n\n**Manual actions required:**\n- [ ] Update `package.json` engines field: `\"node\": \">={{newVersion}}\"`\n- [ ] Verify Angular compatibility: https://angular.io/guide/versions\n- [ ] Test Alpine build system\n- [ ] Check all dependencies for Node.js compatibility\n\n**Alpine version mapping:**\n- Node.js 22.x → Alpine 3.22\n- Node.js 20.x → Alpine 3.20\n- Node.js 18.x → Alpine 3.18\n\n{{changelog}}"
+    },
+    {
+      "groupName": "Core dependencies (quarterly)",
+      "matchPackageNames": [
+        "typescript",
+        "@types/*",
+        "jest",
+        "@jest/*",
+        "cypress"
+      ],
+      "schedule": [
+        "before 10am on the 1st day of the quarter"
+      ]
+    },
+    {
+      "groupName": "Security updates (immediate)",
+      "matchCurrentVersion": "/.*/",
+      "isVulnerabilityAlert": true,
+      "schedule": ["at any time"],
+      "labels": ["security"]
+    }
+  ],
+  "prHourlyLimit": 2,
+  "prConcurrentLimit": 5,
+  "semanticCommits": "enabled",
+  "commitMessagePrefix": "chore(deps): ",
+  "labels": ["dependencies"],
+  "assignees": ["volkmarnissen"]
+}

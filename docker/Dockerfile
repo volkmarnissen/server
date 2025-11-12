@@ -8,6 +8,7 @@ ARG BUILD_NAME="modbus2mqtt"
 ARG BUILD_REF="modbus2mqtt"
 ARG BUILD_REPOSITORY="modbus2mqtt"
 ARG BUILD_VERSION
+ARG BUILD_ARCH
 
 # Set environment variables during the build process
 ENV BUILD_DATE=${BUILD_DATE}
@@ -16,20 +17,46 @@ ENV BUILD_NAME=${BUILD_NAME}
 ENV BUILD_REF=${BUILD_REF}
 ENV BUILD_REPOSITORY=${BUILD_REPOSITORY}
 ENV BUILD_VERSION=${BUILD_VERSION}
-
-WORKDIR /usr/app
+ENV BUILD_ARCH=${BUILD_ARCH}
+WORKDIR /
 
 # Install jq (used by SSH init script to parse /data/options.json); wget is in base image
 RUN apk add --no-cache jq
 
 # Copy produced packages (expect build scripts to have created repo)
 COPY ./alpine/repo/ /tmp/alpine-repo/
+# Ensure public key is copied (workaround for Docker COPY behavior with root files)
+COPY ./alpine/repo/packager.rsa.pub /tmp/alpine-repo/packager.rsa.pub
 # Install APK with strict signature verification (no untrusted fallback)
 RUN set -e; \
-    ARCH="$(uname -m)"; \
-    KEY="/tmp/alpine-repo/${ARCH}/packager.rsa.pub"; \
-    APK="/tmp/alpine-repo/${ARCH}/modbus2mqtt-*.apk"; \
-    if [ ! -f "$KEY" ]; then echo "ERROR: public key $KEY not found" >&2; exit 1; fi; \
+    ARCH="$BUILD_ARCH"; \
+    # Map Docker platform architecture to Alpine APK architecture \
+    case "$ARCH" in \
+        x86_64) APK_ARCH="x86_64" ;; \
+        aarch64|arm64) APK_ARCH="aarch64" ;; \
+        *) echo "ERROR: Unsupported architecture: $ARCH" >&2; exit 1 ;; \
+    esac; \
+    echo "Container arch: $ARCH, APK arch: $APK_ARCH"; \
+    \
+    # Use architecture-independent public key from repo root \
+    KEY="/tmp/alpine-repo/packager.rsa.pub"; \
+    APK="/tmp/alpine-repo/${APK_ARCH}/modbus2mqtt-*.apk"; \
+    \
+    # Check if key and APK exist \
+    if [ ! -f "$KEY" ]; then \
+        echo "ERROR: public key $KEY not found" >&2; \
+        echo "Available files in /tmp/alpine-repo:" >&2; \
+        ls -la /tmp/alpine-repo/ || true; \
+        exit 1; \
+    fi; \
+    if ! ls $APK >/dev/null 2>&1; then \
+        echo "ERROR: APK files $APK not found" >&2; \
+        echo "Available APK files:" >&2; \
+        find /tmp/alpine-repo -name "*.apk" -type f || true; \
+        exit 1; \
+    fi; \
+    \
+    # Install the APK \
     cp "$KEY" /etc/apk/keys/builder-6904805d.rsa.pub; \
     apk add --no-cache $APK; \
     echo "✓ Installed modbus2mqtt via trusted APK with signature verification";

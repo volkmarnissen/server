@@ -5,7 +5,7 @@
 # Maintainer: Modbus2mqtt <info@carcam360.de>
 pkgname=modbus2mqtt
 # Version comes from package.json or the PKG_VERSION environment variable
-pkgver=0.16.56
+pkgver=0.16.57
 pkgrel=0
 pkgdesc="Modbus to MQTT bridge"
 url="https://github.com/modbus2mqtt/server"
@@ -14,7 +14,7 @@ license="MIT"
 depends="nodejs npm s6-overlay git openssh-server"
 makedepends="npm alpine-sdk shadow rsync py3-psutil make build-base linux-headers udev"
 install="$pkgname.pre-install $pkgname.post-install"
-subpackages="$pkgname-openrc"
+# No subpackages - integrate OpenRC scripts into main package
 
 # Disable the abuild check phase: tests are executed in the GitHub workflow
 # (before creating the npm artifacts and after installing the produced APK),
@@ -104,16 +104,14 @@ package() {
     install -d -m 755 "$pkgdir"/config
     install -d -m 755 "$pkgdir"/data
     install -d -m 755 "$pkgdir"/ssl
-}
-
-openrc() {
-    pkgdesc="$pkgdesc (OpenRC init scripts)"
-    install_if="$pkgname=$pkgver-r$pkgrel openrc"
-    depends=""
     
-    # Install OpenRC init script and config to subpackage
-    install -m755 -D "$builddir"/../../$pkgname.initd "$subpkgdir"/etc/init.d/$pkgname
-    install -m644 -D "$builddir"/../../$pkgname.confd "$subpkgdir"/etc/conf.d/$pkgname
+    # Install OpenRC init script and config directly into main package
+    # Note: This will trigger a warning "Found OpenRC directory but name doesn't end with -openrc"
+    # We intentionally accept this warning because we want to provide a single APK package
+    # that includes both the application and OpenRC support, rather than forcing users
+    # to install separate modbus2mqtt and modbus2mqtt-openrc packages.
+    install -m755 -D "$builddir"/../../$pkgname.initd "$pkgdir"/etc/init.d/$pkgname
+    install -m644 -D "$builddir"/../../$pkgname.confd "$pkgdir"/etc/conf.d/$pkgname
 }
 sha512sums="
 d03c77fda1d53d8f7fa43eac4366d34c5dad06e0feb81b3e99c3a0e6c84b7043b1987fc6f7b0273816134eccd9b8d4040cb3be23e5eb5aee898a686f9355adc6  modbus2mqtt.initd
