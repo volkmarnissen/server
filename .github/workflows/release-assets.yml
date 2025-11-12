@@ -376,7 +376,33 @@ jobs:
           files: release-apks/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+  update_hassio_addon_version:
+    runs-on: ubuntu-latest
+    needs: [prepare, build_apks, create_multiarch_manifest]
+    environment: release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: modbus2mqtt/hassio-addon-repository
+          path: hassio-addon-repository
+          ref: refs/heads/main
+          token: ${{ secrets.PAT }}    
+      - name: Prepare Addon Directory
+        id: prepareAddonDirectory
+        run: |
+          sed -i -e 's/version: .*/version: 0.17.18/g'"${{ needs.prepare.outputs.resolved_version }}"'/g' hassio-addon-repository/modbus2mqtt/config.yaml
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: '✏️ Generate changelog History'
+        uses: heinrichreimer/action-github-changelog-generator@v2.4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          output: modbus2mqtt/hassio-addon-repository/modbus2mqtt/CHANGELOG.md
+          headerLabel: '## Changelog for Modbus <=> MQTT'
+      - name: Checkin hassio-addon-repository
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: ${{ needs.prepare.outputs.resolved_version }}
 # Notes:
 # - dry_run=true allows local verification without pushing image or release assets.
 # - Multi-arch APK builds (x86_64 + aarch64) use QEMU for cross-compilation.
