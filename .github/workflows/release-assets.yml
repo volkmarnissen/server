@@ -410,7 +410,7 @@ jobs:
         run: |
           sed -i -e 's/version: .*/version: ${{ needs.prepare.outputs.resolved_version }}/g' \
           -e 's|image: .*|image: ${{ env.main_docker_name }}|g' \
-          -e 's|\(url: https://github.com/\)[^/]*\/[^/]*\(.*\)|\1xxx\2|g' \
+          -e 's|\(url: https://github.com/\)[^/]*\/[^/]*\(.*\)|\1${{github.repository}}\2|g' \
           hassio-addon-repository/${{ env.product_name }}/config.yaml
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
