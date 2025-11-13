@@ -208,8 +208,8 @@ jobs:
             -f ./docker/Dockerfile \
             .
           
-          echo "Pushing image:  ${{ steps.platformattributes.outputs.docker_name }}"
-          docker push " ${{ steps.platformattributes.outputs.docker_name }}"
+          echo "Pushing image: ${{ steps.platformattributes.outputs.docker_name }}"
+          docker push "${{ steps.platformattributes.outputs.docker_name }}"
           echo "✓ Built and pushed image  ${{ steps.platformattributes.outputs.docker_name }}"
 
       - name: Test native Docker image (only on amd64/x86_64)
