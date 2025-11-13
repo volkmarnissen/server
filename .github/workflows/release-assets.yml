@@ -67,7 +67,7 @@ jobs:
           echo "platform=$platform" >> $GITHUB_OUTPUT
           echo "platform=\"$platform\""
           docker_name=$main_docker_name-$platform:${{ needs.prepare.outputs.resolved_version }}
-          echo "platform=\"$docker_name\""
+          echo "docker_name=\"$docker_name\""
           echo "docker_name=$docker_name" >> $GITHUB_OUTPUT
 
       - name: Install tools
@@ -151,7 +151,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 #      The "Set Platform specific Attributes" , must to be copied from original !!
-           - name: Set Platform specific Attributes
+      - name: Set Platform specific Attributes
         id: platformattributes
         run: |
           if [ "${{ matrix.platform }}" == "ubuntu-22.04-arm" ]; then
@@ -164,7 +164,7 @@ jobs:
           echo "platform=$platform" >> $GITHUB_OUTPUT
           echo "platform=\"$platform\""
           docker_name=$main_docker_name-$platform:${{ needs.prepare.outputs.resolved_version }}
-          echo "platform=\"$docker_name\""
+          echo "docker_name=\"$docker_name\""
           echo "docker_name=$docker_name" >> $GITHUB_OUTPUT
           
       - name: Download APK artifacts for ${{ steps.platformattributes.outputs.arch }}
