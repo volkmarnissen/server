@@ -218,7 +218,7 @@ jobs:
           set -eux
           docker images
           local_image=$main_docker_name-${{ steps.platformattributes.outputs.platform }}
-          ./docker/test.sh --quick --docker-tag "$local_image"
+          ./docker/test.sh --quick --docker-tag "${{ steps.platformattributes.outputs.docker_name_version }}"
           echo "✓ Docker-Image wurde erfolgreich getestet."
 
   create_multiarch_manifest:
