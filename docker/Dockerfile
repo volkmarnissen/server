@@ -25,8 +25,11 @@ RUN apk add --no-cache jq
 
 # Copy produced packages (expect build scripts to have created repo)
 COPY ./alpine/repo/ /tmp/alpine-repo/
+# required by homeassistant s6-overlay
+COPY ./docker/service /usr/bin/service
 # Ensure public key is copied (workaround for Docker COPY behavior with root files)
 COPY ./alpine/repo/packager.rsa.pub /tmp/alpine-repo/packager.rsa.pub
+/home/volkmar/hassio-addon-repository/modbus2mqtt/translations/en.yaml
 # Install APK with strict signature verification (no untrusted fallback)
 RUN set -e; \
     ARCH="$BUILD_ARCH"; \
