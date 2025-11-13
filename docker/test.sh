@@ -193,7 +193,7 @@ cleanup_containers
 check_ports
 
 # Check if image exists
-if ! docker images | grep -q "^$IMAGE_TAG "; then
+if [ -z "$(docker images -q "$IMAGE_TAG" 2> /dev/null)" ]; then
   docker images >&2
   echo "ERROR: Docker image '$IMAGE_TAG' not found" >&2
   echo "Run: ./docker/build.sh first" >&2
