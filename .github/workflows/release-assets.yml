@@ -421,6 +421,7 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: ${{ needs.prepare.outputs.resolved_version }}
+          repository: hassio-addon-repository
 # Notes:
 # - dry_run=true allows local verification without pushing image or release assets.
 # - Multi-arch APK builds (x86_64 + aarch64) use QEMU for cross-compilation.
