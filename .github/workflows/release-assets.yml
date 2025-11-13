@@ -218,6 +218,8 @@ jobs:
           set -eux
           docker images
           local_image=$main_docker_name-${{ steps.platformattributes.outputs.platform }}
+          # Even if the local file is available, this is required before docker run
+          docker pull "${{ steps.platformattributes.outputs.docker_name_version }}"
           ./docker/test.sh --quick --docker-tag "${{ steps.platformattributes.outputs.docker_name_version }}"
           echo "✓ Docker-Image wurde erfolgreich getestet."
 
