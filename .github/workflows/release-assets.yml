@@ -216,6 +216,7 @@ jobs:
         if: steps.platformattributes.outputs.platform == 'amd64'
         run: |
           set -eux
+          docker images
           docker pull ${{ steps.platformattributes.outputs.docker_name }}
           ./docker/test.sh --quick --docker-tag "${{ steps.platformattributes.outputs.docker_name }}"
           echo "✓ Docker-Image wurde erfolgreich getestet."
