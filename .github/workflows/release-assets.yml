@@ -67,8 +67,8 @@ jobs:
           echo "platform=$platform" >> $GITHUB_OUTPUT
           echo "platform=\"$platform\""
           docker_name=$main_docker_name-$platform:${{ needs.prepare.outputs.resolved_version }}
-          echo "docker_name=\"$docker_name\""
-          echo "docker_name=$docker_name" >> $GITHUB_OUTPUT
+          echo "docker_name_version=\"$docker_name_version\""
+          echo "docker_name_version=$docker_name_version" >> $GITHUB_OUTPUT
 
       - name: Install tools
         run: |
@@ -163,9 +163,9 @@ jobs:
           fi
           echo "platform=$platform" >> $GITHUB_OUTPUT
           echo "platform=\"$platform\""
-          docker_name=$main_docker_name-$platform:${{ needs.prepare.outputs.resolved_version }}
-          echo "docker_name=\"$docker_name\""
-          echo "docker_name=$docker_name" >> $GITHUB_OUTPUT
+          docker_name_version=$main_docker_name_version-$platform:${{ needs.prepare.outputs.resolved_version }}
+          echo "docker_name_version=\"$docker_name_version\""
+          echo "docker_name_version=$docker_name_version" >> $GITHUB_OUTPUT
           
       - name: Download APK artifacts for ${{ steps.platformattributes.outputs.arch }}
         uses: actions/download-artifact@v4
@@ -204,21 +204,20 @@ jobs:
             --build-arg BUILD_REPOSITORY="${{ github.repository }}" \
             --build-arg BUILD_VERSION="${VERSION}" \
             --build-arg BUILD_ARCH="${ARCH}" \
-            -t "${{ steps.platformattributes.outputs.docker_name }}" \
+            -t "${{ steps.platformattributes.outputs.docker_name_version }}" \
             -f ./docker/Dockerfile \
             .
           
-          echo "Pushing image: ${{ steps.platformattributes.outputs.docker_name }}"
-          docker push "${{ steps.platformattributes.outputs.docker_name }}"
-          echo "✓ Built and pushed image  ${{ steps.platformattributes.outputs.docker_name }}"
+          echo "Pushing image: ${{ steps.platformattributes.outputs.docker_name_version }}"
+          docker push "${{ steps.platformattributes.outputs.docker_name_version }}"
+          echo "✓ Built and pushed image  ${{ steps.platformattributes.outputs.docker_name_version }}"
 
       - name: Test native Docker image (only on amd64/x86_64)
         if: steps.platformattributes.outputs.platform == 'amd64'
         run: |
           set -eux
-          docker images
-          docker pull ${{ steps.platformattributes.outputs.docker_name }}
-          ./docker/test.sh --quick --docker-tag "${{ steps.platformattributes.outputs.docker_name }}"
+          local_image=${{ steps.platformattributes.outputs.$main_docker_name }}-${{ steps.platformattributes.outputs.platform }}
+          ./docker/test.sh --quick --docker-tag "$local_image"
           echo "✓ Docker-Image wurde erfolgreich getestet."
 
   create_multiarch_manifest:
