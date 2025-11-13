@@ -22,7 +22,7 @@ on:
         type: string
 env:
   product_name: modbus2mqtt
-  main_docker_name: ghcr.io/${{ github.repository_owner }}/$product_name
+  main_docker_name: "ghcr.io/${{ github.repository_owner }}/$product_name"
 jobs:
   prepare:
     runs-on: ubuntu-latest
@@ -65,7 +65,10 @@ jobs:
             platform=amd64
           fi
           echo "platform=$platform" >> $GITHUB_OUTPUT
-          echo "docker_name=$main_docker_name-$platform:${{ needs.prepare.outputs.resolved_version }}" >> $GITHUB_OUTPUT
+          echo "platform=\"$platform\""
+          docker_name=$main_docker_name-$platform:${{ needs.prepare.outputs.resolved_version }}
+          echo "platform=\"$docker_name\""
+          echo "docker_name=$docker_name" >> $GITHUB_OUTPUT
 
       - name: Install tools
         run: |
@@ -148,7 +151,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 #      The "Set Platform specific Attributes" , must to be copied from original !!
-      - name: Set Platform specific Attributes
+           - name: Set Platform specific Attributes
         id: platformattributes
         run: |
           if [ "${{ matrix.platform }}" == "ubuntu-22.04-arm" ]; then
@@ -159,7 +162,10 @@ jobs:
             platform=amd64
           fi
           echo "platform=$platform" >> $GITHUB_OUTPUT
-          echo "docker_name=$main_docker_name-$platform:${{ needs.prepare.outputs.resolved_version }}" >> $GITHUB_OUTPUT
+          echo "platform=\"$platform\""
+          docker_name=$main_docker_name-$platform:${{ needs.prepare.outputs.resolved_version }}
+          echo "platform=\"$docker_name\""
+          echo "docker_name=$docker_name" >> $GITHUB_OUTPUT
           
       - name: Download APK artifacts for ${{ steps.platformattributes.outputs.arch }}
         uses: actions/download-artifact@v4
@@ -198,7 +204,7 @@ jobs:
             --build-arg BUILD_REPOSITORY="${{ github.repository }}" \
             --build-arg BUILD_VERSION="${VERSION}" \
             --build-arg BUILD_ARCH="${ARCH}" \
-            -t ${{ steps.platformattributes.outputs.docker_name }} \
+            -t "${{ steps.platformattributes.outputs.docker_name }}" \
             -f ./docker/Dockerfile \
             .
           
