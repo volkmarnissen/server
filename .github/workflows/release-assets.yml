@@ -163,7 +163,7 @@ jobs:
           fi
           echo "platform=$platform" >> $GITHUB_OUTPUT
           echo "platform=\"$platform\""
-          docker_name_version=$main_docker_name-$platform:${{ needs.prepare.outputs.resolved_version }}
+          docker_name=$main_docker_name-$platform:${{ needs.prepare.outputs.resolved_version }}
           echo "docker_name_version=\"$docker_name_version\""
           echo "docker_name_version=$docker_name_version" >> $GITHUB_OUTPUT
           
