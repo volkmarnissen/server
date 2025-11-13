@@ -216,6 +216,7 @@ jobs:
         if: steps.platformattributes.outputs.platform == 'amd64'
         run: |
           set -eux
+          docker images
           local_image=$main_docker_name-${{ steps.platformattributes.outputs.platform }}
           ./docker/test.sh --quick --docker-tag "$local_image"
           echo "✓ Docker-Image wurde erfolgreich getestet."
