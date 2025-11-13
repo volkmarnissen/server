@@ -366,7 +366,7 @@ jobs:
             --name ${{ env.product_name }}\
             -p 3000:3000 \
             -v /path/to/config:/data \
-            $main_docker_name:${{ needs.prepare.outputs.resolved_version }}
+            ${{ env.main_docker_name }}:${{ needs.prepare.outputs.resolved_version }}
           ```
           
           ---
