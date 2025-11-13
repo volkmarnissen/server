@@ -193,8 +193,9 @@ cleanup_containers
 check_ports
 
 # Check if image exists
-if ! docker images | grep -q "^modbus2mqtt "; then
-  echo "ERROR: Docker image 'modbus2mqtt' not found" >&2
+if ! docker images | grep -q "^$IMAGE_TAG "; then
+  docker images >&2
+  echo "ERROR: Docker image '$IMAGE_TAG' not found" >&2
   echo "Run: ./docker/build.sh first" >&2
   exit 1
 fi
