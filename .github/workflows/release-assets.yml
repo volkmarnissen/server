@@ -401,7 +401,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner}}/hassio-addon-repository
           path: hassio-addon-repository
-          ref: refs/heads/test
+          ref: refs/heads/main
           token: ${{ secrets.PAT }}    
       - name: Update Version in config.yaml
         id: updateVersion
