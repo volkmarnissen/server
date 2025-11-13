@@ -30,7 +30,7 @@ jobs:
       resolved_version: ${{ steps.setver.outputs.resolved_version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Read version
         id: setver
@@ -52,7 +52,7 @@ jobs:
         platform: [ubuntu-latest, ubuntu-22.04-arm]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 #      The "Set Platform specific Attributes" original to be copied below!!
       - name: Set Platform specific Attributes
         id: platformattributes
@@ -149,7 +149,7 @@ jobs:
         platform: [ubuntu-latest, ubuntu-22.04-arm]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 #      The "Set Platform specific Attributes" , must to be copied from original !!
       - name: Set Platform specific Attributes
         id: platformattributes
@@ -259,7 +259,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download all APK artifacts
         uses: actions/download-artifact@v4
@@ -398,8 +398,8 @@ jobs:
     environment: release
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-      - uses: actions/checkout@v4
+        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
         with:
           repository: ${{ github.repository_owner}}/hassio-addon-repository
           path: hassio-addon-repository
