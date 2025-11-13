@@ -22,7 +22,7 @@ on:
         type: string
 env:
   product_name: modbus2mqtt
-  main_docker_name: "ghcr.io/${{ github.repository_owner }}/$product_name"
+  main_docker_name: "ghcr.io/${{ github.repository_owner }}/modbus2mqtt"
 jobs:
   prepare:
     runs-on: ubuntu-latest
