@@ -20,6 +20,9 @@ on:
         description: 'Version (without leading v). If omitted, read from package.json.'
         required: false
         type: string
+env:
+  product_name: modbus2mqtt
+  main_docker_name: ghcr.io/${{ github.repository_owner }}/$product_name
 jobs:
   prepare:
     runs-on: ubuntu-latest
@@ -50,44 +53,46 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Platform check
-        id: platformcheck
+#      The "Set Platform specific Attributes" original to be copied below!!
+      - name: Set Platform specific Attributes
+        id: platformattributes
         run: |
           if [ "${{ matrix.platform }}" == "ubuntu-22.04-arm" ]; then
             echo "arch=aarch64" >> $GITHUB_OUTPUT
-            echo "platform=arm64" >> $GITHUB_OUTPUT
+            platform=arm64
           else
             echo "arch=x86_64" >> $GITHUB_OUTPUT
-            echo "platform=amd64" >> $GITHUB_OUTPUT
+            platform=amd64
           fi
+          echo "platform=$platform" >> $GITHUB_OUTPUT
+          echo "docker_name=$main_docker_name-$platform:${{ needs.prepare.outputs.resolved_version }}" >> $GITHUB_OUTPUT
 
       - name: Install tools
         run: |
           sudo apt-get update
           sudo apt-get install -y jq bash
 
-      - name: Build APK for ${{ steps.platformcheck.outputs.arch }}
+      - name: Build APK for ${{ steps.platformattributes.outputs.arch }}
         env:
-          ALPINE_ARCH: ${{ steps.platformcheck.outputs.arch }}
-          TARGET_ARCH: ${{ steps.platformcheck.outputs.arch }}
+          ALPINE_ARCH: ${{ steps.platformattributes.outputs.arch }}
+          TARGET_ARCH: ${{ steps.platformattributes.outputs.arch }}
           PACKAGER_PRIVKEY: ${{ secrets.PACKAGER_PRIVKEY }}
         run: |
           set -eux
           # Build APK using package.sh (no QEMU needed - native execution)
-          echo "Building APK for ${{ steps.platformcheck.outputs.arch }} on native runner..."
-          alpine/package/modbus2mqtt/package.sh
-          echo "✓ APK build completed for ${{ steps.platformcheck.outputs.arch }}"
+          echo "Building APK for ${{ steps.platformattributes.outputs.arch }} on native runner..."
+          alpine/package/$product_name/package.sh
+          echo "✓ APK build completed for ${{ steps.platformattributes.outputs.arch }}"
           
           # Verify APK creation
-          echo "Verifying APK creation for ${{ steps.platformcheck.outputs.arch }}..."
-          if [ -d "alpine/repo/${{ steps.platformcheck.outputs.arch }}" ]; then
-            echo "✓ Architecture directory exists: alpine/repo/${{ steps.platformcheck.outputs.arch }}"
-            ls -la "alpine/repo/${{ steps.platformcheck.outputs.arch }}/" || true
-            apk_count=$(find "alpine/repo/${{ steps.platformcheck.outputs.arch }}" -name "*.apk" | wc -l)
-            echo "Found $apk_count APK files for ${{ steps.platformcheck.outputs.arch }}"
+          echo "Verifying APK creation for ${{ steps.platformattributes.outputs.arch }}..."
+          if [ -d "alpine/repo/${{ steps.platformattributes.outputs.arch }}" ]; then
+            echo "✓ Architecture directory exists: alpine/repo/${{ steps.platformattributes.outputs.arch }}"
+            ls -la "alpine/repo/${{ steps.platformattributes.outputs.arch }}/" || true
+            apk_count=$(find "alpine/repo/${{ steps.platformattributes.outputs.arch }}" -name "*.apk" | wc -l)
+            echo "Found $apk_count APK files for ${{ steps.platformattributes.outputs.arch }}"
           else
-            echo "ERROR: Architecture directory alpine/repo/${{ steps.platformcheck.outputs.arch }} not found!"
+            echo "ERROR: Architecture directory alpine/repo/${{ steps.platformattributes.outputs.arch }} not found!"
             echo "Available directories:"
             ls -la alpine/repo/ || true
             exit 1
@@ -95,13 +100,13 @@ jobs:
 
       - name: Debug APK structure before upload
         run: |
-          echo "Checking APK structure for ${{ steps.platformcheck.outputs.arch }}..."
+          echo "Checking APK structure for ${{ steps.platformattributes.outputs.arch }}..."
           ls -laR alpine/repo/ || echo "alpine/repo not found"
           find . -name "*.apk" -type f || echo "No APK files found"
       - name: Prepare APK filenames (append arch suffix)
         run: |
           set -euo pipefail
-          ARCH=${{ steps.platformcheck.outputs.arch }}
+          ARCH=${{ steps.platformattributes.outputs.arch }}
           SRC_DIR="alpine/repo/${ARCH}"
           DST_DIR="alpine/repo/upload"
           mkdir -p "$DST_DIR"
@@ -118,15 +123,15 @@ jobs:
           done
           ls -lh "$DST_DIR" || true
 
-      - name: Upload APK artifacts for ${{ steps.platformcheck.outputs.arch }}
+      - name: Upload APK artifacts for ${{ steps.platformattributes.outputs.arch }}
         uses: actions/upload-artifact@v4
         with:
-          name: apks-${{ steps.platformcheck.outputs.arch }}-${{ needs.prepare.outputs.resolved_version }}
+          name: apks-${{ steps.platformattributes.outputs.arch }}-${{ needs.prepare.outputs.resolved_version }}
           path: alpine/repo/upload/*.apk
           if-no-files-found: error
 
       - name: Upload packager.rsa.pub as separate artifact
-        if: steps.platformcheck.outputs.arch == 'x86_64' # Nur einmal hochladen (z. B. im x86_64-Job)
+        if: steps.platformattributes.outputs.arch == 'x86_64' # Nur einmal hochladen (z. B. im x86_64-Job)
         uses: actions/upload-artifact@v4
         with:
           name: packager-rsa-pub-${{ needs.prepare.outputs.resolved_version }}
@@ -142,23 +147,25 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Platform check
-        id: platformcheck
+#      The "Set Platform specific Attributes" , must to be copied from original !!
+      - name: Set Platform specific Attributes
+        id: platformattributes
         run: |
           if [ "${{ matrix.platform }}" == "ubuntu-22.04-arm" ]; then
             echo "arch=aarch64" >> $GITHUB_OUTPUT
-            echo "platform=arm64" >> $GITHUB_OUTPUT
+            platform=arm64
           else
             echo "arch=x86_64" >> $GITHUB_OUTPUT
-            echo "platform=amd64" >> $GITHUB_OUTPUT
+            platform=amd64
           fi
-
-      - name: Download APK artifacts for ${{ steps.platformcheck.outputs.arch }}
+          echo "platform=$platform" >> $GITHUB_OUTPUT
+          echo "docker_name=$main_docker_name-$platform:${{ needs.prepare.outputs.resolved_version }}" >> $GITHUB_OUTPUT
+          
+      - name: Download APK artifacts for ${{ steps.platformattributes.outputs.arch }}
         uses: actions/download-artifact@v4
         with:
-          name: apks-${{ steps.platformcheck.outputs.arch }}-${{ needs.prepare.outputs.resolved_version }}
-          path: alpine/repo/${{ steps.platformcheck.outputs.arch }}
+          name: apks-${{ steps.platformattributes.outputs.arch }}-${{ needs.prepare.outputs.resolved_version }}
+          path: alpine/repo/${{ steps.platformattributes.outputs.arch }}
 
       - name: Download packager.rsa.pub artifact
         uses: actions/download-artifact@v4
@@ -175,42 +182,36 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker image for ${{ steps.platformcheck.outputs.platform }}
+      - name: Build and push Docker image for ${{ steps.platformattributes.outputs.platform }}
         env:
           VERSION: ${{ needs.prepare.outputs.resolved_version }}
-          ARCH: ${{ steps.platformcheck.outputs.arch }}
-          PLATFORM: ${{ steps.platformcheck.outputs.platform }}
+          ARCH: ${{ steps.platformattributes.outputs.arch }}
+          PLATFORM: ${{ steps.platformattributes.outputs.platform }}
         run: |
           set -eux
-          TAG="ghcr.io/${{ github.repository }}-${PLATFORM}:v${VERSION}"
           
           echo "Building Docker image for $PLATFORM architecture..."
           docker build \
             --build-arg BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
-            --build-arg BUILD_DESCRIPTION="modbus2mqtt Docker Image" \
-            --build-arg BUILD_NAME="modbus2mqtt" \
+            --build-arg BUILD_DESCRIPTION="$product_name Docker Image" \
+            --build-arg BUILD_NAME="$product_name" \
             --build-arg BUILD_REPOSITORY="${{ github.repository }}" \
             --build-arg BUILD_VERSION="${VERSION}" \
             --build-arg BUILD_ARCH="${ARCH}" \
-            -t "$TAG" \
+            -t ${{ steps.platformattributes.outputs.docker_name }} \
             -f ./docker/Dockerfile \
             .
           
-          echo "Pushing image: $TAG"
-          docker push "$TAG"
-          echo "✓ Built and pushed image $TAG"
+          echo "Pushing image:  ${{ steps.platformattributes.outputs.docker_name }}"
+          docker push " ${{ steps.platformattributes.outputs.docker_name }}"
+          echo "✓ Built and pushed image  ${{ steps.platformattributes.outputs.docker_name }}"
 
       - name: Test native Docker image (only on amd64/x86_64)
-        if: steps.platformcheck.outputs.platform == 'amd64'
-        env:
-          VERSION: ${{ needs.prepare.outputs.resolved_version }}
-          ARCH: ${{ steps.platformcheck.outputs.arch }}
-          PLATFORM: ${{ steps.platformcheck.outputs.platform }}
+        if: steps.platformattributes.outputs.platform == 'amd64'
         run: |
           set -eux
-          TAG="ghcr.io/${{ github.repository }}-${PLATFORM}:v${VERSION}"
-          docker pull "$TAG"
-          ./docker/test.sh --quick --docker-tag "$TAG"
+          docker pull ${{ steps.platformattributes.outputs.docker_name }}
+          ./docker/test.sh --quick --docker-tag "${{ steps.platformattributes.outputs.docker_name }}"
           echo "✓ Docker-Image wurde erfolgreich getestet."
 
   create_multiarch_manifest:
@@ -231,9 +232,9 @@ jobs:
           VERSION: ${{ needs.prepare.outputs.resolved_version }}
         run: |
           set -eux
-          MAIN_TAG="ghcr.io/${{ github.repository }}:v${VERSION}"
-          AMD64_TAG="ghcr.io/${{ github.repository }}-amd64:v${VERSION}"
-          ARM64_TAG="ghcr.io/${{ github.repository }}-arm64:v${VERSION}"
+          MAIN_TAG="$main_docker_name:${{ needs.prepare.outputs.resolved_version }}"
+          AMD64_TAG="$main_docker_name-amd64:${{ needs.prepare.outputs.resolved_version }}"
+          ARM64_TAG="$main_docker_name-arm64:${{ needs.prepare.outputs.resolved_version }}"
           
           echo "Creating multi-architecture manifest: $MAIN_TAG"
           docker buildx imagetools create -t "$MAIN_TAG" "$AMD64_TAG" "$ARM64_TAG"
@@ -283,7 +284,7 @@ jobs:
         id: release-body
         run: |
           VERSION="${{ needs.prepare.outputs.resolved_version }}"
-          DOCKER_TAG="ghcr.io/${{ github.repository }}:v${VERSION}"
+          DOCKER_TAG="$main_docker_name:v${VERSION}"
           
           # Füge GitHub-Changelog (initial-release-notes.md) am Anfang ein
           if [ -f initial-release-notes.md ]; then
@@ -294,7 +295,7 @@ jobs:
 
           # Create release body mit APK-Tabelle
           cat >> release-body.md << 'EOF'
-          ## 📦 modbus2mqtt v${{ needs.prepare.outputs.resolved_version }}
+          ## 📦 $product_name v${{ needs.prepare.outputs.resolved_version }}
 
           ### 🐳 Docker Image
           
@@ -314,7 +315,7 @@ jobs:
             FILENAME=$(basename "$APK_FILE")
             SIZE=$(ls -lh "$APK_FILE" | awk '{print $5}')
             DOWNLOAD_LINK="[📥 Download](https://github.com/${{ github.repository }}/releases/download/v${VERSION}/${FILENAME})"
-            echo "modbus2mqtt x86_64 (AMD64) Size: `$FILENAME\\` $SIZE    $DOWNLOAD_LINK" >> release-body.md
+            echo "$product_name x86_64 (AMD64) Size: `$FILENAME\\` $SIZE    $DOWNLOAD_LINK" >> release-body.md
           else
             echo "amd64notfound=true" >> $GITHUB_OUTPUT
           fi
@@ -340,9 +341,9 @@ jobs:
           
           # Install APK with verification
           # for aarch64 uncomment the following line and comment the x86_64 line
-          # wget https://github.com/${{ github.repository }}/releases/download/v${{ needs.prepare.outputs.resolved_version }}/modbus2mqtt-${{ needs.prepare.outputs.resolved_version }}-r0-aarch64.apk
-          wget https://github.com/${{ github.repository }}/releases/download/v${{ needs.prepare.outputs.resolved_version }}/modbus2mqtt-${{ needs.prepare.outputs.resolved_version }}-r0-x86_64.apk
-          apk add modbus2mqtt-${{ needs.prepare.outputs.resolved_version }}-r0.apk
+          # wget https://github.com/${{ github.repository }}/releases/download/v${{ needs.prepare.outputs.resolved_version }}/$product_name-${{ needs.prepare.outputs.resolved_version }}-r0-aarch64.apk
+          wget https://github.com/${{ github.repository }}/releases/download/v${{ needs.prepare.outputs.resolved_version }}/$product_name-${{ needs.prepare.outputs.resolved_version }}-r0-x86_64.apk
+          apk add $product_name-${{ needs.prepare.outputs.resolved_version }}-r0.apk
           ```
           
           ### 🚀 Quick Start
@@ -350,11 +351,10 @@ jobs:
           **Docker (Recommended):**
           ```bash
           docker run -d \
-            --name modbus2mqtt \
+            --name $product_name \
             -p 3000:3000 \
-            -p 22:22 \
             -v /path/to/config:/data \
-            ghcr.io/${{ github.repository }}:v${{ needs.prepare.outputs.resolved_version }}
+            $main_docker_name:${{ needs.prepare.outputs.resolved_version }}
           ```
           
           ---
@@ -394,14 +394,14 @@ jobs:
       - name: Update Version in config.yaml
         id: updateVersion
         run: |
-          sed -i -e 's/version: .*/version: 0.17.18/g'"${{ needs.prepare.outputs.resolved_version }}"'/g' hassio-addon-repository/modbus2mqtt/config.yaml
+          sed -i -e 's/version: .*/version: 0.17.18/g'"${{ needs.prepare.outputs.resolved_version }}"'/g' hassio-addon-repository/$product_name/config.yaml
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: '✏️ Generate changelog History'
         uses: heinrichreimer/action-github-changelog-generator@v2.4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          output: modbus2mqtt/hassio-addon-repository/modbus2mqtt/CHANGELOG.md
+          output: hassio-addon-repository/$product_name/CHANGELOG.md
           headerLabel: '## Changelog for Modbus <=> MQTT'
       - name: Checkin hassio-addon-repository
         uses: stefanzweifel/git-auto-commit-action@v5
