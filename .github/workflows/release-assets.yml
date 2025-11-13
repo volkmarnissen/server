@@ -406,7 +406,7 @@ jobs:
       - name: Update Version in config.yaml
         id: updateVersion
         run: |
-          sed -i -e 's/version: .*/version: ${{ needs.prepare.outputs.resolved_version }}'/g' hassio-addon-repository/$product_name/config.yaml
+          sed -i -e 's/version: .*/version: ${{ needs.prepare.outputs.resolved_version }}/g' hassio-addon-repository/$product_name/config.yaml
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: '✏️ Generate changelog History'
