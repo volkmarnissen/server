@@ -1,0 +1,2 @@
+#!/command/execlineb -P' 
+sh -c /etc/s6-overlay/scripts/configure-modbus2mqtt.sh
