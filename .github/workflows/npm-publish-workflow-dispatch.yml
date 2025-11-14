@@ -102,7 +102,7 @@ jobs:
           npm ci 
           npm run build
           npm set registry https://registry.npmjs.org/
-          npm publish
+          npm publish --public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPMJS }}
   build_assets:
