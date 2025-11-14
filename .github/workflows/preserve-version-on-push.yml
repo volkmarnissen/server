@@ -83,7 +83,6 @@ jobs:
           env: |
             AFTER=${{ github.event.after }}
           script: |
-            const core = require('@actions/core')
             const commit_sha = process.env.AFTER || context.sha
             core.info(`Checking PRs for commit: ${commit_sha}`)
             const res = await github.request('GET /repos/{owner}/{repo}/commits/{commit_sha}/pulls', {
@@ -180,7 +179,6 @@ jobs:
             PRS=${{ steps.prcheck.outputs.pr_numbers }}
             AFTER=${{ github.event.after }}
           script: |
-            const core = require('@actions/core')
             const prs = (process.env.PRS || '').split(',').map(x => x.trim()).filter(x => x)
             if (prs.length === 0) {
               core.info('No PR numbers to comment on')
