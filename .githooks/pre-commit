@@ -1,34 +1,109 @@
-#!/bin/sh
+#!/usr/bin/env bash
+set -euo pipefail
+# Consolidated pre-commit hook
+# - Enforces APKBUILD contains npmpackage="${pkgname}" (mandatory)
+# - Warns if package.json name/version changed (commit-msg enforces it and honors skip token)
+# - Runs prettier on staged files and requests re-stage if formatting changed
 
-# Pre-commit hook to run prettier on staged files
-# This hook is managed in the repository under .githooks/
-# To enable it, run: git config core.hooksPath .githooks
+echo "[pre-commit] Starting checks..."
 
-echo "Running prettier on staged files..."
+get_index_file() {
+  # Return staged (index) version of a file if available, else fall back to worktree file
+  local path="$1"
+  if git rev-parse --verify --quiet ":$path" >/dev/null; then
+    git show ":$path" 2>/dev/null || true
+  else
+    cat "$path" 2>/dev/null || true
+  fi
+}
 
-# Get list of staged files (only added or modified)
-STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx|js|jsx|css|html)$')
+echo "[pre-commit] Checking APKBUILD..."
+APK_PATH="alpine/package/modbus2mqtt/APKBUILD"
+apk_content=$(get_index_file "$APK_PATH")
+apk_len=${#apk_content}
+echo "[pre-commit] APKBUILD content length: $apk_len"
 
-if [ -z "$STAGED_FILES" ]; then
-  echo "No relevant files to format"
-  exit 0
-fi
-
-# Run prettier on staged files
-echo "$STAGED_FILES" | xargs npm run prettier --
-
-# Check if prettier made any changes
-CHANGED_FILES=$(git diff --name-only)
-
-if [ -n "$CHANGED_FILES" ]; then
-  echo ""
-  echo "Prettier formatted the following files:"
-  echo "$CHANGED_FILES"
-  echo ""
-  echo "Please review the changes and stage them before committing again."
-  echo "Run: git add . && git commit"
+if ! printf '%s' "$apk_content" | grep -F 'npmpackage="${pkgname}"' >/dev/null 2>&1; then
+  echo "ERROR: $APK_PATH must contain npmpackage=\"\\${pkgname}\"" >&2
+  echo "Commit aborted by pre-commit hook. If you must bypass, include [skip-apkbuild-check] in the commit message — commit-msg will honor it." >&2
   exit 1
 fi
+echo "[pre-commit] APKBUILD check passed."
 
-echo "All files are properly formatted ✓"
+# Warn about package.json changes (commit-msg enforces with skip token)
+echo "[pre-commit] Checking staged package.json (warning only)..."
+STAGED_FILES=$(git diff --cached --name-only || true)
+if echo "$STAGED_FILES" | grep -qx "package.json"; then
+  # Safely read package.json from HEAD (if HEAD exists) and from index. Avoid piping that can trigger
+  # set -e due to pipefail by capturing output first and then parsing with python.
+  v_head_json=$(git show HEAD:package.json 2>/dev/null || true)
+  v_index_json=$(git show :package.json 2>/dev/null || true)
+
+  if [ -n "$v_head_json" ]; then
+    v_head=$(printf '%s' "$v_head_json" | python3 -c 'import sys, json
+data=sys.stdin.read()
+try:
+    print(json.loads(data).get("version",""))
+except Exception:
+    print("")') || true
+    n_head=$(printf '%s' "$v_head_json" | python3 -c 'import sys, json
+data=sys.stdin.read()
+try:
+    print(json.loads(data).get("name",""))
+except Exception:
+    print("")') || true
+  else
+    v_head=""
+    n_head=""
+  fi
+
+  if [ -n "$v_index_json" ]; then
+    v_index=$(printf '%s' "$v_index_json" | python3 -c 'import sys, json
+data=sys.stdin.read()
+try:
+    print(json.loads(data).get("version",""))
+except Exception:
+    print("")') || true
+    n_index=$(printf '%s' "$v_index_json" | python3 -c 'import sys, json
+data=sys.stdin.read()
+try:
+    print(json.loads(data).get("name",""))
+except Exception:
+    print("")') || true
+  else
+    v_index=""
+    n_index=""
+  fi
+
+  if [ "$v_head" != "$v_index" ] || [ "$n_head" != "$n_index" ]; then
+    echo "[pre-commit] WARNING: 'package.json' 'version' or 'name' is changed in staged files." >&2
+    echo "[pre-commit] The commit-msg hook will enforce this check and supports [skip-version-name-check] in the commit message to bypass when intentional." >&2
+  else
+    echo "[pre-commit] package.json unchanged." >&2
+  fi
+fi
+
+# Run prettier on staged files (only certain extensions)
+echo "[pre-commit] Running prettier on staged files (if any)..."
+STAGED_FORMAT_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx|js|jsx|css|html)$' || true)
+if [ -n "$STAGED_FORMAT_FILES" ]; then
+  echo "[pre-commit] Files to format:" && printf '%s
+'"$STAGED_FORMAT_FILES" && echo
+  # Run prettier via npm script to preserve project config
+  printf '%s
+'"$STAGED_FORMAT_FILES" | xargs -r npm run prettier -- --write || true
+
+  # If prettier changed files, add them back to index and abort commit so user can review
+  if [ -n "$(git status --porcelain)" ]; then
+    echo "[pre-commit] Prettier modified files. Please review and stage the changes before committing." >&2
+    # Stage the files that were formatted (best-effort)
+    echo "$STAGED_FORMAT_FILES" | xargs -r git add || true
+    echo "[pre-commit] Staged formatted files. Aborting commit so you can verify changes." >&2
+    exit 1
+  fi
+else
+  echo "[pre-commit] No files to format." >&2
+fi
+
+echo "[pre-commit] All checks passed." >&2
 exit 0
