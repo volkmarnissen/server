@@ -31,7 +31,8 @@ if [ -z "${GITHUB_REPOSITORY:-}" ] || [ "${GITHUB_REPOSITORY}" = "modbus2mqtt/mo
   echo "Detected official repository use pkgname as npm package"
 else
   echo "Detected forked repository use   @$GITHUB_REPOSITORY as npm package"
-  sed -i -E 's%(npm install[^$]*)\$\{pkgname\}(.*)%\1@'${GITHUB_REPOSITORY}'\2%g' alpine/package/modbus2mqtt/APKBUILD
+  sed -E 's%(^npmpackage=")\$\{pkgname\}"%\1@'"${GITHUB_REPOSITORY}"'"%g' alpine/package/modbus2mqtt/APKBUILD > /tmp/APKBUILD.$$ \
+    && mv /tmp/APKBUILD.$$ alpine/package/modbus2mqtt/APKBUILD
 fi  
 
 # Detect Alpine version using shared function

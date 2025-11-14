@@ -133,7 +133,8 @@ RUN \
     chmod +x $sshdir/run && \
     touch /etc/s6-overlay/s6-rc.d/user/contents.d/sshd && \
     mkdir -p $sshdir/dependencies.d && \
-    touch $sshdir/dependencies.d/base
+    touch $sshdir/dependencies.d/base && \
+    touch $sshdir/dependencies.d/modbus2mqtt-init
 
 EXPOSE 3000 22
 

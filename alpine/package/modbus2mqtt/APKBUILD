@@ -26,7 +26,7 @@ source="
 	$pkgname.confd
 	"
 builddir="$srcdir/$pkgname-$pkgver"
-
+npmpackage="${pkgname}"
 build() {
     # Build modbus2mqtt within the abuild build environment so native
     # modules are compiled for the target architecture.
@@ -41,9 +41,11 @@ build() {
     npm init -y >/dev/null 2>&1 || true
     
     # Install main package with suppressed output (show only on error)
-    echo "Installing ${pkgname}@${pkgver}..."
+    npmpackagev="${npmpackage}@${pkgver}"
+
+    echo "Installing ${npmpackage}..."
     npm_log=$(mktemp)
-    if ! npm install --force --no-audit --no-fund --omit=dev "${pkgname}@${pkgver}" >"$npm_log" 2>&1; then
+    if ! npm install --force --no-audit --no-fund --omit=dev "${npmpackagev}" >"$npm_log" 2>&1; then
         echo "ERROR: npm install failed" >&2
         cat "$npm_log" >&2
         rm -f "$npm_log"
@@ -96,7 +98,7 @@ package() {
    
     # Create symlink to the executable
     install -d "$pkgdir"/usr/bin
-    ln -s /usr/lib/node_modules/$pkgname/bin/$pkgname "$pkgdir"/usr/bin/$pkgname
+    ln -s /usr/lib/node_modules/$npmpackage/bin/modbus2mqtt "$pkgdir"/usr/bin/$pkgname
     
     # Create config directory
     install -d "$pkgdir"/etc/$pkgname
