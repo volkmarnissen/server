@@ -27,7 +27,7 @@ fi
 
 # Create and configure application directories for modbus2mqtt user
 mkdir -p /config /data /ssl
-chown -R modbus2mqtt:dialout /config /data /ssl
+chown -R modbus2mqtt:dialout /config/* /data/* /ssl/* 2>/dev/null || true
 chmod -R 755 /config /data /ssl
 
 # Enable and start sshd service (OpenRC)
