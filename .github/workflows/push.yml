@@ -1,5 +1,5 @@
 #
-name: Create and publish a Docker image
+name: Publish NPM Package: Creates a Patch
 
 # This workflow will start on push on main branch it'll publish an modbus2mqtt npm package 
 # if the patch level is '0' (major/minor releases) it will also create a Release.
