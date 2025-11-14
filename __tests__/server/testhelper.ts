@@ -8,8 +8,8 @@ import * as fs from 'fs'
 import { Config } from '../../src/server/config'
 
 /**
- * Universal Test Helper für Datei Backup/Restore
- * Sichere und Wiederherstellen von Dateien vor/nach Tests
+ * Universal Test Helper for file backup/restore
+ * Save and restore files before/after tests
  */
 export class FileBackupHelper {
   private backups: Map<string, string> = new Map()
@@ -20,7 +20,7 @@ export class FileBackupHelper {
   }
 
   /**
-   * Erstellt ein Backup einer Datei
+   * Create a backup of a file
    */
   backup(filePath: string): void {
     if (fs.existsSync(filePath)) {
@@ -31,7 +31,7 @@ export class FileBackupHelper {
   }
 
   /**
-   * Stellt eine Datei aus dem Backup wieder her
+   * Restore a file from its backup
    */
   restore(filePath: string): void {
     const backupPath = this.backups.get(filePath)
@@ -43,7 +43,7 @@ export class FileBackupHelper {
   }
 
   /**
-   * Stellt alle gesicherten Dateien wieder her
+   * Restore all backed-up files
    */
   restoreAll(): void {
     for (const [originalPath, backupPath] of this.backups.entries()) {
@@ -56,7 +56,7 @@ export class FileBackupHelper {
   }
 
   /**
-   * Löscht alle Backup-Dateien ohne Wiederherstellung
+   * Remove all backup files without restoring
    */
   cleanup(): void {
     for (const backupPath of this.backups.values()) {
@@ -69,15 +69,15 @@ export class FileBackupHelper {
 }
 
 /**
- * Test Helper für Config-Datei Backup/Restore
- * Sichere und Wiederherstellen von secrets.yaml und anderen Dateien vor/nach Tests
+ * Test helper for config file backup/restore
+ * Save and restore secrets.yaml and other files before/after tests
  */
 export class ConfigTestHelper {
   private helper: FileBackupHelper
   private originalSecretsPath: string
 
   constructor(testName?: string) {
-    // Erst sicherstellen, dass Config-Verzeichnisse gesetzt sind
+    // Ensure configuration directories are set
     if (!Config.configDir || Config.configDir.length === 0) {
       throw new Error('Config.configDir must be set before creating ConfigTestHelper')
     }
@@ -87,10 +87,10 @@ export class ConfigTestHelper {
   }
 
   setup(): void {
-    // Backup aller relevanten Dateien erstellen
+  // Create backups of all relevant files
     this.helper.backup(this.originalSecretsPath)
 
-    // Zusätzlich Bus- und Specification-Dateien sichern
+  // Also back up bus and specification files
     const configDir = Config.configDir
     if (configDir) {
       this.helper.backup(`${configDir}/modbus2mqtt/busses/bus.0/s2.yaml`)
@@ -108,8 +108,8 @@ export class ConfigTestHelper {
 }
 
 /**
- * Test Helper für Specification-Dateien
- * Sichere verschiedene Specification-Dateien vor Tests
+ * Test helper for specification files
+ * Back up various specification files before tests
  */
 export class SpecificationTestHelper {
   private helper: FileBackupHelper
@@ -119,7 +119,7 @@ export class SpecificationTestHelper {
   }
 
   /**
-   * Sichert waterleveltransmitter files.yaml
+   * Back up waterleveltransmitter files.yaml
    */
   backupWaterLevelTransmitter(baseDir: string): void {
     const filePath = `${baseDir}/modbus2mqtt/specifications/files/waterleveltransmitter/files.yaml`
@@ -127,7 +127,7 @@ export class SpecificationTestHelper {
   }
 
   /**
-   * Sichert bus.0 s2.yaml Dateien
+   * Back up bus.0 s2.yaml files
    */
   backupBusConfig(baseDir: string): void {
     const filePath = `${baseDir}/modbus2mqtt/busses/bus.0/s2.yaml`
@@ -135,7 +135,7 @@ export class SpecificationTestHelper {
   }
 
   /**
-   * Sichert alle Test-relevanten Specification-Dateien
+   * Back up all test-relevant specification files
    */
   backupAll(baseDir: string): void {
     this.backupWaterLevelTransmitter(baseDir)
@@ -143,14 +143,14 @@ export class SpecificationTestHelper {
   }
 
   /**
-   * Stellt alle Dateien wieder her
+   * Restore all files
    */
   restoreAll(): void {
     this.helper.restoreAll()
   }
 
   /**
-   * Cleanup ohne Wiederherstellung
+   * Cleanup without restoring
    */
   cleanup(): void {
     this.helper.cleanup()
@@ -158,8 +158,8 @@ export class SpecificationTestHelper {
 }
 
 /**
- * Test Helper für Migration-Tests
- * Verwaltet temporäre Verzeichnisse und Dateien für CmdlineMigrate Tests
+ * Test helper for migration tests
+ * Manages temporary directories and files for CmdlineMigrate tests
  */
 export class MigrationTestHelper {
   private helper: FileBackupHelper
@@ -170,21 +170,21 @@ export class MigrationTestHelper {
   }
 
   /**
-   * Registriert ein temporäres Verzeichnis für Cleanup
+   * Register a temporary directory for cleanup
    */
   registerTempDir(dirPath: string): void {
     this.tempDirs.add(dirPath)
   }
 
   /**
-   * Sichert eine Datei vor dem Test
+   * Back up a file before the test
    */
   backup(filePath: string): void {
     this.helper.backup(filePath)
   }
 
   /**
-   * Cleanup aller temporären Dateien und Verzeichnisse
+   * Cleanup all temporary files and directories
    */
   cleanup(): void {
     // Helper cleanup
@@ -200,7 +200,7 @@ export class MigrationTestHelper {
   }
 
   /**
-   * Stellt alle gesicherten Dateien wieder her
+   * Restore all backed-up files
    */
   restoreAll(): void {
     this.helper.restoreAll()
