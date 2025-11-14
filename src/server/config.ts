@@ -151,7 +151,12 @@ export class Config {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
     const charactersLength = characters.length
     let counter = 0
-    if (fs.existsSync(pathStr)) return fs.readFileSync(pathStr, { encoding: 'utf8' }).toString()
+    if (fs.existsSync(pathStr)) {
+      let secret = fs.readFileSync(pathStr, { encoding: 'utf8' }).toString()
+      if( secret && secret.length > 0) {
+        return secret
+      }
+    }
     debug('getSecret: Create secrets file at' + pathStr)
     while (counter < secretsLength) {
       result += characters.charAt(Math.floor(Math.random() * charactersLength))
