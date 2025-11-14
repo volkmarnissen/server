@@ -1,0 +1,209 @@
+name: 'On Push: Preserve Version Number'
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  preserve-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Exit if run by workflow bot or commit contains [skip version-check]
+        run: |
+          set -euo pipefail
+          # Avoid recursion if this run was triggered by the workflow bot
+          if [ "${GITHUB_ACTOR}" = "github-actions" ]; then
+            echo "Action triggered by github-actions; exiting to avoid recursion."
+            exit 0
+          fi
+
+          # Check pushed commits for the skip token [skip version-check]
+          BEFORE="${{ github.event.before }}"
+          AFTER="${{ github.event.after }}"
+
+          # If the BEFORE ref exists in the checkout, check the full range; else check the single HEAD commit
+          if git rev-parse "$BEFORE" >/dev/null 2>&1; then
+            if git log --pretty=%B "$BEFORE".."$AFTER" | grep -F '[skip version-check]' >/dev/null 2>&1; then
+              echo "Found [skip version-check] in pushed commits; exiting."
+              exit 0
+            fi
+          else
+            if git log -1 --pretty=%B "$AFTER" | grep -F '[skip version-check]' >/dev/null 2>&1; then
+              echo "Found [skip version-check] in latest commit; exiting."
+              exit 0
+            fi
+          fi
+
+      - name: Get commit SHAs
+        id: commits
+        run: |
+          echo "before=${{ github.event.before }}" >> $GITHUB_ENV
+          echo "after=${{ github.event.after }}" >> $GITHUB_ENV
+          echo "Pushed commits from ${{ github.event.before }} to ${{ github.event.after }}"
+
+      - name: Check if package.json version changed
+        id: check_version
+        run: |
+          set -euo pipefail
+          BEFORE=${{ github.event.before }}
+          AFTER=${{ github.event.after }}
+
+          # Extract version from package.json at both SHAs
+          v_before=$(git show ${BEFORE}:package.json 2>/dev/null | python3 -c "import sys,json;print(json.load(sys.stdin)['version'])" || echo "")
+          v_after=$(git show ${AFTER}:package.json | python3 -c "import sys,json;print(json.load(sys.stdin)['version'])")
+
+          echo "v_before=$v_before"
+          echo "v_after=$v_after"
+
+          if [ "${v_before}" = "${v_after}" ]; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No version change detected"
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "v_before=${v_before}" >> $GITHUB_OUTPUT
+            echo "v_after=${v_after}" >> $GITHUB_OUTPUT
+            echo "Version changed: ${v_before} -> ${v_after}"
+          fi
+
+      - name: Find associated PR for pushed commit
+        if: steps.check_version.outputs.changed == 'true'
+        id: prcheck
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          env: |
+            AFTER=${{ github.event.after }}
+          script: |
+            const core = require('@actions/core')
+            const commit_sha = process.env.AFTER || context.sha
+            core.info(`Checking PRs for commit: ${commit_sha}`)
+            const res = await github.request('GET /repos/{owner}/{repo}/commits/{commit_sha}/pulls', {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: commit_sha,
+              mediaType: {
+                previews: ['groot']
+              }
+            })
+            const prs = res.data || []
+            core.info(`Found ${prs.length} PR(s) attached to commit ${commit_sha}`)
+            if (prs.length === 0) {
+              core.setOutput('from_fork','false')
+              core.setOutput('pr_numbers','')
+              core.setOutput('head_repos','')
+              core.setOutput('base_repos','')
+              return
+            }
+            // Inspect all PRs and set from_fork true if any PR comes from a fork
+            let fromFork = false
+            const prNumbers = []
+            const headRepos = []
+            const baseRepos = []
+            for (const pr of prs) {
+              const headRepo = pr.head && pr.head.repo && pr.head.repo.full_name || ''
+              const baseRepo = pr.base && pr.base.repo && pr.base.repo.full_name || ''
+              prNumbers.push(pr.number ? String(pr.number) : '')
+              headRepos.push(headRepo)
+              baseRepos.push(baseRepo)
+              if (headRepo !== '' && baseRepo !== '' && headRepo !== baseRepo) {
+                fromFork = true
+              }
+            }
+            core.setOutput('from_fork', fromFork ? 'true' : 'false')
+            core.setOutput('pr_numbers', prNumbers.join(','))
+            core.setOutput('head_repos', headRepos.join(','))
+            core.setOutput('base_repos', baseRepos.join(','))
+
+      - name: Revert package.json version if PR came from fork
+        if: steps.prcheck.outputs.from_fork == 'true'
+        env:
+          OLD_VERSION: ${{ steps.check_version.outputs.v_before }}
+        run: |
+          set -euo pipefail
+          echo "PR identified from fork: reverting package.json version to ${OLD_VERSION}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Update only the version field in package.json
+          # Use environment variable inside Python (safe from shell quoting issues)
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          old_version = os.environ.get('OLD_VERSION', '')
+          if not old_version:
+            print('ERROR: OLD_VERSION is empty; aborting')
+            raise SystemExit(1)
+
+          p = Path('package.json')
+          data = json.loads(p.read_text())
+          current = data.get('version')
+          if current == old_version:
+            print('package.json already has the desired version')
+          else:
+            data['version'] = old_version
+            p.write_text(json.dumps(data, indent=2) + '\n')
+            print(f"Updated package.json version: {current} -> {data['version']}")
+          PY
+
+          # Show the change for debugging
+          git --no-pager diff -- package.json || true
+
+          # Commit and push the revert if there are changes
+          PRS="${{ steps.prcheck.outputs.pr_numbers }}"
+          if git add package.json && git commit -m "chore: revert package.json version changed by forked PR(s) (${PRS}) [skip ci]"; then
+            git push origin HEAD:main
+            echo "Reverted package.json version and pushed to main."
+            # Create an annotation on the workflow run so the revert is visible in the Actions UI
+            # This will appear as a warning annotation attached to package.json
+            echo "::warning file=package.json,line=1::Reverted package.json version to ${OLD_VERSION} (reverted by workflow due to forked PR(s): ${PRS})"
+          else
+            echo "No changes to commit (package.json already matches previous)."
+          fi
+
+      - name: Comment on affected PRs
+        if: steps.prcheck.outputs.from_fork == 'true'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          env: |
+            PRS=${{ steps.prcheck.outputs.pr_numbers }}
+            AFTER=${{ github.event.after }}
+          script: |
+            const core = require('@actions/core')
+            const prs = (process.env.PRS || '').split(',').map(x => x.trim()).filter(x => x)
+            if (prs.length === 0) {
+              core.info('No PR numbers to comment on')
+              return
+            }
+            const body = `Please note: the package.json version in your PR was reverted on main (commit ${process.env.AFTER}).\n\n` +
+              `Please sync your fork/branch with the upstream main branch to avoid version conflicts. If you need help, reply here or open a new issue.`
+            for (const pr of prs) {
+              try {
+                const issue_number = Number(pr)
+                core.info(`Commenting on PR ${issue_number}`)
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number,
+                  body
+                })
+              } catch (err) {
+                core.warning(`Failed to comment on PR ${pr}: ${err.message}`)
+              }
+            }
+
+      - name: Done (no action needed)
+        if: steps.check_version.outputs.changed != 'true' || steps.prcheck.outputs.from_fork == 'false'
+        run: |
+          echo "No revert required."

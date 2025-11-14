@@ -1,0 +1,131 @@
+name: 'On Pull Request: Enforce English in commits and PRs'
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+  push:
+    branches: ['**']
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  check-english:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine event context
+        id: context
+        run: |
+          echo "EVENT_NAME=${GITHUB_EVENT_NAME}" >> $GITHUB_ENV
+          echo "AFTER=${GITHUB_SHA}" >> $GITHUB_ENV
+          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+            echo "BEFORE=${GITHUB_EVENT_BEFORE}" >> $GITHUB_ENV || true
+          else
+            echo "PR_NUMBER=${{ github.event.pull_request.number }}" >> $GITHUB_ENV || true
+            echo "PR_TITLE<<EOF" >> $GITHUB_ENV
+            echo "${{ github.event.pull_request.title }}" >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
+            echo "PR_BODY<<EOF" >> $GITHUB_ENV
+            echo "${{ github.event.pull_request.body }}" >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
+          fi
+
+      - name: Scan for non-English indicators
+        id: scan
+        run: |
+          set -euo pipefail
+          echo "Scanning commits / PR for non-English indicators..."
+
+          # Patterns: German umlauts or sharp-s
+          umlaut_pattern='[äöüÄÖÜß]'
+
+          # A small set of common German words to detect obvious German text
+          german_words='\b(und|der|die|das|nicht|bitte|Änderung|Änderungen|übersetz|deutsch|deutsche|ich|wir|Sie|dass)\b'
+
+          matches=()
+
+          if [ "${EVENT_NAME}" = "push" ]; then
+            BEFORE=${BEFORE:-}
+            AFTER=${AFTER}
+            if [ -n "$BEFORE" ] && git rev-parse "$BEFORE" >/dev/null 2>&1; then
+              range="$BEFORE..$AFTER"
+            else
+              range="$AFTER"
+            fi
+
+            # Check commit messages
+            while read -r sha; do
+              msg=$(git log -1 --pretty=%B "$sha")
+              if echo "$msg" | grep -Eiq "$umlaut_pattern|$german_words"; then
+                matches+=("commit:$sha")
+              fi
+            done < <(git rev-list --no-merges "$range")
+
+            # Also scan changed .md/.yml/.yaml/.json files for obvious German words (added/modified lines)
+            changed_files=$(git diff --name-only "$range" -- '*.md' '*.yml' '*.yaml' '*.json' || true)
+            for f in $changed_files; do
+              if git diff "$range" -- "$f" | grep -E "^[+].*($umlaut_pattern|$german_words)" -i >/dev/null 2>&1; then
+                matches+=("file:$f")
+              fi
+            done
+
+          else
+            # pull_request event: check title and body, and commit messages in PR
+            title="${PR_TITLE:-}"
+            body="${PR_BODY:-}"
+            if echo "$title" | grep -Eiq "$umlaut_pattern|$german_words"; then
+              matches+=("pr:title")
+            fi
+            if echo "$body" | grep -Eiq "$umlaut_pattern|$german_words"; then
+              matches+=("pr:body")
+            fi
+
+            # check commits in the PR
+            pr_number=${PR_NUMBER}
+            if [ -n "$pr_number" ]; then
+              commits=$(gh api repos/${GITHUB_REPOSITORY}/pulls/${pr_number}/commits --jq '.[].sha' 2>/dev/null || true)
+              for sha in $commits; do
+                msg=$(git log -1 --pretty=%B "$sha" 2>/dev/null || echo "")
+                if echo "$msg" | grep -Eiq "$umlaut_pattern|$german_words"; then
+                  matches+=("commit:$sha")
+                fi
+              done
+            fi
+          fi
+
+          if [ ${#matches[@]} -gt 0 ]; then
+            echo "found=true" >> $GITHUB_OUTPUT
+            echo "matches=${matches[*]}" >> $GITHUB_OUTPUT
+            echo "Matches: ${matches[*]}"
+          else
+            echo "found=false" >> $GITHUB_OUTPUT
+            echo "Matches: none"
+          fi
+
+      - name: Report and fail / comment on PR
+        if: steps.scan.outputs.found == 'true'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const core = require('@actions/core')
+            const matches = `${{ steps.scan.outputs.matches }}`
+            const repo = context.repo
+            const event = process.env.GITHUB_EVENT_NAME
+            const body = `⚠️ Please use English for commit messages, PR titles/descriptions, and repository changes. Detected potential non-English content in: ${matches}`
+
+            if (event === 'pull_request') {
+              const pr = context.payload.pull_request.number
+              core.info(`Commenting on PR #${pr}`)
+              await github.rest.issues.createComment({ owner: repo.owner, repo: repo.repo, issue_number: pr, body })
+              core.setFailed('Non-English content detected; please update the PR to use English.')
+            } else {
+              // For pushes, fail the workflow
+              core.setFailed(`Non-English content detected in push: ${matches}. Please ensure changes and commit messages are in English.`)
+            }

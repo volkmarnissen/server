@@ -63,11 +63,36 @@ done
 
 echo "Testing modbus2mqtt Docker image..."
 
-# Function: Cleanup containers
+
+
 cleanup_containers() {
-  echo "Cleaning up test containers..."
+  echo "Cleaning up test containers..." 
   docker stop modbus2mqtt-test-main modbus2mqtt-test-standalone >/dev/null 2>&1 || true
   docker rm modbus2mqtt-test-main modbus2mqtt-test-standalone >/dev/null 2>&1 || true
+}
+# Function: Cleanup containers_or_keep
+cleanup_containers_or_keep() {
+# Cleanup or keep for debugging
+if [ "$KEEP_CONTAINER" = "true" ]; then
+  echo ""
+  echo "=== Containers kept for debugging ==="
+  echo "Main container:       modbus2mqtt-test-main"
+  echo "  Web:  http://localhost:3010/"
+  echo "  SSH:  ssh -p 3022 root@localhost"
+  if [ "$QUICK_TEST" = "false" ]; then
+    echo "Standalone container: modbus2mqtt-test-standalone" 
+    echo "  Web:  http://localhost:3011/"
+  fi
+  echo ""
+  echo "Commands:"
+  echo "  docker logs modbus2mqtt-test-main"
+  echo "  docker exec -it modbus2mqtt-test-main sh"
+  echo "  docker stop modbus2mqtt-test-main modbus2mqtt-test-standalone"
+  echo "  docker rm modbus2mqtt-test-main modbus2mqtt-test-standalone"
+else
+  cleanup_containers
+fi
+
 }
 
 # Function: Check if ports are free
@@ -189,37 +214,43 @@ test_ssh_advanced() {
 echo "=== modbus2mqtt Docker Test ==="
 
 # Preliminary checks
-cleanup_containers
+cleanup_containers_or_keep
 check_ports
 
 # Check if image exists
-if ! docker images | grep -q "^modbus2mqtt "; then
-  echo "ERROR: Docker image 'modbus2mqtt' not found" >&2
+if [ -z "$(docker images -q "$IMAGE_TAG" 2> /dev/null)" ]; then
+  docker images >&2
+  echo "ERROR: Docker image '$IMAGE_TAG' not found" >&2
   echo "Run: ./docker/build.sh first" >&2
   exit 1
 fi
 
 # Create test data directory
-TEST_DATA_DIR=$(mktemp -d)
+TEST_DIR=$(mktemp -d)
+mkdir -p "$TEST_DIR/data"
+mkdir -p "$TEST_DIR/ssl"
+mkdir -p "$TEST_DIR/config"
 trap 'rm -rf "$TEST_DATA_DIR"' EXIT
 
 # Test 1: Container with volume mount and SSH configuration
 echo ""
 echo "=== Test 1: Full Configuration Test ==="
-setup_ssh_test "$TEST_DATA_DIR"
-
+setup_ssh_test "$TEST_DIR/data"
+chmod -R  755 "$TEST_DIR"
+sudo chown -R root:root "$TEST_DIR"
+cleanup_containers
 echo "Starting container with volume mount..."
-docker run -d -p 3010:3000 -p 3022:22 -v "$TEST_DATA_DIR:/data" --name modbus2mqtt-test-main "$IMAGE_TAG"
+docker run -d -p 3010:3000 -p 3022:22 -v "$TEST_DIR/data:/data" -v "$TEST_DIR/ssl:/ssl" -v "$TEST_DIR/config:/config" --name modbus2mqtt-test-main "$IMAGE_TAG"
 
 # Wait for web service
 if ! wait_for_service 3010 "Web service" "modbus2mqtt-test-main"; then
-  cleanup_containers
+  cleanup_containers_or_keep
   exit 1
 fi
 
 # Test SSH
 if ! test_ssh_basic 3022; then
-  cleanup_containers  
+  cleanup_containers_or_keep  
   exit 1
 fi
 
@@ -235,7 +266,8 @@ if [ "$QUICK_TEST" = "false" ]; then
   docker run -d -p 3011:3000 -p 3023:22 --name modbus2mqtt-test-standalone "$IMAGE_TAG"
 
   if ! wait_for_service 3011 "Standalone web service" "modbus2mqtt-test-standalone"; then
-    cleanup_containers
+    docker exec modbus2mqtt-test-standalone ls -la /var/logs
+    cleanup_containers_or_keep
     exit 1
   fi
 
@@ -246,27 +278,8 @@ if [ "$QUICK_TEST" = "false" ]; then
   echo "✓ Test 2 passed: Standalone container"
 fi
 
-# Cleanup or keep for debugging
-if [ "$KEEP_CONTAINER" = "true" ]; then
-  echo ""
-  echo "=== Containers kept for debugging ==="
-  echo "Main container:       modbus2mqtt-test-main"
-  echo "  Web:  http://localhost:3010/"
-  echo "  SSH:  ssh -p 3022 root@localhost"
-  if [ "$QUICK_TEST" = "false" ]; then
-    echo "Standalone container: modbus2mqtt-test-standalone" 
-    echo "  Web:  http://localhost:3011/"
-  fi
-  echo ""
-  echo "Commands:"
-  echo "  docker logs modbus2mqtt-test-main"
-  echo "  docker exec -it modbus2mqtt-test-main sh"
-  echo "  docker stop modbus2mqtt-test-main modbus2mqtt-test-standalone"
-  echo "  docker rm modbus2mqtt-test-main modbus2mqtt-test-standalone"
-else
-  cleanup_containers
-fi
-
+cleanup_containers_or_keep
+   
 echo ""
 echo "=== All Tests Passed ==="
 echo "✓ Docker image works correctly"

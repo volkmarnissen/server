@@ -26,6 +26,21 @@ fi
 : "${PKG_VERSION:=$(node -p "require('./package.json').version")}" || true
 export PKG_VERSION
 echo "Package version: $PKG_VERSION"
+# If GITHUB_REPOSITORY is not provided in the environment, try to infer it
+# from the git remote URL (owner/repo). Do NOT overwrite an existing value.
+if [ -z "${GITHUB_REPOSITORY:-}" ]; then
+  GITHUB_REPOSITORY=$(git config --get remote.origin.url 2>/dev/null | sed -n 's%.*github.com[:/]\(.*\)\.git%\1%p' || true)
+fi
+export GITHUB_REPOSITORY
+echo "Package version: $PKG_VERSION for repository: ${GITHUB_REPOSITORY:-unknown}"
+
+if [ -z "${GITHUB_REPOSITORY:-}" ] || [ "${GITHUB_REPOSITORY}" = "modbus2mqtt/modbus2mqtt" ]; then
+  echo "Detected official repository use pkgname as npm package"
+else
+  echo "Detected forked repository use   @$GITHUB_REPOSITORY as npm package"
+  sed -E 's%(^npmpackage=")\$\{pkgname\}"%\1@'"${GITHUB_REPOSITORY}"'"%g' alpine/package/modbus2mqtt/APKBUILD > /tmp/APKBUILD.$$ \
+    && mv /tmp/APKBUILD.$$ alpine/package/modbus2mqtt/APKBUILD
+fi  
 
 # Detect Alpine version using shared function
 detect_alpine_version || exit $?

@@ -21,10 +21,12 @@ ENV BUILD_ARCH=${BUILD_ARCH}
 WORKDIR /
 
 # Install jq (used by SSH init script to parse /data/options.json); wget is in base image
-RUN apk add --no-cache jq
+RUN apk add --no-cache jq wget
 
 # Copy produced packages (expect build scripts to have created repo)
 COPY ./alpine/repo/ /tmp/alpine-repo/
+# required by homeassistant s6-overlay
+COPY ./docker/service /usr/bin/service
 # Ensure public key is copied (workaround for Docker COPY behavior with root files)
 COPY ./alpine/repo/packager.rsa.pub /tmp/alpine-repo/packager.rsa.pub
 # Install APK with strict signature verification (no untrusted fallback)
@@ -62,59 +64,16 @@ RUN set -e; \
     echo "✓ Installed modbus2mqtt via trusted APK with signature verification";
 
 # Copy SSH configuration script as oneshot service
-RUN mkdir -p /etc/s6-overlay/s6-rc.d/ssh-init /etc/s6-overlay/scripts
-COPY ./docker/01-configure-ssh.sh /etc/s6-overlay/scripts/configure-ssh.sh
-RUN chmod +x /etc/s6-overlay/scripts/configure-ssh.sh && \
-    echo 'oneshot' > /etc/s6-overlay/s6-rc.d/ssh-init/type && \
-    echo '#!/command/execlineb -P' > /etc/s6-overlay/s6-rc.d/ssh-init/up && \
-    echo '/etc/s6-overlay/scripts/configure-ssh.sh' >> /etc/s6-overlay/s6-rc.d/ssh-init/up && \
-    chmod +x /etc/s6-overlay/s6-rc.d/ssh-init/up && \
-    touch /etc/s6-overlay/s6-rc.d/user/contents.d/ssh-init
-
-# Ensure application directories exist and have correct ownership
-RUN mkdir -p /config /data /ssl && \
-    chown -R modbus2mqtt:dialout /config /data /ssl && \
-    chmod 755 /data
-
-# Create home directory for modbus2mqtt user (git needs it)
-RUN mkdir -p /var/lib/modbus2mqtt/.config/git && \
-    chown -R modbus2mqtt:dialout /var/lib/modbus2mqtt && \
-    chmod -R 755 /var/lib/modbus2mqtt
+COPY ./docker/rootfs/ /
 
 # Create service
-RUN \
-    s6dir=/etc/s6-overlay/s6-rc.d/modbus2mqtt && \
-    mkdir -p $s6dir && \
-    echo 'longrun' > $s6dir/type && \
-    echo '#!/command/with-contenv sh' > $s6dir/run && \
-    echo 'cd /var/lib/modbus2mqtt || { echo "ERROR: Cannot access home directory"; exit 1; }' >> $s6dir/run && \
-    echo 'export HOME=/var/lib/modbus2mqtt' >> $s6dir/run && \
-    echo 'exec s6-setuidgid modbus2mqtt /usr/bin/modbus2mqtt 2>&1' >> $s6dir/run && \
-    chmod +x $s6dir/run && \
-    s6usr=/etc/s6-overlay/s6-rc.d/user/contents.d && \
-    mkdir -p $s6usr && \
-    touch $s6usr/modbus2mqtt && \
-    mkdir -p $s6dir/dependencies.d && \
-    touch $s6dir/dependencies.d/base && \  
-    echo '#!/bin/sh' >$s6dir/finish && \
-    echo 'echo modbus2mqtt done' >>$s6dir/finish && \
-    chmod +x $s6dir/finish
+RUN mkdir -p /var/lib/modbus2mqtt/.config/git && \
+    chown -R modbus2mqtt:dialout /var/lib/modbus2mqtt && \
+    chmod -R 755 /var/lib/modbus2mqtt 
 
 # SSH configuration is done by:
 # 1. APK post-install: creates /root/.ssh, configures sshd_config, generates host keys
 # 2. cont-init script: reads /data/options.json and configures authorized_keys
-
-# Create SSH service for s6-overlay
-RUN \
-    sshdir=/etc/s6-overlay/s6-rc.d/sshd && \
-    mkdir -p $sshdir && \
-    echo 'longrun' > $sshdir/type && \
-    echo '#!/command/with-contenv sh' > $sshdir/run && \
-    echo 'exec /usr/sbin/sshd -D -e 2>&1' >> $sshdir/run && \
-    chmod +x $sshdir/run && \
-    touch /etc/s6-overlay/s6-rc.d/user/contents.d/sshd && \
-    mkdir -p $sshdir/dependencies.d && \
-    touch $sshdir/dependencies.d/base
 
 EXPOSE 3000 22
 
@@ -129,7 +88,7 @@ LABEL \
     io.hass.name="${BUILD_NAME}" \
     io.hass.description="${BUILD_DESCRIPTION}" \
     io.hass.type="addon" \
-    io.hass.version=${BUILD_VERSION}  \  
+    io.hass.version=${BUILD_VERSION} \
     maintainer="Volkmar Nissen <volkmar.nissen@gmail.com>" \
     org.opencontainers.image.title="${BUILD_NAME}" \
     org.opencontainers.image.description="${BUILD_DESCRIPTION}" \
