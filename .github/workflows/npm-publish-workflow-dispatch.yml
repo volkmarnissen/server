@@ -77,37 +77,4 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           always-auth: true
           token: ${{ secrets.NPMJS }}
-          
-      - name: Scope npm package for forks
-        if: ${{ github.repository_owner != 'modbus2mqtt' }}
-        env:
-          REPO_OWNER: ${{ github.repository_owner }}
-        run: |
-          set -euo pipefail
-          echo "Repository owner is '$REPO_OWNER' — scoping package name to avoid overwriting upstream package"
-          python3 - <<'PY'
-          import json, os
-          path = 'package.json'
-          data = json.load(open(path))
-          orig = data.get('name','')
-          scoped = f"@{os.environ['REPO_OWNER']}/modbus2mqtt"
-          data['name'] = scoped
-          open(path,'w').write(json.dumps(data, indent=2) + '\n')
-          print(f"package.json name updated: {orig} -> {scoped}")
-          PY
 
-      - name: NPM run build and publish
-        id: npmbuildpublish
-        run: |
-          npm ci 
-          npm run build
-          npm set registry https://registry.npmjs.org/
-          npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPMJS }}
-  build_assets:
-    if: ${{ steps.set-tag.outputs.isRelease != '' }}
-    needs: npm_publish
-    uses: ./.github/workflows/release-assets.yml
-    with:
-      version: ${{ needs.npm_publish.outputs.version }}
