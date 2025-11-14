@@ -1,4 +1,4 @@
-name: Build Release Assets
+name: Build apk Package, Docker image and Release: Triggered for major and minor Versions
 
 on:
   workflow_call:
