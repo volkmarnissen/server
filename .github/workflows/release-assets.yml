@@ -22,7 +22,7 @@ on:
         type: string
 env:
   product_name: modbus2mqtt
-  main_docker_name: "ghcr.io/${{ github.repository_owner }}/modbus2mqtt"
+  main_docker_name: 'ghcr.io/${{ github.repository_owner }}/modbus2mqtt'
 jobs:
   prepare:
     runs-on: ubuntu-latest
@@ -53,7 +53,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-#      The "Set Platform specific Attributes" original to be copied below!!
+      #      The "Set Platform specific Attributes" original to be copied below!!
       - name: Set Platform specific Attributes
         id: platformattributes
         run: |
@@ -80,13 +80,14 @@ jobs:
           ALPINE_ARCH: ${{ steps.platformattributes.outputs.arch }}
           TARGET_ARCH: ${{ steps.platformattributes.outputs.arch }}
           PACKAGER_PRIVKEY: ${{ secrets.PACKAGER_PRIVKEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           set -eux
           # Build APK using package.sh (no QEMU needed - native execution)
           echo "Building APK for ${{ steps.platformattributes.outputs.arch }} on native runner..."
           alpine/package/$product_name/package.sh
           echo "✓ APK build completed for ${{ steps.platformattributes.outputs.arch }}"
-          
+
           # Verify APK creation
           echo "Verifying APK creation for ${{ steps.platformattributes.outputs.arch }}..."
           if [ -d "alpine/repo/${{ steps.platformattributes.outputs.arch }}" ]; then
@@ -150,7 +151,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-#      The "Set Platform specific Attributes" , must to be copied from original !!
+      #      The "Set Platform specific Attributes" , must to be copied from original !!
       - name: Set Platform specific Attributes
         id: platformattributes
         run: |
@@ -166,7 +167,7 @@ jobs:
           docker_name_version=$main_docker_name-$platform:${{ needs.prepare.outputs.resolved_version }}
           echo "docker_name_version=\"$docker_name_version\""
           echo "docker_name_version=$docker_name_version" >> $GITHUB_OUTPUT
-          
+
       - name: Download APK artifacts for ${{ steps.platformattributes.outputs.arch }}
         uses: actions/download-artifact@v4
         with:
@@ -178,8 +179,6 @@ jobs:
         with:
           name: packager-rsa-pub-${{ needs.prepare.outputs.resolved_version }}
           path: alpine/repo/
-
-
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -195,7 +194,7 @@ jobs:
           PLATFORM: ${{ steps.platformattributes.outputs.platform }}
         run: |
           set -eux
-          
+
           echo "Building Docker image for $PLATFORM architecture..."
           docker build \
             --build-arg BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
@@ -207,7 +206,7 @@ jobs:
             -t "${{ steps.platformattributes.outputs.docker_name_version }}" \
             -f ./docker/Dockerfile \
             .
-          
+
           echo "Pushing image: ${{ steps.platformattributes.outputs.docker_name_version }}"
           docker push "${{ steps.platformattributes.outputs.docker_name_version }}"
           echo "✓ Built and pushed image  ${{ steps.platformattributes.outputs.docker_name_version }}"
@@ -244,13 +243,13 @@ jobs:
           MAIN_TAG="$main_docker_name:${{ needs.prepare.outputs.resolved_version }}"
           AMD64_TAG="$main_docker_name-amd64:${{ needs.prepare.outputs.resolved_version }}"
           ARM64_TAG="$main_docker_name-arm64:${{ needs.prepare.outputs.resolved_version }}"
-          
+
           echo "Creating multi-architecture manifest: $MAIN_TAG"
           docker buildx imagetools create -t "$MAIN_TAG" "$AMD64_TAG" "$ARM64_TAG"
           docker buildx imagetools create -t "$main_docker_name:latest" "$AMD64_TAG" "$ARM64_TAG"
           docker buildx imagetools create -t "$main_docker_name-amd64:latest" "$AMD64_TAG" 
           docker buildx imagetools create -t "$main_docker_name-arm64:latest" "$ARM64_TAG" 
-          
+
           echo "✓ Created multi-architecture manifest: $MAIN_TAG"
 
   attach_release_assets:
@@ -271,7 +270,6 @@ jobs:
         with:
           name: packager-rsa-pub-${{ needs.prepare.outputs.resolved_version }}
           path: release-apks/
-
 
       - name: Flatten APK artifacts for upload
         run: |
@@ -297,7 +295,7 @@ jobs:
         run: |
           VERSION="${{ needs.prepare.outputs.resolved_version }}"
           DOCKER_TAG="$main_docker_name:v${VERSION}"
-          
+
           # Füge GitHub-Changelog (initial-release-notes.md) am Anfang ein
           if [ -f initial-release-notes.md ]; then
             # Füge eine Leerzeile nach dem Changelog ein, damit Markdown-Header korrekt erkannt werden
@@ -310,17 +308,17 @@ jobs:
           ## 📦 $product_name v${{ needs.prepare.outputs.resolved_version }}
 
           ### 🐳 Docker Image
-          
+
           ```bash
           docker pull ghcr.io/${{ github.repository }}:v${{ needs.prepare.outputs.resolved_version }}
           ```
                     
           **Multi-architecture support:** `linux/amd64`, `linux/arm64`
-          
+
           ### 📋 Alpine APK Packages
-          
+
           EOF
-          
+
           # Nur einen Eintrag für x86_64 APK erzeugen
           APK_FILE=$(ls release-apks/*x86_64*.apk 2>/dev/null | head -n1 || true)
           if [ -n "$APK_FILE" ]; then
@@ -337,29 +335,29 @@ jobs:
           cat >> release-body.md << 'EOF'
 
           ### 🔐 Package Verification
-          
+
           **Public Key for APK signature verification:**
-          
+
           | File | Purpose | Download |
           |------|---------|----------|
           | `packager.rsa.pub` | APK signature verification | [📥 Download](https://github.com/${{ github.repository }}/releases/download/v${{ needs.prepare.outputs.resolved_version }}/packager.rsa.pub) |
-          
+
           **Installation with signature verification:**
-          
+
           ```bash
           # Download and install public key
           wget https://github.com/${{ github.repository }}/releases/download/v${{ needs.prepare.outputs.resolved_version }}/packager.rsa.pub
           sudo cp packager.rsa.pub /etc/apk/keys/
-          
+
           # Install APK with verification
           # for aarch64 uncomment the following line and comment the x86_64 line
           # wget https://github.com/${{ github.repository }}/releases/download/v${{ needs.prepare.outputs.resolved_version }}/$product_name-${{ needs.prepare.outputs.resolved_version }}-r0-aarch64.apk
           wget https://github.com/${{ github.repository }}/releases/download/v${{ needs.prepare.outputs.resolved_version }}/$product_name-${{ needs.prepare.outputs.resolved_version }}-r0-x86_64.apk
           apk add $product_name-${{ needs.prepare.outputs.resolved_version }}-r0.apk
           ```
-          
+
           ### 🚀 Quick Start
-          
+
           **Docker (Recommended):**
           ```bash
           docker run -d \
@@ -368,14 +366,14 @@ jobs:
             -v /path/to/config:/data \
             ${{ env.main_docker_name }}:${{ needs.prepare.outputs.resolved_version }}
           ```
-          
+
           ---
-          
+
           📚 **Documentation:** [README.md](https://github.com/${{ github.repository }}/blob/main/README.md)  
           🐛 **Issues:** [Report bugs](https://github.com/${{ github.repository }}/issues)  
           💬 **Discussions:** [Community support](https://github.com/${{ github.repository }}/discussions)
           EOF
-          
+
           echo "Release body generated successfully"
 
       - name: Upload to existing Release (if exists)
@@ -404,7 +402,7 @@ jobs:
           repository: ${{ github.repository_owner}}/hassio-addon-repository
           path: hassio-addon-repository
           ref: refs/heads/main
-          token: ${{ secrets.PAT }}    
+          token: ${{ secrets.PAT }}
       - name: Update Version in config.yaml
         id: updateVersion
         run: |
