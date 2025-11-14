@@ -388,10 +388,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   update_hassio_addon_version:
     runs-on: ubuntu-latest
-    permissions:
-      # Give the default GITHUB_TOKEN write permission to commit and push the
-      # added or changed files to the repository.
-      contents: write
     needs: [prepare, build_apks, create_multiarch_manifest]
     environment: release
     steps:
