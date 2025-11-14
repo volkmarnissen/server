@@ -17,6 +17,29 @@ Thank you for your interest in contributing to modbus2mqtt! This guide will help
 
 Please be respectful and constructive in all interactions with the community.
 
+## Language policy
+
+All changes (code comments, documentation, commit messages, pull request titles and descriptions) must be written in English.
+
+## Why
+
+Keeping contributions in English ensures that the widest possible audience can review, maintain, and use the repository.
+
+## How this is enforced
+
+- A workflow runs on pull requests and pushes that scans commit messages and pull request title/body for non-English indicators (for example German umlauts or common German words).
+- If the workflow detects potential non-English text, it will comment on the pull request with guidance and/or fail the check for pushes.
+
+## If your native language is not English
+
+- Use simple clear English. It's fine if the language isn't perfect — clarity is more important than grammar.
+- If you need help translating a short message, open an issue or ask in the project's discussion.
+
+## Notes for maintainers
+
+- The enforcement workflow aims to catch obvious cases (German words and umlauts). It may produce false positives; use judgement when responding.
+- The workflow can be adjusted to whitelist project-specific words or to change sensitivity.
+
 ## Getting Started
 
 1. Fork the repository on GitHub
@@ -51,6 +74,7 @@ git checkout -b feature/my-new-feature
 ```
 
 Branch naming conventions:
+
 - `feature/` - New features
 - `fix/` - Bug fixes
 - `docs/` - Documentation updates
@@ -85,6 +109,7 @@ git commit -m "feat: add new feature description"
 ```
 
 Commit message format:
+
 - `feat:` - New feature
 - `fix:` - Bug fix
 - `docs:` - Documentation changes
@@ -165,10 +190,10 @@ describe('MyFeature', () => {
   it('should do something', () => {
     // Arrange
     const input = 'test'
-    
+
     // Act
     const result = myFunction(input)
-    
+
     // Assert
     expect(result).toBe('expected')
   })
@@ -192,6 +217,7 @@ describe('My Feature', () => {
 ### Test Coverage
 
 Aim for:
+
 - Unit test coverage > 80%
 - All critical paths tested
 - Edge cases covered
@@ -219,6 +245,7 @@ Before submitting:
 ### After Merge
 
 1. Delete your feature branch:
+
    ```bash
    git branch -d feature/my-new-feature
    git push origin --delete feature/my-new-feature
@@ -277,6 +304,7 @@ Specifications define how to communicate with Modbus devices.
 ## Recognition
 
 Contributors will be acknowledged in:
+
 - `CREDITS.md` file
 - Release notes
 - Project documentation
