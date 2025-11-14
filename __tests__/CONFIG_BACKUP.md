@@ -1,42 +1,42 @@
 # Test File Backup System
 
 ## Problem
-Jest Tests verändern verschiedene Konfigurationsdateien während der Ausführung:
-- `secrets.yaml` 
+Jest tests modify various configuration files during execution:
+- `secrets.yaml`
 - `busses/bus.0/s2.yaml`
 - `specifications/files/waterleveltransmitter/files.yaml`
 
-Dies kann zu inkonsistenten Test-Ergebnissen, verschmutzter Test-Umgebung und Konflikten zwischen parallelen Tests führen.
+This can lead to inconsistent test results, a polluted test environment, and conflicts between parallel tests.
 
-## Lösung
-Umfassendes, automatisches Backup/Restore-System für alle test-relevanten Dateien mit sequenzieller Testausführung.
+## Solution
+Comprehensive, automatic backup/restore system for all test-relevant files with sequential test execution.
 
-### Implementierung
+### Implementation
 
-#### 1. FileBackupHelper - Basis-System (`__tests__/server/testhelper.ts`)
+#### 1. FileBackupHelper - Base system (`__tests__/server/testhelper.ts`)
 ```typescript
 export class FileBackupHelper {
-  constructor(testName?: string)     // Eindeutige Test-ID
-  backup(filePath: string): void     // Einzelne Datei sichern
-  restore(filePath: string): void    // Einzelne Datei wiederherstellen
-  restoreAll(): void                 // Alle Dateien wiederherstellen
-  cleanup(): void                    // Alle Backups löschen
+  constructor(testName?: string)     // Unique test ID
+  backup(filePath: string): void     // Back up a single file
+  restore(filePath: string): void    // Restore a single file
+  restoreAll(): void                 // Restore all files
+  cleanup(): void                    // Remove all backups
 }
 ```
 
-#### 2. Spezialisierte Helper-Klassen
+#### 2. Specialized helper classes
 
-**ConfigTestHelper** - Für Config-relevante Tests:
+**ConfigTestHelper** - For config-related tests:
 ```typescript
 export class ConfigTestHelper {
   constructor(testName?: string)
-  setup(): void      // Sichert secrets.yaml + Bus-Dateien + Specification-Dateien
-  restore(): void    // Stellt alle Dateien wieder her
-  cleanup(): void    // Löscht alle Backups
+  setup(): void      // Backs up secrets.yaml + bus files + specification files
+  restore(): void    // Restores all files
+  cleanup(): void    // Removes all backups
 }
 ```
 
-**SpecificationTestHelper** - Für Specification Tests:
+**SpecificationTestHelper** - For specification tests:
 ```typescript
 export class SpecificationTestHelper {
   backupWaterLevelTransmitter(baseDir: string): void
@@ -46,27 +46,27 @@ export class SpecificationTestHelper {
 }
 ```
 
-**MigrationTestHelper** - Für Migration Tests:
+**MigrationTestHelper** - For migration tests:
 ```typescript
 export class MigrationTestHelper {
   registerTempDir(dirPath: string): void
   backup(filePath: string): void
-  cleanup(): void    // Räumt temporäre Verzeichnisse + Backups auf
+  cleanup(): void    // Cleans temporary directories + backups
 }
 ```
 
-#### 3. Jest Konfiguration
-**Sequenzielle Testausführung** (`jest.config.ts`):
+#### 3. Jest configuration
+**Sequential test execution** (`jest.config.ts`):
 ```typescript
 export default {
-  maxWorkers: 1,  // Verhindert parallele Test-Konflikte
+  maxWorkers: 1,  // Prevents parallel test conflicts
   // ...
 }
 ```
 
-#### 4. Test-Integration
+#### 4. Test integration
 
-**Instanz-basierte Helper** (nicht mehr statisch):
+**Instance-based helpers** (no longer static):
 ```typescript
 // config_test.tsx & httpserver_test.tsx
 let configTestHelper: ConfigTestHelper
@@ -94,36 +94,36 @@ afterEach(() => {
 })
 ```
 
-### Gesicherte Dateien
+### Files backed up
 
-#### Config Tests (config_test.tsx, httpserver_test.tsx)
-- ✅ `secrets.yaml` 
+#### Config tests (config_test.tsx, httpserver_test.tsx)
+- ✅ `secrets.yaml`
 - ✅ `busses/bus.0/s2.yaml`
 - ✅ `specifications/files/waterleveltransmitter/files.yaml`
 
-#### Bus Tests (bus_test.tsx)  
+#### Bus tests (bus_test.tsx)
 - ✅ `busses/bus.0/s2.yaml`
 - ✅ `specifications/files/waterleveltransmitter/files.yaml`
 
-#### Specification Tests (configSpecification_test.tsx)
+#### Specification tests (configSpecification_test.tsx)
 - ✅ `specifications/files/waterleveltransmitter/files.yaml`
 - ✅ `busses/bus.0/s2.yaml`
 
-#### Migration Tests (CmdlineMigrate_test.tsx)
-- ✅ Automatisches Cleanup temporärer Test-Verzeichnisse
-- ✅ Backup relevanter Dateien bei Bedarf
+#### Migration tests (CmdlineMigrate_test.tsx)
+- ✅ Automatic cleanup of temporary test directories
+- ✅ Backup of relevant files when needed
 
-### Test-Ergebnisse
-- ✅ **134 Tests bestehen** (21 Test-Suites)
-- ✅ **Keine Backup-Dateien** bleiben zurück
-- ✅ **Konsistente Werte** zwischen Test-Läufen
-- ✅ **8 Sekunden** Gesamtlaufzeit (sequenziell)
-- ✅ **Vollständige Test-Isolation**
+### Test results
+- ✅ **134 tests pass** (21 test suites)
+- ✅ **No backup files** left behind
+- ✅ **Consistent values** between test runs
+- ✅ **8 seconds** total runtime (sequential)
+- ✅ **Complete test isolation**
 
-### Vorteile
-- ✅ **Automatisches Backup/Restore** für alle relevanten Dateien
-- ✅ **Verhindert Test-Interferenzen** durch sequenzielle Ausführung
-- ✅ **Saubere Test-Umgebung** ohne Rückstände
-- ✅ **Skalierbar** - einfach weitere Dateien hinzufügbar
-- ✅ **Eindeutige Test-IDs** verhindern Backup-Konflikte
-- ✅ **Instanz-basiert** - kein globaler Zustand mehr
+### Benefits
+- ✅ **Automatic backup/restore** for all relevant files
+- ✅ **Prevents test interference** by running tests sequentially
+- ✅ **Clean test environment** with no leftovers
+- ✅ **Scalable** — easy to add more files
+- ✅ **Unique test IDs** prevent backup collisions
+- ✅ **Instance-based** — no more global state
