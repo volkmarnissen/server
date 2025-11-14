@@ -5,6 +5,7 @@ on:
     types: [opened, edited, synchronize]
   push:
     branches: ['**']
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -114,7 +115,6 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const core = require('@actions/core')
             const matches = `${{ steps.scan.outputs.matches }}`
             const repo = context.repo
             const event = process.env.GITHUB_EVENT_NAME
