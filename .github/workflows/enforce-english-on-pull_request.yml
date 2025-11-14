@@ -114,7 +114,6 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const core = require('@actions/core')
             const matches = `${{ steps.scan.outputs.matches }}`
             const repo = context.repo
             const event = process.env.GITHUB_EVENT_NAME
