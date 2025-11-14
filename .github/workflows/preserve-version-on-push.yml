@@ -126,24 +126,44 @@ jobs:
       - name: Revert package.json version if PR came from fork
         if: steps.prcheck.outputs.from_fork == 'true'
         env:
-          BEFORE: ${{ github.event.before }}
+          OLD_VERSION: ${{ steps.check_version.outputs.v_before }}
         run: |
           set -euo pipefail
-          echo "PR identified from fork: reverting package.json to previous version"
+          echo "PR identified from fork: reverting package.json version to ${OLD_VERSION}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # Restore package.json from previous commit
-          git checkout ${BEFORE} -- package.json
+          # Update only the version field in package.json
+          # Use environment variable inside Python (safe from shell quoting issues)
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          old_version = os.environ.get('OLD_VERSION', '')
+          if not old_version:
+            print('ERROR: OLD_VERSION is empty; aborting')
+            raise SystemExit(1)
+
+          p = Path('package.json')
+          data = json.loads(p.read_text())
+          current = data.get('version')
+          if current == old_version:
+            print('package.json already has the desired version')
+          else:
+            data['version'] = old_version
+            p.write_text(json.dumps(data, indent=2) + '\n')
+            print(f"Updated package.json version: {current} -> {data['version']}")
+          PY
 
           # Show the change for debugging
           git --no-pager diff -- package.json || true
 
-          # Commit and push the revert
+          # Commit and push the revert if there are changes
           PRS="${{ steps.prcheck.outputs.pr_numbers }}"
           if git add package.json && git commit -m "chore: revert package.json version changed by forked PR(s) (${PRS}) [skip ci]"; then
             git push origin HEAD:main
-            echo "Reverted package.json and pushed to main."
+            echo "Reverted package.json version and pushed to main."
           else
             echo "No changes to commit (package.json already matches previous)."
           fi
