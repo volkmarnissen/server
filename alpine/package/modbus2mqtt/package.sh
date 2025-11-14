@@ -29,6 +29,8 @@ echo "Package version: $PKG_VERSION"
 if [ ! -z "${GITHUB_REPOSITORY:-}" ]; then
   GITHUB_REPOSITORY=$(git config --get remote.origin.url|sed -n 's%.*github.com[:/]\(.*\)\.git%\1%p')
 fi
+echo "Package version: $PKG_VERSION for repository: ${GITHUB_REPOSITORY:-unknown}"
+
 if [ -z "${GITHUB_REPOSITORY:-}" ] || [ "${GITHUB_REPOSITORY}" = "modbus2mqtt/modbus2mqtt" ]; then
   echo "Detected official repository use pkgname as npm package"
 else
