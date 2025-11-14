@@ -26,7 +26,7 @@ fi
 : "${PKG_VERSION:=$(node -p "require('./package.json').version")}" || true
 export PKG_VERSION
 echo "Package version: $PKG_VERSION"
-if [ ! -z "${GITHUB_REPOSITORY:-}" ]; then
+if [ ! -z "${GITHUB_REPOSITORY}" ]; then
   GITHUB_REPOSITORY=$(git config --get remote.origin.url|sed -n 's%.*github.com[:/]\(.*\)\.git%\1%p')
 fi
 echo "Package version: $PKG_VERSION for repository: ${GITHUB_REPOSITORY:-unknown}"
