@@ -26,9 +26,12 @@ fi
 : "${PKG_VERSION:=$(node -p "require('./package.json').version")}" || true
 export PKG_VERSION
 echo "Package version: $PKG_VERSION"
-if [ ! -z "${GITHUB_REPOSITORY}" ]; then
-  GITHUB_REPOSITORY=$(git config --get remote.origin.url|sed -n 's%.*github.com[:/]\(.*\)\.git%\1%p')
+# If GITHUB_REPOSITORY is not provided in the environment, try to infer it
+# from the git remote URL (owner/repo). Do NOT overwrite an existing value.
+if [ -z "${GITHUB_REPOSITORY:-}" ]; then
+  GITHUB_REPOSITORY=$(git config --get remote.origin.url 2>/dev/null | sed -n 's%.*github.com[:/]\(.*\)\.git%\1%p' || true)
 fi
+export GITHUB_REPOSITORY
 echo "Package version: $PKG_VERSION for repository: ${GITHUB_REPOSITORY:-unknown}"
 
 if [ -z "${GITHUB_REPOSITORY:-}" ] || [ "${GITHUB_REPOSITORY}" = "modbus2mqtt/modbus2mqtt" ]; then
