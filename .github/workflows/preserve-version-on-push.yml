@@ -164,6 +164,9 @@ jobs:
           if git add package.json && git commit -m "chore: revert package.json version changed by forked PR(s) (${PRS}) [skip ci]"; then
             git push origin HEAD:main
             echo "Reverted package.json version and pushed to main."
+            # Create an annotation on the workflow run so the revert is visible in the Actions UI
+            # This will appear as a warning annotation attached to package.json
+            echo "::warning file=package.json,line=1::Reverted package.json version to ${OLD_VERSION} (reverted by workflow due to forked PR(s): ${PRS})"
           else
             echo "No changes to commit (package.json already matches previous)."
           fi
