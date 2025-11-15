@@ -147,6 +147,8 @@ jobs:
   build_and_push_docker:
     runs-on: ${{ matrix.platform }}
     needs: [prepare, build_apks]
+    permissions:
+      packages: write
     strategy:
       matrix:
         platform: [ubuntu-latest, ubuntu-22.04-arm]
@@ -226,6 +228,8 @@ jobs:
 
   create_multiarch_manifest:
     runs-on: ubuntu-latest
+    permissions:
+      packages: write  
     needs: [prepare, build_and_push_docker]
     outputs:
       image_tag: v${{ needs.prepare.outputs.resolved_version }}
