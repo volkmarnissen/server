@@ -45,12 +45,12 @@ Keeping contributions in English ensures that the widest possible audience can r
 1. Fork the repository on GitHub
 2. Clone your fork locally:
    ```bash
-   git clone https://github.com/YOUR-USERNAME/server.git
+   git clone https://github.com/YOUR-USERNAME/modbus2mqtt.git
    cd server
    ```
 3. Add the upstream repository:
    ```bash
-   git remote add upstream https://github.com/modbus2mqtt/server.git
+   git remote add upstream https://github.com/modbus2mqtt/modbus2mqtt.git
    ```
 
 ## Development Setup
@@ -92,7 +92,7 @@ Follow the [coding standards](#coding-standards) below.
 npm test
 
 # Run specific test file
-npm test __tests__/server/bus_test.tsx
+npm test __tests__/modbus2mqtt/bus_test.tsx
 
 # Run E2E tests
 npm run e2e:start
@@ -297,8 +297,8 @@ Specifications define how to communicate with Modbus devices.
 
 ## Getting Help
 
-- **Issues**: [GitHub Issues](https://github.com/modbus2mqtt/server/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/modbus2mqtt/server/discussions)
+- **Issues**: [GitHub Issues](https://github.com/modbus2mqtt/modbus2mqtt/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/modbus2mqtt/modbus2mqtt/discussions)
 - **Documentation**: Check the `docs/` folder
 
 ## Recognition

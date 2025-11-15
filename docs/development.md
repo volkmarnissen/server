@@ -14,7 +14,7 @@ This guide is for **contributors and developers** who want to work on the modbus
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/modbus2mqtt/server.git
+git clone https://github.com/modbus2mqtt/modbus2mqtt.git
 cd server
 ```
 
