@@ -107,6 +107,8 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPMJS }}
   build_assets:
     if: ${{ needs.npm_publish.outputs.isRelease != '' }}
+    permissions:
+      packages: write    
     needs: npm_publish
     uses: ./.github/workflows/release-assets.yml
     with:
