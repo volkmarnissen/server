@@ -47,6 +47,8 @@ jobs:
     runs-on: ${{ matrix.platform }}
     environment: packager
     needs: prepare
+    permissions:
+      packages: write      
     strategy:
       matrix:
         platform: [ubuntu-latest, ubuntu-22.04-arm]
