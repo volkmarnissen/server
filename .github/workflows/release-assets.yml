@@ -398,9 +398,11 @@ jobs:
     needs: [prepare, build_apks, create_multiarch_manifest]
     environment: release
     steps:
-      - name: Checkout
+      - name: Checkout modbus2mqtt Repository
         uses: actions/checkout@v5
-      - uses: actions/checkout@v5
+  
+      - name: Checkout  hassio-addon-repository
+        uses: actions/checkout@v5
         with:
           repository: ${{ github.repository_owner}}/hassio-addon-repository
           path: hassio-addon-repository
