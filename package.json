@@ -1,6 +1,6 @@
 {
   "name": "modbus2mqtt",
-  "version": "0.17.0",
+  "version": "0.17.1",
   "sshserver": "homeassistant@homeassistant.lan",
   "homepage": "https://github.com/modbus2mqtt/server/README.md",
   "description": "server for modbus2mqtt for REST API of configuration and publishing modbus values to mqtt",
@@ -41,7 +41,7 @@
     "build.dev": "tsc -p tsconfig.json && ng build --configuration development",
     "build": "tsc -p tsconfig.json && ng build --configuration production && npx @opengovsg/credits-generator",
     "prettier": "prettier --write '**/*.{ts,js,css,html,tsx}'",
-  "install-hooks": "git config core.hooksPath .githooks && chmod +x .githooks/* || true && echo 'Git hooks configured to use .githooks directory'"
+    "install-hooks": "git config core.hooksPath .githooks && chmod +x .githooks/* || true && echo 'Git hooks configured to use .githooks directory'"
   },
   "dependencies": {
     "@octokit/rest": "^20.1.1",
