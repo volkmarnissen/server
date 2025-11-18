@@ -32,11 +32,12 @@
       "node","jest", "debug"
     ]
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "__test__/**/*"],
   "exclude":[
     "src/angular/**/*",
     "node_modules/**/*",
     "**/testHelpers/*",
     "dist/**/*",
+    "eslint.config.mjs"
    ],
 }

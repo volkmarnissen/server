@@ -22,7 +22,8 @@ modbus2mqtt enables seamless integration of Modbus devices (RTU/TCP) into your s
 
 Choose your preferred method:
 
-- **[Home Assistant Add-on](https://github.com/modbus2mqtt/hassio-addon-repository)** - Direct Home Assistant integration (recommended for Home Assistant users)
+
+- **[Home Assistant Add-on](docs/installation-homeassistant.md)**
 - **[Docker](docs/installation-docker.md)** - Recommended for most users
 - **[Proxmox LXC](docs/installation-proxmox.md)** - Alpine Linux package for Proxmox containers
 
@@ -36,7 +37,10 @@ After installation, access the web interface at `http://localhost:3000` and foll
 
 - **[Getting Started](docs/getting-started.md)** - First steps and basic configuration
 - **[Contributing](docs/contributing.md)** - How to contribute to the project
-- **[Installation Guides](docs/)** - Detailed installation instructions
+- **Installation Guides:**
+  - **[Home Assistant Add-on](docs/installation-homeassistant.md)**
+  - **[Docker](docs/installation-docker.md)**
+  - **[Proxmox LXC](docs/installation-proxmox.md)**
 
 For complete documentation, see the [docs/](docs/) directory.
 

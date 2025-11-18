@@ -9,7 +9,6 @@ import { Subject } from 'rxjs'
 import { getBaseFilename } from '../specification.shared'
 import { JwtPayload, sign, verify } from 'jsonwebtoken'
 import * as bcrypt from 'bcryptjs'
-import * as http from 'http'
 import { LogLevelEnum, Logger, filesUrlPrefix } from '../specification'
 import { ImqttClient, AuthenticationErrors, Iconfiguration, IUserAuthenticationStatus } from '../server.shared'
 import AdmZip from 'adm-zip'
@@ -17,12 +16,15 @@ import { Bus } from './bus'
 import { IClientOptions } from 'mqtt'
 const CONFIG_VERSION = '0.1'
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace NodeJS {
     interface ProcessEnv {
       HASSIO_TOKEN: string
     }
   }
 }
+
+export {}
 const DEFAULT_MQTT_CONNECT_TIMEOUT = 60 * 1000
 const HASSIO_TIMEOUT = 3000
 export enum MqttValidationResult {
@@ -113,8 +115,9 @@ export class Config {
         return MqttValidationResult.OK
       }
       return MqttValidationResult.error
-    } catch (err) {
-      if ((err as any).name === 'TokenExpiredError') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      if (err && err.name && err.name === 'TokenExpiredError') {
         return MqttValidationResult.tokenExpired
       }
       log.log(LogLevelEnum.error, 'JWT validation failed: ' + err)
@@ -152,8 +155,8 @@ export class Config {
     const charactersLength = characters.length
     let counter = 0
     if (fs.existsSync(pathStr)) {
-      let secret = fs.readFileSync(pathStr, { encoding: 'utf8' }).toString()
-      if( secret && secret.length > 0) {
+      const secret = fs.readFileSync(pathStr, { encoding: 'utf8' }).toString()
+      if (secret && secret.length > 0) {
         return secret
       }
     }
@@ -185,15 +188,19 @@ export class Config {
         debug('secretsfile ' + secretsfile + ' exists')
         try {
           fs.accessSync(secretsfile, fs.constants.W_OK)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
-          const msg = `Secrets file ${secretsfile} is not writable! (error: ${err.message})`
-          log.log(LogLevelEnum.error, msg)
-          throw new Error(msg)
+          if (err.message !== undefined) {
+            const msg = `Secrets file ${secretsfile} is not writable! (error: ${err.message})`
+            log.log(LogLevelEnum.error, msg)
+            throw new Error(msg)
+          }
         }
       } else {
         // File doesn't exist, check if we can write to the directory
         try {
           fs.accessSync(secretsDir, fs.constants.W_OK)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
           const msg = `Secrets directory ${secretsDir} is not writable! (cwd: ${process.cwd()}, error: ${err.message})`
           log.log(LogLevelEnum.error, msg)
@@ -223,7 +230,6 @@ export class Config {
       Config.config.fakeModbus = Config.config.fakeModbus ? Config.config.fakeModbus : false
       Config.config.noAuthentication = Config.config.noAuthentication ? Config.config.noAuthentication : false
       Config.config.tcpBridgePort = Config.config.tcpBridgePort ? Config.config.tcpBridgePort : 502
-      process.env.HASSIO_TOKEN && process.env.HASSIO_TOKEN.length ? process.env.HASSIO_TOKEN : undefined
       Config.config.appVersion = Config.config.appVersion ? Config.config.appVersion : packageJson.version
       Config.config.mqttusehassio =
         Config.config.mqttusehassio && process.env.HASSIO_TOKEN && process.env.HASSIO_TOKEN.length
@@ -248,31 +254,8 @@ export class Config {
       preSelectedBusId: Bus.getBusses().length == 1 ? Bus.getBusses()[0].getId() : undefined,
     }
   }
-  async readGetResponse(res: http.IncomingMessage): Promise<any> {
-    const lbuffers: Uint8Array[] = []
 
-    return new Promise<any>((resolve, reject) => {
-      res.on('data', (chunk) => lbuffers.push(chunk))
-      res.on('end', () => {
-        try {
-          if (res.statusCode && res.statusCode < 299) {
-            const lbuffer = Buffer.concat(lbuffers)
-            const json = JSON.parse(lbuffer.toString())
-            resolve(json)
-          } else {
-            // http Error
-            reject(lbuffers)
-          }
-        } catch (e: any) {
-          reject(e)
-        }
-      })
-      res.on('error', (err) => {
-        reject(err)
-      })
-    })
-  }
-  static executeHassioGetRequest<T>(url: string, next: (_dev: T) => void, reject: (error: any) => void): void {
+  static executeHassioGetRequest<T>(url: string, next: (_dev: T) => void, reject: (error: Error) => void): void {
     // This method can be called before configuration. It can't use config.hassio
     const hassiotoken: string | undefined = process.env.HASSIO_TOKEN
     if (!hassiotoken || hassiotoken.length == 0) throw new Error('ENV: HASSIO_TOKEN not defined')
@@ -310,8 +293,8 @@ export class Config {
           log.log(LogLevelEnum.error, JSON.stringify(reason))
           reject(reason)
         })
-    } catch (e: any) {
-      log.log(LogLevelEnum.error, e.message)
+    } catch (e: unknown) {
+      if (e instanceof Error) log.log(LogLevelEnum.error, e.message)
     }
   }
 
@@ -372,17 +355,18 @@ export class Config {
                 ':' +
                 (config.mqttconnect as IClientOptions).port
             if (mqtt.data.ssl) Config.updateMqttTlsConfig(config)
-            delete (config.mqttconnect as any).ssl
-            delete (config.mqttconnect as any).protocol
-            delete (config.mqttconnect as any).addon
+            delete config.mqttconnect.ssl
+            delete config.mqttconnect.protocol
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            delete (config.mqttconnect as any)['addon']
             debugAddon('getMqttLoginFromHassio: Read MQTT login data from Hassio')
             config.mqttconnect.connectTimeout = DEFAULT_MQTT_CONNECT_TIMEOUT
             resolve(config.mqttconnect)
           },
           reject
         )
-      } catch (e: any) {
-        debugAddon('getMqttLoginFromHassio: failed to read MQTT login data from Hassio ' + e.message)
+      } catch (e: unknown) {
+        if (e instanceof Error) debugAddon('getMqttLoginFromHassio: failed to read MQTT login data from Hassio ' + e.message)
         reject(e)
       }
     })
@@ -436,14 +420,14 @@ export class Config {
         if (fs.existsSync(secretsFile)) {
           let matches: IterableIterator<RegExpMatchArray>
           const secrets = parse(fs.readFileSync(secretsFile, { encoding: 'utf8' }))
-          let srcLines = src.split('\n')
+          const srcLines = src.split('\n')
           src = ''
           srcLines.forEach((line) => {
-            const r1 = /\"*!secret ([a-zA-Z0-9-_]*)\"*/g
+            const r1 = /"*!secret ([a-zA-Z0-9-_]*)"*/g
             matches = line.matchAll(r1)
             let skipLine = false
             for (const match of matches) {
-              let key = match[1]
+              const key = match[1]
               if (secrets[key] && secrets[key].length) {
                 line = line.replace(match[0], '"' + secrets[key] + '"')
               } else {
@@ -470,8 +454,8 @@ export class Config {
           // This should not stop the application
         }
       }
-    } catch (error: any) {
-      log.log(LogLevelEnum.error, 'readyaml failed: ' + error.message)
+    } catch (error: unknown) {
+      if (error instanceof Error) log.log(LogLevelEnum.error, 'readyaml failed: ' + error.message)
       throw error
     }
   }
@@ -489,30 +473,36 @@ export class Config {
     const cpConfig = structuredClone(config)
     Config.config = config
     if (cpConfig.debugComponents && cpConfig.debugComponents.length) Debug.enable(cpConfig.debugComponents)
-    const secrets = {}
+    const secrets: {
+      mqttpassword?: string
+      mqttuser?: string
+      githubPersonalToken?: string
+      username?: string
+      password?: string
+    } = {}
     if (cpConfig.mqttconnect.password) {
-      ;(secrets as any)['mqttpassword'] = cpConfig.mqttconnect.password
+      secrets.mqttpassword = cpConfig.mqttconnect.password as string
       cpConfig.mqttconnect.password = '!secret mqttpassword'
     }
     if (cpConfig.mqttconnect.username) {
-      ;(secrets as any)['mqttuser'] = cpConfig.mqttconnect.username
+      secrets.mqttuser = cpConfig.mqttconnect.username
       cpConfig.mqttconnect.username = '!secret mqttuser'
     }
     if (cpConfig.githubPersonalToken) {
-      ;(secrets as any)['githubPersonalToken'] = cpConfig.githubPersonalToken
+      secrets.githubPersonalToken = cpConfig.githubPersonalToken
       cpConfig.githubPersonalToken = '!secret githubPersonalToken'
     }
     if (cpConfig.username) {
-      ;(secrets as any)['username'] = cpConfig.username
+      secrets.username = cpConfig.username
       cpConfig.username = '!secret username'
     }
     if (cpConfig.password) {
-      ;(secrets as any)['password'] = cpConfig.password
+      secrets.password = cpConfig.password
       cpConfig.password = '!secret password'
     }
     const nonConfigs: string[] = ['mqttusehassio', 'filelocation', 'appVersion']
     nonConfigs.forEach((name: string) => {
-      delete (cpConfig as any)[name]
+      delete cpConfig[name as keyof Iconfiguration]
     })
     const filename = Config.getConfigPath()
     const dir = path.dirname(filename)

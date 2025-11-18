@@ -1,7 +1,7 @@
 import Debug from 'debug'
 import * as http from 'http'
-import { NextFunction, Request } from 'express'
-import * as express from 'express'
+import { Application, NextFunction, Request } from 'express'
+import express from 'express'
 import * as bodyparser from 'body-parser'
 import { Config, MqttValidationResult } from './config'
 import { HttpErrorsEnum } from '../specification.shared'
@@ -12,7 +12,6 @@ import { LogLevelEnum, Logger } from '../specification'
 
 import { apiUri } from '../server.shared'
 import { AddressInfo } from 'net'
-import { MqttDiscover } from './mqttdiscover'
 import { MqttSubscriptions } from './mqttsubscriptions'
 
 interface IAddonInfo {
@@ -31,21 +30,20 @@ const log = new Logger('HttpServerBase')
 //import { IfileSpecification } from './ispecification';
 
 export class HttpServerBase {
-  protected app: express.Application
+  protected app: Application
   languages = ['en']
   server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>
   constructor(private angulardir: string = '.') {
-    this.app = require('express')()
+    this.app = express()
   }
   private statics = new Map<string, string>()
   private ingressUrl: string = '/'
   returnResult(
-    req: Request,
+    req: express.Request,
     res: http.ServerResponse,
     code: HttpErrorsEnum,
-    message: any,
-    cb?: () => void,
-    object: any = undefined
+    message: unknown,
+    object: unknown = undefined
   ) {
     debugUrl('end: ' + req.path)
     if (code >= 299) {
@@ -55,8 +53,10 @@ export class HttpServerBase {
     try {
       res.statusCode = code
       res.end(message)
-    } catch (e: any) {
-      log.log(LogLevelEnum.error, e.message)
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        log.log(LogLevelEnum.error, e.message)
+      }
       JSON.stringify(e)
     }
   }
@@ -70,14 +70,14 @@ export class HttpServerBase {
     let authHeader: string | undefined = undefined
     if (req.header) authHeader = req.header('Authorization')
     if (authHeader) {
-      let tokenPos = authHeader!.indexOf(' ') + 1
+      const tokenPos = authHeader!.indexOf(' ') + 1
       return authHeader.substring(tokenPos)
     }
     return undefined
   }
   static getAuthTokenFromUrl(url: string): string | undefined {
-    let parts = url.split('/')
-    let apiIdx = parts.findIndex((part) => ['api', 'download'].includes(part))
+    const parts = url.split('/')
+    const apiIdx = parts.findIndex((part) => ['api', 'download'].includes(part))
     if (apiIdx >= 2) {
       return parts[apiIdx - 1]
     }
@@ -101,43 +101,43 @@ export class HttpServerBase {
 
   private initStatics() {
     fs.readdirSync(this.angulardir).forEach((langDir) => {
-      let lang = langDir.replace(/-.*/g, '')
-      let dir = langDir
+      const lang = langDir.replace(/-.*/g, '')
+      const dir = langDir
       this.statics.set(lang, dir)
     })
     if (this.statics.size > 0) this.languages = Array.from(this.statics.keys())
   }
-  get<T extends Request>(url: apiUri, func: (req: T, response: any) => void): void {
+  get(url: apiUri, func: (req: express.Request, response: express.Response) => void): void {
     debugUrl('start get' + url)
-    this.app.get(url, (req: T, response: any) => {
+    this.app.get(url, (req: express.Request, response: express.Response) => {
       debug(req.method + ': ' + req.originalUrl)
       func(req, response)
     })
   }
-  post<T extends Request>(url: apiUri, func: (req: T, response: any) => void): void {
+  post(url: apiUri, func: (req: express.Request, response: express.Response) => void): void {
     debugUrl('start post' + url)
-    this.app.post(url, (req: T, response: any) => {
+    this.app.post(url, (req: express.Request, response: express.Response) => {
       debug(req.method + ': ' + req.originalUrl)
       func(req, response)
     })
   }
-  delete<T extends Request>(url: apiUri, func: (req: T, response: any) => void): void {
+  delete(url: apiUri, func: (req: express.Request, response: express.Response) => void): void {
     debugUrl('start delete' + url)
-    this.app.delete(url, (req: T, response: any) => {
+    this.app.delete(url, (req: express.Request, response: express.Response) => {
       debug(req.method + ': ' + req.originalUrl)
       func(req, response)
     })
   }
   validate() {}
-  authenticate(req: Request, res: http.ServerResponse, next: any) {
+  authenticate(req: Request, res: http.ServerResponse, next: NextFunction) {
     //  req.header('')
     // All api calls and a user registration when a user is already registered needs authorization
     debugUrl('authenticate' + req.url)
-    let config = Config.getConfiguration()
+    const config = Config.getConfiguration()
     let token = HttpServerBase.getAuthTokenFromUrl(req.url)
     if (token != undefined) req.url = req.url.replace(token + '/', '')
     else token = HttpServerBase.getAuthTokenFromHeader(req)
-    let slaveTopicFound =
+    const slaveTopicFound =
       null !=
       MqttSubscriptions.getInstance()
         .getSlaveBaseTopics()
@@ -148,9 +148,9 @@ export class HttpServerBase {
       req.url.indexOf('/download/') >= 0 ||
       slaveTopicFound
     ) {
-      let authStatus = Config.getAuthStatus()
+      const authStatus = Config.getAuthStatus()
       if (authStatus.hassiotoken) {
-        let address = (req.socket.address() as AddressInfo).address
+        const address = (req.socket.address() as AddressInfo).address
         if (
           !address ||
           (address.indexOf('172.30.33') < 0 &&
@@ -194,25 +194,26 @@ export class HttpServerBase {
 
   initApp() {}
   init(): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
+    return new Promise<void>((resolve) => {
       try {
         Config.executeHassioGetRequest<{ data: IAddonInfo }>(
           '/addons/self/info',
           (info) => {
             //this.ingressUrl = join("/hassio/ingress/", info.data.slug);
             this.ingressUrl = info.data.ingress_entry
-            let port = Config.getConfiguration().httpport
+            const port = Config.getConfiguration().httpport
             log.log(LogLevelEnum.info, 'Hassio authentication prefix:' + this.ingressUrl + ' modbus2mqtt: ' + port)
             this.initBase()
             resolve()
           },
           (e) => {
-            let port = Config.getConfiguration().httpport
+            const port = Config.getConfiguration().httpport
             log.log(LogLevelEnum.warn, 'Hassio authentication failed ' + e.message + ' modbus2mqtt: ' + port)
             this.initBase()
             resolve()
           }
         )
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) {
         this.initBase()
         resolve()
@@ -220,7 +221,7 @@ export class HttpServerBase {
     })
   }
   private compareIngressUrl(req: Request) {
-    let h = req.header('X-Ingress-Path')
+    const h = req.header('X-Ingress-Path')
     if (h && h != this.ingressUrl) {
       log.log(LogLevelEnum.error, 'Invalid X-Ingress-Path in header expected: ' + this.ingressUrl + 'got: ' + h)
     }
@@ -231,12 +232,12 @@ export class HttpServerBase {
     if (req.url.endsWith('.js')) {
       log.log(LogLevelEnum.info, 'sendIndexfile is serving js file directly: ' + req.url)
     }
-    let dir = this.getDirectoryForLanguage(req)
-    let file = join(this.angulardir, dir, 'index.html')
+    const dir = this.getDirectoryForLanguage(req)
+    const file = join(this.angulardir, dir, 'index.html')
     let content = fs.readFileSync(file).toString()
-    let htmlDom = parse(content.toString())
+    const htmlDom = parse(content.toString())
     if (this.ingressUrl && content && htmlDom) {
-      let base = htmlDom.querySelector('base')
+      const base = htmlDom.querySelector('base')
       base?.setAttribute('href', join('/', this.ingressUrl, '/'))
       content = htmlDom.toString()
       res.status(200).setHeader('Content-Type', 'text/html').send(htmlDom.toString())
@@ -251,17 +252,17 @@ export class HttpServerBase {
    */
   private processStaticAngularFiles(req: Request, res: express.Response, next: NextFunction) {
     try {
-      let dir = this.getDirectoryForLanguage(req)
+      const dir = this.getDirectoryForLanguage(req)
       if (dir) {
         res.removeHeader('Content-Type')
-        let file = join(this.angulardir, dir, req.url)
+        const file = join(this.angulardir, dir, req.url)
         if (fs.existsSync(file) && !fs.lstatSync(file).isDirectory()) {
           if (req.url.indexOf('index.html') >= 0) {
             this.sendIndexFile(req, res)
             return
           } else {
             res.contentType(basename(req.url))
-            let content = fs.readFileSync(file)
+            const content = fs.readFileSync(file)
             log.log(LogLevelEnum.info, 'url' + req.url + ' ct:' + res.getHeader('Content-Type'))
             res.setHeader('Content-Length', content.byteLength)
             res.status(200)
@@ -272,12 +273,13 @@ export class HttpServerBase {
       }
       next()
       return
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       res.status(401).setHeader('Content-Type', 'text/html').send('No or invalid index.html file ')
     }
   }
 
-  processAll(req: Request, res: express.Response, next: NextFunction) {
+  processAll(req: Request, res: express.Response) {
     this.sendIndexFile(req, res)
   }
   initBase() {
@@ -287,8 +289,7 @@ export class HttpServerBase {
     this.app.use(bodyparser.json())
     this.app.use(bodyparser.urlencoded({ extended: true }))
     this.app.use(express.json())
-    //@ts-ignore
-    this.app.use(function (_undefined: any, res: http.ServerResponse, next: any) {
+    this.app.use(function (_undefined: unknown, res: http.ServerResponse, next: NextFunction) {
       //            res.setHeader('charset', 'utf-8')
       debug('Authenticate')
       res.setHeader('Access-Control-Allow-Methods', 'POST, PUT, OPTIONS, DELETE, GET')
@@ -304,14 +305,10 @@ export class HttpServerBase {
     this.app.use(this.authenticate.bind(this))
     this.app.use(this.processStaticAngularFiles.bind(this))
     this.app.use(express.static(this.angulardir))
-    this.app.get('/', (req: Request, res: express.Response, next: NextFunction) => {
+    this.app.get('/', (req: Request, res: express.Response) => {
       res.redirect('index.html')
     })
     this.initApp()
     this.app.all(/.*/, this.processAll.bind(this))
-    this.app.on('mount', function (socket: any) {
-      socket.setTimeout(2 * 60 * 1000)
-      // 30 second timeout. Change this as you see fit.
-    })
   }
 }

@@ -1,15 +1,14 @@
-import { expect, it, test, afterAll, jest, beforeAll } from '@jest/globals'
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { expect, it, test, afterAll, beforeAll } from '@jest/globals'
 import { Config, MqttValidationResult } from '../../src/server/config'
 import { getFileNameFromName } from '../../src/specification.shared'
 import * as fs from 'fs'
 import { setConfigsDirsForTest } from './configsbase'
-import { ImqttClient, AuthenticationErrors } from '../../src/server.shared'
-import AdmZip from 'adm-zip'
+import { AuthenticationErrors } from '../../src/server.shared'
 import Debug from 'debug'
-import exp from 'constants'
 import { ConfigTestHelper } from './testhelper'
 setConfigsDirsForTest()
-let debug = Debug('config_test')
+const debug = Debug('config_test')
 
 // Test Helper Instanz
 let configTestHelper: ConfigTestHelper
@@ -21,31 +20,31 @@ beforeAll(() => {
     configTestHelper.setup()
     const config = new Config()
     config.readYamlAsync().then(() => {
-      let cfg = Config.getConfiguration()
+      const cfg = Config.getConfiguration()
       Config.tokenExpiryTime = 2000
       cfg.noAuthentication = false
       expect((cfg as any).noentry).toBeUndefined()
       new Config().writeConfiguration(cfg)
       Config.register('test', 'test123', false).then(() => {
         Config.login('test', 'test123')
-          .then((token) => {
+          .then(() => {
             resolve()
           })
-          .catch(reject)
+          .catch((e: unknown) => {
+            reject(e)
+          })
       })
     })
   })
 })
 afterAll(() => {
-  let cfg = Config.getConfiguration()
+  const cfg = Config.getConfiguration()
   cfg.noAuthentication = false
   new Config().writeConfiguration(cfg)
   configTestHelper.restore()
 })
 test('register/login/validate', (done) => {
-  const config = new Config()
-  let loginExecuted: boolean = false
-  let cfg = Config.getConfiguration()
+  const cfg = Config.getConfiguration()
   Config.tokenExpiryTime = 2000
   expect((cfg as any).noentry).toBeUndefined()
   new Config().writeConfiguration(cfg)
@@ -63,8 +62,7 @@ test('register/login/validate', (done) => {
   })
 })
 test('register/login/validate no Authentication', (done) => {
-  const config = new Config()
-  let cfg = Config.getConfiguration()
+  const cfg = Config.getConfiguration()
   expect((cfg as any).noentry).toBeUndefined()
   new Config().writeConfiguration(cfg)
   Config.register(undefined, undefined, true).then(() => {
@@ -74,15 +72,15 @@ test('register/login/validate no Authentication', (done) => {
 })
 it('getFileNameFromName remove non ascii characters', () => {
   const name = '/\\*& asdf+-_.'
-  let fn = getFileNameFromName(name)
+  const fn = getFileNameFromName(name)
   debug(fn)
   expect(fn).toBe('asdf+-_.')
 })
 
 it('writeConfiguration change password ', () => {
-  let cr = new Config()
-  let cfg = Config.getConfiguration()
-  let oldpassword = cfg.mqttconnect.password
+  const cr = new Config()
+  const cfg = Config.getConfiguration()
+  const oldpassword = cfg.mqttconnect.password
   cfg.mqttconnect.password = 'testpassword'
   cr.writeConfiguration(cfg)
   expect(Config['config'].mqttconnect.password).toBe('testpassword')
@@ -94,7 +92,7 @@ it('writeConfiguration change password ', () => {
   expect(Config['config'].mqttconnect.password).toBe(oldpassword)
   cfgStr = fs.readFileSync(Config.getLocalDir() + '/modbus2mqtt.yaml').toString()
   expect(cfgStr).toContain('!secret ')
-  let secretsStr = fs.readFileSync(Config.getLocalDir() + '/secrets.yaml').toString()
+  const secretsStr = fs.readFileSync(Config.getLocalDir() + '/secrets.yaml').toString()
   expect(secretsStr).toContain(oldpassword)
 })
 
@@ -107,14 +105,7 @@ export const mqttService = {
   password: 'Euso6ahphaiWei9Aeli6Tei0si2paep5agethohboophe7vae9uc0iebeezohg8e',
   addon: 'core_mosquitto',
 }
-var mockedMqttResolve = true
-var mockedReason = 'Failed to get HASSIO MQTT Data'
-function mockedMqtt(_param: any): Promise<any> {
-  return new Promise<any>((resolve, reject) => {
-    if (mockedMqttResolve) resolve(mqttService)
-    else reject(mockedReason)
-  })
-}
+const mockedReason = 'Failed to get HASSIO MQTT Data'
 
 let mockReject = false
 function executeHassioGetRequest<T>(_url: string, next: (_dev: T) => void, reject: (error: any) => void): void {
@@ -123,10 +114,10 @@ function executeHassioGetRequest<T>(_url: string, next: (_dev: T) => void, rejec
 }
 
 it('getMqttConnectOptions: read connection from hassio', (done) => {
-  let oldExecute = Config['executeHassioGetRequest']
+  const oldExecute = Config['executeHassioGetRequest']
   Config['executeHassioGetRequest'] = executeHassioGetRequest
   process.env.HASSIO_TOKEN = 'test'
-  let cfg = new Config()
+  const cfg = new Config()
   Config['config'].mqttusehassio = true
   cfg.getMqttConnectOptions().then((_mqttData) => {
     expect(_mqttData.mqttserverurl).toBe('mqtt://core-mosquitto:1883')
