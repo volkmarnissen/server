@@ -87,10 +87,10 @@ export class ConfigTestHelper {
   }
 
   setup(): void {
-  // Create backups of all relevant files
+    // Create backups of all relevant files
     this.helper.backup(this.originalSecretsPath)
 
-  // Also back up bus and specification files
+    // Also back up bus and specification files
     const configDir = Config.configDir
     if (configDir) {
       this.helper.backup(`${configDir}/modbus2mqtt/busses/bus.0/s2.yaml`)

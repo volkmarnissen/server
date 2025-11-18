@@ -81,5 +81,23 @@ if [ "$SKIP_APK" = false ]; then
   }
 fi
 
+# ESLint check for all staged files
+if command -v npx >/dev/null 2>&1; then
+  ESLINT_ERRORS=0
+  for file in $STAGED_FILES; do
+    # Check only relevant file types
+    case "$file" in
+      *.js|*.ts|*.tsx|*.jsx)
+        echo "Running ESLint on $file..."
+        npx eslint "$file" || ESLINT_ERRORS=1
+        ;;
+    esac
+  done
+  if [ "$ESLINT_ERRORS" -ne 0 ]; then
+    echo "ERROR: ESLint found problems in staged files. Commit aborted."
+    exit 1
+  fi
+fi
+
 echo "Commit-msg checks passed."
 exit 0

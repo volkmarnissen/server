@@ -185,7 +185,31 @@ If you see `EACCES: permission denied` errors:
    docker exec -it modbus2mqtt id
    # Expected: uid=1000(modbus2mqtt) gid=20(dialout)
    ```
+### Installing Patches or Older Versions
 
+Patches are available as npm packages.
+They can be installed in the addon.
+
+This is the procedure:
+- Make sure, the docker container is running:
+
+- Logon to the container using the following command
+  ```
+  docker exec -it $(docker ps -a --filter label=org.opencontainers.image.source=https://github.com/modbus2mqtt/modbus2mqtt --format "{{.ID}}") sh
+  ```
+- execute the following command to install the latest version
+  ```
+  npm install modbus2mqtt
+  ```
+- execute the following command to install the a specfic version
+  ```
+  npm install modbus2mqtt@<version>
+  ```
+  E.g. npm install@0.17.1
+- exit the docker image
+  ```
+  exit
+  ```
 ### Serial Device Permission Issues
 
 For Modbus RTU access, ensure the serial device has proper permissions:

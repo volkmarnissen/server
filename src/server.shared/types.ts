@@ -1,11 +1,4 @@
-import {
-  IdentifiedStates,
-  IidentEntity,
-  ImodbusSpecification,
-  Ispecification,
-  ModbusRegisterType,
-  SpecificationStatus,
-} from '../specification.shared'
+import { IdentifiedStates, IidentEntity, Ispecification, ModbusRegisterType, SpecificationStatus } from '../specification.shared'
 import { IClientOptions } from 'mqtt'
 
 export enum HttpErrorsEnum {
@@ -104,10 +97,10 @@ export interface IBus {
 }
 export function getConnectionName(connection: IModbusConnection): string {
   if ((connection as IRTUConnection).baudrate) {
-    let c = connection as IRTUConnection
+    const c = connection as IRTUConnection
     return 'RTU: ' + c.serialport + '(' + c.baudrate + ') t: ' + c.timeout
   } else {
-    let c = connection as ITCPConnection
+    const c = connection as ITCPConnection
     return 'TCP: ' + c.host + ':' + c.port + ' t: ' + (c.timeout ? c.timeout : 100)
   }
 }
