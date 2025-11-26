@@ -3,12 +3,13 @@
 
 description="Modbus to MQTT bridge"
 command="/usr/bin/modbus2mqtt"
+command_args="-c /config -d /data -s /ssl"
 command_user="modbus2mqtt:dialout"
 command_background=true
 pidfile="/run/$RC_SVCNAME.pid"
 output_log="/var/log/$RC_SVCNAME.log"
 error_log="/var/log/$RC_SVCNAME.err"
-directory="/data"
+directory="/var/lib/modbus2mqtt"
 
 depend() {
     need net
@@ -19,5 +20,13 @@ start_pre() {
     checkpath --directory --mode 0755 /var/log
     checkpath --directory --mode 0755 --owner modbus2mqtt:dialout /var/lib/modbus2mqtt
     checkpath --directory --mode 0755 --owner modbus2mqtt:dialout /var/lib/modbus2mqtt/.config/git
-    export HOME=/var/lib/modbus2mqtt
+    checkpath --file-truncate --mode 0644 --owner modbus2mqtt:dialout /var/log/$RC_SVCNAME.log
+    checkpath --file-truncate --mode 0644 --owner modbus2mqtt:dialout /var/log/$RC_SVCNAME.err
+    checkpath --directory --mode 0755 --owner modbus2mqtt:dialout /config/modbus2mqtt
+    checkpath --directory --mode 0755 --owner modbus2mqtt:dialout /data/public
+    checkpath --directory --mode 0755 --owner modbus2mqtt:dialout /config/modbus2mqtt
+    checkpath --file --mode 0600 --owner modbus2mqtt:dialout /ssl/secrets.txt
+# Git is used within this service. It is confused about the permissions    
+    git config --system --add safe.directory /data/public
+
 }
