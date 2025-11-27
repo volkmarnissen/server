@@ -58,8 +58,8 @@ PY
 )
 
     if [ "$v_head" != "$v_index" ] || [ "$n_head" != "$n_index" ]; then
-      echo "ERROR: 'package.json' 'version' or 'name' was changed in this commit."
-      echo "If this is intentional, include [skip-version-name-check] in the commit message to bypass."
+      echo "ERROR: 'package.json' 'version' or 'name' was changed in this commit." >&2
+      echo "If this is intentional, include [skip-version-name-check] in the commit message to bypass." >&2
       exit 1
     fi
   fi
@@ -75,8 +75,8 @@ fi
 if [ "$SKIP_APK" = false ]; then
   echo "$apk_content" | grep -F 'npmpackage="${pkgname}"' >/dev/null 2>&1 || {
     echo "ERROR: $APK_PATH must contain the line: npmpackage=\"\
-\${pkgname}\""
-    echo "If you intentionally want to skip this check, include [skip-apkbuild-check] in the commit message."
+\${pkgname}\"" >&2
+    echo "If you intentionally want to skip this check, include [skip-apkbuild-check] in the commit message." >&2
     exit 1
   }
 fi
@@ -94,10 +94,10 @@ if command -v npx >/dev/null 2>&1; then
     esac
   done
   if [ "$ESLINT_ERRORS" -ne 0 ]; then
-    echo "ERROR: ESLint found problems in staged files. Commit aborted."
+    echo "ERROR: ESLint found problems in staged files. Commit aborted." >&2
     exit 1
   fi
 fi
 
-echo "Commit-msg checks passed."
+echo "Commit-msg checks passed." >&2
 exit 0
