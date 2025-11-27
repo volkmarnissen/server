@@ -11,7 +11,7 @@ SKIP_APK=false
 echo "$MSG_CONTENT" | grep -F '[skip-version-name-check]' >/dev/null 2>&1 && SKIP_VERSION=true
 echo "$MSG_CONTENT" | grep -F '[skip-apkbuild-check]' >/dev/null 2>&1 && SKIP_APK=true
 
-echo "Running commit-msg hook checks..." >&2
+echo "[commit-msg] Running commit-msg hook checks..." >&2
 
 get_index_file() {
   # Return staged (index) version of a file if available, else fall back to worktree file
@@ -58,8 +58,8 @@ PY
 )
 
     if [ "$v_head" != "$v_index" ] || [ "$n_head" != "$n_index" ]; then
-      echo "ERROR: 'package.json' 'version' or 'name' was changed in this commit." >&2
-      echo "If this is intentional, include [skip-version-name-check] in the commit message to bypass." >&2
+      echo "[commit-msg] ERROR: 'package.json' 'version' or 'name' was changed in this commit." >&2
+      echo "[commit-msg] If this is intentional, include [skip-version-name-check] in the commit message to bypass." >&2
       exit 1
     fi
   fi
@@ -74,9 +74,9 @@ fi
 
 if [ "$SKIP_APK" = false ]; then
   echo "$apk_content" | grep -F 'npmpackage="${pkgname}"' >/dev/null 2>&1 || {
-    echo "ERROR: $APK_PATH must contain the line: npmpackage=\"\
+    echo "[commit-msg] ERROR: $APK_PATH must contain the line: npmpackage=\"\
 \${pkgname}\"" >&2
-    echo "If you intentionally want to skip this check, include [skip-apkbuild-check] in the commit message." >&2
+    echo "[commit-msg] If you intentionally want to skip this check, include [skip-apkbuild-check] in the commit message." >&2
     exit 1
   }
 fi
@@ -94,10 +94,10 @@ if command -v npx >/dev/null 2>&1; then
     esac
   done
   if [ "$ESLINT_ERRORS" -ne 0 ]; then
-    echo "ERROR: ESLint found problems in staged files. Commit aborted." >&2
+    echo "[commit-msg] ERROR: ESLint found problems in staged files. Commit aborted." >&2
     exit 1
   fi
 fi
 
-echo "Commit-msg checks passed." >&2
+echo "[commit-msg] Commit-msg checks passed." >&2
 exit 0
