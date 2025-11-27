@@ -10,18 +10,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2  # Damit wir den vorherigen Commit haben
+          fetch-depth: 2  # To get the previous checkin
 
       - name: Set BASE_REF to previous commit
         id: set_base
         run: |
           echo "GITHUB_BASE_REF=$(git rev-parse HEAD^)" >> $GITHUB_ENV
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jq
-          npm ci || true
 
       - name: Run pre-commit.sh (HEAD vs previous)
         run: |
