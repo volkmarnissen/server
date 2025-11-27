@@ -88,7 +88,6 @@ jobs:
     uses: ./.github/workflows/release-assets.yml
     with:
       version: ${{ needs.npm_publish.outputs.version }}
-      dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run_assets }}
 
 # Notes:
 # - For push to main, it will NOT bump version automatically; it uses the current package.json version.
