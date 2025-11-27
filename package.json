@@ -40,7 +40,7 @@
     "e2e:end.debug": "rm -rf 'e2e/modbus2mqtt.temp'",
     "build.dev": "tsc -p tsconfig.json && ng build --configuration development",
     "build": "tsc -p tsconfig.json && ng build --configuration production && npx @opengovsg/credits-generator",
-    "prettier": "prettier --write '**/*.{ts,js,css,html,tsx}'",
+    "prettier": "./scripts/prettier-changed.sh",
     "install-hooks": "git config core.hooksPath .githooks && chmod +x .githooks/* || true && echo 'Git hooks configured to use .githooks directory'"
   },
   "dependencies": {

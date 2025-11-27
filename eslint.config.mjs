@@ -44,4 +44,10 @@ export default [
       },
     },
   },
+  {
+    files: ['*.js', '*.mjs'],
+    languageOptions: {
+      parser: null // oder: parser: require.resolve('espree')
+    }
+  }
 ];

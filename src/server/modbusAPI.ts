@@ -11,7 +11,7 @@ import { ImodbusValues, Logger, LogLevelEnum } from '../specification'
 import { ModbusRegisterType } from '../specification.shared'
 import { Mutex } from 'async-mutex'
 import ModbusRTU from 'modbus-serial'
-import { ReadCoilResult, ReadRegisterResult, WriteMultipleResult } from 'modbus-serial/ModbusRTU'
+import { ReadCoilResult, ReadRegisterResult } from 'modbus-serial/ModbusRTU'
 import { IModbusResultWithDuration } from './bus'
 import { Config } from './config'
 import { IexecuteOptions, ModbusRTUProcessor } from './modbusRTUprocessor'
@@ -24,6 +24,10 @@ import Debug from 'debug'
 const log = new Logger('bus')
 const debug = Debug('modbusapi')
 const debugMClient = Debug('modbusapi:mclient')
+interface ErrorWithErrnoAndDuration extends Error {
+  errno?: string
+  duration?: number
+}
 
 export interface IconsumerModbusAPI {
   getName(): string
@@ -72,15 +76,15 @@ export class ModbusAPI implements IModbusAPI, IconsumerModbusAPI {
             return this.modbusRTUprocessor.execute(slaveId, addresses, options).then(resolve).catch(reject)
           })
           .catch((e) => {
-            let addr = addresses.values().next().value
+            const addr = addresses.values().next().value
             if (addr) {
-              let date = new Date()
+              const date = new Date()
               this._modbusRTUWorker.addError(
                 {
                   slaveId: slaveId,
                   address: addr,
-                  onResolve: (qe) => {},
-                  onError: (e) => {},
+                  onResolve: () => {},
+                  onError: () => {},
                   options: { task: ModbusTasks.initialConnect, errorHandling: {} },
                 },
                 ModbusErrorStates.initialConnect,
@@ -99,8 +103,8 @@ export class ModbusAPI implements IModbusAPI, IconsumerModbusAPI {
     data: number[],
     options: IexecuteOptions
   ): Promise<void> {
-    let executeWrite = (onResolve: () => void, onReject: (e: any) => void) => {
-      let addr: ImodbusAddress = { address: address, length: data.length, registerType: registerType, write: data }
+    const executeWrite = (onResolve: () => void, onReject: (e: unknown) => void) => {
+      const addr: ImodbusAddress = { address: address, length: data.length, registerType: registerType, write: data }
       this.modbusRTUQueue.enqueue(slaveId, addr, onResolve, onReject, options)
     }
     if (this.modbusClient && this.modbusClient.isOpen)
@@ -124,7 +128,7 @@ export class ModbusAPI implements IModbusAPI, IconsumerModbusAPI {
     resultMapper: (inp: T, start: number) => IModbusResultWithDuration,
     fctName: string
   ): Promise<IModbusResultWithDuration> {
-    let rc = new Promise<IModbusResultWithDuration>((resolve, reject) => {
+    const rc = new Promise<IModbusResultWithDuration>((resolve, reject) => {
       if (this.modbusClient == undefined) {
         log.log(LogLevelEnum.error, 'modbusClient is undefined')
         reject(new Error('modbusClient is undefined'))
@@ -134,12 +138,12 @@ export class ModbusAPI implements IModbusAPI, IconsumerModbusAPI {
         let slaveTimout = this.modbusConfiguration.getSlaveTimeoutBySlaveId(slaveid)
         if (slaveTimout == undefined) slaveTimout = (this.modbusConfiguration.getModbusConnection() as IRTUConnection).timeout
         this.modbusClient!.setTimeout(slaveTimout)
-        let start = Date.now()
+        const start = Date.now()
         debugMClient('%s call: %d %d', fctName, dataaddress, length)
         fct(dataaddress, length)
           .then((result) => {
             this.clearModbusTimout()
-            let rc = resultMapper(result, start)
+            const rc = resultMapper(result, start)
             debugMClient('%s success: %d %d %o', fctName, dataaddress, length, rc.data)
             resolve(rc)
           })
@@ -158,7 +162,7 @@ export class ModbusAPI implements IModbusAPI, IconsumerModbusAPI {
     }
   }
   private static coilResultMapper(inp: ReadCoilResult, start: number): IModbusResultWithDuration {
-    let readResult: ReadRegisterResult = {
+    const readResult: ReadRegisterResult = {
       data: [],
       buffer: Buffer.allocUnsafe(0),
     }
@@ -206,7 +210,7 @@ export class ModbusAPI implements IModbusAPI, IconsumerModbusAPI {
       slaveid,
       dataaddress,
       length,
-      this.modbusClient!.readDiscreteInputs.bind(this.modbusClient),
+      this.modbusClient!.readCoils.bind(this.modbusClient),
       ModbusAPI.coilResultMapper,
       'Coil'
     )
@@ -216,8 +220,8 @@ export class ModbusAPI implements IModbusAPI, IconsumerModbusAPI {
   }
 
   writeHoldingRegisters(slaveid: number, dataaddress: number, data: number[]): Promise<void> {
-    let rc = new Promise<void>((resolve, reject) => {
-      let start = Date.now()
+    const rc = new Promise<void>((resolve, reject) => {
+      const start = Date.now()
       if (this.modbusClient == undefined) {
         log.log(LogLevelEnum.error, 'modbusClient is undefined')
         return
@@ -237,15 +241,15 @@ export class ModbusAPI implements IModbusAPI, IconsumerModbusAPI {
     return rc
   }
   writeCoils(slaveid: number, dataaddress: number, data: number[]): Promise<void> {
-    let rc = new Promise<void>((resolve, reject) => {
+    const rc = new Promise<void>((resolve, reject) => {
       if (this.modbusClient == undefined) {
         log.log(LogLevelEnum.error, 'modbusClient is undefined')
         return
       } else {
-        let start = Date.now()
+        const start = Date.now()
         this.modbusClient!.setID(slaveid)
         this.modbusClient!.setTimeout((this.modbusConfiguration.getModbusConnection() as IRTUConnection).timeout)
-        let dataB: boolean[] = []
+        const dataB: boolean[] = []
         data.forEach((d) => {
           dataB.push(d == 1)
         })
@@ -274,8 +278,9 @@ export class ModbusAPI implements IModbusAPI, IconsumerModbusAPI {
     })
     return rc
   }
-  setModbusTimout(reject: (e: any) => void, e: any, start: number) {
-    this.modbusClientTimedOut = e.errno && e.errno == 'ETIMEDOUT'
+
+  setModbusTimout(reject: (e: ErrorWithErrnoAndDuration) => void, e: ErrorWithErrnoAndDuration, start: number) {
+    this.modbusClientTimedOut = e && e.errno != undefined && e.errno == 'ETIMEDOUT'
     e.duration = Date.now() - start
     reject(e)
   }
@@ -286,11 +291,11 @@ export class ModbusAPI implements IModbusAPI, IconsumerModbusAPI {
   private connectMutex = new Mutex()
   private connectRTUClient(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-      let resolveRelease = () => {
+      const resolveRelease = () => {
         this.connectMutex.release()
         resolve()
       }
-      let rejectRelease = (e: any) => {
+      const rejectRelease = (e: unknown) => {
         this.connectMutex.release()
         reject(e)
       }
@@ -303,20 +308,20 @@ export class ModbusAPI implements IModbusAPI, IconsumerModbusAPI {
         }
 
         // debug("connectRTUBuffered")
-        let port = (this.modbusConfiguration.getModbusConnection() as IRTUConnection).serialport
-        let baudrate = (this.modbusConfiguration.getModbusConnection() as IRTUConnection).baudrate
+        const port = (this.modbusConfiguration.getModbusConnection() as IRTUConnection).serialport
+        const baudrate = (this.modbusConfiguration.getModbusConnection() as IRTUConnection).baudrate
         if (port && baudrate) {
           this.modbusClient.connectRTUBuffered(port, { baudRate: baudrate }).then(resolveRelease).catch(rejectRelease)
         } else {
-          let host = (this.modbusConfiguration.getModbusConnection() as ITCPConnection).host
-          let port = (this.modbusConfiguration.getModbusConnection() as ITCPConnection).port
+          const host = (this.modbusConfiguration.getModbusConnection() as ITCPConnection).host
+          const port = (this.modbusConfiguration.getModbusConnection() as ITCPConnection).port
           this.modbusClient.connectTCP(host, { port: port }).then(resolveRelease).catch(rejectRelease)
         }
       })
     })
   }
   reconnectRTU(task: string): Promise<void> {
-    let rc = new Promise<void>((resolve, reject) => {
+    const rc = new Promise<void>((resolve, reject) => {
       if (this.modbusClientTimedOut) {
         if (this.modbusClient == undefined || !this.modbusClient.isOpen) {
           reject(task + ' Last read failed with TIMEOUT and modbusclient is not ready')
@@ -346,7 +351,7 @@ export class ModbusAPI implements IModbusAPI, IconsumerModbusAPI {
     return rc
   }
   private connectRTU(task: string): Promise<void> {
-    let rc = new Promise<void>((resolve, reject) => {
+    const rc = new Promise<void>((resolve, reject) => {
       this.connectRTUClient()
         .then(resolve)
         .catch((e) => {
@@ -357,7 +362,7 @@ export class ModbusAPI implements IModbusAPI, IconsumerModbusAPI {
     return rc
   }
 
-  private closeRTU(task: string, callback: Function) {
+  private closeRTU(task: string, callback: () => void) {
     if (this.modbusClientTimedOut) {
       debug("Workaround: Last calls TIMEDOUT won't close")
       callback()

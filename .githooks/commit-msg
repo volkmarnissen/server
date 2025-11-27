@@ -1,7 +1,7 @@
-#!/usr/bin/env bash
+#!/bin/sh
 set -euo pipefail
 # Commit-msg hook to enforce package.json and APKBUILD rules
-# Usage: install by running: git config core.hooksPath .githooks
+# Usage: install by running: git config core.hooksPath scripts/git-hooks
 
 MSG_FILE="$1"
 MSG_CONTENT=$(cat "$MSG_FILE" || true)
@@ -11,7 +11,7 @@ SKIP_APK=false
 echo "$MSG_CONTENT" | grep -F '[skip-version-name-check]' >/dev/null 2>&1 && SKIP_VERSION=true
 echo "$MSG_CONTENT" | grep -F '[skip-apkbuild-check]' >/dev/null 2>&1 && SKIP_APK=true
 
-echo "Running commit-msg hook checks..."
+echo "[commit-msg] Running commit-msg hook checks..." >&2
 
 get_index_file() {
   # Return staged (index) version of a file if available, else fall back to worktree file
@@ -24,49 +24,42 @@ STAGED_FILES=$(git diff --cached --name-only || true)
 
 if echo "$STAGED_FILES" | grep -qx "package.json"; then
   if [ "$SKIP_VERSION" = false ]; then
-  # Safely capture package.json from HEAD (if present) and from the index, then parse with python
-  v_head_json=$(git show HEAD:package.json 2>/dev/null || true)
-  v_index_json=$(git show :package.json 2>/dev/null || true)
-
-  if [ -n "$v_head_json" ]; then
-    v_head=$(printf '%s' "$v_head_json" | python3 -c 'import sys, json
-data=sys.stdin.read()
+    v_head=$(git show HEAD:package.json 2>/dev/null | python3 - <<'PY'
+import sys, json
 try:
-  print(json.loads(data).get("version",""))
+    print(json.load(sys.stdin).get('version',''))
 except Exception:
-  print("")') || true
-    n_head=$(printf '%s' "$v_head_json" | python3 -c 'import sys, json
-data=sys.stdin.read()
+    print('')
+PY
+)
+    v_index=$(git show :package.json 2>/dev/null | python3 - <<'PY'
+import sys, json
 try:
-  print(json.loads(data).get("name",""))
+    print(json.load(sys.stdin).get('version',''))
 except Exception:
-  print("")') || true
-  else
-    v_head=""
-    n_head=""
-  fi
-
-  if [ -n "$v_index_json" ]; then
-    v_index=$(printf '%s' "$v_index_json" | python3 -c 'import sys, json
-data=sys.stdin.read()
+    print('')
+PY
+)
+    n_head=$(git show HEAD:package.json 2>/dev/null | python3 - <<'PY'
+import sys, json
 try:
-  print(json.loads(data).get("version",""))
+    print(json.load(sys.stdin).get('name',''))
 except Exception:
-  print("")') || true
-    n_index=$(printf '%s' "$v_index_json" | python3 -c 'import sys, json
-data=sys.stdin.read()
+    print('')
+PY
+)
+    n_index=$(git show :package.json 2>/dev/null | python3 - <<'PY'
+import sys, json
 try:
-  print(json.loads(data).get("name",""))
+    print(json.load(sys.stdin).get('name',''))
 except Exception:
-  print("")') || true
-  else
-    v_index=""
-    n_index=""
-  fi
+    print('')
+PY
+)
 
     if [ "$v_head" != "$v_index" ] || [ "$n_head" != "$n_index" ]; then
-      echo "ERROR: 'package.json' 'version' or 'name' was changed in this commit."
-      echo "If this is intentional, include [skip-version-name-check] in the commit message to bypass."
+      echo "[commit-msg] ERROR: 'package.json' 'version' or 'name' was changed in this commit." >&2
+      echo "[commit-msg] If this is intentional, include [skip-version-name-check] in the commit message to bypass." >&2
       exit 1
     fi
   fi
@@ -81,11 +74,30 @@ fi
 
 if [ "$SKIP_APK" = false ]; then
   echo "$apk_content" | grep -F 'npmpackage="${pkgname}"' >/dev/null 2>&1 || {
-    echo "ERROR: $APK_PATH must contain the line: npmpackage=\"\\\${pkgname}\""
-    echo "If you intentionally want to skip this check, include [skip-apkbuild-check] in the commit message."
+    echo "[commit-msg] ERROR: $APK_PATH must contain the line: npmpackage=\"\
+\${pkgname}\"" >&2
+    echo "[commit-msg] If you intentionally want to skip this check, include [skip-apkbuild-check] in the commit message." >&2
     exit 1
   }
 fi
 
-echo "Commit-msg checks passed."
+# ESLint check for all staged files
+if command -v npx >/dev/null 2>&1; then
+  ESLINT_ERRORS=0
+  for file in $STAGED_FILES; do
+    # Check only relevant file types
+    case "$file" in
+      *.js|*.ts|*.tsx|*.jsx)
+        echo "Running ESLint on $file..."
+        npx eslint "$file" || ESLINT_ERRORS=1
+        ;;
+    esac
+  done
+  if [ "$ESLINT_ERRORS" -ne 0 ]; then
+    echo "[commit-msg] ERROR: ESLint found problems in staged files. Commit aborted." >&2
+    exit 1
+  fi
+fi
+
+echo "[commit-msg] Commit-msg checks passed." >&2
 exit 0
