@@ -32,22 +32,34 @@ See the previous chapter if this addon is not listed.
    docker exec -it $(docker ps -a --filter label=org.opencontainers.image.source=https://github.com/modbus2mqtt/modbus2mqtt --format "{{.ID}}") sh
    ```
    (You can find `<addon_id>` using `docker ps` or in the Supervisor log.)
+6. Install the desired version:
+   ```
+   npm install -g modbus2mqtt
+   # or a specific version:
+   npm install -g modbus2mqtt@<version>
+   # Example:
+   npm install -g modbus2mqtt@0.17.1
+   ```
+7. Restart the addon
 
-## Installing a Patch or Older Version
+## Installing a Patch or Older Version with Docker
 
-As with the Docker installation, patches can be installed as npm packages in the addon:
+As with the Home Assistant installation, patches can be installed as npm packages in the docker container:
 
-1. Make sure the addon is running.
-2. Log into the addon container via SSH (see above).
+1. Make sure the container is running.
+2. Log into the container via SSH (see above) or via `docker exec -it`.
 3. Install the desired version:
    ```
-   npm install modbus2mqtt
+   npm install -g modbus2mqtt
    # or a specific version:
-   npm install modbus2mqtt@<version>
+   npm install -g modbus2mqtt@<version>
    # Example:
-   npm install modbus2mqtt@0.17.1
+   npm install -g modbus2mqtt@0.17.1
    ```
-4. Restart the addon if necessary for the changes to take effect.
+4. Restart the container/addon if necessary for the changes to take effect.
+   ```docker stop <container id>``` and
+   ```docker start <container id>``` or any other command that restarts this container.
+   
 
 ---
 
