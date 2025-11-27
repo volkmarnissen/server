@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+# --- English check function (from check-english.sh) ---
+umlaut_pattern='[äöüÄÖÜß]'
+german_words='und|der|die|das|nicht|bitte|änderung|anderung|änderungen|anderungen|übersetz|ubersetz|deutsch|deutsche|ich|wir|sie|dass|text|ä|ö|ü|ß'
+
 
 # --- Determine changed files (works for pre-commit and CI workflow) ---
 if [ -n "${GITHUB_ACTIONS:-}" ]; then
@@ -105,24 +108,35 @@ check_forbidden_extensions() {
   done
   return 0
 }
-
-check_non_english() {
-  NON_ENGLISH_FOUND=0
+check_files_for_english() {
+  local found=0
+  local matches=()
   for file in $CHANGED_FILES; do
     case "$file" in
-      *.mjs|*.mts|*.sh|*.md|*.html|*.css|*.json|*.yml|*.yaml)
-        if cat "$file" | LC_ALL=C grep '[^ -~	]' >/dev/null; then
-          echo -e "\033[31m[pre-commit] ERROR: Non-ASCII text found in $file. Please use only English (ASCII) in code and documentation. Tabs are allowed.\033[0m" >&2
-          NON_ENGLISH_FOUND=1
+      *.png|*.jpg|*.jpeg|*.gif|*.bmp|*.ico|*.pdf|*.zip|*.tar|*.gz|*.bz2|*.xz|*.7z|*.mp3|*.mp4|*.mov|*.avi|*.mkv|*.ogg|*.wav|*.flac|*.exe|*.dll|*.so|*.bin)
+        # skip common binary formats
+        continue
+        ;;
+      *)
+        if [ -f "$file" ]; then
+          # check if file is binary (contains null byte)
+          if grep -q $'\x00' "$file"; then
+            continue
+          fi
+          if grep -Ei "$umlaut_pattern|$german_words" "$file" >/dev/null; then
+            matches+=("$file")
+            found=1
+          fi
         fi
         ;;
     esac
   done
-  if [ "$NON_ENGLISH_FOUND" -eq 1 ]; then
-    echo -e "\033[31m[pre-commit] Commit aborted due to non-ASCII text.\033[0m" >&2
+  if [ $found -eq 1 ]; then
+    echo -e "\033[31m[pre-commit] ERROR: Non-English (German) content detected in: ${matches[*]}\033[0m" >&2
     return 1
+  else
+    return 0
   fi
-  return 0
 }
 
 # --- Run all checks ---
@@ -132,7 +146,7 @@ check_apkbuild || FAILED=1
 check_eslint || FAILED=1
 check_prettier || FAILED=1
 check_forbidden_extensions || FAILED=1
-check_non_english || FAILED=1
+check_files_for_english || FAILED=1
 
 if [ "$FAILED" -ne 0 ]; then
   echo -e "\033[31m[pre-commit]ERROR Commit aborted.\033[0m" >&2
