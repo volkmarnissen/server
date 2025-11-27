@@ -1,0 +1,16 @@
+#!/bin/sh
+
+#sync own repo to latest modbus2mqtt/modbus2mqtt version
+gh repo sync volkmarnissen/modbus2mqtt 
+#update local main branch with volkmarnissen/modbus2mqtt
+git switch main 
+git fetch
+#merge against up-to-date local branch
+git merge modbus2mqtt/main
+echo 1. resolve conflicts manually if there are any
+echo 2. commit merged changes 
+echo 3. in https://github.com/volkmarnissen/modbus2mqtt 
+echo 4. sync w/o discard 
+echo 5. create pull request
+echo 6. Merge pull request.
+
